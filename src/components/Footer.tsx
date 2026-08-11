@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { Heart, Phone, Mail, MapPin, Download, ShieldCheck, Sparkles, ShieldAlert, MessageCircle } from 'lucide-react';
+import { Heart, Phone, Mail, MapPin, Download, ShieldCheck, Sparkles, ShieldAlert, MessageCircle, Send } from 'lucide-react';
 import { VanjariJodiLogo } from './VanjariJodiLogo';
 
 export const Footer: React.FC = () => {
@@ -78,13 +78,26 @@ export const Footer: React.FC = () => {
                   <span>व्हॉट्सॲप: {siteConfig.contactWhatsapp || '0000000000'}</span>
                 </a>
               )}
-              <a
-                href={`mailto:${siteConfig?.contactEmail || 'support@vanjarijodi.org'}`}
-                className="px-4 py-2 bg-[#800C1E] text-amber-200 hover:bg-[#5C0815] rounded-xl font-bold border border-amber-300/40 flex items-center gap-2"
-              >
-                <Mail className="w-4 h-4 text-amber-300" />
-                <span>{siteConfig?.contactEmail || 'support@vanjarijodi.org'}</span>
-              </a>
+              {siteConfig?.telegramGroupUrl && siteConfig.telegramGroupUrl.trim() !== '' && (
+                <a
+                  href={siteConfig.telegramGroupUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-4 py-2 bg-[#229ED9] text-white hover:bg-[#1d8cb0] rounded-xl font-bold shadow flex items-center gap-2 border border-sky-300/50"
+                >
+                  <Send className="w-4 h-4 text-white animate-bounce" />
+                  <span>📢 टेलिग्राम ग्रुप जॉईन करा</span>
+                </a>
+              )}
+              {siteConfig?.contactEmail && siteConfig.contactEmail.trim() !== '' && (
+                <a
+                  href={`mailto:${siteConfig.contactEmail}`}
+                  className="px-4 py-2 bg-[#800C1E] text-amber-200 hover:bg-[#5C0815] rounded-xl font-bold border border-amber-300/40 flex items-center gap-2"
+                >
+                  <Mail className="w-4 h-4 text-amber-300" />
+                  <span>{siteConfig.contactEmail}</span>
+                </a>
+              )}
             </div>
           </div>
         </div>

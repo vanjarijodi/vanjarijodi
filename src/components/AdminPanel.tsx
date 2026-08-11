@@ -6744,10 +6744,24 @@ export const AdminPanel: React.FC<{
                     <label className="block text-slate-700 mb-1">सपोर्ट ई-मेल आयडी (Support Email):</label>
                     <input
                       type="email"
-                      value={siteConfig?.contactEmail || 'support@vanjarijodi.org'}
+                      placeholder="उदा. contact@example.com (रिकामा ठेवल्यास दिसणार नाही)"
+                      value={siteConfig?.contactEmail || ''}
                       onChange={(e) => updateSiteConfig({ contactEmail: e.target.value })}
                       className="w-full bg-white border border-amber-300 rounded-xl p-2.5 font-mono text-slate-900"
                     />
+                    <span className="text-[10px] text-slate-500 font-medium">ईमेल दाखवायचा नसेल तर हे रकाने रिकामे ठेवा.</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-700 mb-1">📢 टेलिग्राम ग्रुप / चॅनेल लिंक (Telegram Group Link):</label>
+                    <input
+                      type="url"
+                      placeholder="https://t.me/yourgroup"
+                      value={siteConfig?.telegramGroupUrl || ''}
+                      onChange={(e) => updateSiteConfig({ telegramGroupUrl: e.target.value })}
+                      className="w-full bg-white border border-amber-300 rounded-xl p-2.5 font-mono text-slate-900"
+                    />
+                    <span className="text-[10px] text-[#A71930] font-bold">इथे ग्रुप लिंक टाकल्यास ती ॲप व वेबसाईटवर सर्वात वर इंडेक्सवर दिसेल.</span>
                   </div>
 
                   <div>

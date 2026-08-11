@@ -20,6 +20,7 @@ import {
   Handshake,
   Building2,
   Scroll,
+  Send,
 } from 'lucide-react';
 import { VerifiedBadge } from './VerifiedBadge';
 
@@ -324,6 +325,27 @@ export const LeftDrawer: React.FC = () => {
 
             {/* Divider */}
             <hr className="border-slate-100 my-4" />
+
+            {/* Telegram Group option */}
+            {siteConfig?.telegramGroupUrl && siteConfig.telegramGroupUrl.trim() !== '' && (
+              <a
+                href={siteConfig.telegramGroupUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full flex items-center justify-between p-3.5 rounded-2xl text-white bg-gradient-to-r from-sky-600 to-sky-500 font-extrabold shadow-sm hover:from-sky-500 hover:to-sky-600 transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 rounded-xl bg-white/20 text-white">
+                    <Send className="w-4 h-4 animate-bounce" />
+                  </div>
+                  <div>
+                    <span className="block text-xs font-black">📢 टेलिग्राम ग्रुप जॉईन करा</span>
+                    <span className="block text-[9px] text-sky-100 font-medium">मोफत वधू-वर अपडेट्ससाठी</span>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-white" />
+              </a>
+            )}
 
             {/* 8. Help & Customer Support */}
             <button

@@ -18,6 +18,7 @@ import {
   Building2,
   Scroll,
   Headphones,
+  Send,
 } from 'lucide-react';
 import { VerifiedBadge } from './VerifiedBadge';
 import { NoticeBanner } from './NoticeBanner';
@@ -264,6 +265,19 @@ export const Navbar: React.FC<{
                         <Smartphone className="w-4 h-4 text-emerald-600" />
                         <span>एंड्रॉइड ॲप (APK) डाउनलोड</span>
                       </button>
+                    )}
+
+                    {siteConfig?.telegramGroupUrl && siteConfig.telegramGroupUrl.trim() !== '' && (
+                      <a
+                        href={siteConfig.telegramGroupUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={() => setMenuOpen(false)}
+                        className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold cursor-pointer border border-sky-400 shadow-xs"
+                      >
+                        <Send className="w-4 h-4 text-white animate-bounce" />
+                        <span>📢 टेलिग्राम ग्रुप जॉईन करा</span>
+                      </a>
                     )}
 
                     <button

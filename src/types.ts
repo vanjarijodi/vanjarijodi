@@ -531,6 +531,7 @@ export interface SiteConfig {
   contactPhone: string;
   contactWhatsapp: string;
   contactEmail: string;
+  telegramGroupUrl?: string;
   contactAddress: string;
   contactHeaderTitle?: string;
   contactHeaderSubtitle?: string;
