@@ -39,7 +39,9 @@ export const ProfilesGrid: React.FC<{
     requestContactAuthorization,
     isContactAuthorizedForUser,
     siteConfig,
-    currentView
+    currentView,
+    checkGuestPermission,
+    unlockContact
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'all' | 'bride' | 'groom' | 'shortlisted'>('all');
@@ -445,16 +447,30 @@ export const ProfilesGrid: React.FC<{
                         )}
                       </button>
 
-                      {/* WhatsApp Connect Button (Bumble style) */}
-                      <a
-                        href={`https://wa.me/91${profile.mobile || '0000000000'}?text=नमस्कार, मी वंजारी जोडी (VanjariJodi) वरून आपली प्रोफाईल (ID: ${profile.id}) पाहिली. मला आपल्याबद्दल अधिक जाणून घेण्यात रस आहे.`}
-                        target="_blank"
-                        referrerPolicy="no-referrer"
-                        className="py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center justify-center gap-1 shadow-md active:scale-95 text-center flex justify-center items-center"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5 text-white shrink-0 fill-white/10" />
-                        <span>व्हॉट्सॲप</span>
-                      </a>
+                      {/* WhatsApp Connect Button */}
+                      {isAuthorized ? (
+                        <a
+                          href={`https://wa.me/91${profile.mobile || '0000000000'}?text=नमस्कार, मी वंजारी जोडी (VanjariJodi) वरून आपली प्रोफाईल (ID: ${profile.id}) पाहिली. मला आपल्याबद्दल अधिक जाणून घेण्यात रस आहे.`}
+                          target="_blank"
+                          referrerPolicy="no-referrer"
+                          className="py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center justify-center gap-1 shadow-md active:scale-95 text-center flex justify-center items-center"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 text-white shrink-0 fill-white/10" />
+                          <span>व्हॉट्सॲप</span>
+                        </a>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            if (checkGuestPermission('viewProfiles', 'व्हॉट्सॲप संपर्क')) {
+                              unlockContact(profile.id);
+                            }
+                          }}
+                          className="py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center justify-center gap-1 shadow-md active:scale-95 text-center flex justify-center items-center cursor-pointer"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 text-white shrink-0 fill-white/10" />
+                          <span>व्हॉट्सॲप</span>
+                        </button>
+                      )}
                     </div>
 
                     {/* Contact Number Request (Secondary triggers for rich logic flow) */}

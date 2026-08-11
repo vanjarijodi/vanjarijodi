@@ -4294,9 +4294,9 @@ export const AdminPanel: React.FC<{
                       {/* Toggle: View Contacts for Members */}
                       <div className="p-3.5 bg-amber-50/50 rounded-2xl border border-amber-200 flex items-center justify-between gap-4">
                         <div className="space-y-0.5">
-                          <p className="text-xs font-black text-slate-800">मोबाईल नंबर थेट दाखवा?</p>
+                          <p className="text-xs font-black text-slate-800">बिन-प्लॅनवाल्यांना (Free Members) नंबर थेट दाखवा?</p>
                           <p className="text-[10px] text-slate-500 font-semibold leading-normal">
-                            हे सुरू केल्यास, लॉगिन असलेल्या सर्व सदस्यांना इतर सर्व सदस्यांचे संपर्क क्रमांक थेट दिसतील (पेमेंट किंवा ॲडमिन मंजुरीशिवाय).
+                            बंद ठेवल्यास (सुरक्षित रीत): प्लॅन खरेदी केल्याशिवाय किंवा अन-लॉक केल्याशिवाय मोबाईल नंबर दिसणार नाही आणि 'प्लॅन अपडेट करा' असा मेसेज दिसेल.
                           </p>
                         </div>
                         <button
@@ -4310,16 +4310,16 @@ export const AdminPanel: React.FC<{
                             siteConfig.allowMembersToViewContacts ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-rose-600 text-white hover:bg-rose-700'
                           }`}
                         >
-                          {siteConfig.allowMembersToViewContacts ? 'सुरू (ON)' : 'बंद (OFF)'}
+                          {siteConfig.allowMembersToViewContacts ? 'दाखवा (ON)' : 'लपवा (OFF - प्लॅन अनिवार्य)'}
                         </button>
                       </div>
 
                       {/* Toggle: Blur Photos for Members */}
                       <div className="p-3.5 bg-amber-50/50 rounded-2xl border border-amber-200 flex items-center justify-between gap-4">
                         <div className="space-y-0.5">
-                          <p className="text-xs font-black text-slate-800">फोटो स्पष्ट दाखवा?</p>
+                          <p className="text-xs font-black text-slate-800">बिन-प्लॅनवाल्यांना प्रोफाइल फोटो स्पष्ट दाखवा?</p>
                           <p className="text-[10px] text-slate-500 font-semibold leading-normal">
-                            बंद केल्यास सदस्यांना इतर सदस्यांचे फोटो अस्पष्ट (Blur) दिसतील.
+                            बंद केल्यास प्लॅन नसलेल्या फ्री युझर्सना इतर सर्व प्रोफाईल फोटो अस्पष्ट (Blur + Lock) दिसतील.
                           </p>
                         </div>
                         <button
