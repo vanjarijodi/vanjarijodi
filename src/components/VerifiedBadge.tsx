@@ -25,12 +25,14 @@ export const VerifiedBadge: React.FC<VerifiedBadgeProps> = ({
   showLabel = true,
   className = ''
 }) => {
-  const isVerified = profile ? Boolean(profile.isVerified) : Boolean(propIsVerified);
+  const isVerified = profile
+    ? Boolean(profile.isVerified && (profile.isApproved !== false || profile.isFaceVerified || profile.isIdVerified || profile.aadhaarVerified))
+    : Boolean(propIsVerified);
   const isFaceVerified = profile ? Boolean(profile.isFaceVerified) : Boolean(propIsFaceVerified);
   const isIdVerified = profile ? Boolean(profile.isIdVerified || profile.aadhaarVerified) : Boolean(propIsIdVerified);
   const isPhotoVerified = profile ? Boolean(profile.isPhotoVerified) : Boolean(propIsPhotoVerified);
-  const isPremiumVerified = profile ? Boolean(profile.isPremiumVerified || (profile.membership && profile.membership !== 'free')) : Boolean(propIsPremiumVerified);
-  const customBadgeText = profile?.badge || profile?.customBadge;
+  const isPremiumVerified = profile ? Boolean(profile.isPremiumVerified) : Boolean(propIsPremiumVerified);
+  const customBadgeText = profile?.hideBadge ? null : (profile?.badge || profile?.customBadge);
 
   if (!isVerified && !isFaceVerified && !isIdVerified && !isPhotoVerified && !isPremiumVerified && !customBadgeText) {
     return null;

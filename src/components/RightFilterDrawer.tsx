@@ -23,13 +23,15 @@ export const RightFilterDrawer: React.FC = () => {
     setSearchFilters,
     resetFilters,
     language,
-    t
+    t,
+    siteConfig
   } = useApp();
 
   // Accordion active sections state
   const [activeSections, setActiveSections] = useState({
     gender: true,
     age: true,
+    profession: true,
     location: true,
     education: true,
     photoOnly: true,
@@ -93,226 +95,287 @@ export const RightFilterDrawer: React.FC = () => {
             </button>
           </div>
 
-          {/* Filters Body Scrollable with Accordion style */}
+          {/* Filters Body Scrollable */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 text-slate-800">
+            
+            {/* Info notice about simplified search */}
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900 font-bold leading-relaxed flex items-start gap-2 shadow-2xs">
+              <span className="text-base shrink-0">💡</span>
+              <span>
+                सध्या बायोडाटा संख्येनुसार शोध सुलभ ठेवण्यासाठी <strong>लिंग (वधू/वर)</strong> व <strong>नोकरी/व्यवसाय (Profession)</strong> हे प्रमुख फिल्टर चालू ठेवण्यात आले आहेत.
+              </span>
+            </div>
+
             {/* 1. GENDER ACCORDION */}
-            <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-xs">
+            {siteConfig?.filterShowGender !== false && (
+              <div className="border border-amber-200/80 rounded-2xl overflow-hidden shadow-xs bg-white">
+                <button
+                  onClick={() => toggleSection('gender')}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-slate-50 to-amber-50/40 flex items-center justify-between border-b border-amber-100 text-xs font-black text-slate-800"
+                >
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-[#A71930]" />
+                    <span>मी शोधत आहे (Looking For)</span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
+                      activeSections.gender ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+
+                {activeSections.gender && (
+                  <div className="p-4 bg-white space-y-2 animate-fadeIn">
+                    <div className="grid grid-cols-3 gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-100">
+                      <button
+                        onClick={() => setSearchFilters((p) => ({ ...p, gender: 'all' }))}
+                        className={`py-2 px-1 text-[11px] font-black rounded-lg transition-all ${
+                          searchFilters.gender === 'all'
+                            ? 'bg-[#A71930] text-white shadow'
+                            : 'text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        दोन्ही
+                      </button>
+                      <button
+                        onClick={() => setSearchFilters((p) => ({ ...p, gender: 'bride' }))}
+                        className={`py-2 px-1 text-[11px] font-black rounded-lg transition-all ${
+                          searchFilters.gender === 'bride'
+                            ? 'bg-[#A71930] text-white shadow'
+                            : 'text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        👰 वधू
+                      </button>
+                      <button
+                        onClick={() => setSearchFilters((p) => ({ ...p, gender: 'groom' }))}
+                        className={`py-2 px-1 text-[11px] font-black rounded-lg transition-all ${
+                          searchFilters.gender === 'groom'
+                            ? 'bg-[#A71930] text-white shadow'
+                            : 'text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        🤵 वर
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 2. PROFESSION / JOB ACCORDION (PRIMARY) */}
+            <div className="border-2 border-[#A71930]/30 rounded-2xl overflow-hidden shadow-sm bg-white">
               <button
-                onClick={() => toggleSection('gender')}
-                className="w-full px-4 py-3 bg-slate-50 flex items-center justify-between border-b border-slate-100 text-xs font-black text-slate-800"
+                onClick={() => toggleSection('profession')}
+                className="w-full px-4 py-3 bg-gradient-to-r from-amber-50 via-rose-50 to-amber-50 flex items-center justify-between border-b border-amber-200 text-xs font-black text-[#A71930]"
               >
                 <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-[#A71930]" />
-                  <span>मी शोधत आहे (Looking For)</span>
+                  <SlidersHorizontal className="w-4 h-4 text-[#A71930]" />
+                  <span>नोकरी / व्यवसाय / पद (Profession Filter)</span>
                 </div>
                 <ChevronDown
                   className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
-                    activeSections.gender ? 'rotate-180' : ''
+                    activeSections.profession ? 'rotate-180' : ''
                   }`}
                 />
               </button>
 
-              {activeSections.gender && (
-                <div className="p-4 bg-white space-y-2 animate-fadeIn">
-                  <div className="grid grid-cols-3 gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-100">
-                    <button
-                      onClick={() => setSearchFilters((p) => ({ ...p, gender: 'all' }))}
-                      className={`py-2 px-1 text-[11px] font-black rounded-lg transition-all ${
-                        searchFilters.gender === 'all'
-                          ? 'bg-[#A71930] text-white shadow'
-                          : 'text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      दोन्ही
-                    </button>
-                    <button
-                      onClick={() => setSearchFilters((p) => ({ ...p, gender: 'bride' }))}
-                      className={`py-2 px-1 text-[11px] font-black rounded-lg transition-all ${
-                        searchFilters.gender === 'bride'
-                          ? 'bg-[#A71930] text-white shadow'
-                          : 'text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      👰 वधू
-                    </button>
-                    <button
-                      onClick={() => setSearchFilters((p) => ({ ...p, gender: 'groom' }))}
-                      className={`py-2 px-1 text-[11px] font-black rounded-lg transition-all ${
-                        searchFilters.gender === 'groom'
-                          ? 'bg-[#A71930] text-white shadow'
-                          : 'text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      🤵 वर
-                    </button>
-                  </div>
+              {activeSections.profession && (
+                <div className="p-4 bg-white space-y-2.5 animate-fadeIn">
+                  <span className="text-[11px] font-black text-slate-700 block">
+                    पद / नोकरी प्रकारानुसार प्रोफाइल शोधा:
+                  </span>
+                  <select
+                    value={searchFilters.occupation}
+                    onChange={(e) =>
+                      setSearchFilters((p) => ({ ...p, occupation: e.target.value }))
+                    }
+                    className="w-full bg-amber-50/60 border-2 border-amber-300 rounded-xl px-3 py-2.5 text-xs font-black text-slate-900 outline-none focus:ring-2 focus:ring-[#A71930]"
+                  >
+                    <option value="">-- सर्व नोकरी / व्यवसाय (All Profiles) --</option>
+                    <option value="govt">🏛️ सरकारी नोकरी / अधिकारी (Govt Job / MPSC / UPSC)</option>
+                    <option value="doctor">🩺 डॉक्टर / वैद्यकीय (Doctor / MBBS / BAMS / MD)</option>
+                    <option value="engineer">💻 इंजिनिअर / आयटी (Engineer / BE / Software)</option>
+                    <option value="teacher">👨‍🏫 शिक्षक / प्राध्यापक (Teacher / Professor)</option>
+                    <option value="business">🏢 व्यवसाय / उद्योग (Business / Contractor)</option>
+                    <option value="farmer">🌾 शेतकरी / कृषी (Farmer / Agriculture)</option>
+                    <option value="lawyer_ca">⚖️ वकील / सीए (Lawyer / CA / Advocate)</option>
+                    <option value="private">💼 कॉर्पोरेट / खाजगी नोकरी (Private Job)</option>
+                  </select>
                 </div>
               )}
             </div>
 
-            {/* 2. AGE RANGE ACCORDION */}
-            <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-xs">
-              <button
-                onClick={() => toggleSection('age')}
-                className="w-full px-4 py-3 bg-slate-50 flex items-center justify-between border-b border-slate-100 text-xs font-black text-slate-800"
-              >
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-[#A71930]" />
-                  <span>वयोमर्यादा (Age Range)</span>
-                </div>
-                <ChevronDown
-                  className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
-                    activeSections.age ? 'rotate-180' : ''
-                  }`}
-                />
-              </button>
+            {/* Optional extra filters (only if explicitly enabled by admin) */}
+            {siteConfig?.filterShowAge === true && (
+              <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-xs">
+                <button
+                  onClick={() => toggleSection('age')}
+                  className="w-full px-4 py-3 bg-slate-50 flex items-center justify-between border-b border-slate-100 text-xs font-black text-slate-800"
+                >
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-[#A71930]" />
+                    <span>वयोमर्यादा (Age Range)</span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
+                      activeSections.age ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
 
-              {activeSections.age && (
-                <div className="p-4 bg-white space-y-3 animate-fadeIn">
-                  <div className="grid grid-cols-2 gap-2">
+                {activeSections.age && (
+                  <div className="p-4 bg-white space-y-3 animate-fadeIn">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="text-[10px] font-black text-slate-500 block mb-1">किमान वय:</span>
+                        <select
+                          value={searchFilters.minAge}
+                          onChange={(e) =>
+                            setSearchFilters((p) => ({ ...p, minAge: Number(e.target.value) }))
+                          }
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 outline-none"
+                        >
+                          {Array.from({ length: 40 }, (_, i) => 18 + i).map((num) => (
+                            <option key={num} value={num}>
+                              {num} वर्ष
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black text-slate-500 block mb-1">कमाल वय:</span>
+                        <select
+                          value={searchFilters.maxAge}
+                          onChange={(e) =>
+                            setSearchFilters((p) => ({ ...p, maxAge: Number(e.target.value) }))
+                          }
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 outline-none"
+                        >
+                          {Array.from({ length: 45 }, (_, i) => 25 + i).map((num) => (
+                            <option key={num} value={num}>
+                              {num} वर्ष
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {siteConfig?.filterShowDistrict === true && (
+              <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-xs">
+                <button
+                  onClick={() => toggleSection('location')}
+                  className="w-full px-4 py-3 bg-slate-50 flex items-center justify-between border-b border-slate-100 text-xs font-black text-slate-800"
+                >
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-[#A71930]" />
+                    <span>जिल्हा व स्थान (Location)</span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
+                      activeSections.location ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
+
+                {activeSections.location && (
+                  <div className="p-4 bg-white space-y-3 animate-fadeIn">
                     <div>
-                      <span className="text-[10px] font-black text-slate-500 block mb-1">किमान वय:</span>
+                      <span className="text-[10px] font-black text-slate-500 block mb-1">जिल्हा निवडा (District):</span>
                       <select
-                        value={searchFilters.minAge}
+                        value={searchFilters.district}
                         onChange={(e) =>
-                          setSearchFilters((p) => ({ ...p, minAge: Number(e.target.value) }))
+                          setSearchFilters((p) => ({ ...p, district: e.target.value }))
                         }
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 outline-none"
                       >
-                        {Array.from({ length: 30 }, (_, i) => 18 + i).map((num) => (
-                          <option key={num} value={num}>
-                            {num} वर्ष
+                        <option value="">-- सर्व महाराष्ट्र --</option>
+                        {MAHARASHTRA_DISTRICTS.map((d) => (
+                          <option key={d} value={d}>
+                            {d}
                           </option>
                         ))}
                       </select>
                     </div>
-                    <div>
-                      <span className="text-[10px] font-black text-slate-500 block mb-1">कमाल वय:</span>
-                      <select
-                        value={searchFilters.maxAge}
-                        onChange={(e) =>
-                          setSearchFilters((p) => ({ ...p, maxAge: Number(e.target.value) }))
-                        }
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 outline-none"
-                      >
-                        {Array.from({ length: 30 }, (_, i) => 25 + i).map((num) => (
-                          <option key={num} value={num}>
-                            {num} वर्ष
-                          </option>
-                        ))}
-                      </select>
-                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-
-            {/* 3. LOCATION ACCORDION */}
-            <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-xs">
-              <button
-                onClick={() => toggleSection('location')}
-                className="w-full px-4 py-3 bg-slate-50 flex items-center justify-between border-b border-slate-100 text-xs font-black text-slate-800"
-              >
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-[#A71930]" />
-                  <span>जिल्हा व स्थान (Location)</span>
-                </div>
-                <ChevronDown
-                  className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
-                    activeSections.location ? 'rotate-180' : ''
-                  }`}
-                />
-              </button>
-
-              {activeSections.location && (
-                <div className="p-4 bg-white space-y-3 animate-fadeIn">
-                  <div>
-                    <span className="text-[10px] font-black text-slate-500 block mb-1">जिल्हा निवडा (District):</span>
-                    <select
-                      value={searchFilters.district}
-                      onChange={(e) =>
-                        setSearchFilters((p) => ({ ...p, district: e.target.value }))
-                      }
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-800 outline-none"
-                    >
-                      <option value="">-- सर्व महाराष्ट्र --</option>
-                      {MAHARASHTRA_DISTRICTS.map((d) => (
-                        <option key={d} value={d}>
-                          {d}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* 4. EDUCATION ACCORDION */}
-            <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-xs">
-              <button
-                onClick={() => toggleSection('education')}
-                className="w-full px-4 py-3 bg-slate-50 flex items-center justify-between border-b border-slate-100 text-xs font-black text-slate-800"
-              >
-                <div className="flex items-center gap-2">
-                  <GraduationCap className="w-4 h-4 text-[#A71930]" />
-                  <span>शिक्षण (Education)</span>
-                </div>
-                <ChevronDown
-                  className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
-                    activeSections.education ? 'rotate-180' : ''
-                  }`}
-                />
-              </button>
-
-              {activeSections.education && (
-                <div className="p-4 bg-white space-y-2 animate-fadeIn">
-                  <span className="text-[10px] font-black text-slate-500 block mb-1">शिक्षण शब्द प्रविष्ट करा:</span>
-                  <input
-                    type="text"
-                    placeholder="उदा. BE, MBBS, MBA, MPSC, Class-1..."
-                    value={searchFilters.education}
-                    onChange={(e) =>
-                      setSearchFilters((p) => ({ ...p, education: e.target.value }))
-                    }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-[#A71930]"
+            {siteConfig?.filterShowEducation !== false && (
+              <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-xs">
+                <button
+                  onClick={() => toggleSection('education')}
+                  className="w-full px-4 py-3 bg-slate-50 flex items-center justify-between border-b border-slate-100 text-xs font-black text-slate-800"
+                >
+                  <div className="flex items-center gap-2">
+                    <GraduationCap className="w-4 h-4 text-[#A71930]" />
+                    <span>शिक्षण (Education)</span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
+                      activeSections.education ? 'rotate-180' : ''
+                    }`}
                   />
-                </div>
-              )}
-            </div>
+                </button>
+
+                {activeSections.education && (
+                  <div className="p-4 bg-white space-y-2 animate-fadeIn">
+                    <span className="text-[10px] font-black text-slate-500 block mb-1">शिक्षण शब्द प्रविष्ट करा:</span>
+                    <input
+                      type="text"
+                      placeholder="उदा. BE, MBBS, MBA, MPSC, Class-1..."
+                      value={searchFilters.education}
+                      onChange={(e) =>
+                        setSearchFilters((p) => ({ ...p, education: e.target.value }))
+                      }
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-[#A71930]"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* 5. PHOTO ONLY ACCORDION */}
-            <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-xs">
-              <button
-                onClick={() => toggleSection('photoOnly')}
-                className="w-full px-4 py-3 bg-slate-50 flex items-center justify-between border-b border-slate-100 text-xs font-black text-slate-800"
-              >
-                <div className="flex items-center gap-2">
-                  <ImageIcon className="w-4 h-4 text-[#A71930]" />
-                  <span>फोटो असलेले प्रोफाईल (Photo Only)</span>
-                </div>
-                <ChevronDown
-                  className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
-                    activeSections.photoOnly ? 'rotate-180' : ''
-                  }`}
-                />
-              </button>
+            {siteConfig?.filterShowVerified !== false && (
+              <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-xs">
+                <button
+                  onClick={() => toggleSection('photoOnly')}
+                  className="w-full px-4 py-3 bg-slate-50 flex items-center justify-between border-b border-slate-100 text-xs font-black text-slate-800"
+                >
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 text-[#A71930]" />
+                    <span>फोटो असलेले प्रोफाईल (Photo Only)</span>
+                  </div>
+                  <ChevronDown
+                    className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
+                      activeSections.photoOnly ? 'rotate-180' : ''
+                    }`}
+                  />
+                </button>
 
-              {activeSections.photoOnly && (
-                <div className="p-4 bg-white animate-fadeIn">
-                  <label className="flex items-center justify-between cursor-pointer p-1">
-                    <span className="text-xs font-bold text-slate-700">केवळ फोटो असलेले बायोडाटा दाखवा:</span>
-                    <input
-                      type="checkbox"
-                      checked={searchFilters.verifiedOnly}
-                      onChange={(e) =>
-                        setSearchFilters((p) => ({ ...p, verifiedOnly: e.target.checked }))
-                      }
-                      className="w-4 h-4 accent-[#A71930] rounded cursor-pointer"
-                    />
-                  </label>
-                </div>
-              )}
-            </div>
+                {activeSections.photoOnly && (
+                  <div className="p-4 bg-white animate-fadeIn">
+                    <label className="flex items-center justify-between cursor-pointer p-1">
+                      <span className="text-xs font-bold text-slate-700">केवळ फोटो असलेले बायोडाटा दाखवा:</span>
+                      <input
+                        type="checkbox"
+                        checked={searchFilters.verifiedOnly}
+                        onChange={(e) =>
+                          setSearchFilters((p) => ({ ...p, verifiedOnly: e.target.checked }))
+                        }
+                        className="w-4 h-4 accent-[#A71930] rounded cursor-pointer"
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Footer Actions */}

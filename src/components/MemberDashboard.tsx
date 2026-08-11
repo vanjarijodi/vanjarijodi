@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { UserProfile } from '../types';
 import { VerifiedBadge } from './VerifiedBadge';
 import { FaceVerificationModal } from './FaceVerificationModal';
+import { AdminEditProfileModal } from './AdminEditProfileModal';
 import { uploadToCloudinary } from '../utils/cloudinary';
 import {
   User,
@@ -27,7 +28,8 @@ import {
   Upload,
   Loader2,
   AlertCircle,
-  UserCheck
+  UserCheck,
+  Camera
 } from 'lucide-react';
 
 export const MemberDashboard: React.FC = () => {
@@ -51,11 +53,12 @@ export const MemberDashboard: React.FC = () => {
     isFaceAuthModalOpen,
     setIsFaceAuthModalOpen,
     setIsProfileRemovalModalOpen,
-    uploadAadhaarCard
+    uploadAadhaarCard,
+    updateProfileDirect
   } = useApp();
 
   const [tab, setTab] = useState<'overview' | 'interests' | 'shortlist' | 'notifications' | 'membership' | 'privacy'>('overview');
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
   const [isUploadingDoc, setIsUploadingDoc] = useState(false);
   const [docUploadError, setDocUploadError] = useState<string | null>(null);
   const [docSuccessMsg, setDocSuccessMsg] = useState<string | null>(null);
@@ -251,17 +254,26 @@ export const MemberDashboard: React.FC = () => {
         {/* Profile Header Card */}
         <div className="bg-white border-2 border-amber-300 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className="relative w-20 h-20 rounded-2xl overflow-hidden border-2 border-[#A71930] shadow-md bg-amber-50">
+            <div className="relative w-20 h-20 rounded-2xl overflow-hidden border-2 border-[#A71930] shadow-md bg-amber-50 group shrink-0">
               <img
-                src={currentUser.photos[0] || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'}
+                src={currentUser.photoUrl || currentUser.photos[0] || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'}
                 alt="avatar"
                 className="w-full h-full object-cover"
               />
+              <button
+                type="button"
+                onClick={() => setIsEditProfileModalOpen(true)}
+                className="absolute inset-0 bg-slate-950/70 text-amber-200 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 flex flex-col items-center justify-center transition-all text-[9px] font-black cursor-pointer"
+                title="प्रोफाईल फोटो बदला"
+              >
+                <Camera className="w-5 h-5 text-amber-300 mb-0.5" />
+                <span>फोटो बदला</span>
+              </button>
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black text-[#A71930]">{currentUser.fullName}</h1>
-                <VerifiedBadge isVerified={currentUser.isVerified} isFaceVerified={currentUser.isFaceVerified} size="md" showLabel={true} />
+                <VerifiedBadge profile={currentUser} size="md" showLabel={true} />
               </div>
               <p className="text-xs text-slate-600 mt-1 font-semibold">
                 आयडी: {currentUser.id} | {currentUser.district} | {currentUser.subCaste}
@@ -276,6 +288,15 @@ export const MemberDashboard: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsEditProfileModalOpen(true)}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 text-xs font-black shadow-md flex items-center gap-1.5 border border-amber-300 transition-all cursor-pointer"
+            >
+              <Edit className="w-4 h-4 text-slate-950" />
+              <span>✍️ माहिती व फोटो बदला (Edit Profile)</span>
+            </button>
+
             {!currentUser.isFaceVerified && (
               <button
                 onClick={() => setIsFaceAuthModalOpen(true)}
@@ -437,11 +458,12 @@ export const MemberDashboard: React.FC = () => {
             <div className="flex justify-between items-center pb-4 border-b border-amber-200">
               <h3 className="text-lg font-black text-[#A71930]">माझी बायोडाटा माहिती</h3>
               <button
-                onClick={() => setIsEditing(!isEditing)}
-                className="px-4 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-[#A71930] text-xs font-bold border border-amber-300 flex items-center gap-1.5 transition-all"
+                type="button"
+                onClick={() => setIsEditProfileModalOpen(true)}
+                className="px-4 py-2 rounded-xl bg-[#A71930] hover:bg-[#800C1E] text-amber-100 text-xs font-black border border-amber-300 flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
               >
-                <Edit className="w-3.5 h-3.5" />
-                <span>{isEditing ? 'माहिती जतन करा' : 'माहिती एडिट करा'}</span>
+                <Edit className="w-3.5 h-3.5 text-amber-200" />
+                <span>माहिती व फोटो बदल करा (Edit Profile & Photos)</span>
               </button>
             </div>
 
@@ -789,6 +811,19 @@ export const MemberDashboard: React.FC = () => {
         isOpen={isFaceAuthModalOpen}
         onClose={() => setIsFaceAuthModalOpen(false)}
       />
+
+      {/* FULL PROFILE & PHOTO EDIT MODAL FOR LOGGED-IN MEMBER */}
+      {currentUser && (
+        <AdminEditProfileModal
+          profile={currentUser}
+          isOpen={isEditProfileModalOpen}
+          onClose={() => setIsEditProfileModalOpen(false)}
+          onSave={(profileId, updatedFields) => {
+            updateProfileDirect(profileId, updatedFields);
+          }}
+          canEdit={true}
+        />
+      )}
     </div>
   );
 };

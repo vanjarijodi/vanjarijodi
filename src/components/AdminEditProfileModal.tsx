@@ -1,15 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Trash2, Camera, Award, Shield, AlertCircle, Loader2 } from 'lucide-react';
+import { 
+  X, Save, Trash2, Camera, Award, Shield, AlertCircle, Loader2, 
+  FileText, CheckCircle2, Eye, ExternalLink, Sparkles, UserCheck, Check, ShieldCheck, Download
+} from 'lucide-react';
 import { UserProfile, Gender, MaritalStatus, MembershipTier } from '../types';
-import { uploadToCloudinary } from '../utils/cloudinary';
+import { uploadToCloudinary, compressAndResizeImage } from '../utils/cloudinary';
+import { PROFESSION_PRESETS } from '../utils/professionUtils';
 
 interface AdminEditProfileModalProps {
   profile: UserProfile | null;
   isOpen: boolean;
   onClose: () => void;
   onSave: (profileId: string, updatedFields: Partial<UserProfile>) => void;
-  canEdit?: boolean; // permission check
+  canEdit?: boolean;
 }
+
+export const PRESET_BADGES = [
+  { id: 'Verified', label: '✅ प्रमाणित प्रोफाईल (Verified Profile)' },
+  { id: 'VIP', label: '🌟 व्ही.आय.पी. सदस्य (VIP Member)' },
+  { id: 'Premium', label: '🏆 प्रीमियम जुळवणी (Premium Match)' },
+  { id: 'Gold', label: '👑 गोल्ड मेंबर (Gold Member)' },
+  { id: 'Diamond', label: '💎 डायमंड मेंबर (Diamond Member)' },
+  { id: 'DocsVerified', label: '🛡️ दस्तावेज पडताळणी पूर्ण (Docs Verified)' },
+  { id: 'Featured', label: '💫 विशेष शिफारस (Featured)' },
+  { id: 'HighlyEducated', label: '🎓 उच्च शिक्षित (Highly Educated)' },
+  { id: 'GovtServant', label: '💼 सरकारी नोकरी (Govt Employee)' },
+  { id: 'Landowner', label: '🌾 शेती व जमीनदार (Landowner / Farmer)' },
+];
 
 export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
   profile,
@@ -18,11 +35,17 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
   onSave,
   canEdit = true,
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'personal' | 'location' | 'education' | 'family' | 'photos' | 'badge'>('personal');
+  const [activeSubTab, setActiveSubTab] = useState<
+    'personal' | 'astrology' | 'location' | 'education' | 'family' | 'documents' | 'badge'
+  >('personal');
+  
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [docError, setDocError] = useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
+  const [isUploadingDoc, setIsUploadingDoc] = useState<boolean>(false);
+  const [inspectDocUrl, setInspectDocUrl] = useState<{ url: string; title: string } | null>(null);
 
-  // Profile Form States
+  // 1. Personal Details State
   const [fullName, setFullName] = useState('');
   const [gender, setGender] = useState<Gender>('bride');
   const [dob, setDob] = useState('');
@@ -34,7 +57,19 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
   const [complexion, setComplexion] = useState('');
   const [religion, setReligion] = useState('हिंदू');
   const [subCaste, setSubCaste] = useState('वंजारी');
+  const [bio, setBio] = useState('');
 
+  // 2. Astrology / Kundali Details
+  const [birthTime, setBirthTime] = useState('');
+  const [birthPlace, setBirthPlace] = useState('');
+  const [gotra, setGotra] = useState('');
+  const [rashi, setRashi] = useState('');
+  const [nakshatra, setNakshatra] = useState('');
+  const [gan, setGan] = useState('');
+  const [nadi, setNadi] = useState('');
+  const [horoscopeUrl, setHoroscopeUrl] = useState('');
+
+  // 3. Location & Contact
   const [mobile, setMobile] = useState('');
   const [secondaryMobile, setSecondaryMobile] = useState('');
   const [email, setEmail] = useState('');
@@ -44,11 +79,14 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
   const [currentAddress, setCurrentAddress] = useState('');
   const [nativeAddress, setNativeAddress] = useState('');
 
+  // 4. Education & Occupation
   const [education, setEducation] = useState('');
   const [occupation, setOccupation] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [income, setIncome] = useState('');
+  const [professionTags, setProfessionTags] = useState<string[]>([]);
 
+  // 5. Family Details
   const [fatherName, setFatherName] = useState('');
   const [fatherOccupation, setFatherOccupation] = useState('');
   const [motherName, setMotherName] = useState('');
@@ -62,15 +100,30 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
   const [familyType, setFamilyType] = useState('विभक्त');
   const [expectations, setExpectations] = useState('');
 
+  // 6. Verification, Photos & Documents
   const [photos, setPhotos] = useState<string[]>([]);
+  const [idProofUrl, setIdProofUrl] = useState('');
+  const [idVerificationNumber, setIdVerificationNumber] = useState('');
+  const [aadhaarCardUrl, setAadhaarCardUrl] = useState('');
+  const [isVerified, setIsVerified] = useState(false);
+  const [isIdVerified, setIsIdVerified] = useState(false);
+  const [isPhotoVerified, setIsPhotoVerified] = useState(false);
+  const [isPremiumVerified, setIsPremiumVerified] = useState(false);
+  const [isFaceVerified, setIsFaceVerified] = useState(false);
+  const [faceVerifiedAt, setFaceVerifiedAt] = useState('');
+  const [membership, setMembership] = useState<MembershipTier>('free');
+  const [isApproved, setIsApproved] = useState(false);
+
+  // Privacy State
   const [hideContact, setHideContact] = useState(false);
   const [hidePhoto, setHidePhoto] = useState(false);
 
-  // Badge States
+  // 7. Badge & Visibility States
   const [assignedBadge, setAssignedBadge] = useState<string>('');
   const [customBadgeText, setCustomBadgeText] = useState<string>('');
+  const [hideBadge, setHideBadge] = useState<boolean>(false);
 
-  // Set form values when profile is opened
+  // Set initial form values when profile opens
   useEffect(() => {
     if (profile) {
       setFullName(profile.fullName || '');
@@ -84,8 +137,18 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
       setComplexion(profile.complexion || '');
       setReligion(profile.religion || 'हिंदू');
       setSubCaste(profile.subCaste || 'वंजारी');
+      setBio(profile.bio || '');
 
-      setMobile(profile.mobile || profile.mobileNumber || '');
+      setBirthTime(profile.birthTime || '');
+      setBirthPlace(profile.birthPlace || '');
+      setGotra(profile.gotra || '');
+      setRashi(profile.rashi || '');
+      setNakshatra(profile.nakshatra || '');
+      setGan(profile.gan || '');
+      setNadi(profile.nadi || '');
+      setHoroscopeUrl(profile.horoscopeUrl || '');
+
+      setMobile(profile.mobile || (profile as any).mobileNumber || '');
       setSecondaryMobile(profile.secondaryMobile || '');
       setEmail(profile.email || '');
       setDistrict(profile.district || '');
@@ -98,6 +161,7 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
       setOccupation(profile.occupation || '');
       setCompanyName(profile.companyName || '');
       setIncome(profile.income || '');
+      setProfessionTags(profile.professionTags || []);
 
       setFatherName(profile.fatherName || '');
       setFatherOccupation(profile.fatherOccupation || '');
@@ -113,13 +177,26 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
       setExpectations(profile.expectations || '');
 
       setPhotos(profile.photos || []);
+      setIdProofUrl(profile.idProofUrl || profile.aadhaarCardUrl || '');
+      setIdVerificationNumber(profile.idVerificationNumber || '');
+      setAadhaarCardUrl(profile.aadhaarCardUrl || profile.idProofUrl || '');
+      setIsVerified(Boolean(profile.isVerified));
+      setIsIdVerified(Boolean(profile.isIdVerified || profile.aadhaarVerified));
+      setIsPhotoVerified(Boolean(profile.isPhotoVerified));
+      setIsPremiumVerified(Boolean(profile.isPremiumVerified));
+      setIsFaceVerified(Boolean(profile.isFaceVerified));
+      setFaceVerifiedAt(profile.faceVerifiedAt || '');
+      setMembership(profile.membership || 'free');
+
       setHideContact(profile.privacy?.hideContact || false);
       setHidePhoto(profile.privacy?.hidePhoto || false);
+      setHideBadge(Boolean(profile.hideBadge));
 
-      // Initialize Badge
+      // Initialize Badge State
       const currentBadge = profile.badge || profile.customBadge || '';
-      if (['Verified', 'VIP', 'Premium', 'Featured'].includes(currentBadge)) {
-        setAssignedBadge(currentBadge);
+      const matchingPreset = PRESET_BADGES.find((b) => b.id === currentBadge);
+      if (matchingPreset) {
+        setAssignedBadge(matchingPreset.id);
         setCustomBadgeText('');
       } else if (currentBadge) {
         setAssignedBadge('Custom');
@@ -133,7 +210,6 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
 
   if (!isOpen || !profile) return null;
 
-  // Auto calculate age if DOB changes
   const handleDobChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const dobValue = e.target.value;
     setDob(dobValue);
@@ -146,34 +222,63 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
     }
   };
 
-  // Upload Photo Sim using Cloudinary
+  // Upload Profile Photos
   const handlePhotoUploadSim = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setPhotoError(null);
     const files: File[] = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    if (photos.length + files.length > 5) {
-      setPhotoError('आपण जास्तीत जास्त ५ फोटो जोडू शकता.');
+    if (photos.length + files.length > 8) {
+      setPhotoError('आपण जास्तीत जास्त ८ फोटो जोडू शकता.');
     }
 
-    const filesToUpload = files.slice(0, 5 - photos.length);
+    const filesToUpload = files.slice(0, 8 - photos.length);
     if (filesToUpload.length === 0) return;
 
     setIsUploadingPhoto(true);
     for (const file of filesToUpload) {
-      if (file.size > 800 * 1024) {
-        setPhotoError(`फोटोचा आकार ${(file.size / 1024).toFixed(0)} KB आहे! कृपया ८०० KB पेक्षा कमी आकाराचा फोटो निवडा.`);
-        continue;
-      }
-
-      const res = await uploadToCloudinary(file, 'vanjarijodi_candidates');
-      if (res.success && res.url) {
-        setPhotos((prev) => [...prev, res.url]);
-      } else {
-        setPhotoError(res.error || 'फोटो अपलोड करताना अडचण आली. कृपया पुन्हा प्रयत्न करा.');
+      try {
+        const comp = await compressAndResizeImage(file, 1200, 0.85);
+        const fileToUpload = comp.file || file;
+        const res = await uploadToCloudinary(fileToUpload, 'vanjarijodi_candidates');
+        if (res.success && res.url) {
+          setPhotos((prev) => [...prev, res.url]);
+        } else {
+          setPhotoError(res.error || 'फोटो अपलोड करताना अडचण आली.');
+        }
+      } catch {
+        const res = await uploadToCloudinary(file, 'vanjarijodi_candidates');
+        if (res.success && res.url) {
+          setPhotos((prev) => [...prev, res.url]);
+        } else {
+          setPhotoError(res.error || 'फोटो अपलोड करताना अडचण आली.');
+        }
       }
     }
     setIsUploadingPhoto(false);
+  };
+
+  // Upload Document (Aadhaar / Horoscope)
+  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>, targetDoc: 'aadhaar' | 'horoscope') => {
+    setDocError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingDoc(true);
+    const res = await uploadToCloudinary(file, 'vanjarijodi_documents');
+    setIsUploadingDoc(false);
+
+    if (res.success && res.url) {
+      if (targetDoc === 'aadhaar') {
+        setIdProofUrl(res.url);
+        setAadhaarCardUrl(res.url);
+        setIsIdVerified(true);
+      } else {
+        setHoroscopeUrl(res.url);
+      }
+    } else {
+      setDocError(res.error || 'दस्तावेज अपलोड करताना त्रुटी आली.');
+    }
   };
 
   const removePhoto = (indexToRemove: number) => {
@@ -181,7 +286,7 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
   };
 
   const setPrimaryPhoto = (index: number) => {
-    if (index === 0) return; // Already primary
+    if (index === 0) return;
     setPhotos((prev) => {
       const updated = [...prev];
       const primary = updated[index];
@@ -193,7 +298,7 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
 
   const handleSave = () => {
     if (!fullName.trim()) {
-      alert('कृपया पूर्ण नाव प्रविष्ट करा!');
+      alert('कृपया संपूर्ण नाव प्रविष्ट करा!');
       return;
     }
     if (!mobile.trim()) {
@@ -201,7 +306,6 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
       return;
     }
 
-    // Determine final badge value
     let finalBadge = '';
     if (assignedBadge === 'Custom') {
       finalBadge = customBadgeText.trim();
@@ -221,6 +325,17 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
       complexion,
       religion,
       subCaste,
+      bio,
+
+      birthTime,
+      birthPlace,
+      gotra,
+      rashi,
+      nakshatra,
+      gan,
+      nadi,
+      horoscopeUrl,
+
       mobile,
       secondaryMobile,
       email,
@@ -229,10 +344,13 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
       city,
       currentAddress,
       nativeAddress,
+
       education,
       occupation,
       companyName,
       income,
+      professionTags,
+
       fatherName,
       fatherOccupation,
       motherName,
@@ -245,65 +363,81 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
       mamaNative,
       familyType,
       expectations,
+
       photos,
+      idProofUrl,
+      idVerificationNumber,
+      aadhaarCardUrl,
+      aadhaarVerified: isIdVerified,
+      isVerified,
+      isIdVerified,
+      isPhotoVerified,
+      isPremiumVerified,
+      isFaceVerified,
+      faceVerifiedAt: isFaceVerified ? (faceVerifiedAt || new Date().toISOString()) : '',
+      membership,
+
       badge: finalBadge,
       customBadge: finalBadge,
+      hideBadge,
+
       privacy: {
-        ...profile.privacy,
+        ...(profile.privacy || { hideContact: false, hidePhoto: false }),
         hideContact,
         hidePhoto,
       }
     };
 
     onSave(profile.id, updatedFields);
-    alert('सदस्याची प्रोफाईल यशस्वीरित्या संपादित आणि जतन (Save) करण्यात आली आहे!');
+    alert('✅ सदस्याची माहिती, दस्तावेज आणि बॅच यशस्वीरित्या अद्ययावत केले!');
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-      <div className="bg-white w-full max-w-4xl rounded-3xl border-2 border-amber-300 shadow-2xl overflow-hidden flex flex-col my-8 max-h-[90vh] animate-in zoom-in-95 duration-150">
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto">
+      <div className="bg-[#FFFDF5] w-full max-w-5xl rounded-3xl border-2 border-amber-400 shadow-2xl overflow-hidden flex flex-col my-auto max-h-[94vh] animate-in zoom-in-95 duration-150 text-slate-900">
         
-        {/* Header */}
-        <div className="p-5 bg-gradient-to-r from-amber-100 via-amber-50 to-amber-100 border-b-2 border-amber-300 flex items-center justify-between">
+        {/* Modal Header */}
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-200 via-amber-100 to-amber-200 border-b-2 border-amber-300 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#A71930] text-amber-100 flex items-center justify-center font-black shadow">
+            <div className="w-10 h-10 rounded-2xl bg-[#A71930] text-amber-200 flex items-center justify-center font-black shadow-md border border-amber-300">
               ✍️
             </div>
             <div>
-              <h3 className="text-base font-black text-[#A71930] flex items-center gap-2">
-                <span>👤 सदस्य प्रोफाईल संपादन कक्ष (Member Profile Editor)</span>
+              <h3 className="text-sm sm:text-base font-black text-[#A71930] flex items-center gap-2">
+                <span>सदस्य प्रोफाईल व दस्तावेज संपादन कक्ष (Full Member Profile Editor)</span>
               </h3>
               <p className="text-[11px] text-slate-700 font-bold mt-0.5">
-                आयडी: <span className="font-mono text-slate-900">{profile.id}</span> • नाव: <span className="text-slate-900">{profile.fullName}</span>
+                आयडी: <span className="font-mono text-slate-900 font-black">{profile.id}</span> • नाव: <span className="text-slate-900 font-black">{profile.fullName}</span> • संपर्क: <span className="font-mono text-slate-900">{profile.mobile}</span>
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full bg-amber-100 hover:bg-amber-200 border border-amber-300 text-slate-700 cursor-pointer"
+            className="p-2 rounded-full bg-amber-100 hover:bg-amber-200 border border-amber-400 text-slate-700 cursor-pointer transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="bg-amber-50/50 border-b border-amber-200 p-2 overflow-x-auto flex items-center gap-1 shrink-0">
+        {/* Modal Sub-Tab Navigation */}
+        <div className="bg-amber-100/60 border-b border-amber-300 p-2 overflow-x-auto flex items-center gap-1.5 shrink-0 scrollbar-none">
           {[
             { id: 'personal', label: '👤 वैयक्तिक माहिती' },
+            { id: 'astrology', label: '🪐 कुंडली व पंचांग' },
             { id: 'location', label: '📍 पत्ता व संपर्क' },
             { id: 'education', label: '🎓 शिक्षण व नोकरी' },
             { id: 'family', label: '👨‍👩‍👦 कौटुंबिक माहिती' },
-            { id: 'photos', label: '🖼️ फोटो व गोपनीयता' },
-            { id: 'badge', label: '🏅 विशेष बॅज (Badge)' },
+            { id: 'documents', label: '📄 फोटो, दस्तावेज व पडताळणी' },
+            { id: 'badge', label: '🏅 विशेष बॅचेस व मेम्बरशिप' },
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveSubTab(tab.id as any)}
-              className={`px-3 py-2 rounded-xl text-xs font-black transition-all whitespace-nowrap cursor-pointer ${
+              className={`px-3 py-2 rounded-xl text-xs font-black transition-all whitespace-nowrap cursor-pointer border ${
                 activeSubTab === tab.id
-                  ? 'bg-[#A71930] text-white shadow-sm'
-                  : 'text-slate-700 hover:bg-amber-100'
+                  ? 'bg-[#A71930] text-amber-100 border-amber-400 shadow-sm'
+                  : 'bg-white/80 text-slate-700 border-amber-200 hover:bg-amber-200/80'
               }`}
             >
               {tab.label}
@@ -311,27 +445,78 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
           ))}
         </div>
 
-        {/* Warning Permission */}
+        {/* Permission Warning */}
         {!canEdit && (
-          <div className="mx-6 mt-4 p-3 bg-rose-50 border border-rose-300 rounded-xl text-rose-900 text-xs font-extrabold flex items-center gap-2">
+          <div className="mx-4 mt-3 p-3 bg-rose-50 border border-rose-300 rounded-xl text-rose-900 text-xs font-extrabold flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-            <span>तुम्हाला सब-ॲडमिन कडून सदस्य प्रोफाइल संपादित करण्याचे अधिकार दिलेले नाहीत. कृपया सुपर-ॲडमिनशी संपर्क साधा.</span>
+            <span>तुम्हाला सदस्य प्रोफाइल संपादित करण्याचे अधिकार नाहीत.</span>
           </div>
         )}
 
-        {/* Modal Form Content */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-4">
+        {/* Modal Form Content Area */}
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4">
           
           {/* TAB 1: PERSONAL DETAILS */}
           {activeSubTab === 'personal' && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Quick Profile Photo Banner & Uploader in Personal Tab */}
+              <div className="md:col-span-3 p-4 bg-amber-50 rounded-2xl border-2 border-amber-300 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-[#A71930] shadow bg-white shrink-0 relative">
+                    <img
+                      src={photos[0] || profile.photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'}
+                      alt="primary-avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-[#A71930] flex items-center gap-1">
+                      <Camera className="w-4 h-4 text-amber-600" />
+                      <span>मुख्य प्रोफाईल फोटो बदल (Primary Profile Photo)</span>
+                    </h4>
+                    <p className="text-[11px] text-slate-600 font-bold mt-0.5">
+                      एकूण जोडलेले फोटो: {photos.length} / ८ | फोटो ऑटो एचडी व कॉम्प्रेस केले जातात.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="px-3.5 py-2 rounded-xl bg-[#A71930] hover:bg-[#800C1E] text-amber-100 font-black text-xs cursor-pointer shadow flex items-center gap-1.5 transition-all">
+                    {isUploadingPhoto ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-amber-200" />
+                        <span>अपलोड होत आहे...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="w-4 h-4 text-amber-200" />
+                        <span>नवीन फोटो जोडा / बदला</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handlePhotoUploadSim}
+                      className="hidden"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSubTab('documents')}
+                    className="px-3.5 py-2 rounded-xl bg-amber-200 hover:bg-amber-300 text-[#800C1E] font-extrabold text-xs border border-amber-400 shadow-xs cursor-pointer"
+                  >
+                    🖼️ गॅलरी फोटो व्यवस्थापित करा
+                  </button>
+                </div>
+              </div>
               <div>
                 <label className="block text-slate-800 font-extrabold text-xs mb-1">१. संपूर्ण नाव (Full Name) *</label>
                 <input
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930] focus:ring-[#A71930]"
                 />
               </div>
 
@@ -358,7 +543,7 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-800 font-extrabold text-xs mb-1">४. वय (Age) (स्वयंचलित)</label>
+                <label className="block text-slate-800 font-extrabold text-xs mb-1">४. वय (Age)</label>
                 <input
                   type="number"
                   value={age}
@@ -385,7 +570,7 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
                 <label className="block text-slate-800 font-extrabold text-xs mb-1">६. उंची (Height)</label>
                 <input
                   type="text"
-                  placeholder="उदा. 5 ft 5 in"
+                  placeholder="उदा. 5 ft 6 in"
                   value={height}
                   onChange={(e) => setHeight(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
@@ -393,10 +578,10 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-800 font-extrabold text-xs mb-1">७. वजन (Weight - kg)</label>
+                <label className="block text-slate-800 font-extrabold text-xs mb-1">७. वजन (Weight)</label>
                 <input
                   type="text"
-                  placeholder="उदा. 62 kg"
+                  placeholder="उदा. 65 kg"
                   value={weight}
                   onChange={(e) => setWeight(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
@@ -407,7 +592,7 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
                 <label className="block text-slate-800 font-extrabold text-xs mb-1">८. रक्तगट (Blood Group)</label>
                 <input
                   type="text"
-                  placeholder="उदा. O+ve"
+                  placeholder="उदा. O+ve, B+ve"
                   value={bloodGroup}
                   onChange={(e) => setBloodGroup(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
@@ -418,7 +603,7 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
                 <label className="block text-slate-800 font-extrabold text-xs mb-1">९. वर्ण / रंग (Complexion)</label>
                 <input
                   type="text"
-                  placeholder="गोरा, सावळा, गव्हाळ इ."
+                  placeholder="गोरा, निमगोरा, गव्हाळ, सावळा"
                   value={complexion}
                   onChange={(e) => setComplexion(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
@@ -444,10 +629,133 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
                   className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
                 />
               </div>
+
+              <div className="md:col-span-3">
+                <label className="block text-slate-800 font-extrabold text-xs mb-1">१२. थोडक्यात बायो / परिचय (Bio / Introduction)</label>
+                <textarea
+                  rows={2}
+                  placeholder="सदस्याबद्दल थोडक्यात माहिती..."
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
+                />
+              </div>
             </div>
           )}
 
-          {/* TAB 2: ADDRESS & CONTACT */}
+          {/* TAB 2: ASTROLOGY / KUNDALI */}
+          {activeSubTab === 'astrology' && (
+            <div className="space-y-4">
+              <div className="p-3.5 bg-amber-100/60 rounded-2xl border border-amber-300">
+                <h4 className="font-black text-[#A71930] text-xs flex items-center gap-1.5 mb-3">
+                  🪐 पत्रिका व पंचांग माहिती (Horoscope & Astrology Details)
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-slate-800 font-extrabold text-xs mb-1">जन्म वेळ (Birth Time)</label>
+                    <input
+                      type="text"
+                      placeholder="उदा. सकाळी ०८:३०"
+                      value={birthTime}
+                      onChange={(e) => setBirthTime(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-800 font-extrabold text-xs mb-1">जन्म ठिकाण (Birth Place)</label>
+                    <input
+                      type="text"
+                      placeholder="उदा. पुणे, औरंगाबाद"
+                      value={birthPlace}
+                      onChange={(e) => setBirthPlace(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-800 font-extrabold text-xs mb-1">गोत्र (Gotra)</label>
+                    <input
+                      type="text"
+                      placeholder="उदा. काश्यप"
+                      value={gotra}
+                      onChange={(e) => setGotra(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-800 font-extrabold text-xs mb-1">राशी (Rashi)</label>
+                    <input
+                      type="text"
+                      placeholder="उदा. मेष, सिंह"
+                      value={rashi}
+                      onChange={(e) => setRashi(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-800 font-extrabold text-xs mb-1">नक्षत्र (Nakshatra)</label>
+                    <input
+                      type="text"
+                      placeholder="उदा. रोहिणी, अश्विनी"
+                      value={nakshatra}
+                      onChange={(e) => setNakshatra(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-800 font-extrabold text-xs mb-1">गण (Gan)</label>
+                    <input
+                      type="text"
+                      placeholder="देव गण, मनुष्य गण, राक्षस गण"
+                      value={gan}
+                      onChange={(e) => setGan(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-800 font-extrabold text-xs mb-1">नाडी (Nadi)</label>
+                    <input
+                      type="text"
+                      placeholder="आद्य, मध्य, अंत्य"
+                      value={nadi}
+                      onChange={(e) => setNadi(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-slate-800 font-extrabold text-xs mb-1">कुंडली लिंक / फोटो URL (Horoscope Document URL)</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="https://..."
+                        value={horoscopeUrl}
+                        onChange={(e) => setHoroscopeUrl(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-mono text-xs bg-white focus:border-[#A71930]"
+                      />
+                      {horoscopeUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setInspectDocUrl({ url: horoscopeUrl, title: 'कुंडली / पत्रिका' })}
+                          className="px-3 py-2 bg-amber-300 hover:bg-amber-400 text-[#800C1E] font-extrabold text-xs rounded-xl flex items-center gap-1 shadow cursor-pointer shrink-0"
+                        >
+                          <Eye className="w-4 h-4" />
+                          <span>पहा</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: LOCATION & CONTACT */}
           {activeSubTab === 'location' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -457,18 +765,18 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
                   maxLength={10}
                   value={mobile}
                   onChange={(e) => setMobile(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold font-mono text-xs bg-white focus:border-[#A71930]"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-800 font-extrabold text-xs mb-1">२. पर्यायी नंबर (Secondary Mobile)</label>
+                <label className="block text-slate-800 font-extrabold text-xs mb-1">२. पर्यायी मोबाईल नंबर (Secondary Mobile)</label>
                 <input
                   type="tel"
                   maxLength={10}
                   value={secondaryMobile}
                   onChange={(e) => setSecondaryMobile(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold font-mono text-xs bg-white focus:border-[#A71930]"
                 />
               </div>
 
@@ -513,7 +821,7 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-slate-800 font-extrabold text-xs mb-1">७. सध्याचा पत्ता (Current Address)</label>
+                <label className="block text-slate-800 font-extrabold text-xs mb-1">७. सध्याचा रहिवासी पत्ता (Current Address)</label>
                 <textarea
                   rows={2}
                   value={currentAddress}
@@ -534,14 +842,14 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
             </div>
           )}
 
-          {/* TAB 3: EDUCATION & OCCUPATION */}
+          {/* TAB 4: EDUCATION & OCCUPATION */}
           {activeSubTab === 'education' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-slate-800 font-extrabold text-xs mb-1">१. शिक्षण (Education Details)</label>
+                <label className="block text-slate-800 font-extrabold text-xs mb-1">१. उच्च शिक्षण (Education Details)</label>
                 <input
                   type="text"
-                  placeholder="उदा. BE Computer, MBA, BA इ."
+                  placeholder="उदा. BE Computer, MBA, MD, B.Sc Agriculture"
                   value={education}
                   onChange={(e) => setEducation(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
@@ -552,7 +860,7 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
                 <label className="block text-slate-800 font-extrabold text-xs mb-1">२. नोकरी / व्यवसाय (Occupation)</label>
                 <input
                   type="text"
-                  placeholder="उदा. सॉफ्टवेअर इंजिनिअर, शेती, व्यवसाय इ."
+                  placeholder="उदा. सरकारी अधिकारी, आयटी इंजिनिअर, शेती व व्यवसाय"
                   value={occupation}
                   onChange={(e) => setOccupation(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
@@ -560,9 +868,10 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-800 font-extrabold text-xs mb-1">३. कंपनीचे नाव (Company Name)</label>
+                <label className="block text-slate-800 font-extrabold text-xs mb-1">३. कंपनीचे नाव / ऑफिस (Company Name)</label>
                 <input
                   type="text"
+                  placeholder="उदा. TCS Pune, Govt Revenue Dept."
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
@@ -573,16 +882,57 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
                 <label className="block text-slate-800 font-extrabold text-xs mb-1">४. वार्षिक उत्पन्न (Annual Income)</label>
                 <input
                   type="text"
-                  placeholder="उदा. ७ लाख रुपये किंवा ५ लाख ते १० लाख"
+                  placeholder="उदा. ८ लाख प्रति वर्ष"
                   value={income}
                   onChange={(e) => setIncome(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
                 />
               </div>
+
+              {/* Multi-Profession Tagging */}
+              <div className="col-span-full pt-3 border-t border-amber-200">
+                <label className="block text-slate-800 font-extrabold text-xs mb-1.5 flex flex-wrap items-center justify-between gap-1">
+                  <span>५. प्रोफेशन / नोकरी बॅजेस (Profession Badges & Multi-Tag Selection):</span>
+                  <span className="text-[10px] text-amber-900 bg-amber-100 px-2 py-0.5 rounded-full font-bold border border-amber-300">
+                    एकपेक्षा जास्त निवडा (उदा. डॉक्टर + सरकारी नोकरी)
+                  </span>
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {PROFESSION_PRESETS.map((preset) => {
+                    const isSelected = professionTags.includes(preset.label);
+                    return (
+                      <button
+                        type="button"
+                        key={preset.id}
+                        onClick={() => {
+                          setProfessionTags((prev) =>
+                            prev.includes(preset.label)
+                              ? prev.filter((t) => t !== preset.label)
+                              : [...prev, preset.label]
+                          );
+                        }}
+                        className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#800C1E] text-amber-100 border-[#800C1E] shadow-sm'
+                            : 'bg-white text-slate-700 border-amber-200 hover:bg-amber-50'
+                        }`}
+                      >
+                        <span className="font-extrabold text-xs flex items-center justify-between">
+                          <span>{preset.label}</span>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-amber-300 shrink-0" />}
+                        </span>
+                        <span className={`text-[10px] mt-1 ${isSelected ? 'text-amber-200/80' : 'text-slate-500'}`}>
+                          {preset.description}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
 
-          {/* TAB 4: FAMILY DETAILS */}
+          {/* TAB 5: FAMILY DETAILS */}
           {activeSubTab === 'family' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -626,7 +976,7 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-800 font-extrabold text-xs mb-1">५. भाऊ (Number of Brothers)</label>
+                <label className="block text-slate-800 font-extrabold text-xs mb-1">५. भाऊ (Brothers Count)</label>
                 <input
                   type="number"
                   value={brothers}
@@ -636,7 +986,7 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-800 font-extrabold text-xs mb-1">६. भाऊ तपशील (विवाहित/शिक्षण)</label>
+                <label className="block text-slate-800 font-extrabold text-xs mb-1">६. भावांचा तपशील (Brother Details)</label>
                 <input
                   type="text"
                   placeholder="उदा. १ भाऊ (विवाहित - नोकरी)"
@@ -647,7 +997,7 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-800 font-extrabold text-xs mb-1">७. बहीण (Number of Sisters)</label>
+                <label className="block text-slate-800 font-extrabold text-xs mb-1">७. बहीण (Sisters Count)</label>
                 <input
                   type="number"
                   value={sisters}
@@ -657,7 +1007,7 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-slate-800 font-extrabold text-xs mb-1">८. बहीण तपशील</label>
+                <label className="block text-slate-800 font-extrabold text-xs mb-1">८. बहिणींचा तपशील (Sister Details)</label>
                 <input
                   type="text"
                   value={sisterDetails}
@@ -699,9 +1049,9 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-slate-800 font-extrabold text-xs mb-1">१२. वधू/वर अपेक्षा (Partner Expectations)</label>
+                <label className="block text-slate-800 font-extrabold text-xs mb-1">१२. अपेक्षा (Partner Expectations)</label>
                 <textarea
-                  rows={3}
+                  rows={2}
                   value={expectations}
                   onChange={(e) => setExpectations(e.target.value)}
                   className="w-full p-3 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
@@ -710,19 +1060,19 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
             </div>
           )}
 
-          {/* TAB 5: PHOTOS & PRIVACY */}
-          {activeSubTab === 'photos' && (
-            <div className="space-y-4">
+          {/* TAB 6: PHOTOS, DOCUMENTS & VERIFICATION INSPECTION */}
+          {activeSubTab === 'documents' && (
+            <div className="space-y-6">
               
-              {/* Photo Upload Panel */}
-              <div className="p-4 bg-amber-50 rounded-2xl border-2 border-amber-300 space-y-3">
+              {/* Profile Photos Inspection & Management */}
+              <div className="p-4 bg-amber-50/80 rounded-2xl border-2 border-amber-300 space-y-3">
                 <div className="flex items-center justify-between border-b border-amber-200 pb-2">
                   <h4 className="font-extrabold text-xs text-[#A71930] flex items-center gap-1.5">
                     <Camera className="w-4 h-4" />
-                    <span>गॅलरी व्यवस्थापन (Manage Uploaded Photos - Max 5)</span>
+                    <span>गॅलरी फोटो निरीक्षक व व्यवस्थापन (Photos Inspector - Max 8)</span>
                   </h4>
-                  <span className="text-[11px] font-black text-slate-700 bg-amber-100 px-2 py-0.5 rounded border border-amber-300">
-                    {photos.length} / ५ फोटो
+                  <span className="text-[11px] font-black text-slate-700 bg-amber-200 px-2 py-0.5 rounded border border-amber-400">
+                    {photos.length} / ८ फोटो
                   </span>
                 </div>
 
@@ -733,17 +1083,17 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
                   </div>
                 )}
 
-                {photos.length < 5 && (
-                  <div className="border border-dashed border-amber-400 rounded-xl p-4 text-center bg-white hover:border-[#A71930] transition-colors relative">
+                {photos.length < 8 && (
+                  <div className="border border-dashed border-amber-400 rounded-xl p-3.5 text-center bg-white hover:border-[#A71930] transition-colors relative">
                     {isUploadingPhoto ? (
-                      <div className="flex flex-col items-center justify-center py-2 text-[#A71930] space-y-1">
-                        <Loader2 className="w-6 h-6 animate-spin text-[#A71930]" />
-                        <p className="text-[11px] font-bold">क्लाउडवर सुरक्षित फोटो अपलोड होत आहे...</p>
+                      <div className="flex flex-col items-center justify-center py-2 text-[#A71930]">
+                        <Loader2 className="w-6 h-6 animate-spin text-[#A71930] mb-1" />
+                        <p className="text-[11px] font-bold">फोटो क्लाउडवर अपलोड होत आहे...</p>
                       </div>
                     ) : (
                       <>
                         <p className="text-[11px] text-slate-700 font-bold">
-                          नवीन फोटो जोडा (जास्तीत जास्त ८०० KB प्रति फोटो, कमाल ५)
+                          नवीन फोटो अपलोड करा (कमाल ८ फोटो)
                         </p>
                         <input
                           type="file"
@@ -751,66 +1101,66 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
                           multiple
                           onChange={handlePhotoUploadSim}
                           className="hidden"
-                          id="admin-photo-upload-field"
+                          id="admin-photo-upload-field-modal"
                         />
                         <label
-                          htmlFor="admin-photo-upload-field"
-                          className="inline-block mt-2 px-3 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-[#A71930] font-black text-[10px] border border-amber-300 cursor-pointer shadow-xs"
+                          htmlFor="admin-photo-upload-field-modal"
+                          className="inline-block mt-2 px-3 py-1.5 rounded-lg bg-amber-200 hover:bg-amber-300 text-[#800C1E] font-black text-[10px] border border-amber-400 cursor-pointer shadow-xs"
                         >
-                          🖼️ संगणक/गॅलरी मधून फोटो निवडा
+                          🖼️ संगणकावरून फोटो निवडा
                         </label>
                       </>
                     )}
                   </div>
                 )}
 
-                {/* Show current uploaded photos and let user delete one-by-one or set primary */}
                 {photos.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3 pt-2">
                     {photos.map((url, idx) => {
                       const isPrimary = idx === 0;
                       return (
                         <div
                           key={idx}
-                          className={`relative rounded-xl overflow-hidden border-2 transition-all ${
-                            isPrimary ? 'border-[#A71930] ring-2 ring-[#A71930]/20 scale-102 bg-amber-100/50' : 'border-amber-200'
+                          className={`relative rounded-2xl overflow-hidden border-2 transition-all group ${
+                            isPrimary ? 'border-[#A71930] ring-2 ring-[#A71930]/30 shadow-md bg-amber-100/60' : 'border-amber-300 bg-white'
                           }`}
                         >
-                          <img src={url} alt={`user-${idx}`} className="w-full h-24 object-cover" />
+                          <img src={url} alt={`user-${idx}`} className="w-full h-28 object-cover" />
                           
-                          {/* Photo index / Primary Badge */}
                           <div className={`absolute bottom-0 inset-x-0 py-0.5 text-[9px] font-black text-center ${
-                            isPrimary ? 'bg-[#A71930] text-amber-100' : 'bg-slate-900/60 text-white'
+                            isPrimary ? 'bg-[#A71930] text-amber-100' : 'bg-slate-900/70 text-white'
                           }`}>
-                            {isPrimary ? '⭐ मुख्य फोटो' : 'दुय्यम फोटो'}
+                            {isPrimary ? '⭐ मुख्य फोटो' : `फोटो #${idx + 1}`}
                           </div>
 
-                          {/* Action Buttons Overlay */}
-                          <div className="absolute top-1 right-1 flex items-center gap-1 z-10">
-                            {/* Make Primary Star */}
+                          <div className="absolute top-1.5 right-1.5 flex items-center gap-1 z-10">
+                            <button
+                              type="button"
+                              onClick={() => setInspectDocUrl({ url, title: `फोटो #${idx + 1} (${fullName})` })}
+                              className="p-1 rounded-full bg-slate-900/80 hover:bg-slate-900 text-amber-200 shadow-md"
+                              title="मोठ्या आकारात पहा"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
                             {!isPrimary && (
                               <button
                                 type="button"
                                 onClick={() => setPrimaryPhoto(idx)}
                                 className="p-1 rounded-full bg-amber-400 hover:bg-amber-500 text-slate-900 shadow-md"
-                                title="या फोटोला मुख्य (Profile Photo) बनवा"
+                                title="मुख्य फोटो बनवा"
                               >
                                 ⭐
                               </button>
                             )}
-
-                            {/* Delete Photo Button */}
                             <button
                               type="button"
                               onClick={() => {
-                                if (confirm('तुम्हाला खरोखर हा एक फोटो हटवायचा आहे का?')) {
-                                  removePhoto(idx);
-                                }
+                                if (confirm('हा फोटो हटवायचा आहे का?')) removePhoto(idx);
                               }}
-                              className="p-1 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-md flex items-center justify-center"
-                              title="फोटो हटवा (Delete Photo)"
+                              className="p-1 rounded-full bg-rose-600 hover:bg-rose-700 text-white shadow-md"
+                              title="हटवा"
                             >
-                              <X className="w-3 h-3" />
+                              <X className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </div>
@@ -818,16 +1168,338 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
                     })}
                   </div>
                 ) : (
-                  <div className="p-4 text-center bg-amber-50/50 rounded-xl text-[11px] text-slate-500 font-bold border border-dashed border-amber-200">
-                    सध्या सदस्य प्रोफाइलवर एकही फोटो उपलब्ध नाही.
-                  </div>
+                  <p className="text-center text-slate-500 font-bold text-xs py-3">एकही फोटो अपलोड केलेला नाही.</p>
                 )}
               </div>
 
-              {/* Privacy Panel */}
+              {/* Identity Proof / Aadhaar Document Inspector */}
+              <div className="p-4 bg-white rounded-2xl border-2 border-amber-300 space-y-3 shadow-xs">
+                <div className="flex items-center justify-between border-b border-amber-200 pb-2">
+                  <h4 className="font-extrabold text-xs text-[#A71930] flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <span>ओळखपत्र / आधार कार्ड पडताळणी (ID Proof / Govt Verification)</span>
+                  </h4>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
+                    isIdVerified ? 'bg-emerald-100 text-emerald-800 border-emerald-400' : 'bg-rose-100 text-rose-800 border-rose-300'
+                  }`}>
+                    {isIdVerified ? '✅ प्रमाणित (Verified)' : '⚠️ अप्रमाणित (Unverified)'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-slate-800 font-extrabold text-xs mb-1">आधार / ओळखपत्र क्रमांक (Government ID Number)</label>
+                    <input
+                      type="text"
+                      placeholder="उदा. XXXX-XXXX-4589"
+                      value={idVerificationNumber}
+                      onChange={(e) => setIdVerificationNumber(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-mono font-bold text-xs bg-white focus:border-[#A71930]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-800 font-extrabold text-xs mb-1">नवीन ओळखपत्र अपलोड (Upload ID Proof Document)</label>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={(e) => handleDocUpload(e, 'aadhaar')}
+                      className="w-full text-xs font-bold text-slate-700 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-amber-200 file:text-[#800C1E] hover:file:bg-amber-300 cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                {docError && <p className="text-xs text-rose-600 font-bold">{docError}</p>}
+
+                {/* Display Aadhaar Document Preview */}
+                {idProofUrl || aadhaarCardUrl ? (
+                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-300 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-lg bg-amber-200 overflow-hidden border border-amber-400 shrink-0">
+                        <img src={idProofUrl || aadhaarCardUrl} alt="Aadhaar ID" className="w-full h-full object-cover" />
+                      </div>
+                      <div>
+                        <p className="font-black text-xs text-slate-900">शासकीय ओळखपत्र (ID Document)</p>
+                        <p className="text-[11px] text-slate-600 font-mono">
+                          {idVerificationNumber ? `क्रमांक: ${idVerificationNumber}` : 'दस्तऐवज प्रत उपलब्ध'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setInspectDocUrl({ url: idProofUrl || aadhaarCardUrl, title: `शासकीय ओळखपत्र (${fullName})` })}
+                        className="px-3 py-1.5 bg-amber-300 hover:bg-amber-400 text-[#800C1E] font-black text-xs rounded-xl flex items-center gap-1 shadow cursor-pointer"
+                      >
+                        <Eye className="w-4 h-4" />
+                        <span>पहा (Inspect)</span>
+                      </button>
+                      <a
+                        href={idProofUrl || aadhaarCardUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="p-1.5 bg-slate-200 hover:bg-slate-300 rounded-xl text-slate-800"
+                        title="नवीन टॅबमध्ये उघडा"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500 font-bold italic">अद्याप आधार / ओळखपत्र अपलोड केलेले नाही.</p>
+                )}
+              </div>
+
+              {/* Face Verification & Selfie Inspection */}
+              <div className="p-4 bg-white rounded-2xl border-2 border-amber-300 space-y-3 shadow-xs">
+                <div className="flex items-center justify-between border-b border-amber-200 pb-2">
+                  <h4 className="font-extrabold text-xs text-[#A71930] flex items-center gap-1.5">
+                    <UserCheck className="w-4 h-4 text-blue-600" />
+                    <span>फेस व्हेरीफिकेशन स्थिती व सेल्फी (Face Verification & Selfie Inspector)</span>
+                  </h4>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isFaceVerified}
+                      onChange={(e) => {
+                        setIsFaceVerified(e.target.checked);
+                        if (e.target.checked && !faceVerifiedAt) {
+                          setFaceVerifiedAt(new Date().toISOString());
+                        }
+                      }}
+                      className="w-4 h-4 rounded text-[#A71930] focus:ring-0 cursor-pointer"
+                    />
+                    <span className="text-xs font-black text-slate-800">फेस व्हेरीफाईड घोषित करा</span>
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-blue-50/70 rounded-xl border border-blue-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-200 flex items-center justify-center font-black text-blue-900">
+                      👤
+                    </div>
+                    <div>
+                      <p className="font-black text-xs text-slate-900">
+                        फेस पडताळणी स्थिती: {isFaceVerified ? '✅ पूर्ण (Face Verified)' : '❌ अपूर्ण / प्रलंबित'}
+                      </p>
+                      {faceVerifiedAt && (
+                        <p className="text-[10px] text-slate-500 font-bold">
+                          प्रमाणित वेळ: {new Date(faceVerifiedAt).toLocaleString('mr-IN')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Quick Verification Flags */}
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-300 space-y-3">
                 <h4 className="font-extrabold text-xs text-slate-800 border-b pb-2">
-                  🔒 गोपनीयता सेटिंग्ज संपादन (Privacy Controls)
+                  🛡️ पडताळणी खुणा (Verification Badges Flags)
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer p-2 bg-white rounded-xl border border-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={isVerified}
+                      onChange={(e) => setIsVerified(e.target.checked)}
+                      className="w-4 h-4 rounded text-[#A71930] focus:ring-0"
+                    />
+                    <span className="text-xs font-bold text-slate-800">सामान्य प्रमाणित</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer p-2 bg-white rounded-xl border border-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={isIdVerified}
+                      onChange={(e) => setIsIdVerified(e.target.checked)}
+                      className="w-4 h-4 rounded text-[#A71930] focus:ring-0"
+                    />
+                    <span className="text-xs font-bold text-slate-800">ID प्रमाणित</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer p-2 bg-white rounded-xl border border-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={isPhotoVerified}
+                      onChange={(e) => setIsPhotoVerified(e.target.checked)}
+                      className="w-4 h-4 rounded text-[#A71930] focus:ring-0"
+                    />
+                    <span className="text-xs font-bold text-slate-800">फोटो प्रमाणित</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 cursor-pointer p-2 bg-white rounded-xl border border-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={isPremiumVerified}
+                      onChange={(e) => setIsPremiumVerified(e.target.checked)}
+                      className="w-4 h-4 rounded text-[#A71930] focus:ring-0"
+                    />
+                    <span className="text-xs font-bold text-slate-800">प्रीमियम प्रमाणित</span>
+                  </label>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* TAB 7: BADGES & MEMBERSHIP SYSTEM */}
+          {activeSubTab === 'badge' && (
+            <div className="space-y-5">
+              
+              {/* Membership Tier Picker */}
+              <div className="p-4 bg-amber-100/70 rounded-2xl border-2 border-amber-300 space-y-3">
+                <h4 className="font-black text-xs text-[#A71930] border-b border-amber-200 pb-1">
+                  💳 सदस्यत्व प्लॅन (Membership Tier)
+                </h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { id: 'free', label: 'FREE (मोफत)' },
+                    { id: 'silver', label: 'SILVER (सिल्व्हर)' },
+                    { id: 'gold', label: 'GOLD (गोल्ड)' },
+                    { id: 'diamond', label: 'DIAMOND (डायमंड)' },
+                  ].map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setMembership(m.id as MembershipTier)}
+                      className={`p-2.5 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+                        membership === m.id
+                          ? 'bg-[#A71930] text-amber-100 border-amber-400 shadow'
+                          : 'bg-white text-slate-800 border-amber-200 hover:bg-amber-100'
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Special Badges Assignment */}
+              <div className="p-5 bg-gradient-to-r from-amber-50 to-amber-100 rounded-2xl border-2 border-amber-300 space-y-4 shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-[#A71930] font-black text-sm">
+                    <Award className="w-5 h-5 text-[#A71930] animate-bounce" />
+                    <span>विशेष बॅज वितरण & दृश्यमानता (Special Badge Assignment & Control)</span>
+                  </div>
+
+                  {/* Hide Badge Toggle Option */}
+                  <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded-xl border border-amber-300 shadow-2xs">
+                    <input
+                      type="checkbox"
+                      checked={hideBadge}
+                      onChange={(e) => setHideBadge(e.target.checked)}
+                      className="w-4 h-4 rounded text-[#A71930] focus:ring-0 cursor-pointer"
+                    />
+                    <span className="text-xs font-black text-slate-800">
+                      {hideBadge ? '🙈 बॅज लपवला आहे (Hidden)' : '👁️ बॅज दाखवा (Visible)'}
+                    </span>
+                  </label>
+                </div>
+
+                <p className="text-[11px] text-slate-700 font-bold leading-relaxed">
+                  या सदस्याच्या पेमेंट व आवश्यकतेनुसार ४-५ तयार बॅच किंवा स्वतःचे सानुकूल नाव देऊन सत्कार करा. बॅज लपवायचा असल्यास वरील चेकबॉक्स वापरा.
+                </p>
+
+                {/* Preset Badges Grid */}
+                <div>
+                  <label className="block text-slate-800 font-extrabold text-xs mb-2">तयार बॅचेस निवडा (Select Preset Badge):</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAssignedBadge('');
+                        setCustomBadgeText('');
+                      }}
+                      className={`p-2.5 rounded-xl text-xs font-bold text-left border cursor-pointer ${
+                        assignedBadge === '' ? 'bg-slate-800 text-white border-slate-900 font-black' : 'bg-white border-amber-200 hover:bg-amber-100'
+                      }`}
+                    >
+                      ❌ कोणताही बॅज नाही (None)
+                    </button>
+
+                    {PRESET_BADGES.map((b) => {
+                      const isSelected = assignedBadge === b.id;
+                      return (
+                        <button
+                          key={b.id}
+                          type="button"
+                          onClick={() => {
+                            setAssignedBadge(b.id);
+                            setCustomBadgeText('');
+                          }}
+                          className={`p-2.5 rounded-xl text-xs font-extrabold text-left border transition-all cursor-pointer flex items-center justify-between ${
+                            isSelected
+                              ? 'bg-[#A71930] text-amber-100 border-amber-400 shadow-md ring-2 ring-[#A71930]/30'
+                              : 'bg-white text-slate-800 border-amber-300 hover:bg-amber-100'
+                          }`}
+                        >
+                          <span>{b.label}</span>
+                          {isSelected && <Check className="w-4 h-4 text-amber-300 shrink-0" />}
+                        </button>
+                      );
+                    })}
+
+                    {/* Custom Badge Option Button */}
+                    <button
+                      type="button"
+                      onClick={() => setAssignedBadge('Custom')}
+                      className={`p-2.5 rounded-xl text-xs font-extrabold text-left border transition-all cursor-pointer flex items-center justify-between ${
+                        assignedBadge === 'Custom'
+                          ? 'bg-[#A71930] text-amber-100 border-amber-400 shadow-md ring-2 ring-[#A71930]/30'
+                          : 'bg-white text-[#800C1E] border-amber-300 hover:bg-amber-100'
+                      }`}
+                    >
+                      <span>✍️ स्वतःचे नाव द्या (Custom Badge)...</span>
+                      {assignedBadge === 'Custom' && <Check className="w-4 h-4 text-amber-300 shrink-0" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Custom Badge Text Input */}
+                {assignedBadge === 'Custom' && (
+                  <div className="p-3 bg-white rounded-xl border border-amber-300 animate-in fade-in space-y-1">
+                    <label className="block text-slate-800 font-extrabold text-xs">सानुकूल बॅज नाव (Custom Badge Name):</label>
+                    <input
+                      type="text"
+                      maxLength={30}
+                      placeholder="उदा. पाचोरा स्पेशल, डॉक्टर प्रोफाईल, विशेष शिफारस"
+                      value={customBadgeText}
+                      onChange={(e) => setCustomBadgeText(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-black text-xs bg-white focus:border-[#A71930]"
+                    />
+                  </div>
+                )}
+
+                {/* Badge Live Preview */}
+                <div className="p-3.5 bg-white rounded-2xl border border-amber-300 flex items-center justify-between">
+                  <span className="text-xs font-black text-slate-600">लाइव्ह बॅज कसा दिसेल (Live Badge Preview):</span>
+                  <div>
+                    {hideBadge ? (
+                      <span className="text-xs text-rose-600 font-bold bg-rose-50 px-3 py-1 rounded-full border border-rose-200">
+                        🚫 बॅज सध्या प्रोफाईलवर लपवलेला आहे
+                      </span>
+                    ) : assignedBadge ? (
+                      <span className="px-3 py-1 rounded-full bg-gradient-to-r from-amber-100 via-rose-100 to-amber-100 text-[#800C1E] border-2 border-amber-400 font-black text-xs inline-flex items-center gap-1 shadow animate-pulse">
+                        <Award className="w-4 h-4 text-[#A71930]" />
+                        <span>
+                          {assignedBadge === 'Custom'
+                            ? (customBadgeText || 'सानुकूल बॅज')
+                            : (PRESET_BADGES.find((b) => b.id === assignedBadge)?.label || assignedBadge)}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-400 font-bold">कोणताही बॅज नाही</span>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Global Privacy Controls */}
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-300 space-y-3">
+                <h4 className="font-extrabold text-xs text-slate-800 border-b pb-2">
+                  🔒 मोबाईल व फोटो गोपनीयता (Privacy Controls)
                 </h4>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -837,7 +1509,7 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
                       onChange={(e) => setHideContact(e.target.checked)}
                       className="w-4 h-4 rounded border-slate-300 text-[#A71930] focus:ring-0"
                     />
-                    <span className="text-xs font-bold text-slate-700">📱 सदस्यांचा मोबाईल नंबर थेट सर्वांपासून लपवा (Hide Contact)</span>
+                    <span className="text-xs font-bold text-slate-700">📱 मोबाईल नंबर लपवा (Hide Mobile)</span>
                   </label>
 
                   <label className="flex items-center gap-2 cursor-pointer">
@@ -847,7 +1519,7 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
                       onChange={(e) => setHidePhoto(e.target.checked)}
                       className="w-4 h-4 rounded border-slate-300 text-[#A71930] focus:ring-0"
                     />
-                    <span className="text-xs font-bold text-slate-700">📷 सदस्यांचा फोटो अपरिचित लोकांपासून लपवा (Hide Photo)</span>
+                    <span className="text-xs font-bold text-slate-700">📷 फोटो लपवा (Hide Photos)</span>
                   </label>
                 </div>
               </div>
@@ -855,101 +1527,76 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
             </div>
           )}
 
-          {/* TAB 6: SPECIAL BADGE SYSTEM */}
-          {activeSubTab === 'badge' && (
-            <div className="space-y-4">
-              <div className="p-5 bg-gradient-to-r from-amber-50 to-amber-100 rounded-2xl border-2 border-amber-300 space-y-3">
-                <div className="flex items-center gap-2 text-[#A71930] font-black text-sm">
-                  <Award className="w-5 h-5 text-[#A71930] animate-bounce" />
-                  <span>प्रमाणित ओळख व विशेष बॅज वितरण कक्ष (Special Profile Badges)</span>
-                </div>
-                
-                <p className="text-[11px] text-slate-700 font-bold leading-relaxed">
-                  या सदस्याच्या प्रोफाइलवर दाखवण्यासाठी एक खास गुणवत्ता बॅज किंवा स्वतःचे सानुकूल नाव देऊन सत्कार करा. हा बॅज वधू-वराच्या प्रोफाइल कार्डवर थेट चमकणाऱ्या रूपात (Animated Badge) दिसून येईल.
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                  <div>
-                    <label className="block text-slate-800 font-extrabold text-xs mb-1">विशेष बॅज निवडा (Select Badge)</label>
-                    <select
-                      value={assignedBadge}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setAssignedBadge(val);
-                        if (val !== 'Custom') {
-                          setCustomBadgeText('');
-                        }
-                      }}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
-                    >
-                      <option value="">काहीही नाही (None)</option>
-                      <option value="Verified">Verified (प्रमाणित - ⭐)</option>
-                      <option value="VIP">VIP (अतिविशेष - 👑)</option>
-                      <option value="Premium">Premium (प्रीमियम - 💎)</option>
-                      <option value="Featured">Featured (खास - 🔥)</option>
-                      <option value="Custom">Custom Badge (स्वतःचे सानुकूल नाव देणे...)</option>
-                    </select>
-                  </div>
-
-                  {assignedBadge === 'Custom' && (
-                    <div className="animate-in slide-in-from-top-2">
-                      <label className="block text-slate-800 font-extrabold text-xs mb-1">सानुकूल बॅज मजकूर (Custom Badge Name) *</label>
-                      <input
-                        type="text"
-                        maxLength={25}
-                        placeholder="उदा. १००% खात्रीशीर, समाजसेवक, सरकारी नोकरी इ."
-                        value={customBadgeText}
-                        onChange={(e) => setCustomBadgeText(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Badge Preview */}
-                <div className="p-3.5 bg-white rounded-xl border border-amber-200 mt-4 flex items-center justify-between">
-                  <span className="text-[11px] font-black text-slate-500">थेट बॅज कसा दिसेल (Badge Live Preview):</span>
-                  <div>
-                    {assignedBadge ? (
-                      <span className="px-3 py-1 rounded-full bg-gradient-to-r from-amber-100 via-rose-100 to-amber-100 text-[#800C1E] border-2 border-amber-400 font-black text-xs inline-flex items-center gap-1 shadow animate-pulse">
-                        <Award className="w-4 h-4 text-[#A71930]" />
-                        <span>{assignedBadge === 'Custom' ? (customBadgeText || 'सानुकूल बॅज') : assignedBadge}</span>
-                      </span>
-                    ) : (
-                      <span className="text-[11px] text-slate-400 font-bold">कोणताही बॅज निवडलेला नाही</span>
-                    )}
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          )}
-
         </div>
 
-        {/* Footer Actions */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2.5 shrink-0">
-          <button
-            onClick={onClose}
-            className="px-4 py-2.5 rounded-xl border border-slate-300 hover:bg-slate-100 font-black text-xs text-slate-700 cursor-pointer"
-          >
-            रद्द करा
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={!canEdit}
-            className={`px-5 py-2.5 rounded-xl text-white font-black text-xs flex items-center gap-1.5 cursor-pointer shadow border ${
-              canEdit
-                ? 'bg-emerald-600 hover:bg-emerald-700 border-emerald-500'
-                : 'bg-slate-400 border-slate-400 cursor-not-allowed'
-            }`}
-          >
-            <Save className="w-4 h-4" />
-            <span>बदल जतन करा (Save Changes)</span>
-          </button>
+        {/* Modal Footer Actions */}
+        <div className="p-4 bg-amber-100/70 border-t border-amber-300 flex items-center justify-between gap-2 shrink-0">
+          <p className="text-[11px] text-slate-600 font-bold hidden sm:block">
+            टीप: जतन केल्यावर सर्व बदल डेटाबेसमध्ये लगेच अद्ययावत होतील.
+          </p>
+          <div className="flex items-center gap-2.5 ml-auto">
+            <button
+              onClick={onClose}
+              className="px-4 py-2.5 rounded-xl border border-amber-400 bg-white hover:bg-amber-100 font-black text-xs text-slate-800 cursor-pointer shadow-xs"
+            >
+              रद्द करा
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!canEdit}
+              className={`px-6 py-2.5 rounded-xl text-white font-black text-xs flex items-center gap-1.5 cursor-pointer shadow-md border ${
+                canEdit
+                  ? 'bg-emerald-700 hover:bg-emerald-800 border-emerald-600'
+                  : 'bg-slate-400 border-slate-400 cursor-not-allowed'
+              }`}
+            >
+              <Save className="w-4 h-4" />
+              <span>बदल जतन करा (Save Changes)</span>
+            </button>
+          </div>
         </div>
 
       </div>
+
+      {/* DOCUMENT & PHOTO LIGHTBOX INSPECTOR */}
+      {inspectDocUrl && (
+        <div className="fixed inset-0 z-60 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-3 animate-in fade-in">
+          <div className="relative max-w-4xl w-full bg-white rounded-3xl overflow-hidden p-4 space-y-3 shadow-2xl border-2 border-amber-400 flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between border-b pb-2">
+              <h4 className="font-black text-sm text-[#A71930] flex items-center gap-2">
+                <Eye className="w-5 h-5 text-[#A71930]" />
+                <span>{inspectDocUrl.title}</span>
+              </h4>
+              <button
+                onClick={() => setInspectDocUrl(null)}
+                className="p-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto bg-slate-100 rounded-2xl p-2 flex items-center justify-center min-h-[300px]">
+              <img
+                src={inspectDocUrl.url}
+                alt={inspectDocUrl.title}
+                className="max-h-[70vh] w-auto object-contain rounded-xl shadow-md"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <a
+                href={inspectDocUrl.url}
+                target="_blank"
+                rel="noreferrer"
+                download
+                className="px-4 py-2 bg-amber-300 hover:bg-amber-400 text-[#800C1E] font-black text-xs rounded-xl flex items-center gap-1 shadow cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>डाऊनलोड करा (Download Document)</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

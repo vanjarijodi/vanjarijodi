@@ -4,6 +4,8 @@ import { UserProfile } from '../types';
 import { PrintBiodataModal } from './PrintBiodataModal';
 import { ReportProfileModal } from './ReportProfileModal';
 import { VerifiedBadge } from './VerifiedBadge';
+import { getProfessionBadges } from '../utils/professionUtils';
+import { uploadToCloudinary, compressAndResizeImage } from '../utils/cloudinary';
 import {
   X,
   ShieldCheck,
@@ -29,7 +31,11 @@ import {
   Eye,
   EyeOff,
   AlertTriangle,
-  Crown
+  Crown,
+  Plus,
+  Upload,
+  Camera,
+  Loader2,
 } from 'lucide-react';
 
 export const ProfileDetailModal: React.FC<{
@@ -42,6 +48,7 @@ export const ProfileDetailModal: React.FC<{
     currentUser,
     sendInterest,
     interests,
+    likedProfileIds,
     toggleShortlist,
     shortlistedIds,
     setActiveChatUser,
@@ -58,6 +65,7 @@ export const ProfileDetailModal: React.FC<{
     softDeleteProfile,
     updateProfileDirect,
     deleteMemberPhoto,
+    addMemberPhoto,
     toggleBlockProfile,
     toggleBlockMemberAccess,
     toggleProfileVisibility,
@@ -79,6 +87,30 @@ export const ProfileDetailModal: React.FC<{
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [isUploadingNewPhoto, setIsUploadingNewPhoto] = useState(false);
+
+  const handleAdminUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !profile) return;
+    setIsUploadingNewPhoto(true);
+    try {
+      const comp = await compressAndResizeImage(file, 800, 0.85);
+      const res = await uploadToCloudinary(comp.file, 'vanjarijodi_profile_photos');
+      const photoUrl = res.success && res.url ? res.url : comp.dataUrl;
+      
+      const result = addMemberPhoto(profile.id, photoUrl);
+      if (result.success) {
+        alert('नवीन फोटो यशस्वीरित्या जोडला गेला!');
+      } else {
+        alert(result.message || 'फोटो जोडता आला नाही.');
+      }
+    } catch (err) {
+      console.error('Photo upload error:', err);
+      alert('फोटो अपलोड करताना त्रुटी आली.');
+    } finally {
+      setIsUploadingNewPhoto(false);
+    }
+  };
 
   React.useEffect(() => {
     if (profile?.id) {
@@ -95,6 +127,10 @@ export const ProfileDetailModal: React.FC<{
   );
   const interestObj = interests.find(
     (i) => currentUser && i.fromUserId === currentUser.id && i.toUserId === profile.id
+  );
+  const isMutualMatch = currentUser && (
+    (likedProfileIds.includes(profile.id) || !!interestObj) &&
+    (interests.some((i) => i.fromUserId === profile.id && i.toUserId === currentUser.id) || (profile.shortlistedByUsers || []).includes(currentUser.id))
   );
 
   const handleShareWhatsApp = () => {
@@ -114,7 +150,7 @@ export const ProfileDetailModal: React.FC<{
                 आयडी: {profile.id}
               </span>
               <h2 className="text-base sm:text-lg font-black text-amber-100 break-words">
-                {(!currentUser && (siteConfig?.blurProfileNames ?? true)) ? '🔒 [नाव गुप्त लपवले आहे]' : profile.fullName}
+                {(!isAuthorized && !currentUser && (siteConfig?.blurProfileNames ?? true)) ? '🔒 [नाव गुप्त लपवले आहे]' : profile.fullName}
               </h2>
             </div>
             <div className="flex items-center gap-2">
@@ -178,6 +214,30 @@ export const ProfileDetailModal: React.FC<{
 
                 {/* Grid of quick switches */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {/* Guest Contact Access Toggle */}
+                  <div className="p-3 bg-white rounded-2xl border border-red-200 flex flex-col justify-between gap-2">
+                    <div>
+                      <span className="text-slate-500 text-[10px] uppercase block">गेस्ट युझर्सना नंबर (Guest Contact View)</span>
+                      <span className={`text-xs font-black inline-block mt-1 ${profile.allowGuestContactView ? 'text-emerald-700' : 'text-slate-500'}`}>
+                        {profile.allowGuestContactView ? '🔓 थेट उघडा (Open for All)' : '🔒 बंद (Requires Login)'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateProfileDirect(profile.id, { allowGuestContactView: !profile.allowGuestContactView });
+                        alert(`गेस्ट नंबर व्ह्यू स्टेटस बदलले: ${!profile.allowGuestContactView ? 'गेस्टसाठी उघडा केला' : 'लॉक केला'}`);
+                      }}
+                      className={`w-full py-1.5 px-3 rounded-xl border text-center text-xs font-black shadow transition-all cursor-pointer ${
+                        profile.allowGuestContactView
+                          ? 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
+                          : 'bg-blue-600 text-white border-blue-500 hover:bg-blue-700'
+                      }`}
+                    >
+                      {profile.allowGuestContactView ? '🔒 विना-लॉगिन नंबर लपवा' : '🔓 विना-लॉगिन नंबर दाखवा'}
+                    </button>
+                  </div>
+
                   {/* Approval Status Toggle */}
                   <div className="p-3 bg-white rounded-2xl border border-red-200 flex flex-col justify-between gap-2">
                     <div>
@@ -421,10 +481,36 @@ export const ProfileDetailModal: React.FC<{
                 </div>
 
                 {/* Candidate Uploaded Photos Management & Quick Deletion */}
-                <div className="bg-white p-4 rounded-2xl border border-red-200 space-y-3">
-                  <p className="text-xs font-black text-slate-800 flex items-center gap-1.5">
-                    <span>📷 वधू/वरांचे सर्व फोटो व्यवस्थापन (Delete or Manage Profile Photos):</span>
-                  </p>
+                <div className="bg-white p-4 rounded-2xl border border-amber-200 space-y-3 shadow-sm">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <p className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                      <Camera className="w-4 h-4 text-[#A71930]" />
+                      <span>📷 प्रोफाईल फोटो व्यवस्थापन (Delete or Add Profile Photos):</span>
+                    </p>
+                    {profile.photos.length < 5 && (
+                      <label className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-xs">
+                        {isUploadingNewPhoto ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>अपलोड होत आहे...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>नवीन फोटो जोडा</span>
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          disabled={isUploadingNewPhoto}
+                          onChange={handleAdminUploadPhoto}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
                     {profile.photos.map((img, idx) => (
                       <div key={idx} className="relative group border-2 border-slate-200 rounded-xl overflow-hidden aspect-square bg-slate-50 shadow-xs">
@@ -438,14 +524,10 @@ export const ProfileDetailModal: React.FC<{
                           <button
                             type="button"
                             onClick={() => {
-                              if (profile.photos.length <= 1) {
-                                alert('किमान एक मुख्य फोटो राहणे बंधनकारक आहे! आपण सर्व फोटो डिलीट करू शकत नाही.');
-                                return;
-                              }
                               if (confirm(`तुम्हाला खरोखर फोटो नंबर ${idx + 1} डिलीट करायचा आहे का?`)) {
                                 deleteMemberPhoto(profile.id, idx);
                                 setSelectedPhotoIndex(0);
-                                alert('फोटो यशस्वीरित्या डिलीट केला!');
+                                alert('फोटो यशस्वीरित्या डिलीated!');
                               }
                             }}
                             className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-md cursor-pointer hover:scale-110 transition-transform"
@@ -459,6 +541,82 @@ export const ProfileDetailModal: React.FC<{
                         </div>
                       </div>
                     ))}
+
+                    {profile.photos.length === 0 && (
+                      <div className="col-span-full p-4 bg-amber-50 rounded-xl border border-dashed border-amber-300 text-center text-xs text-amber-900">
+                        कोणताही फोटो जोडलेला नाही. वर दिलेला 'नवीन फोटो जोडा' बटण वापरून फोटो अपलोड करा.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* ACTIVE PERMISSIONS & PRIVACY OVERVIEW (ADMIN ONLY) */}
+                <div className="p-4 bg-amber-50 rounded-2xl border border-amber-300 space-y-3 shadow-xs">
+                  <h4 className="text-xs font-black text-[#A71930] flex items-center gap-1.5 border-b border-amber-200 pb-1.5 uppercase">
+                    <ShieldCheck className="w-4 h-4 text-[#A71930]" />
+                    <span>🛡️ सक्रिय परवानग्या आणि गोपनीयता तपशील (Active Permissions & Privacy):</span>
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <div className="space-y-1.5 p-2 bg-white/50 border border-amber-200/50 rounded-xl">
+                      <p className="text-slate-800 font-black flex items-center gap-1">👤 १. लॉगिन नसलेले विझिटर्स (Public):</p>
+                      <ul className="list-disc pl-4 space-y-1 text-slate-600 font-medium text-[11px]">
+                        <li>
+                          मुख्य बायोडाटा: <span className={siteConfig?.guestPermissions?.viewProfiles ? "text-emerald-700 font-black" : "text-rose-600 font-black"}>
+                            {siteConfig?.guestPermissions?.viewProfiles ? "परवानगी" : "बंद"}
+                          </span>
+                        </li>
+                        <li>
+                          फोटो: <span className={(siteConfig?.allowPublicVisitorsToViewPhotos !== false && !siteConfig?.blurProfilePhotos) ? "text-emerald-700 font-black" : "text-amber-700 font-black"}>
+                            {(siteConfig?.allowPublicVisitorsToViewPhotos !== false && !siteConfig?.blurProfilePhotos) ? "स्पष्ट (Clear)" : "अस्पष्ट (Blur)"}
+                          </span>
+                        </li>
+                        <li>
+                          मोबाईल नंबर: <span className={siteConfig?.allowPublicVisitorsToViewContacts ? "text-emerald-700 font-black" : "text-amber-700 font-black"}>
+                            {siteConfig?.allowPublicVisitorsToViewContacts ? "खुला (Direct)" : "प्रीमियम / बंद"}
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div className="space-y-1.5 p-2 bg-white/50 border border-amber-200/50 rounded-xl">
+                      <p className="text-slate-800 font-black flex items-center gap-1">🔑 २. गेस्ट लॉगिन युझर्स (Guest Logins):</p>
+                      <ul className="list-disc pl-4 space-y-1 text-slate-600 font-medium text-[11px]">
+                        <li>
+                          फोटो: <span className={(siteConfig?.allowGuestsToViewPhotos !== false && !siteConfig?.blurProfilePhotos) ? "text-emerald-700 font-black" : "text-amber-700 font-black"}>
+                            {(siteConfig?.allowGuestsToViewPhotos !== false && !siteConfig?.blurProfilePhotos) ? "स्पष्ट (Clear)" : "अस्पष्ट (Blur)"}
+                          </span>
+                        </li>
+                        <li>
+                          मोबाईल नंबर: <span className={siteConfig?.allowGuestsToViewContacts ? "text-emerald-700 font-black" : "text-amber-700 font-black"}>
+                            {siteConfig?.allowGuestsToViewContacts ? "खुला (Direct)" : "प्रीमियम / बंद"}
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div className="space-y-1.5 p-2 bg-white/50 border border-amber-200/50 rounded-xl">
+                      <p className="text-slate-800 font-black flex items-center gap-1">👥 ३. नोंदणीकृत सदस्य (Members):</p>
+                      <ul className="list-disc pl-4 space-y-1 text-slate-600 font-medium text-[11px]">
+                        <li>
+                          फोटो: <span className={siteConfig?.allowMembersToViewPhotos !== false ? "text-emerald-700 font-black" : "text-amber-700 font-black"}>
+                            {siteConfig?.allowMembersToViewPhotos !== false ? "स्पष्ट (Clear)" : "अस्पष्ट (Blur)"}
+                          </span>
+                        </li>
+                        <li>
+                          मोबाईल नंबर: <span className={siteConfig?.allowMembersToViewContacts ? "text-emerald-700 font-black" : "text-amber-700 font-black"}>
+                            {siteConfig?.allowMembersToViewContacts ? "खुला (Direct)" : "प्रीमियम / बंद"}
+                          </span>
+                        </li>
+                        <li>
+                          गोपनीयता: <span className="text-slate-700 font-bold">
+                            {profile.privacy?.hideContact ? "📞 नंबर लपवला" : "📞 नंबर जाहीर"} • {profile.privacy?.hidePhoto ? "🖼️ फोटो लपवला" : "🖼️ फोटो जाहीर"}
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="p-2.5 bg-white border border-amber-200 rounded-xl text-[10px] text-slate-500 font-semibold leading-relaxed">
+                    ℹ️ <strong>टीप (Note for Admin):</strong> सदस्याने त्यांच्या प्रोफाइल सेटिंगमध्ये बदल केले तरी, ॲडमिन म्हणून तुमचे जागतिक नियम (Global Site Settings) व परवानग्यांचे नियंत्रण अंतिम व सर्वोच्च राहील.
                   </div>
                 </div>
               </div>
@@ -478,12 +636,24 @@ export const ProfileDetailModal: React.FC<{
                   title="फोटो मोठं करून पाहण्यासाठी क्लिक करा"
                 >
                   <img
-                    src={profile.photos[selectedPhotoIndex] || profile.photos[0]}
+                    src={profile.photos?.[selectedPhotoIndex] || profile.photos?.[0] || profile.photoUrl || (profile.gender === 'bride' ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400')}
                     alt="profile"
+                    referrerPolicy="no-referrer"
                     style={{
-                      filter: (!currentUser && siteConfig?.blurProfilePhotos)
-                        ? `blur(${siteConfig?.photoBlurPercent || 20}px)`
-                        : 'none'
+                      filter: (() => {
+                        const isOverride = siteConfig?.adminOverrideMemberPrivacy === true;
+                        const isPhotoBlurred = isAuthorized ? false : (
+                          profile.privacy?.hidePhoto && !isOverride
+                          ? true
+                          : !currentUser
+                          ? (siteConfig?.allowPublicVisitorsToViewPhotos === false || siteConfig?.blurProfilePhotos)
+                          : currentUser.id.startsWith('guest')
+                          ? (siteConfig?.allowGuestsToViewPhotos === false || siteConfig?.blurProfilePhotos)
+                          : (siteConfig?.allowMembersToViewPhotos === false)
+                        );
+
+                        return isPhotoBlurred ? `blur(${siteConfig?.photoBlurPercent || 20}px)` : 'none';
+                      })()
                     }}
                     className="w-full h-full object-cover pointer-events-none group-hover:scale-105 transition-transform duration-300"
                   />
@@ -542,7 +712,7 @@ export const ProfileDetailModal: React.FC<{
                   </div>
 
                   <h1 className="text-xl sm:text-2xl font-black text-[#A71930] mt-2 flex flex-col items-start gap-1">
-                    {(!currentUser && (siteConfig?.blurProfileNames ?? true)) ? (
+                    {(!isAuthorized && !currentUser && (siteConfig?.blurProfileNames ?? true)) ? (
                       <div className="flex flex-col items-start gap-1">
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-red-50 text-[#A71930] text-xs font-black border border-red-200 select-none animate-pulse">
                           <Lock className="w-4 h-4 text-[#A71930] shrink-0" />
@@ -576,6 +746,37 @@ export const ProfileDetailModal: React.FC<{
                       <GraduationCap className="w-4 h-4 text-[#A71930] shrink-0" />
                       <span>शिक्षण/पात्रता: <strong className="text-[#800C1E] font-black">{profile.education || 'उच्चशिक्षित'}</strong></span>
                     </div>
+
+                    {/* Profession & Govt Job Tags */}
+                    {(() => {
+                      const badges = getProfessionBadges(profile);
+                      if (badges.length === 0) return null;
+                      return (
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                          <span className="text-[10px] font-black text-slate-600">नोकरी/व्यवसाय श्रेणी:</span>
+                          {badges.map((tag, idx) => (
+                            <span
+                              key={idx}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-black border shadow-2xs ${
+                                tag.includes('डॉक्टर')
+                                  ? 'bg-emerald-100 text-emerald-950 border-emerald-300'
+                                  : tag.includes('सरकारी')
+                                  ? 'bg-amber-100 text-amber-950 border-amber-300'
+                                  : tag.includes('इंजिनिअर')
+                                  ? 'bg-blue-100 text-blue-950 border-blue-300'
+                                  : tag.includes('शिक्षक')
+                                  ? 'bg-indigo-100 text-indigo-950 border-indigo-300'
+                                  : tag.includes('व्यावसायिक') || tag.includes('व्यवसाय')
+                                  ? 'bg-purple-100 text-purple-950 border-purple-300'
+                                  : 'bg-slate-100 text-slate-800 border-slate-300'
+                              }`}
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {profile.bio && (
@@ -847,9 +1048,9 @@ export const ProfileDetailModal: React.FC<{
               </button>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-2">
               {isAuthorized ? (
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <a
                     href={`tel:${profile.mobile}`}
                     className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold flex items-center gap-1.5"
@@ -867,6 +1068,11 @@ export const ProfileDetailModal: React.FC<{
                     <MessageCircle className="w-4 h-4" />
                     <span>चॅट करा</span>
                   </button>
+                  {isMutualMatch && (
+                    <span className="px-3 py-1 rounded-xl bg-rose-100 text-rose-800 border border-rose-300 text-xs font-black flex items-center gap-1">
+                      💞 म्युचुअल लाईक (मॅच) मुळे मोबाईल नंबर अनलॉक!
+                    </span>
+                  )}
                 </div>
               ) : pendingReq ? (
                 <div className="px-4 py-2 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold flex items-center gap-1.5 cursor-default">
@@ -912,14 +1118,20 @@ export const ProfileDetailModal: React.FC<{
                 </div>
               )}
 
-              <button
-                onClick={() => sendInterest(profile.id)}
-                disabled={!!interestObj}
-                className="px-4 py-2.5 rounded-xl bg-white hover:bg-amber-100 text-[#A71930] border border-amber-300 text-xs font-bold flex items-center gap-1.5"
-              >
-                <Heart className="w-4 h-4 fill-[#A71930] text-[#A71930]" />
-                <span>{interestObj ? 'प्रतिसाद पाठवला' : 'प्रतिसाद पाठवा'}</span>
-              </button>
+              {currentUser?.id !== profile.id && (
+                <button
+                  onClick={() => sendInterest(profile.id)}
+                  disabled={!!interestObj || likedProfileIds.includes(profile.id)}
+                  className={`px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md transition-all cursor-pointer ${
+                    interestObj || likedProfileIds.includes(profile.id)
+                      ? 'bg-amber-100 text-[#800C1E] border border-amber-300 cursor-default'
+                      : 'bg-gradient-to-r from-[#A71930] to-[#800C1E] text-amber-100 hover:brightness-110'
+                  }`}
+                >
+                  <Heart className={`w-4 h-4 ${interestObj || likedProfileIds.includes(profile.id) ? 'fill-[#A71930] text-[#A71930]' : 'fill-amber-200 text-amber-200'}`} />
+                  <span>{interestObj || likedProfileIds.includes(profile.id) ? '❤️ लाईक केले (Liked)' : '❤️ लाईक करा (Like Profile)'}</span>
+                </button>
+              )}
             </div>
 
           </div>
@@ -964,8 +1176,9 @@ export const ProfileDetailModal: React.FC<{
           {/* Lightbox Main Image */}
           <div className="relative flex-1 w-full max-w-4xl flex items-center justify-center my-4 overflow-hidden">
             <img
-              src={profile.photos[selectedPhotoIndex] || profile.photos[0]}
+              src={profile.photos?.[selectedPhotoIndex] || profile.photos?.[0] || profile.photoUrl || (profile.gender === 'bride' ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400' : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400')}
               alt="fullscreen profile photo"
+              referrerPolicy="no-referrer"
               className="max-h-[80vh] max-w-full object-contain rounded-2xl shadow-2xl border-2 border-amber-400/40"
             />
           </div>

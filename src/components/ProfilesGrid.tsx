@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { UserProfile, Gender } from '../types';
 import { VerifiedBadge } from './VerifiedBadge';
+import { getProfessionBadges } from '../utils/professionUtils';
 import {
   ShieldCheck,
   Heart,
@@ -30,13 +31,15 @@ export const ProfilesGrid: React.FC<{
     toggleShortlist,
     sendInterest,
     interests,
+    likedProfileIds,
     currentUser,
     setSelectedProfileForModal,
     setActiveChatUser,
     contactRequests,
     requestContactAuthorization,
     isContactAuthorizedForUser,
-    siteConfig
+    siteConfig,
+    currentView
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'all' | 'bride' | 'groom' | 'shortlisted'>('all');
@@ -53,8 +56,8 @@ export const ProfilesGrid: React.FC<{
     return `${district}, ${city}`;
   };
 
-  // Check Admin Settings: Hide entire section if disabled by admin
-  if (siteConfig?.showProfilesOnIndexPage === false) {
+  // On home page, check siteConfig.showProfilesOnIndexPage
+  if (currentView === 'home' && siteConfig?.showProfilesOnIndexPage === false) {
     return null;
   }
 
@@ -64,6 +67,14 @@ export const ProfilesGrid: React.FC<{
   }
 
   const displayedProfiles = filteredProfiles.filter((p) => {
+    if (currentUser && p.id === currentUser.id) return false;
+    
+    // Strict Opposite Gender Rule for logged-in members (Groom sees Bride only, Bride sees Groom only)
+    if (currentUser && !currentUser.isAdmin) {
+      if (currentUser.gender === 'groom' && p.gender !== 'bride') return false;
+      if (currentUser.gender === 'bride' && p.gender !== 'groom') return false;
+    }
+
     if (activeTab === 'bride') return p.gender === 'bride';
     if (activeTab === 'groom') return p.gender === 'groom';
     if (activeTab === 'shortlisted') return shortlistedIds.includes(p.id);
@@ -79,7 +90,13 @@ export const ProfilesGrid: React.FC<{
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-[#A71930] text-xs font-bold mb-2 border border-amber-300">
               <Sparkles className="w-3.5 h-3.5 fill-amber-400 text-[#A71930]" />
-              <span>नवीन नोंदणीकृत वधू-वर</span>
+              <span>
+                {currentUser && !currentUser.isAdmin
+                  ? currentUser.gender === 'groom'
+                    ? 'विशेष वधू बायोडाटा यादी (Brides for Groom)'
+                    : 'विशेष वर बायोडाटा यादी (Grooms for Bride)'
+                  : 'नवीन नोंदणीकृत वधू-वर'}
+              </span>
             </div>
             <h2 className="text-2xl sm:text-4xl font-black text-[#A71930]">
               {language === 'mr' ? 'वंजारी वधू-वर यादी (Recent Profiles)' : 'Vanjari Matrimonial Members'}
@@ -101,40 +118,56 @@ export const ProfilesGrid: React.FC<{
                   : 'bg-white text-slate-700 hover:bg-amber-50 border border-amber-200'
               }`}
             >
-              {language === 'mr' ? 'सर्व सदस्य' : 'All Members'} ({filteredProfiles.length})
+              {language === 'mr'
+                ? currentUser && !currentUser.isAdmin
+                  ? currentUser.gender === 'groom'
+                    ? '👰 सर्व वधू बायोडाटा'
+                    : '🤵 सर्व वर बायोडाटा'
+                  : 'सर्व सदस्य'
+                : 'All Members'}{' '}
+              ({filteredProfiles.length})
             </button>
-            <button
-              onClick={() => setActiveTab('bride')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                activeTab === 'bride'
-                  ? 'bg-[#A71930] text-amber-100 shadow'
-                  : 'bg-white text-slate-700 hover:bg-amber-50 border border-amber-200'
-              }`}
-            >
-              👰 {t('bride')} ({filteredProfiles.filter((p) => p.gender === 'bride').length})
-            </button>
-            <button
-              onClick={() => setActiveTab('groom')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                activeTab === 'groom'
-                  ? 'bg-[#A71930] text-amber-100 shadow'
-                  : 'bg-white text-slate-700 hover:bg-amber-50 border border-amber-200'
-              }`}
-            >
-              🤵 {t('groom')} ({filteredProfiles.filter((p) => p.gender === 'groom').length})
-            </button>
-            <button
-              onClick={() => setActiveTab('shortlisted')}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === 'shortlisted'
-                  ? 'bg-[#A71930] text-amber-100 shadow'
-                  : 'bg-white text-slate-700 hover:bg-amber-50 border border-amber-200'
-              }`}
-            >
-              <Heart className="w-3.5 h-3.5 fill-rose-600 text-rose-600" />
-              <span>{language === 'mr' ? 'माझे आवडते' : 'Shortlisted'}</span>
-              <span>({shortlistedIds.length})</span>
-            </button>
+
+            {/* Show Bride/Groom tabs only if User is Admin or Not Logged In */}
+            {(!currentUser || currentUser.isAdmin) && (
+              <>
+                <button
+                  onClick={() => setActiveTab('bride')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                    activeTab === 'bride'
+                      ? 'bg-[#A71930] text-amber-100 shadow'
+                      : 'bg-white text-slate-700 hover:bg-amber-50 border border-amber-200'
+                  }`}
+                >
+                  👰 {t('bride')} ({filteredProfiles.filter((p) => p.gender === 'bride').length})
+                </button>
+                <button
+                  onClick={() => setActiveTab('groom')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                    activeTab === 'groom'
+                      ? 'bg-[#A71930] text-amber-100 shadow'
+                      : 'bg-white text-slate-700 hover:bg-amber-50 border border-amber-200'
+                  }`}
+                >
+                  🤵 {t('groom')} ({filteredProfiles.filter((p) => p.gender === 'groom').length})
+                </button>
+              </>
+            )}
+
+            {currentUser && (
+              <button
+                onClick={() => setActiveTab('shortlisted')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${
+                  activeTab === 'shortlisted'
+                    ? 'bg-[#A71930] text-amber-100 shadow'
+                    : 'bg-white text-slate-700 hover:bg-amber-50 border border-amber-200'
+                }`}
+              >
+                <Heart className="w-3.5 h-3.5 fill-rose-600 text-rose-600" />
+                <span>{language === 'mr' ? 'माझे आवडते' : 'Shortlisted'}</span>
+                <span>({shortlistedIds.length})</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -152,16 +185,18 @@ export const ProfilesGrid: React.FC<{
                 ? 'सध्या प्रणालीत या श्रेणीमध्ये कोणतेही बायोडाटा उपलब्ध नाहीत किंवा सर्च फिल्टरनुसार शोध लागला नाही.'
                 : 'Currently there are no profiles available in this category or matching your search filter.'}
             </p>
-            <div className="p-3 bg-amber-100/70 rounded-2xl border border-amber-300 text-xs text-amber-900 font-bold flex flex-col sm:flex-row items-center justify-between gap-2">
-              <span className="flex items-center gap-1.5">
-                <ShieldAlert className="w-4 h-4 text-[#A71930] shrink-0" />
-                <span>
-                  {language === 'mr'
-                    ? 'ॲडमिन टीप: मुख्य पानावरून हा विभाग दाखवणे/लपवणे ॲडमिन पॅनेलमध्ये शक्य आहे.'
-                    : 'Admin Note: Show/hide this section on index page via Admin Panel settings.'}
+            {currentUser?.isAdmin && (
+              <div className="p-3 bg-amber-100/70 rounded-2xl border border-amber-300 text-xs text-amber-900 font-bold flex flex-col sm:flex-row items-center justify-between gap-2">
+                <span className="flex items-center gap-1.5">
+                  <ShieldAlert className="w-4 h-4 text-[#A71930] shrink-0" />
+                  <span>
+                    {language === 'mr'
+                      ? 'ॲडमिन टीप: मुख्य पानावरून हा विभाग दाखवणे/लपवणे ॲडमिन पॅनेलमध्ये शक्य आहे.'
+                      : 'Admin Note: Show/hide this section on index page via Admin Panel settings.'}
+                  </span>
                 </span>
-              </span>
-            </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -173,6 +208,10 @@ export const ProfilesGrid: React.FC<{
               );
               const interestObj = interests.find(
                 (i) => currentUser && i.fromUserId === currentUser.id && i.toUserId === profile.id
+              );
+              const isMutualMatch = currentUser && (
+                (likedProfileIds.includes(profile.id) || !!interestObj) &&
+                (interests.some((i) => i.fromUserId === profile.id && i.toUserId === currentUser.id) || (profile.shortlistedByUsers || []).includes(currentUser.id))
               );
 
               return (
@@ -204,36 +243,57 @@ export const ProfilesGrid: React.FC<{
                     </button>
 
                     {/* Clear High-Res Photo Avatar Container */}
-                    {profile.photos && profile.photos.length > 0 && profile.photos[0] ? (
-                      <div
-                        onClick={() => setSelectedProfileForModal(profile)}
-                        className="w-full h-full relative cursor-pointer"
-                      >
-                        <img
-                          src={profile.photos[0]}
-                          alt={profile.fullName}
-                          className={`w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105 ${(!currentUser && siteConfig?.blurProfilePhotos) ? 'blur-md scale-110' : ''}`}
-                        />
-                        {(!currentUser && siteConfig?.blurProfilePhotos) && (
-                          <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center">
-                            <Lock className="w-5 h-5 text-amber-200" />
+                    {(() => {
+                      const mainPhoto = (profile.photos && profile.photos.length > 0 && profile.photos[0]) ? profile.photos[0] : (profile.photoUrl || null);
+                      const isOverride = siteConfig?.adminOverrideMemberPrivacy === true;
+                      const isPhotoBlurred = isAuthorized ? false : (
+                        profile.privacy?.hidePhoto && !isOverride
+                        ? true
+                        : !currentUser
+                        ? (siteConfig?.allowPublicVisitorsToViewPhotos === false || siteConfig?.blurProfilePhotos)
+                        : currentUser.id.startsWith('guest')
+                        ? (siteConfig?.allowGuestsToViewPhotos === false || siteConfig?.blurProfilePhotos)
+                        : (siteConfig?.allowMembersToViewPhotos === false)
+                      );
+
+                      if (mainPhoto) {
+                        return (
+                          <div
+                            onClick={() => setSelectedProfileForModal(profile)}
+                            className="w-full h-full relative cursor-pointer overflow-hidden bg-slate-900"
+                          >
+                            <img
+                              src={mainPhoto}
+                              alt={profile.fullName}
+                              referrerPolicy="no-referrer"
+                              className={`w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105 ${
+                                isPhotoBlurred ? 'blur-md scale-110' : ''
+                              }`}
+                            />
+                            {isPhotoBlurred && (
+                              <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center">
+                                <Lock className="w-5 h-5 text-amber-200" />
+                              </div>
+                            )}
+                            <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-slate-900/60 text-[9px] text-amber-200 font-medium backdrop-blur-xs">
+                              {(profile.photos && profile.photos.length) || 1} 📷
+                            </div>
+                            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#1A0307]/95 via-[#1A0307]/40 to-transparent pointer-events-none" />
                           </div>
-                        )}
-                        <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-slate-900/60 text-[9px] text-amber-200 font-medium backdrop-blur-xs">
-                          {profile.photos.length} 📷
+                        );
+                      }
+
+                      return (
+                        <div
+                          onClick={() => setSelectedProfileForModal(profile)}
+                          className="w-full h-full bg-gradient-to-tr from-[#800C1E] via-[#A71930] to-[#C82333] flex flex-col items-center justify-center text-white cursor-pointer relative"
+                        >
+                          <span className="text-6xl mb-2">{profile.gender === 'bride' ? '👰' : '🤵'}</span>
+                          <span className="text-xs font-bold text-amber-200 uppercase tracking-widest">फोटो उपलब्ध नाही</span>
+                          <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
                         </div>
-                        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#1A0307]/95 via-[#1A0307]/40 to-transparent pointer-events-none" />
-                      </div>
-                    ) : (
-                      <div
-                        onClick={() => setSelectedProfileForModal(profile)}
-                        className="w-full h-full bg-gradient-to-tr from-[#800C1E] via-[#A71930] to-[#C82333] flex flex-col items-center justify-center text-white cursor-pointer relative"
-                      >
-                        <span className="text-6xl mb-2">{profile.gender === 'bride' ? '👰' : '🤵'}</span>
-                        <span className="text-xs font-bold text-amber-200 uppercase tracking-widest">फोटो उपलब्ध नाही</span>
-                        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {/* Overlaid Float Information Panel (Bumble style) */}
                     <div className="absolute bottom-4 inset-x-4 text-white z-10 pointer-events-none">
@@ -243,14 +303,14 @@ export const ProfilesGrid: React.FC<{
                         </span>
                         
                         <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-1.5 flex-wrap">
-                          {(!currentUser && (siteConfig?.blurProfileNames ?? true)) ? (
+                          {(!isAuthorized && !currentUser && (siteConfig?.blurProfileNames ?? true)) ? (
                             <span className="inline-flex items-center gap-1 text-xs text-amber-200 font-extrabold">
                               🔒 नाव गुप्त (लॉगिन करा)
                             </span>
                           ) : (
                             <>
                               <span className="drop-shadow-md">{profile.fullName}</span>
-                              <VerifiedBadge isVerified={profile.isVerified} isFaceVerified={profile.isFaceVerified} size="sm" />
+                              <VerifiedBadge profile={profile} size="sm" />
                             </>
                           )}
                         </h3>
@@ -286,19 +346,56 @@ export const ProfilesGrid: React.FC<{
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-slate-700 font-medium">
                         <Briefcase className="w-3.5 h-3.5 text-[#A71930] shrink-0" />
-                        <span className="truncate">{profile.occupation}</span>
+                        <span className="truncate font-bold">{profile.occupation || 'माहिती उपलब्ध नाही'}</span>
                       </div>
+
+                      {/* Dynamic Profession & Govt Badges */}
+                      {(siteConfig?.showProfessionBadgesOnCards !== false) && (() => {
+                        const badges = getProfessionBadges(profile);
+                        if (badges.length === 0) return null;
+                        return (
+                          <div className="flex flex-wrap gap-1 pt-1">
+                            {badges.map((tag, idx) => (
+                              <span
+                                key={idx}
+                                className={`px-2 py-0.5 rounded-md text-[10px] font-black border tracking-wide ${
+                                  tag.includes('डॉक्टर')
+                                    ? 'bg-emerald-100 text-emerald-950 border-emerald-300'
+                                    : tag.includes('सरकारी')
+                                    ? 'bg-amber-100 text-amber-950 border-amber-300'
+                                    : tag.includes('इंजिनिअर')
+                                    ? 'bg-blue-100 text-blue-950 border-blue-300'
+                                    : tag.includes('शिक्षक')
+                                    ? 'bg-indigo-100 text-indigo-950 border-indigo-300'
+                                    : tag.includes('व्यावसायिक') || tag.includes('व्यवसाय')
+                                    ? 'bg-purple-100 text-purple-950 border-purple-300'
+                                    : 'bg-slate-100 text-slate-800 border-slate-300'
+                                }`}
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Contact Phone Status */}
                     <div className="p-2.5 rounded-xl bg-amber-50/60 border border-amber-200 text-[11px]">
                       {isAuthorized ? (
-                        <div className="flex items-center justify-between font-bold text-emerald-700">
-                          <span className="flex items-center gap-1">
-                            <PhoneCall className="w-3.5 h-3.5" />
-                            <span>संपर्क:</span>
-                          </span>
-                          <span>{profile.mobile}</span>
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between font-bold text-emerald-700">
+                            <span className="flex items-center gap-1">
+                              <PhoneCall className="w-3.5 h-3.5" />
+                              <span>संपर्क:</span>
+                            </span>
+                            <span>{profile.mobile}</span>
+                          </div>
+                          {isMutualMatch && (
+                            <p className="text-[10px] font-black text-rose-700 flex items-center gap-1 pt-0.5 border-t border-amber-200/50">
+                              <span>💞 म्युचुअल लाईकमुळे संपर्क अनलॉक झाला आहे!</span>
+                            </p>
+                          )}
                         </div>
                       ) : (
                         <div className="flex items-center justify-between text-slate-600 font-medium">
@@ -325,32 +422,32 @@ export const ProfilesGrid: React.FC<{
                     </button>
 
                     <div className="grid grid-cols-2 gap-2">
-                      {/* Send Interest Button */}
+                      {/* Send Interest / Like Button */}
                       <button
                         onClick={() => sendInterest(profile.id)}
-                        disabled={!!interestObj}
+                        disabled={!!interestObj || likedProfileIds.includes(profile.id)}
                         className={`py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1 transition-all active:scale-95 cursor-pointer ${
-                          interestObj
-                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 cursor-default active:scale-100'
+                          interestObj || likedProfileIds.includes(profile.id)
+                            ? 'bg-rose-100 text-rose-800 border border-rose-300 cursor-default active:scale-100'
                             : 'bg-gradient-to-r from-[#A71930] to-[#C82333] hover:from-[#800C1E] text-amber-100 shadow-md'
                         }`}
                       >
-                        {interestObj ? (
+                        {interestObj || likedProfileIds.includes(profile.id) ? (
                           <>
-                            <CheckCircle className="w-3.5 h-3.5" />
-                            <span>पाठवला</span>
+                            <CheckCircle className="w-3.5 h-3.5 text-rose-700" />
+                            <span>लाईक केले</span>
                           </>
                         ) : (
                           <>
                             <Heart className="w-3.5 h-3.5 fill-amber-200 text-amber-200" />
-                            <span>रस दाखवा</span>
+                            <span>लाईक करा</span>
                           </>
                         )}
                       </button>
 
                       {/* WhatsApp Connect Button (Bumble style) */}
                       <a
-                        href={`https://wa.me/91${profile.mobile || '9123456789'}?text=नमस्कार, मी वंजारी जोडी (VanjariJodi) वरून आपली प्रोफाईल (ID: ${profile.id}) पाहिली. मला आपल्याबद्दल अधिक जाणून घेण्यात रस आहे.`}
+                        href={`https://wa.me/91${profile.mobile || '0000000000'}?text=नमस्कार, मी वंजारी जोडी (VanjariJodi) वरून आपली प्रोफाईल (ID: ${profile.id}) पाहिली. मला आपल्याबद्दल अधिक जाणून घेण्यात रस आहे.`}
                         target="_blank"
                         referrerPolicy="no-referrer"
                         className="py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center justify-center gap-1 shadow-md active:scale-95 text-center flex justify-center items-center"

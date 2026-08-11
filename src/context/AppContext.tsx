@@ -23,6 +23,7 @@ import {
   SubAdminPermission,
   PromoCode,
   PendingProfileEdit,
+  TrashedPhoto,
   FaceVerificationLog,
   SocialLinkItem,
   ApkSettings,
@@ -33,7 +34,9 @@ import {
   GuestSessionLog,
   UserActivityLog,
   ProfileRemovalRequest,
-  ProfileReport
+  ProfileReport,
+  BusinessVendor,
+  VendorBookingInquiry
 } from '../types';
 import {
   INITIAL_PROFILES,
@@ -48,7 +51,8 @@ import {
   INITIAL_SUB_ADMINS,
   INITIAL_PROMO_CODES,
   INITIAL_PENDING_PROFILES,
-  INITIAL_FACE_VERIFICATIONS
+  INITIAL_FACE_VERIFICATIONS,
+  INITIAL_BUSINESS_VENDORS
 } from '../data/initialData';
 import { translations } from '../data/translations';
 import {
@@ -86,7 +90,16 @@ interface AppContextType {
   
   // Chat & Calls
   chatMessages: ChatMessage[];
-  sendChatMessage: (receiverId: string, text: string, imageUrl?: string, voiceUrl?: string) => { success: boolean; message?: string };
+  sendChatMessage: (
+    receiverId: string,
+    text: string,
+    imageUrl?: string,
+    voiceUrl?: string,
+    pdfUrl?: string,
+    pdfName?: string,
+    fileType?: 'image' | 'pdf' | 'voice'
+  ) => { success: boolean; message?: string };
+  deleteChatMessage: (messageId: string) => void;
   toggleBlockUserChat: (profileId: string) => void;
   activeChatUser: UserProfile | null;
   setActiveChatUser: (user: UserProfile | null) => void;
@@ -201,10 +214,15 @@ interface AppContextType {
 
   // Recycle Bin & Storage Purge
   recycleBin: RecycleBinItem[];
+  deletedPhotosTrash: TrashedPhoto[];
   softDeleteProfile: (profileId: string) => void;
   restoreRecycleItem: (id: string) => void;
   permanentDeleteRecycleItem: (id: string) => void;
   bulkPurgeRecycleBin: () => void;
+  trashPhoto: (profileId: string, photoUrl: string, photoType: 'avatar' | 'gallery', profileName?: string) => void;
+  restorePhotoFromTrash: (trashId: string) => void;
+  permanentlyDeletePhotoFromTrash: (trashId: string) => void;
+  purgeAllPhotosTrash: () => void;
 
   // Activity Audit Log
   auditLogs: AuditLog[];
@@ -326,12 +344,34 @@ interface AppContextType {
   updateMemberPrivacy: (profileId: string, newPrivacy: UserProfile['privacy'], notifyMember?: boolean) => void;
   updateMemberBadges: (profileId: string, badges: { isIdVerified?: boolean; isPhotoVerified?: boolean; isPremiumVerified?: boolean; isVerified?: boolean }) => void;
   resetSampleProfiles: () => void;
+
+  // Business Vendors & Wedding Network
+  isBioDataMakerOpen: boolean;
+  setIsBioDataMakerOpen: (open: boolean) => void;
+  businessVendors: BusinessVendor[];
+  isBusinessVendorDirectoryOpen: boolean;
+  setIsBusinessVendorDirectoryOpen: (open: boolean) => void;
+  isBusinessVendorRegisterModalOpen: boolean;
+  setIsBusinessVendorRegisterModalOpen: (open: boolean) => void;
+  isVendorPortalOpen: boolean;
+  setIsVendorPortalOpen: (open: boolean) => void;
+  currentVendorUser: BusinessVendor | null;
+  setCurrentVendorUser: (vendor: BusinessVendor | null) => void;
+  vendorBookingInquiries: VendorBookingInquiry[];
+  addBusinessVendor: (vendor: Omit<BusinessVendor, 'id' | 'createdAt' | 'status'> & { status?: 'pending' | 'approved' | 'rejected' }) => void;
+  updateBusinessVendorStatus: (id: string, status: 'approved' | 'rejected') => void;
+  deleteBusinessVendor: (id: string) => void;
+  addCustomVendorCategory: (categoryName: string) => void;
+  toggleVendorBookedDate: (vendorId: string, dateStr: string) => void;
+  submitVendorBookingInquiry: (inquiry: Omit<VendorBookingInquiry, 'id' | 'createdAt' | 'status'>) => void;
+  updateVendorBookingInquiryStatus: (id: string, status: VendorBookingInquiry['status']) => void;
+  updateVendorDetails: (vendorId: string, updatedFields: Partial<BusinessVendor>) => void;
 }
 
 const defaultSearchFilters: SearchFilterState = {
   gender: 'all',
   minAge: 18,
-  maxAge: 45,
+  maxAge: 80,
   district: '',
   taluka: '',
   education: '',
@@ -373,13 +413,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Clean out legacy demo profiles starting with vj-1
-        return parsed.filter((p: UserProfile) => p && p.id && !p.id.startsWith('vj-1'));
+        return Array.isArray(parsed) && parsed.length > 0 ? parsed.filter((p: UserProfile) => p && p.id) : INITIAL_PROFILES;
       } catch (e) {
-        return [];
+        return INITIAL_PROFILES;
       }
     }
-    return [];
+    return INITIAL_PROFILES;
   });
 
   useEffect(() => {
@@ -389,7 +428,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Real-time Firestore Sync Listeners
   useEffect(() => {
     const unsubProfiles = listenToProfiles((firestoreProfiles) => {
-      setProfiles(firestoreProfiles);
+      if (firestoreProfiles && firestoreProfiles.length > 0) {
+        setProfiles(firestoreProfiles);
+      }
     }, INITIAL_PROFILES);
 
     const unsubConfig = listenToSiteConfig((remoteConfig) => {
@@ -431,8 +472,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (savedUser) {
       try {
         const parsed = JSON.parse(savedUser);
-        if (parsed && parsed.id && parsed.id.startsWith('vj-1')) return null;
-        return parsed;
+        if (parsed && parsed.id) {
+          // If profile is unapproved and has no face/ID verification, strip unearned verified flag
+          if (parsed.isApproved === false && !parsed.isFaceVerified && !parsed.isIdVerified && !parsed.aadhaarVerified) {
+            parsed.isVerified = false;
+          }
+          return parsed;
+        }
       } catch (e) {
         return null;
       }
@@ -458,27 +504,110 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   }, [profiles]);
 
+  // Site Configuration & SEO
+  const [siteConfig, setSiteConfig] = useState<SiteConfig>(() => {
+    const defaultText = '📢 ॥ श्री संत भगवान बाबा प्रसन्न ॥ — वंजारी समाजातील वधू-वरांसाठी अधिकृत नोंदणी व संपर्क सुविधा उपलब्ध!';
+    const saved = localStorage.getItem('vanjari_jodi_site_config');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return {
+          ...INITIAL_SITE_CONFIG,
+          ...parsed,
+          isNoticeBannerEnabled: parsed.isNoticeBannerEnabled !== undefined ? parsed.isNoticeBannerEnabled : true,
+          noticeBannerText: parsed.noticeBannerText || defaultText,
+          noticeBannerBg: parsed.noticeBannerBg || 'crimson',
+          heroHeading: parsed.heroHeading && !parsed.heroHeading.includes('सुसंस्कृत') ? parsed.heroHeading : 'वंजारी समाजातील वधू-वर शोधा',
+          heroSubheading: 'संत भगवान बाबा यांच्या आशीर्वादाने स्थापित - पवित्र नात्यांची सुंदर सुरुवात',
+          heroDescription: 'हजारो विश्वासू वंजारी कुटुंब जोडणारा महाराष्ट्रातील नंबर १ विवाह मंच',
+          logoSubtitle: parsed.logoSubtitle || 'वर-वधू शोध'
+        };
+      } catch (e) {
+        return {
+          ...INITIAL_SITE_CONFIG,
+          isNoticeBannerEnabled: true,
+          noticeBannerText: defaultText
+        };
+      }
+    }
+    return {
+      ...INITIAL_SITE_CONFIG,
+      isNoticeBannerEnabled: true,
+      noticeBannerText: defaultText
+    };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('vanjari_jodi_site_config', JSON.stringify(siteConfig));
+  }, [siteConfig]);
+
+  const updateSiteConfig = (partial: Partial<SiteConfig>) => {
+    setSiteConfig((prev) => {
+      const updated = { ...prev, ...partial };
+      syncDocToFirestore('siteConfig', 'mainConfig', updated);
+      return updated;
+    });
+  };
+
   // 4. Search filters
   const [searchFilters, setSearchFilters] = useState<SearchFilterState>(defaultSearchFilters);
 
   const resetFilters = () => setSearchFilters(defaultSearchFilters);
 
   const filteredProfiles = profiles.filter((p) => {
-    if (!p.isApproved) return false;
+    if (!p.isApproved && p.id !== currentUser?.id) return false;
     if (p.isHiddenByAdmin) return false;
-    if (searchFilters.gender !== 'all' && p.gender !== searchFilters.gender) return false;
-    if (p.age < searchFilters.minAge || p.age > searchFilters.maxAge) return false;
-    if (searchFilters.district && !p.district.toLowerCase().includes(searchFilters.district.toLowerCase())) return false;
-    if (searchFilters.education && !p.education.toLowerCase().includes(searchFilters.education.toLowerCase())) return false;
-    if (searchFilters.maritalStatus && p.maritalStatus !== searchFilters.maritalStatus) return false;
-    if (searchFilters.verifiedOnly && !p.isVerified) return false;
+    
+    // Strict Opposite Gender Rule: Groom sees Bride only, Bride sees Groom only
+    if (currentUser && !currentUser.isAdmin) {
+      if (currentUser.gender === 'groom' && p.gender !== 'bride') return false;
+      if (currentUser.gender === 'bride' && p.gender !== 'groom') return false;
+    }
+
+    // If search filters are completely disabled, show all profiles cleanly without any search filter constraints.
+    if (siteConfig?.enableSearchFilters === false) {
+      return true;
+    }
+
+    if (siteConfig?.filterShowGender !== false && searchFilters.gender !== 'all' && p.gender !== searchFilters.gender) return false;
+    if (siteConfig?.filterShowAge !== false && (p.age < searchFilters.minAge || p.age > searchFilters.maxAge)) return false;
+    if (siteConfig?.filterShowDistrict !== false && searchFilters.district && !p.district.toLowerCase().includes(searchFilters.district.toLowerCase())) return false;
+    if (siteConfig?.filterShowEducation !== false && searchFilters.education && !p.education.toLowerCase().includes(searchFilters.education.toLowerCase())) return false;
+    if (searchFilters.occupation) {
+      const occLower = searchFilters.occupation.toLowerCase();
+      const pOcc = (p.occupation || '').toLowerCase();
+      const pEdu = (p.education || '').toLowerCase();
+      const pComp = (p.companyName || '').toLowerCase();
+      const pTags = (p.professionTags || []).map((t) => t.toLowerCase()).join(' ');
+      const combined = `${pOcc} ${pEdu} ${pComp} ${pTags}`;
+
+      if (occLower === 'doctor') {
+        if (!/doctor|doc|डॉक्टर|mbbs|bams|bhms|md\b|bds|medical|वैद्यकीय/i.test(combined)) return false;
+      } else if (occLower === 'govt') {
+        if (!/govt|government|सरकारी|शासकीय|mpsc|upsc|talathi|police|पोलीस|तलाठी|महसूल/i.test(combined)) return false;
+      } else if (occLower === 'engineer') {
+        if (!/engineer|engg|इंजिनिअर|अभियंता|be\b|btech|software|developer|it\b|आयटी/i.test(combined)) return false;
+      } else if (occLower === 'teacher') {
+        if (!/teacher|professor|lecturer|शिक्षक|शिक्षिका|प्राध्यापक|गुरुजी/i.test(combined)) return false;
+      } else if (occLower === 'business') {
+        if (!/business|self employed|व्यवसाय|धंदा|उद्योग|व्यापारी/i.test(combined)) return false;
+      } else if (occLower === 'farmer') {
+        if (!/farmer|agriculture|शेतकरी|शेती|कृषी/i.test(combined)) return false;
+      } else if (occLower === 'lawyer_ca') {
+        if (!/lawyer|advocate|वकील|ca\b|chartered|accountant/i.test(combined)) return false;
+      } else {
+        if (!combined.includes(occLower)) return false;
+      }
+    }
+    if (siteConfig?.filterShowMaritalStatus !== false && searchFilters.maritalStatus && p.maritalStatus !== searchFilters.maritalStatus) return false;
+    if (siteConfig?.filterShowVerified !== false && searchFilters.verifiedOnly && !p.isVerified) return false;
     return true;
   });
 
   // 5. Shortlisting
   const [shortlistedIds, setShortlistedIds] = useState<string[]>(() => {
     const saved = localStorage.getItem('vanjari_jodi_shortlists');
-    return saved ? JSON.parse(saved).filter((id: string) => !id.startsWith('vj-1')) : [];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const toggleShortlist = (profileId: string) => {
@@ -492,9 +621,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // 6. Interests
   const [interests, setInterests] = useState<Interest[]>(() => {
     const saved = localStorage.getItem('vanjari_jodi_interests');
-    return saved
-      ? JSON.parse(saved).filter((i: Interest) => !i.fromUserId?.startsWith('vj-1') && !i.toUserId?.startsWith('vj-1'))
-      : [];
+    return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {
@@ -506,36 +633,87 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsLoginOpen(true);
       return;
     }
+
+    if (currentUser.id === toUserId) {
+      alert('तुम्ही स्वतःच्या प्रोफाईलला लाईक करू शकत नाही.');
+      return;
+    }
+
+    const targetUser = profiles.find((p) => p.id === toUserId);
     const exists = interests.some((i) => i.fromUserId === currentUser.id && i.toUserId === toUserId);
-    if (exists) return;
+    const alreadyLiked = likedProfileIds.includes(toUserId);
+
+    if (exists || alreadyLiked) {
+      alert('तुम्ही याआधीच या प्रोफाईलला लाईक केले आहे.');
+      return;
+    }
+
+    const autoApprove = siteConfig?.autoApproveLikes !== false;
+    const status = autoApprove ? 'accepted' : 'pending';
 
     const newInt: Interest = {
       id: 'int-' + Date.now(),
       fromUserId: currentUser.id,
       toUserId,
-      status: 'pending',
+      status,
       createdAt: new Date().toISOString(),
     };
 
     setInterests((prev) => [...prev, newInt]);
+    setLikedProfileIds((prev) => (prev.includes(toUserId) ? prev : [...prev, toUserId]));
+
+    const newLikeReq = {
+      id: 'like-' + Date.now(),
+      fromUserId: currentUser.id,
+      fromUserName: currentUser.fullName,
+      fromUserPhoto: currentUser.photoUrl || currentUser.photos?.[0] || '',
+      toUserId,
+      toUserName: targetUser?.fullName || toUserId,
+      toUserPhoto: targetUser?.photoUrl || targetUser?.photos?.[0] || '',
+      createdAt: new Date().toISOString(),
+      status: autoApprove ? 'approved' : 'pending'
+    };
+    setPendingLikes((prev) => [newLikeReq, ...prev]);
 
     // Audit Log & Notification
-    const targetUser = profiles.find((p) => p.id === toUserId);
     logActivity(
-      'Send Interest',
-      `${currentUser.fullName} (${currentUser.id}) यांनी ${targetUser?.fullName || toUserId} यांच्याकडे 'आवड व्यक्त करा' प्रतिसाद पाठवला.`,
+      'Profile Like',
+      `${currentUser.fullName} (${currentUser.id}) यांनी ${targetUser?.fullName || toUserId} (${toUserId}) यांच्या प्रोफाईलला 'लाईक' केले. (स्थिती: ${autoApprove ? 'थेट पाठवले' : 'ॲडमिन मंजुरी प्रलंबित'})`,
       currentUser.fullName
     );
 
-    if (targetUser) {
-      addNotification({
-        userId: toUserId,
-        title: 'New Interest Received',
-        titleMr: 'नवीन प्रतिसाद प्राप्त झाला!',
-        message: `${currentUser.fullName} expressed interest in your profile.`,
-        messageMr: `${currentUser.fullName} यांनी तुमच्या प्रोफाईलमध्ये रस दाखवला आहे.`,
-        type: 'interest',
-      });
+    const targetLikesMe =
+      interests.some((i) => i.fromUserId === toUserId && i.toUserId === currentUser.id && i.status !== 'rejected') ||
+      pendingLikes.some((l) => l.fromUserId === toUserId && l.toUserId === currentUser.id && l.status !== 'rejected') ||
+      (targetUser?.shortlistedByUsers || []).includes(currentUser.id);
+
+    const isMutualUnlockEnabled = siteConfig?.enableMutualLikeContactUnlock !== false;
+
+    if (targetUser && autoApprove) {
+      if (targetLikesMe && isMutualUnlockEnabled) {
+        setUnlockedContacts((prev) => (prev.includes(toUserId) ? prev : [...prev, toUserId]));
+        addNotification({
+          userId: toUserId,
+          title: '🎉 Mutual Like Match! Contact Unlocked',
+          titleMr: '🎉 म्युचुअल मॅच! मोबाईल नंबर अनलॉक झाला!',
+          message: `You and ${currentUser.fullName} liked each other! Contact number is now unlocked.`,
+          messageMr: `तुम्ही व ${currentUser.fullName} यांनी एकमेकांना लाईक केले आहे! दोघांचे मोबाईल नंबर आता अनलॉक झाले आहेत.`,
+          type: 'interest',
+        });
+        alert(`🎉 म्युचुअल मॅच (Mutual Match)! ${targetUser.fullName || 'सदस्याने'} सुद्धा तुम्हाला आधीच लाईक केले होते. एकमेकांनी लाईक केल्यामुळे तुम्हा दोघांचे मोबाईल नंबर आता अनलॉक झाले आहेत!`);
+      } else {
+        addNotification({
+          userId: toUserId,
+          title: '❤️ नवीन लाईक प्राप्त झाले!',
+          titleMr: '❤️ तुमच्या प्रोफाईलला लाईक आले आहे!',
+          message: `${currentUser.fullName} liked your profile.`,
+          messageMr: `${currentUser.fullName} यांनी तुमच्या प्रोफाईलला लाईक केले आहे! ❤️`,
+          type: 'interest',
+        });
+        alert(`🎉 ${targetUser.fullName || 'सदस्यास'} तुमचे लाईक यशस्वीरित्या पाठवले आहे! त्यांना थेट नोटिफिकेशन पाठवण्यात आले आहे.`);
+      }
+    } else {
+      alert(`❤️ तुमची लाईक विनंती ॲडमिनकडे पाठवली आहे. ॲडमिन मंजुरीनंतर समोरच्या सदस्याला दिसेल.`);
     }
   };
 
@@ -553,23 +731,63 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsLoginOpen(true);
       return;
     }
-    if (isPaidPlansEnabled && currentUser.membership === 'free') {
-      const plan = MEMBERSHIP_PLANS.find((p) => p.id === 'gold') || MEMBERSHIP_PLANS[0];
-      setSelectedPlanForPayment(plan);
+
+    if (unlockedContacts.includes(profileId)) {
+      return; // Already unlocked
+    }
+
+    // Free user without active membership
+    if (isPaidPlansEnabled && (!currentUser.membership || currentUser.membership === 'free')) {
+      const welcomePlan = plansList.find((p) => p.id === 'welcome_offer' && p.isActive !== false) ||
+                          plansList.find((p) => p.isActive !== false) ||
+                          MEMBERSHIP_PLANS[0];
+      setSelectedPlanForPayment(welcomePlan);
       setIsPaymentOpen(true);
       return;
     }
-    if (!unlockedContacts.includes(profileId)) {
-      setUnlockedContacts((prev) => [...prev, profileId]);
+
+    // Determine current user's membership plan and limit
+    const isLimitDisabled = siteConfig?.disablePlanContactLimit === true;
+    const currentPlan = plansList.find((p) => p.id === currentUser.membership);
+    const planUnlockLimit = isLimitDisabled
+      ? 999999
+      : (currentPlan?.unlockCount && currentPlan.unlockCount > 0
+          ? currentPlan.unlockCount
+          : (currentUser.membership === 'welcome_offer' ? 5 : 99999));
+
+    // If limit reached and limits are NOT disabled
+    if (!isLimitDisabled && unlockedContacts.length >= planUnlockLimit) {
+      const targetUpgradePlanId = siteConfig?.upgradeRecommendedPlanId || 'monthly';
+      const upgradePlan = plansList.find((p) => p.id === targetUpgradePlanId && p.isActive !== false) ||
+                          plansList.find((p) => p.id !== 'welcome_offer' && p.id !== 'free' && p.isActive !== false) ||
+                          plansList[0];
+
+      setSelectedPlanForPayment(upgradePlan);
+      setIsPaymentOpen(true);
+
+      alert(`⚠️ तुमचे ${planUnlockLimit} मोफत/ऑफर संपर्क नंबर अनलॉक पूर्ण झाले आहेत!\n\nपुढील सर्व वधू-वर मोबाईल नंबर व संपूर्ण बायोडाटा पाहण्यासाठी कृपया तुमचा प्लॅन अपग्रेड करा.`);
+      return;
+    }
+
+    // Unlock contact
+    setUnlockedContacts((prev) => [...prev, profileId]);
+
+    const newUnlockedCount = unlockedContacts.length + 1;
+    if (isLimitDisabled) {
+      alert(`✅ संपर्क नंबर यशस्वीरित्या अनलॉक झाला! (अमर्याद नंबर अनलॉक सिस्टीम चालू आहे)`);
+    } else if (currentUser.membership === 'welcome_offer' || (currentPlan?.unlockCount && currentPlan.unlockCount > 0)) {
+      if (newUnlockedCount >= planUnlockLimit) {
+        alert(`🎉 तुम्ही ${planUnlockLimit} पैकी ${planUnlockLimit} वा संपर्क नंबर यशस्वीरित्या अनलॉक केला आहे!\n\nतुमची ऑफर मधील ${planUnlockLimit} नंबर अनलॉक मर्यादा पूर्ण झाली आहे. पुढील संपर्क नंबर पाहण्यासाठी तुमचा प्लॅन अपग्रेड करा.`);
+      } else {
+        alert(`✅ संपर्क नंबर यशस्वीरित्या अनलॉक झाला! (${newUnlockedCount}/${planUnlockLimit} नंबर वापरले)`);
+      }
     }
   };
 
   // 8. Chat Messages
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
     const saved = localStorage.getItem('vanjari_jodi_chats');
-    return saved
-      ? JSON.parse(saved).filter((m: ChatMessage) => !m.senderId?.startsWith('vj-1') && !m.receiverId?.startsWith('vj-1'))
-      : [];
+    return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {
@@ -579,14 +797,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Profile Liking State & Pending Approvals
   const [likedProfileIds, setLikedProfileIds] = useState<string[]>(() => {
     const saved = localStorage.getItem('vanjari_jodi_liked_profiles');
-    return saved ? JSON.parse(saved).filter((id: string) => !id.startsWith('vj-1')) : [];
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [pendingLikes, setPendingLikes] = useState<any[]>(() => {
     const saved = localStorage.getItem('vanjari_jodi_pending_likes');
-    return saved
-      ? JSON.parse(saved).filter((l: any) => !l.fromUserId?.startsWith('vj-1') && !l.toUserId?.startsWith('vj-1'))
-      : [];
+    return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {
@@ -611,14 +827,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isCurrentlyLiked ? prev.filter((id) => id !== profileId) : [...prev, profileId]
       );
       if (!isCurrentlyLiked && targetUser) {
-        addNotification({
-          userId: profileId,
-          title: 'New Like Received',
-          titleMr: 'तुमच्या बायोडाटावर नवीन पसंती (Like)!',
-          message: `${currentUser.fullName} liked your profile.`,
-          messageMr: `${currentUser.fullName} यांनी तुमच्या बायोडाटावर पसंती दर्शवली आहे.`,
-          type: 'interest',
-        });
+        const targetLikesMe =
+          interests.some((i) => i.fromUserId === profileId && i.toUserId === currentUser.id && i.status !== 'rejected') ||
+          pendingLikes.some((l) => l.fromUserId === profileId && l.toUserId === currentUser.id && l.status !== 'rejected') ||
+          (targetUser?.shortlistedByUsers || []).includes(currentUser.id);
+
+        const isMutualUnlockEnabled = siteConfig?.enableMutualLikeContactUnlock !== false;
+
+        if (targetLikesMe && isMutualUnlockEnabled) {
+          setUnlockedContacts((prev) => (prev.includes(profileId) ? prev : [...prev, profileId]));
+          addNotification({
+            userId: profileId,
+            title: '🎉 Mutual Like Match! Contact Unlocked',
+            titleMr: '🎉 म्युचुअल मॅच! मोबाईल नंबर अनलॉक झाला!',
+            message: `You and ${currentUser.fullName} liked each other! Contact number is now unlocked.`,
+            messageMr: `तुम्ही व ${currentUser.fullName} यांनी एकमेकांना लाईक केले आहे! दोघांचे मोबाईल नंबर आता अनलॉक झाले आहेत.`,
+            type: 'interest',
+          });
+          alert(`🎉 म्युचुअल मॅच (Mutual Match)! ${targetUser.fullName || 'सदस्याने'} सुद्धा तुम्हाला आधीच लाईक केले होते. एकमेकांनी लाईक केल्यामुळे तुम्हा दोघांचे मोबाईल नंबर आता अनलॉक झाले आहेत!`);
+        } else {
+          addNotification({
+            userId: profileId,
+            title: 'New Like Received',
+            titleMr: 'तुमच्या बायोडाटावर नवीन पसंती (Like)!',
+            message: `${currentUser.fullName} liked your profile.`,
+            messageMr: `${currentUser.fullName} यांनी तुमच्या बायोडाटावर पसंती दर्शवली आहे.`,
+            type: 'interest',
+          });
+        }
       }
       logActivity(
         'Profile Like',
@@ -712,7 +948,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     receiverId: string,
     text: string,
     imageUrl?: string,
-    voiceUrl?: string
+    voiceUrl?: string,
+    pdfUrl?: string,
+    pdfName?: string,
+    fileType?: 'image' | 'pdf' | 'voice'
   ): { success: boolean; message?: string } => {
     if (!currentUser) {
       setIsLoginOpen(true);
@@ -742,6 +981,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isRead: false,
       imageUrl,
+      pdfUrl,
+      pdfName,
+      fileType: fileType || (pdfUrl ? 'pdf' : imageUrl ? 'image' : voiceUrl ? 'voice' : undefined),
       voiceUrl,
     };
     setChatMessages((prev) => [...prev, newMsg]);
@@ -750,9 +992,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { success: true };
   };
 
+  const deleteChatMessage = (messageId: string) => {
+    setChatMessages((prev) => prev.filter((m) => m.id !== messageId));
+  };
+
   const toggleBlockUserChat = (profileId: string) => {
     setProfiles((prev) =>
-      prev.map((p) => (p.id === profileId ? { ...p, isChatBlocked: !p.isChatBlocked } : p))
+      prev.map((p) => {
+        if (p.id === profileId) {
+          const updated = { ...p, isChatBlocked: !p.isChatBlocked };
+          syncDocToFirestore('profiles', updated.id, updated);
+          return updated;
+        }
+        return p;
+      })
     );
   };
 
@@ -981,64 +1234,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [selectedProfileForModal, setSelectedProfileForModal] = useState<UserProfile | null>(null);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [isPaymentOpenRaw, setIsPaymentOpenRaw] = useState(false);
   const [selectedPlanForPayment, setSelectedPlanForPayment] = useState<Plan | null>(null);
+
+  const setIsPaymentOpen = (open: boolean) => {
+    if (open) {
+      setSelectedPlanForPayment(prevPlan => {
+        if (!prevPlan) {
+          return plansList.find((p) => p.id === 'welcome_offer' && p.isActive !== false) ||
+                 plansList.find((p) => p.isActive !== false) ||
+                 MEMBERSHIP_PLANS[0];
+        }
+        return prevPlan;
+      });
+    }
+    setIsPaymentOpenRaw(open);
+  };
+
   const [activeChatUser, setActiveChatUser] = useState<UserProfile | null>(null);
   const [activeVideoUser, setActiveVideoUser] = useState<UserProfile | null>(null);
 
-  // Paid Plans Toggle State (Default false for new site free mode)
+  // Paid Plans Toggle State (Default true for active membership mode)
   const [isPaidPlansEnabled, setIsPaidPlansEnabled] = useState<boolean>(() => {
-    return localStorage.getItem('vanjari_jodi_paid_plans') === 'true';
+    const saved = localStorage.getItem('vanjari_jodi_paid_plans');
+    return saved !== null ? saved === 'true' : true;
   });
 
   useEffect(() => {
     localStorage.setItem('vanjari_jodi_paid_plans', String(isPaidPlansEnabled));
   }, [isPaidPlansEnabled]);
 
-  // Site Configuration & SEO
-  const [siteConfig, setSiteConfig] = useState<SiteConfig>(() => {
-    const defaultText = '📢 ॥ श्री संत भगवान बाबा प्रसन्न ॥ — वंजारी समाजातील वधू-वरांसाठी अधिकृत नोंदणी व संपर्क सुविधा उपलब्ध!';
-    const saved = localStorage.getItem('vanjari_jodi_site_config');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return {
-          ...INITIAL_SITE_CONFIG,
-          ...parsed,
-          isNoticeBannerEnabled: parsed.isNoticeBannerEnabled !== undefined ? parsed.isNoticeBannerEnabled : true,
-          noticeBannerText: parsed.noticeBannerText || defaultText,
-          noticeBannerBg: parsed.noticeBannerBg || 'crimson',
-          heroHeading: parsed.heroHeading && !parsed.heroHeading.includes('सुसंस्कृत') ? parsed.heroHeading : 'वंजारी समाजातील वधू-वर शोधा',
-          heroSubheading: 'संत भगवान बाबा यांच्या आशीर्वादाने स्थापित - पवित्र नात्यांची सुंदर सुरुवात',
-          heroDescription: 'हजारो विश्वासू वंजारी कुटुंब जोडणारा महाराष्ट्रातील नंबर १ विवाह मंच',
-          logoSubtitle: parsed.logoSubtitle || 'वर-वधू शोध'
-        };
-      } catch (e) {
-        return {
-          ...INITIAL_SITE_CONFIG,
-          isNoticeBannerEnabled: true,
-          noticeBannerText: defaultText
-        };
-      }
-    }
-    return {
-      ...INITIAL_SITE_CONFIG,
-      isNoticeBannerEnabled: true,
-      noticeBannerText: defaultText
-    };
-  });
 
-  useEffect(() => {
-    localStorage.setItem('vanjari_jodi_site_config', JSON.stringify(siteConfig));
-  }, [siteConfig]);
-
-  const updateSiteConfig = (partial: Partial<SiteConfig>) => {
-    setSiteConfig((prev) => {
-      const updated = { ...prev, ...partial };
-      syncDocToFirestore('siteConfig', 'mainConfig', updated);
-      return updated;
-    });
-  };
 
   // Feature Toggles
   const [isSuccessStoriesEnabled, setIsSuccessStoriesEnabled] = useState<boolean>(() => {
@@ -1180,6 +1406,97 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const isContactAuthorizedForUser = (targetProfileId: string): boolean => {
     if (isAdminLoggedIn) return true;
     if (currentUser?.id === targetProfileId) return true;
+
+    const targetProfile = profiles.find((p) => p.id === targetProfileId);
+    const isOverride = siteConfig?.adminOverrideMemberPrivacy === true;
+    const allowMemberPrivacy = siteConfig?.allowMembersToControlPrivacy !== false;
+
+    // Check individual per-profile admin overrides
+    if (targetProfile?.forceHideContact === true) {
+      if (unlockedContacts.includes(targetProfileId)) return true;
+      return false;
+    }
+    if (targetProfile?.forceShowContact === true) {
+      return true;
+    }
+
+    // Check Mutual Like Contact Unlock (जर ॲडमिनने म्युचुअल लाईक संपर्क अनलॉक पर्याय सुरू ठेवला असेल)
+    if (currentUser && siteConfig?.enableMutualLikeContactUnlock !== false) {
+      const iLikeTarget =
+        likedProfileIds.includes(targetProfileId) ||
+        interests.some(
+          (i) => i.fromUserId === currentUser.id && i.toUserId === targetProfileId && i.status !== 'rejected'
+        ) ||
+        pendingLikes.some(
+          (l) => l.fromUserId === currentUser.id && l.toUserId === targetProfileId && l.status !== 'rejected'
+        );
+
+      const targetLikesMe =
+        interests.some(
+          (i) => i.fromUserId === targetProfileId && i.toUserId === currentUser.id && i.status !== 'rejected'
+        ) ||
+        pendingLikes.some(
+          (l) => l.fromUserId === targetProfileId && l.toUserId === currentUser.id && l.status !== 'rejected'
+        ) ||
+        (targetProfile?.shortlistedByUsers || []).includes(currentUser.id);
+
+      if (iLikeTarget && targetLikesMe) {
+        return true;
+      }
+    }
+
+    const isPublicVisitor = !currentUser;
+    const isGuest = currentUser && currentUser.id.startsWith('guest');
+    const isMember = currentUser && !currentUser.id.startsWith('guest');
+
+    if ((isPublicVisitor || isGuest) && targetProfile?.allowGuestContactView === true) {
+      return true;
+    }
+
+    // If member wants to hide contact and member privacy control is enabled AND admin override is off
+    if (allowMemberPrivacy && targetProfile && targetProfile.privacy?.hideContact && !isOverride) {
+      if (unlockedContacts.includes(targetProfileId)) return true;
+      if (currentUser) {
+        const authorizedReq = contactRequests.find(
+          (r) =>
+            r.requesterId === currentUser.id &&
+            r.targetProfileId === targetProfileId &&
+            r.status === 'authorized'
+        );
+        if (authorizedReq) return true;
+      }
+      return false;
+    }
+
+    // Check full access for active paid members (Monthly, Yearly, Lifetime, Gold, Diamond, VIP, etc.)
+    if (isMember && siteConfig?.enableFullAccessForPaidMembers !== false) {
+      if (currentUser.membership && currentUser.membership !== 'free') {
+        const userPlan = plansList.find((p) => p.id === currentUser.membership);
+        const isLimitedPlan = (currentUser.membership === 'welcome_offer') || (userPlan?.unlockCount && userPlan.unlockCount < 99);
+        if (isLimitedPlan) {
+          if (unlockedContacts.includes(targetProfileId)) {
+            return true;
+          }
+          return false;
+        }
+        return true;
+      }
+      if (currentUser.isCustomAccessGranted) {
+        return true;
+      }
+    }
+
+    // Now check category-specific site settings
+    if (isPublicVisitor && siteConfig?.allowPublicVisitorsToViewContacts) {
+      return true;
+    }
+    if (isGuest && siteConfig?.allowGuestsToViewContacts) {
+      return true;
+    }
+    if (isMember && siteConfig?.allowMembersToViewContacts) {
+      return true;
+    }
+
     if (unlockedContacts.includes(targetProfileId)) return true;
     if (currentUser) {
       const authorizedReq = contactRequests.find(
@@ -1195,18 +1512,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const toggleHideContact = (profileId: string) => {
     setProfiles((prev) =>
-      prev.map((p) =>
-        p.id === profileId
-          ? { ...p, privacy: { ...p.privacy, hideContact: !p.privacy.hideContact } }
-          : p
-      )
+      prev.map((p) => {
+        if (p.id === profileId) {
+          const updated = { ...p, privacy: { ...p.privacy, hideContact: !p.privacy.hideContact } };
+          syncDocToFirestore('profiles', updated.id, updated);
+          return updated;
+        }
+        return p;
+      })
     );
   };
 
   // 13. Pre-Plans Management
   const [plansList, setPlansList] = useState<Plan[]>(() => {
     const saved = localStorage.getItem('vanjari_jodi_plans');
-    return saved ? JSON.parse(saved) : MEMBERSHIP_PLANS;
+    if (!saved) return MEMBERSHIP_PLANS;
+    try {
+      let parsed: Plan[] = JSON.parse(saved);
+      const hasWelcomeOffer = parsed.some((p) => p.id === 'welcome_offer');
+      if (!hasWelcomeOffer) {
+        const defaultWelcome = MEMBERSHIP_PLANS.find((p) => p.id === 'welcome_offer');
+        if (defaultWelcome) parsed = [defaultWelcome, ...parsed];
+      }
+      // Migrate welcome offer defaults to ₹199 and 5 contacts if still on legacy values
+      parsed = parsed.map((p) => {
+        if (p.id === 'welcome_offer') {
+          return {
+            ...p,
+            price: p.price === 99 ? 199 : p.price,
+            unlockCount: p.unlockCount === 999 ? 5 : (p.unlockCount || 5),
+            nameMr: p.nameMr.includes('९९') ? 'स्पेशल वेलकम ऑफर - ₹१९९ (५ नंबर अनलॉक)' : p.nameMr,
+            badgeText: p.badgeText.includes('९९') ? '🔥 ५०% सूट - वेलकम ऑफर (रु. १९९/-)' : p.badgeText,
+          };
+        }
+        return p;
+      });
+      return parsed;
+    } catch {
+      return MEMBERSHIP_PLANS;
+    }
   });
 
   useEffect(() => {
@@ -1251,26 +1595,94 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const approveProfile = (profileId: string) => {
     setProfiles((prev) =>
-      prev.map((p) => (p.id === profileId ? { ...p, isApproved: true, isVerified: true } : p))
+      prev.map((p) => {
+        if (p.id === profileId) {
+          const updated = { ...p, isApproved: true, isVerified: true };
+          syncDocToFirestore('profiles', updated.id, updated);
+          return updated;
+        }
+        return p;
+      })
     );
   };
 
   const rejectProfile = (profileId: string) => {
     setProfiles((prev) => prev.filter((p) => p.id !== profileId));
+    deleteDocFromFirestore('profiles', profileId);
   };
 
   const toggleBlockProfile = (profileId: string) => {
     setProfiles((prev) =>
-      prev.map((p) => (p.id === profileId ? { ...p, isApproved: !p.isApproved } : p))
+      prev.map((p) => {
+        if (p.id === profileId) {
+          const updated = { ...p, isApproved: !p.isApproved };
+          syncDocToFirestore('profiles', updated.id, updated);
+          return updated;
+        }
+        return p;
+      })
     );
   };
 
   const updateMemberTier = (profileId: string, tier: MembershipTier) => {
+    let bonusUnlocks = 0;
+    const matchingPlan = plansList.find((pl) => pl.id === tier);
+    if (matchingPlan) {
+      if (matchingPlan.unlockCount) {
+        bonusUnlocks = matchingPlan.unlockCount;
+      } else if (tier === 'welcome_offer') {
+        bonusUnlocks = 5;
+      }
+
+      // Auto increment plan member count and check seat limit
+      setPlansList((prevPlans) =>
+        prevPlans.map((pl) => {
+          if (pl.id === tier) {
+            const newCount = (pl.currentMemberCount || 0) + 1;
+            const isFilled =
+              pl.isLimitedSlotsPlan &&
+              pl.maxMemberLimit &&
+              pl.maxMemberLimit > 0 &&
+              newCount >= pl.maxMemberLimit;
+
+            return {
+              ...pl,
+              currentMemberCount: newCount,
+              isActive: isFilled ? false : pl.isActive,
+            };
+          }
+          return pl;
+        })
+      );
+    }
+
     setProfiles((prev) =>
-      prev.map((p) => (p.id === profileId ? { ...p, membership: tier, isVerified: true } : p))
+      prev.map((p) => {
+        if (p.id === profileId) {
+          const updated = {
+            ...p,
+            membership: tier,
+            isVerified: true,
+            unlockedContactsCount: (p.unlockedContactsCount || 0) + (bonusUnlocks || (tier === 'welcome_offer' ? 5 : 0)),
+          };
+          syncDocToFirestore('profiles', updated.id, updated);
+          return updated;
+        }
+        return p;
+      })
     );
+
     if (currentUser?.id === profileId) {
-      setCurrentUser((prev) => (prev ? { ...prev, membership: tier, isVerified: true } : null));
+      setCurrentUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              membership: tier,
+              isVerified: true,
+              unlockedContactsCount: (prev.unlockedContactsCount || 0) + (bonusUnlocks || (tier === 'welcome_offer' ? 5 : 0)),
+            }
+          : null
+      );
     }
   };
 
@@ -1302,11 +1714,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     fileName?: string,
     userMobile?: string,
     customName?: string,
-    customSenderId?: string
+    customSenderId?: string,
+    fileType?: 'image' | 'pdf' | 'doc'
   ) => {
     const senderId = currentUser ? currentUser.id : (customSenderId || 'visitor-guest');
     const senderName = currentUser ? currentUser.fullName : (customName || 'अभ्यागत (Visitor)');
     const mobile = currentUser ? currentUser.mobile : (userMobile || '');
+
+    const detectedType = fileType || (fileUrl?.toLowerCase().includes('.pdf') || fileName?.toLowerCase().endsWith('.pdf') ? 'pdf' : fileUrl ? 'image' : undefined);
 
     const newMsg: AdminSupportMessage = {
       id: 'sup-' + Date.now(),
@@ -1316,6 +1731,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       message,
       fileUrl,
       fileName,
+      fileType: detectedType,
+      imageUrl: detectedType === 'image' ? fileUrl : undefined,
+      pdfUrl: detectedType === 'pdf' ? fileUrl : undefined,
+      pdfName: detectedType === 'pdf' ? fileName : undefined,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isReadByAdmin: false,
       isReadByUser: true,
@@ -1341,9 +1760,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     targetSenderId: string,
     message: string,
     fileUrl?: string,
-    fileName?: string
+    fileName?: string,
+    fileType?: 'image' | 'pdf' | 'doc'
   ) => {
     const targetUser = profiles.find((p) => p.id === targetSenderId);
+    const detectedType = fileType || (fileUrl?.toLowerCase().includes('.pdf') || fileName?.toLowerCase().endsWith('.pdf') ? 'pdf' : fileUrl ? 'image' : undefined);
+
     const newMsg: AdminSupportMessage = {
       id: 'sup-' + Date.now(),
       senderId: targetSenderId,
@@ -1352,6 +1774,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       message,
       fileUrl,
       fileName,
+      fileType: detectedType,
+      imageUrl: detectedType === 'image' ? fileUrl : undefined,
+      pdfUrl: detectedType === 'pdf' ? fileUrl : undefined,
+      pdfName: detectedType === 'pdf' ? fileName : undefined,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isReadByAdmin: true,
       isReadByUser: false,
@@ -1574,6 +2000,71 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const bulkPurgeRecycleBin = () => {
     setRecycleBin([]);
     logActivity('Purge Storage', `रिसायकल बिन पूर्णपणे रिकामे केले (All Storage Purged)`, 'Admin');
+  };
+
+  // Photos Trash Engine
+  const [deletedPhotosTrash, setDeletedPhotosTrash] = useState<TrashedPhoto[]>(() => {
+    const saved = localStorage.getItem('vanjari_jodi_trashed_photos');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('vanjari_jodi_trashed_photos', JSON.stringify(deletedPhotosTrash));
+  }, [deletedPhotosTrash]);
+
+  const trashPhoto = (profileId: string, photoUrl: string, photoType: 'avatar' | 'gallery' = 'gallery', profileName?: string) => {
+    const candidate = profiles.find((p) => p.id === profileId);
+    const name = profileName || candidate?.fullName || 'उमेदवार';
+    const newTrashPhoto: TrashedPhoto = {
+      id: 'trash-pic-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+      profileId: profileId,
+      originalProfileId: profileId,
+      profileName: name,
+      profileRegId: candidate?.registrationId || 'VJ-001',
+      photoUrl,
+      photoType,
+      deletedAt: new Date().toLocaleString('mr-IN'),
+      deletedBy: 'Admin',
+      sizeEstimateKb: Math.floor(150 + Math.random() * 200),
+    };
+    setDeletedPhotosTrash((prev) => [newTrashPhoto, ...prev]);
+    logActivity('Trash Photo', `${name} यांचा फोटो ट्रॅशमध्ये हलवला`, 'Admin');
+  };
+
+  const restorePhotoFromTrash = (trashId: string) => {
+    const target = deletedPhotosTrash.find((tp) => tp.id === trashId);
+    if (!target) return;
+    const candidate = profiles.find((p) => p.id === target.originalProfileId);
+    if (candidate) {
+      if (target.photoType === 'avatar') {
+        const updated = { ...candidate, photoUrl: target.photoUrl };
+        setProfiles((prev) => prev.map((p) => (p.id === candidate.id ? updated : p)));
+        syncDocToFirestore('profiles', candidate.id, updated);
+      } else {
+        const existingPhotos = candidate.photos || [];
+        if (!existingPhotos.includes(target.photoUrl)) {
+          const updated = { ...candidate, photos: [...existingPhotos, target.photoUrl] };
+          setProfiles((prev) => prev.map((p) => (p.id === candidate.id ? updated : p)));
+          syncDocToFirestore('profiles', candidate.id, updated);
+        }
+      }
+    }
+    setDeletedPhotosTrash((prev) => prev.filter((tp) => tp.id !== trashId));
+    logActivity('Restore Photo', `${target.profileName} यांचा फोटो ट्रॅशमधून रीस्टोअर केला`, 'Admin');
+  };
+
+  const permanentlyDeletePhotoFromTrash = (trashId: string) => {
+    const target = deletedPhotosTrash.find((tp) => tp.id === trashId);
+    setDeletedPhotosTrash((prev) => prev.filter((tp) => tp.id !== trashId));
+    if (target) {
+      logActivity('Permanently Delete Photo', `${target.profileName} यांचा फोटो कायमचा डिलीट करून सर्व्हर जागा मोकळी केली.`, 'Admin');
+    }
+  };
+
+  const purgeAllPhotosTrash = () => {
+    const count = deletedPhotosTrash.length;
+    setDeletedPhotosTrash([]);
+    logActivity('Purge Photos Trash', `${count} फोटो कायमचे नष्ट करून फोटो स्टोरेज मोकळे केले.`, 'Admin');
   };
 
   // 18. Real-time Activity Audit Log System
@@ -1824,42 +2315,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [faceVerificationLogs]);
 
   const submitFaceVerification = (logData: Omit<FaceVerificationLog, 'id' | 'submittedAt'>) => {
+    const isApprovedStatus = logData.status === 'approved';
     const newLog: FaceVerificationLog = {
       ...logData,
       id: `fv-${Date.now()}`,
+      status: logData.status || 'pending',
       submittedAt: new Date().toISOString(),
     };
     setFaceVerificationLogs(prev => [newLog, ...prev]);
 
-    // Immediately update user profile to isFaceVerified = true and isVerified = true
-    setProfiles(prev =>
-      prev.map(p => {
-        if (p.id === logData.userId) {
-          return {
-            ...p,
-            isFaceVerified: true,
-            isVerified: true,
-            faceVerifiedAt: new Date().toISOString()
-          };
-        }
-        return p;
-      })
-    );
-
-    if (currentUser && currentUser.id === logData.userId) {
-      setCurrentUser(prev =>
-        prev
-          ? {
-              ...prev,
+    // Update profile ONLY if status is explicitly approved (e.g. by Admin)
+    if (isApprovedStatus) {
+      setProfiles(prev =>
+        prev.map(p => {
+          if (p.id === logData.userId) {
+            const updated = {
+              ...p,
               isFaceVerified: true,
               isVerified: true,
               faceVerifiedAt: new Date().toISOString()
-            }
-          : null
+            };
+            syncDocToFirestore('profiles', updated.id, updated);
+            return updated;
+          }
+          return p;
+        })
       );
+
+      if (currentUser && currentUser.id === logData.userId) {
+        setCurrentUser(prev =>
+          prev
+            ? {
+                ...prev,
+                isFaceVerified: true,
+                isVerified: true,
+                faceVerifiedAt: new Date().toISOString()
+              }
+            : null
+        );
+      }
     }
 
-    logActivity('face_verification_submitted', `चेहरा पडताळणी सादर करण्यात आली (${logData.userName})`);
+    logActivity('face_verification_submitted', `चेहरा पडताळणी प्रस्ताव सादर करण्यात आला (${logData.userName})`);
   };
 
   const approveFaceVerification = (logId: string) => {
@@ -1873,7 +2370,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProfiles(prev =>
       prev.map(p => {
         if (p.id === log.userId) {
-          return { ...p, isFaceVerified: true, isVerified: true };
+          const updated = { ...p, isFaceVerified: true, isVerified: true };
+          syncDocToFirestore('profiles', updated.id, updated);
+          return updated;
         }
         return p;
       })
@@ -2238,9 +2737,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const toggleProfileVisibility = (profileId: string) => {
     setProfiles((prev) =>
-      prev.map((p) =>
-        p.id === profileId ? { ...p, isHiddenByAdmin: !p.isHiddenByAdmin } : p
-      )
+      prev.map((p) => {
+        if (p.id === profileId) {
+          const updated = { ...p, isHiddenByAdmin: !p.isHiddenByAdmin };
+          syncDocToFirestore('profiles', updated.id, updated);
+          return updated;
+        }
+        return p;
+      })
     );
     const target = profiles.find((p) => p.id === profileId);
     const newHiddenState = !target?.isHiddenByAdmin;
@@ -2253,9 +2757,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const toggleBlockMemberAccess = (profileId: string) => {
     setProfiles((prev) =>
-      prev.map((p) =>
-        p.id === profileId ? { ...p, isBlocked: !p.isBlocked } : p
-      )
+      prev.map((p) => {
+        if (p.id === profileId) {
+          const updated = { ...p, isBlocked: !p.isBlocked };
+          syncDocToFirestore('profiles', updated.id, updated);
+          return updated;
+        }
+        return p;
+      })
     );
     const target = profiles.find((p) => p.id === profileId);
     const newBlockedState = !target?.isBlocked;
@@ -2271,9 +2780,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const toggleCustomAccess = (profileId: string) => {
     setProfiles((prev) =>
-      prev.map((p) =>
-        p.id === profileId ? { ...p, isCustomAccessGranted: !p.isCustomAccessGranted } : p
-      )
+      prev.map((p) => {
+        if (p.id === profileId) {
+          const updated = { ...p, isCustomAccessGranted: !p.isCustomAccessGranted };
+          syncDocToFirestore('profiles', updated.id, updated);
+          return updated;
+        }
+        return p;
+      })
     );
     const target = profiles.find((p) => p.id === profileId);
     const newAccessState = !target?.isCustomAccessGranted;
@@ -2323,7 +2837,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const newPhotos = [...p.photos];
           const [selected] = newPhotos.splice(photoIndex, 1);
           newPhotos.unshift(selected);
-          return { ...p, photos: newPhotos, pendingPhotoApproval: !isAdminLoggedIn };
+          const updated = { ...p, photos: newPhotos, pendingPhotoApproval: !isAdminLoggedIn };
+          syncDocToFirestore('profiles', updated.id, updated);
+          return updated;
         }
         return p;
       })
@@ -2344,7 +2860,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       prev.map((p) => {
         if (p.id === profileId && p.photos && p.photos.length > photoIndex) {
           const newPhotos = p.photos.filter((_, idx) => idx !== photoIndex);
-          return { ...p, photos: newPhotos };
+          const updated = { ...p, photos: newPhotos };
+          syncDocToFirestore('profiles', updated.id, updated);
+          return updated;
         }
         return p;
       })
@@ -2371,11 +2889,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const updatedPhotos = [...(target.photos || []), newPhotoUrl];
     setProfiles((prev) =>
-      prev.map((p) =>
-        p.id === profileId
-          ? { ...p, photos: updatedPhotos, pendingPhotoApproval: !isAdminLoggedIn }
-          : p
-      )
+      prev.map((p) => {
+        if (p.id === profileId) {
+          const updated = { ...p, photos: updatedPhotos, pendingPhotoApproval: !isAdminLoggedIn };
+          syncDocToFirestore('profiles', updated.id, updated);
+          return updated;
+        }
+        return p;
+      })
     );
     if (currentUser?.id === profileId) {
       setCurrentUser((prev) =>
@@ -2399,7 +2920,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const approvePhotoChanges = (profileId: string) => {
     setProfiles((prev) =>
-      prev.map((p) => (p.id === profileId ? { ...p, pendingPhotoApproval: false } : p))
+      prev.map((p) => {
+        if (p.id === profileId) {
+          const updated = { ...p, pendingPhotoApproval: false };
+          syncDocToFirestore('profiles', updated.id, updated);
+          return updated;
+        }
+        return p;
+      })
     );
     addNotification({
       userId: profileId,
@@ -2488,7 +3016,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProfiles((prev) =>
       prev.map((p) => {
         if (p.id === profileId) {
-          return { ...p, privacy: { ...p.privacy, ...newPrivacy } };
+          const updated = { ...p, privacy: { ...p.privacy, ...newPrivacy } };
+          syncDocToFirestore('profiles', updated.id, updated);
+          return updated;
         }
         return p;
       })
@@ -2519,7 +3049,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setProfiles((prev) =>
       prev.map((p) => {
         if (p.id === profileId) {
-          return { ...p, ...badges };
+          const updated = { ...p, ...badges };
+          syncDocToFirestore('profiles', updated.id, updated);
+          return updated;
         }
         return p;
       })
@@ -2530,6 +3062,125 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     logActivity('member_badges_updated', `सदस्य व्हेरिफिकेशन बॅज अद्ययावत केले (${profileId})`);
+  };
+
+  // Business Vendor State & Handlers
+  const [isBioDataMakerOpen, setIsBioDataMakerOpen] = useState(false);
+  const [businessVendors, setBusinessVendors] = useState<BusinessVendor[]>(() => {
+    const saved = localStorage.getItem('vanjari_jodi_business_vendors');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return INITIAL_BUSINESS_VENDORS;
+      }
+    }
+    return INITIAL_BUSINESS_VENDORS;
+  });
+
+  const [isBusinessVendorDirectoryOpen, setIsBusinessVendorDirectoryOpen] = useState(false);
+  const [isBusinessVendorRegisterModalOpen, setIsBusinessVendorRegisterModalOpen] = useState(false);
+  const [isVendorPortalOpen, setIsVendorPortalOpen] = useState(false);
+  const [currentVendorUser, setCurrentVendorUser] = useState<BusinessVendor | null>(() => {
+    const saved = localStorage.getItem('vanjari_jodi_current_vendor');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const [vendorBookingInquiries, setVendorBookingInquiries] = useState<VendorBookingInquiry[]>(() => {
+    const saved = localStorage.getItem('vanjari_jodi_vendor_inquiries');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('vanjari_jodi_business_vendors', JSON.stringify(businessVendors));
+  }, [businessVendors]);
+
+  useEffect(() => {
+    if (currentVendorUser) {
+      localStorage.setItem('vanjari_jodi_current_vendor', JSON.stringify(currentVendorUser));
+    } else {
+      localStorage.removeItem('vanjari_jodi_current_vendor');
+    }
+  }, [currentVendorUser]);
+
+  useEffect(() => {
+    localStorage.setItem('vanjari_jodi_vendor_inquiries', JSON.stringify(vendorBookingInquiries));
+  }, [vendorBookingInquiries]);
+
+  const addBusinessVendor = (vendorData: Omit<BusinessVendor, 'id' | 'createdAt' | 'status'> & { status?: 'pending' | 'approved' | 'rejected' }) => {
+    const newVendor: BusinessVendor = {
+      ...vendorData,
+      id: 'ven-' + Date.now(),
+      status: vendorData.status || 'pending',
+      createdAt: new Date().toISOString(),
+      viewsCount: 0,
+      bookedDates: [],
+      pinPassword: vendorData.pinPassword || vendorData.mobile.slice(-4) || '1234'
+    };
+    setBusinessVendors((prev) => [newVendor, ...prev]);
+    logActivity('Business Vendor Registration', `नवीन व्यवसाय नोंदणी अर्ज: ${newVendor.businessName} (${newVendor.category}) (Status: ${newVendor.status})`);
+  };
+
+  const updateBusinessVendorStatus = (id: string, status: 'approved' | 'rejected') => {
+    setBusinessVendors((prev) =>
+      prev.map((v) => (v.id === id ? { ...v, status } : v))
+    );
+    logActivity('Update Vendor Status', `व्यवसाय स्टेटस बदलले: ID ${id} -> ${status}`);
+  };
+
+  const deleteBusinessVendor = (id: string) => {
+    setBusinessVendors((prev) => prev.filter((v) => v.id !== id));
+    logActivity('Delete Vendor', `व्यवसाय नोंदणी हटवली: ID ${id}`);
+  };
+
+  const addCustomVendorCategory = (categoryName: string) => {
+    if (!categoryName.trim()) return;
+    const currentCats = siteConfig.customVendorCategories || [];
+    if (currentCats.includes(categoryName.trim())) return;
+    updateSiteConfig({
+      customVendorCategories: [...currentCats, categoryName.trim()]
+    });
+  };
+
+  const toggleVendorBookedDate = (vendorId: string, dateStr: string) => {
+    setBusinessVendors((prev) =>
+      prev.map((v) => {
+        if (v.id === vendorId) {
+          const currentBooked = v.bookedDates || [];
+          const updated = currentBooked.includes(dateStr)
+            ? currentBooked.filter((d) => d !== dateStr)
+            : [...currentBooked, dateStr];
+          return { ...v, bookedDates: updated };
+        }
+        return v;
+      })
+    );
+  };
+
+  const submitVendorBookingInquiry = (inquiryData: Omit<VendorBookingInquiry, 'id' | 'createdAt' | 'status'>) => {
+    const newInquiry: VendorBookingInquiry = {
+      ...inquiryData,
+      id: 'inq-' + Date.now(),
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+    setVendorBookingInquiries((prev) => [newInquiry, ...prev]);
+    logActivity('Vendor Booking Inquiry', `बुकींग चौकशी अर्ज: ${newInquiry.vendorName} साठी - तारीख: ${newInquiry.eventDate}`);
+  };
+
+  const updateVendorBookingInquiryStatus = (id: string, status: VendorBookingInquiry['status']) => {
+    setVendorBookingInquiries((prev) =>
+      prev.map((inq) => (inq.id === id ? { ...inq, status } : inq))
+    );
+  };
+
+  const updateVendorDetails = (vendorId: string, updatedFields: Partial<BusinessVendor>) => {
+    setBusinessVendors((prev) =>
+      prev.map((v) => (v.id === vendorId ? { ...v, ...updatedFields } : v))
+    );
+    if (currentVendorUser && currentVendorUser.id === vendorId) {
+      setCurrentVendorUser((prev) => (prev ? { ...prev, ...updatedFields } : null));
+    }
   };
 
   return (
@@ -2556,6 +3207,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         respondInterest,
         chatMessages,
         sendChatMessage,
+        deleteChatMessage,
         toggleBlockUserChat,
         activeChatUser,
         setActiveChatUser,
@@ -2581,7 +3233,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSelectedProfileForModal,
         isAdminOpen,
         setIsAdminOpen,
-        isPaymentOpen,
+        isPaymentOpen: isPaymentOpenRaw,
         setIsPaymentOpen,
         selectedPlanForPayment,
         setSelectedPlanForPayment,
@@ -2653,9 +3305,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         unreadAdminChatCount,
         recycleBin,
         softDeleteProfile,
+        bulkSoftDeleteProfiles,
         restoreRecycleItem,
+        bulkRestoreRecycleItems,
         permanentDeleteRecycleItem,
+        bulkPermanentDeleteRecycleItems,
         bulkPurgeRecycleBin,
+        deletedPhotosTrash,
+        trashPhoto,
+        restorePhotoFromTrash,
+        permanentlyDeletePhotoFromTrash,
+        purgeAllPhotosTrash,
         auditLogs,
         logActivity,
         subAdmins,
@@ -2718,9 +3378,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteProfileRemovalRequest,
         isProfileRemovalModalOpen,
         setIsProfileRemovalModalOpen,
-        bulkSoftDeleteProfiles,
-        bulkPermanentDeleteRecycleItems,
-        bulkRestoreRecycleItems,
         setPrimaryPhoto,
         deleteMemberPhoto,
         addMemberPhoto,
@@ -2737,6 +3394,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setProfiles(INITIAL_PROFILES);
           localStorage.setItem('vanjari_jodi_profiles', JSON.stringify(INITIAL_PROFILES));
         },
+        isBioDataMakerOpen,
+        setIsBioDataMakerOpen,
+        businessVendors,
+        isBusinessVendorDirectoryOpen,
+        setIsBusinessVendorDirectoryOpen,
+        isBusinessVendorRegisterModalOpen,
+        setIsBusinessVendorRegisterModalOpen,
+        isVendorPortalOpen,
+        setIsVendorPortalOpen,
+        currentVendorUser,
+        setCurrentVendorUser,
+        vendorBookingInquiries,
+        addBusinessVendor,
+        updateBusinessVendorStatus,
+        deleteBusinessVendor,
+        addCustomVendorCategory,
+        toggleVendorBookedDate,
+        submitVendorBookingInquiry,
+        updateVendorBookingInquiryStatus,
+        updateVendorDetails,
       }}
     >
       {children}

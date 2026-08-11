@@ -247,7 +247,7 @@ export const SuccessStories: React.FC = () => {
 
                 <div className="space-y-2">
                   <label className="block text-slate-300 font-bold mb-1">
-                    जोडप्याचा फोटो (Upload Photo - Cloudinary Storage Max 600 KB):
+                    जोडप्याचा फोटो (Upload Photo - स्पष्ट HD फोटो, ऑटो कॉम्प्रेस होतो):
                   </label>
                   {storyImageError && (
                     <p className="text-rose-400 font-bold text-[11px]">{storyImageError}</p>
@@ -277,7 +277,7 @@ export const SuccessStories: React.FC = () => {
                           if (file) {
                             const val = validateFileSize(file);
                             if (!val.valid) {
-                              setStoryImageError(val.errorMsg || '६०० KB पेक्षा लहान फोटो निवडा.');
+                              setStoryImageError(val.errorMsg || 'फोटो अपलोड अयशस्वी.');
                               return;
                             }
                             setIsUploadingStoryImage(true);

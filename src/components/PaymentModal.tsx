@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Plan, MembershipTier } from '../types';
 import { uploadToCloudinary, validateFileSize } from '../utils/cloudinary';
-import { X, ShieldCheck, QrCode, Upload, Copy, Check, Sparkles, Send, Loader2, Tag, Gift, CheckCircle2 } from 'lucide-react';
+import { X, ShieldCheck, QrCode, Upload, Copy, Check, Sparkles, Send, Loader2, Tag, Gift, CheckCircle2, CreditCard, Zap } from 'lucide-react';
 
 export const PaymentModal: React.FC<{
   isOpen: boolean;
@@ -13,6 +13,9 @@ export const PaymentModal: React.FC<{
     language,
     currentUser,
     siteConfig,
+    plansList,
+    selectedPlanForPayment,
+    setSelectedPlanForPayment,
     addPaymentRequest,
     validatePromoCode,
     addNotification,
@@ -25,6 +28,7 @@ export const PaymentModal: React.FC<{
   const [userMobile, setUserMobile] = useState(currentUser?.mobileNumber || currentUser?.whatsappNumber || '');
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRazorpayLoading, setIsRazorpayLoading] = useState(false);
 
   // Promo Code State
   const [promoInput, setPromoInput] = useState('');
@@ -40,19 +44,133 @@ export const PaymentModal: React.FC<{
   const [isUploadingScreenshot, setIsUploadingScreenshot] = useState(false);
   const [screenshotError, setScreenshotError] = useState<string | null>(null);
 
-  if (!isOpen || !plan) return null;
+  const showOnlyWelcome = siteConfig?.showOnlyWelcomePlan !== false;
+  const filteredPlans = showOnlyWelcome
+    ? plansList.filter((p) => p.id === 'welcome_offer' && p.isActive !== false)
+    : plansList.filter((p) => p.isActive !== false);
 
-  const originalPrice = plan.price;
+  const activePlan =
+    plan ||
+    selectedPlanForPayment ||
+    plansList.find((p) => p.id === 'welcome_offer' && p.isActive !== false) ||
+    plansList.find((p) => p.isActive !== false) ||
+    plansList[0];
+
+  if (!isOpen || !activePlan) return null;
+
+  const originalPrice = activePlan.price;
   const currentPrice = appliedPromoRes ? appliedPromoRes.finalAmount : originalPrice;
   const isVipFreeAccess = appliedPromoRes?.isVipFree || false;
 
+  const paymentMode = siteConfig?.paymentMode || 'both';
+  const showRazorpay = !isVipFreeAccess && siteConfig?.enableRazorpay !== false && paymentMode !== 'upi_qr_only';
+  const showQrCode = !isVipFreeAccess && siteConfig?.enableUpiQr !== false && paymentMode !== 'razorpay_only';
+
   const upiId = siteConfig?.paymentUpiId || 'vanjarijodi@upi';
-  const qrUrl =
-    siteConfig?.paymentQrUrl ||
-    `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=${encodeURIComponent(upiId)}&pn=VanjariJodi%20Matrimony&am=${currentPrice}`;
+  const isCustomUploadedQr = siteConfig?.paymentQrUrl && siteConfig.paymentQrUrl.trim().length > 0 && !siteConfig.paymentQrUrl.includes('api.qrserver.com');
+  const qrUrl = isCustomUploadedQr
+    ? siteConfig.paymentQrUrl
+    : `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+        `upi://pay?pa=${upiId}&pn=VanjariJodi Matrimony&am=${currentPrice}&cu=INR&tn=VanjariJodi Plan ${activePlan.nameMr || activePlan.name}`
+      )}`;
   const noteText =
     siteConfig?.paymentNote ||
     'PhonePe / Google Pay / Paytm द्वारे क्यूआर कोड स्कॅन करून किंवा UPI ID वर पेमेंट करा व UTR नंबर सादर करा.';
+
+  const loadRazorpayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if ((window as any).Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleRazorpayCheckout = async () => {
+    setIsRazorpayLoading(true);
+    const scriptLoaded = await loadRazorpayScript();
+    setIsRazorpayLoading(false);
+
+    if (!scriptLoaded) {
+      alert('Razorpay गेटवे लोड होण्यास अडचण आली. कृपया तुमचे इंटरनेट कनेक्शन तपासा किंवा क्यूआर कोड द्वारे पेमेंट करा.');
+      return;
+    }
+
+    let keyId = (siteConfig?.razorpayKeyId || 'rzp_test_TMw4t7bxOl8SsV').trim();
+    if (!keyId.startsWith('rzp_test_') && !keyId.startsWith('rzp_live_')) {
+      keyId = `rzp_test_${keyId}`;
+    }
+
+    const options = {
+      key: keyId,
+      amount: currentPrice * 100, // amount in paise
+      currency: 'INR',
+      name: 'वंजारी जोडी मॅट्रिमोनी',
+      description: `${language === 'mr' ? activePlan.nameMr : activePlan.name} सबस्क्रिप्शन प्लॅन`,
+      image: siteConfig?.logoUrl || 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=200',
+      prefill: {
+        name: currentUser?.fullName || 'अनोळखी सभासद',
+        email: currentUser?.email || 'user@vanjarijodi.com',
+        contact: userMobile || currentUser?.mobileNumber || '+919822100000',
+      },
+      theme: {
+        color: '#A71930',
+      },
+      handler: function (response: any) {
+        const paymentId = response.razorpay_payment_id || `PAY-${Date.now()}`;
+        
+        // Instant Member Tier Upgrade if currentUser exists
+        if (currentUser) {
+          updateMemberTier(currentUser.id, activePlan.id as MembershipTier);
+          logActivity(
+            'Razorpay Payment Success',
+            `सदस्याने Razorpay द्वारे ₹${currentPrice} भरून ${activePlan.nameMr || activePlan.name} प्लॅन सक्रिय केला (Payment ID: ${paymentId})`,
+            currentUser.fullName
+          );
+          addNotification({
+            userId: currentUser.id,
+            title: '🎉 ऑनलाईन पेमेंट यशस्वी!',
+            message: `${activePlan.nameMr || activePlan.name} प्लॅन (₹${currentPrice}) सक्रिय झाला आहे! Razorpay Txn ID: ${paymentId}`,
+            type: 'system',
+            read: false,
+          });
+        }
+
+        // Add payment record for admin tracking
+        addPaymentRequest({
+          userId: currentUser?.id || 'guest-user',
+          userName: currentUser?.fullName || 'अनोळखी सभासद',
+          userMobile: userMobile || currentUser?.mobileNumber || '+91 9822100000',
+          planId: activePlan.id as MembershipTier,
+          planName: language === 'mr' ? activePlan.nameMr : activePlan.name,
+          amount: currentPrice,
+          utrNumber: `RZP-${paymentId}`,
+          screenshotUrl: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=600',
+        });
+
+        alert(`🎉 Razorpay ऑनलाईन पेमेंट यशस्वी झाले! (Txn ID: ${paymentId})\n\nतुमचा ${language === 'mr' ? activePlan.nameMr : activePlan.name} प्लॅन तात्काळ सक्रिय करण्यात आला आहे.`);
+        onClose();
+      },
+      modal: {
+        ondismiss: function () {
+          console.log('Razorpay checkout modal closed');
+        },
+      },
+    };
+
+    try {
+      const rzp1 = new (window as any).Razorpay(options);
+      rzp1.open();
+    } catch (err) {
+      console.error('Razorpay initialization error:', err);
+      alert('Razorpay पेमेंट विंडो उघडताना त्रुटी आली. कृपया UTR भरून सबमिट करा.');
+    }
+  };
 
   const handleCopyUpi = () => {
     navigator.clipboard.writeText(upiId);
@@ -103,16 +221,16 @@ export const PaymentModal: React.FC<{
 
     if (isVipFreeAccess && currentUser) {
       // Instant VIP Bypass Activation
-      updateMemberTier(currentUser.id, plan.id as MembershipTier);
+      updateMemberTier(currentUser.id, activePlan.id as MembershipTier);
       logActivity(
         'VIP Code Activation',
-        `सदस्याने VIP कूपन (${appliedPromoRes?.code}) वापरून ${plan.nameMr} प्लॅन मोफत सक्रिय केला.`,
+        `सदस्याने VIP कूपन (${appliedPromoRes?.code}) वापरून ${activePlan.nameMr} प्लॅन मोफत सक्रिय केला.`,
         currentUser.fullName
       );
       addNotification({
         userId: currentUser.id,
         title: '🎉 VIP मोफत प्रवेश सक्रिय!',
-        message: `${plan.nameMr} प्लॅन यशस्वीरित्या सक्रिय झाला आहे. अमर्याद बायोडाटा व संपर्क पाहा!`,
+        message: `${activePlan.nameMr} प्लॅन यशस्वीरित्या सक्रिय झाला आहे. अमर्याद बायोडाटा व संपर्क पाहा!`,
         type: 'system',
         read: false,
       });
@@ -126,8 +244,8 @@ export const PaymentModal: React.FC<{
       userId: currentUser?.id || 'guest-user',
       userName: currentUser?.fullName || 'अनोळखी सभासद',
       userMobile: userMobile || currentUser?.mobileNumber || '+91 9822100000',
-      planId: plan.id as MembershipTier,
-      planName: language === 'mr' ? plan.nameMr : plan.name,
+      planId: activePlan.id as MembershipTier,
+      planName: language === 'mr' ? activePlan.nameMr : activePlan.name,
       amount: currentPrice,
       utrNumber: utrNumber.trim() || `VIP-FREE-${Date.now()}`,
       screenshotUrl: screenshotUrl || 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=600',
@@ -164,14 +282,61 @@ export const PaymentModal: React.FC<{
 
         <div className="p-5 sm:p-6 space-y-5 overflow-y-auto">
 
+          {/* Plan Selector Switcher Pills */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-amber-600" />
+                <span>सबस्क्रिप्शन प्लॅन निवडा / बदला (Select Plan):</span>
+              </span>
+              {activePlan.id === 'welcome_offer' && (
+                <span className="px-2 py-0.5 rounded-full bg-amber-400 text-amber-950 font-black text-[10px] animate-pulse">
+                  🔥 रु. {activePlan.price} ऑफर
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+              {filteredPlans.map((p) => {
+                const isSelected = p.id === activePlan.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedPlanForPayment(p);
+                      setAppliedPromoRes(null);
+                    }}
+                    className={`px-3 py-2 rounded-xl text-xs font-black whitespace-nowrap transition-all border cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                      isSelected
+                        ? 'bg-[#A71930] text-amber-100 border-[#800C1E] shadow-md ring-2 ring-amber-400'
+                        : 'bg-white hover:bg-amber-100/60 text-slate-800 border-amber-300'
+                    }`}
+                  >
+                    <span>{p.nameMr || p.name}</span>
+                    <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${isSelected ? 'bg-amber-400 text-amber-950 font-extrabold' : 'bg-amber-100 text-[#A71930]'}`}>
+                      ₹{p.price}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Selected Plan Summary Box */}
           <div className="p-4 bg-white border border-amber-300 rounded-2xl flex items-center justify-between shadow-sm">
             <div>
               <span className="text-[11px] text-[#A71930] font-black uppercase tracking-wider block">
                 निवडलेला सबस्क्रिप्शन प्लॅन:
               </span>
-              <h3 className="text-lg font-black text-slate-900">{language === 'mr' ? plan.nameMr : plan.name}</h3>
-              <span className="text-xs text-slate-600 font-bold">कालावधी: {plan.durationMonths} महिने अमर्याद संपर्क</span>
+              <h3 className="text-lg font-black text-slate-900">{language === 'mr' ? activePlan.nameMr : activePlan.name}</h3>
+              <span className="text-xs text-slate-600 font-bold block">
+                कालावधी: {activePlan.durationLabelMr || (
+                  activePlan.unlockCount && activePlan.unlockCount > 0 && activePlan.unlockCount < 999
+                    ? `${activePlan.durationMonths} महिने (${activePlan.unlockCount} मोबाईल नंबर व बायोडाटा)`
+                    : `${activePlan.durationMonths} महिने अमर्याद संपर्क व बायोडाटा`
+                )}
+              </span>
             </div>
             <div className="text-right">
               {appliedPromoRes?.valid && appliedPromoRes.discountAmount > 0 ? (
@@ -224,30 +389,115 @@ export const PaymentModal: React.FC<{
             )}
           </div>
 
-          {/* QR Code Section (If not VIP Free) */}
-          {!isVipFreeAccess ? (
-            <div className="bg-white border border-amber-300 rounded-2xl p-4 text-center space-y-3 shadow-sm">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-[#A71930] text-xs font-bold border border-amber-300">
-                <QrCode className="w-3.5 h-3.5" />
-                <span>१. खालील क्यूआर कोड वर स्कॅन करून पैसे भरा</span>
-              </span>
+          {/* Instant Razorpay Payment Gateway Option */}
+          {showRazorpay && (
+            <div className="bg-gradient-to-r from-sky-900 via-blue-900 to-indigo-900 text-white rounded-2xl p-4 shadow-lg border border-blue-400/40 relative overflow-hidden space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-amber-300 animate-pulse" />
+                  <span className="font-extrabold text-sm text-amber-200">Razorpay इन्स्टंट ऑनलाईन पेमेंट</span>
+                </div>
+                <span className="text-[10px] bg-blue-500/30 text-blue-200 px-2 py-0.5 rounded-full border border-blue-300/30 font-extrabold uppercase">
+                  १००% सुरक्षित
+                </span>
+              </div>
+              <p className="text-xs text-blue-100 font-medium">
+                Google Pay, PhonePe, Paytm, Debit/Credit Card किंवा NetBanking द्वारे तात्काळ ऑटो-सक्रिय पेमेंट करा.
+              </p>
+              <button
+                type="button"
+                onClick={handleRazorpayCheckout}
+                disabled={isRazorpayLoading}
+                className="w-full py-3 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 transition-transform active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                {isRazorpayLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-slate-900" />
+                ) : (
+                  <CreditCard className="w-4 h-4 text-slate-950" />
+                )}
+                <span>
+                  {isRazorpayLoading ? 'Razorpay लोड होत आहे...' : `Razorpay द्वारे ₹${currentPrice} ऑनलाईन पे करा`}
+                </span>
+              </button>
+              <div className="flex items-center justify-center gap-2 pt-1">
+                <span className="text-[10px] text-blue-200/80 font-bold">UPI / GPay / PhonePe / Card / NetBanking</span>
+              </div>
+            </div>
+          )}
 
-              <div className="w-44 h-44 bg-white p-2 mx-auto rounded-2xl border-2 border-amber-400 shadow flex items-center justify-center">
-                <img src={qrUrl} alt="Payment QR Code" className="w-full h-full object-contain" />
+          {/* Divider */}
+          {showRazorpay && showQrCode && (
+            <div className="flex items-center gap-3 my-1">
+              <div className="flex-1 h-px bg-amber-300/60"></div>
+              <span className="text-[11px] font-extrabold text-amber-900 bg-amber-100/90 px-3 py-0.5 rounded-full border border-amber-300/60">
+                किंवा (OR) क्यूआर कोड स्कॅन करा
+              </span>
+              <div className="flex-1 h-px bg-amber-300/60"></div>
+            </div>
+          )}
+
+          {/* QR Code Section (If not VIP Free and enabled) */}
+          {showQrCode ? (
+            <div className="bg-[#FFFDF7] border-2 border-amber-400 rounded-2xl p-4 text-center space-y-3.5 shadow-md relative overflow-hidden">
+              <div className="flex items-center justify-between border-b border-amber-200 pb-2.5">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-[#A71930] text-xs font-black border border-amber-300">
+                  <QrCode className="w-4 h-4 text-[#A71930]" />
+                  <span>१. Razorpay / UPI क्यूआर कोड स्कॅन करा</span>
+                </span>
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black border border-emerald-300 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Razorpay Verified</span>
+                </span>
               </div>
 
-              <div className="space-y-1">
-                <p className="text-xs text-slate-700 font-bold">{noteText}</p>
-                <div className="inline-flex items-center gap-2 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 text-xs mt-1">
+              {/* Dynamic QR Box with Price Tag */}
+              <div className="relative w-48 h-48 sm:w-52 sm:h-52 bg-white p-3 mx-auto rounded-2xl border-2 border-amber-500 shadow-lg flex flex-col items-center justify-center">
+                {/* Overlay Badge */}
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-900 text-amber-300 px-3 py-0.5 rounded-full text-[11px] font-black shadow border border-amber-400/60 whitespace-nowrap flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-amber-400 fill-amber-400" />
+                  <span>पेमेंट रक्कम: ₹{currentPrice}</span>
+                </div>
+
+                <img src={qrUrl} alt="Razorpay UPI Payment QR Code" className="w-full h-full object-contain pt-1" />
+              </div>
+
+              {/* Supported Payment Apps Banner */}
+              <div className="flex items-center justify-center gap-1.5 text-[10px] sm:text-xs text-slate-700 font-extrabold bg-amber-100/80 py-1.5 px-3 rounded-xl border border-amber-300 shadow-xs">
+                <span className="text-[#A71930] font-black">Razorpay & UPI:</span>
+                <span>PhonePe</span> • <span>GPay</span> • <span>Paytm</span> • <span>BHIM</span>
+              </div>
+
+              {/* Instant Razorpay Pay Action Button */}
+              {showRazorpay && (
+                <button
+                  type="button"
+                  onClick={handleRazorpayCheckout}
+                  disabled={isRazorpayLoading}
+                  className="w-full py-2.5 bg-gradient-to-r from-[#A71930] via-rose-700 to-[#800C1E] hover:from-rose-800 hover:to-[#5E0815] text-amber-100 font-black rounded-xl text-xs shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 disabled:opacity-50 border border-amber-400/40"
+                >
+                  {isRazorpayLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-amber-300" />
+                  ) : (
+                    <CreditCard className="w-4 h-4 text-amber-300" />
+                  )}
+                  <span>
+                    {isRazorpayLoading ? 'Razorpay लोड होत आहे...' : `👉 डायरेक्ट Razorpay द्वारे ₹${currentPrice} पे करा`}
+                  </span>
+                </button>
+              )}
+
+              <div className="space-y-1.5 pt-1">
+                <p className="text-xs text-slate-800 font-bold leading-relaxed">{noteText}</p>
+                <div className="inline-flex items-center gap-2 bg-amber-50 px-3.5 py-1.5 rounded-xl border border-amber-300 text-xs shadow-sm">
                   <span className="text-slate-600 font-bold">UPI ID:</span>
-                  <span className="font-mono font-black text-[#A71930]">{upiId}</span>
+                  <span className="font-mono font-black text-[#A71930] text-sm">{upiId}</span>
                   <button
                     type="button"
                     onClick={handleCopyUpi}
-                    className="p-1 hover:bg-amber-100 rounded text-[#A71930]"
+                    className="p-1 hover:bg-amber-200 rounded text-[#A71930] transition-colors"
                     title="Copy UPI ID"
                   >
-                    {copiedUpi ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedUpi ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
                   </button>
                 </div>
               </div>

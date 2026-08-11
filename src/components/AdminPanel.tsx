@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { downloadApkFile } from '../utils/apkDownloader';
-import { UserProfile, MembershipTier, SuccessStory, SubAdmin, SubAdminPermission, PromoCode, PendingProfileEdit, FeatureBoxItem } from '../types';
+import { UserProfile, MembershipTier, SuccessStory, SubAdmin, SubAdminPermission, PromoCode, PendingProfileEdit, FeatureBoxItem, BusinessVendor } from '../types';
 import { AIBioDataExtractor } from './AIBioDataExtractor';
 import { AdminEditProfileModal } from './AdminEditProfileModal';
+import { AdminMemberQuickSettingsModal } from './AdminMemberQuickSettingsModal';
+import { AdminMasterSettingsCenter } from './AdminMasterSettingsCenter';
 import { VanjariJodiLogo } from './VanjariJodiLogo';
 import { MAHARASHTRA_DISTRICTS } from '../data/initialData';
 import { uploadToCloudinary, validateFileSize } from '../utils/cloudinary';
@@ -11,6 +13,7 @@ import {
   X,
   ShieldCheck,
   Users,
+  User,
   CheckCircle,
   XCircle,
   Crown,
@@ -42,6 +45,8 @@ import {
   CreditCard,
   Send,
   MessageSquare,
+  FileText,
+  Paperclip,
   EyeOff,
   Heart,
   ShieldAlert,
@@ -58,9 +63,15 @@ import {
   Mail,
   GraduationCap,
   Briefcase,
+  Monitor,
+  Smartphone,
   Tag,
   Gift,
   HeartHandshake,
+  Handshake,
+  Building2,
+  ZoomIn,
+  ZoomOut,
   FileSpreadsheet,
   AlertTriangle,
   Clock,
@@ -93,6 +104,848 @@ const ALL_SUBADMIN_PERMISSIONS: { id: SubAdminPermission; labelMr: string; icon:
   { id: 'recycle_bin', labelMr: 'रिसायकल बिन (Recycle Bin - Trash Items)', icon: '🗑️', category: '५. सुरक्षा व मीडिया' },
   { id: 'sub_admins', labelMr: 'नवीन सब-ॲडमिन खाती तयार व नियंत्रित करणे (Sub-Admin Management)', icon: '🔑', category: '३. मास्टर ऑटोमेशन (Super Admin Only)' },
 ];
+
+const AdminAddVendorModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+}> = ({ isOpen, onClose }) => {
+  const { siteConfig, addBusinessVendor } = useApp();
+
+  const defaultCategories = siteConfig?.customVendorCategories || [
+    'मंगल कार्यालय व लॉन्स',
+    'बँड बाजा व वाद्यवृंद',
+    'डेकोरेशन व मंडप',
+    'कॅटरिंग व स्वयंपाकी (Catering)',
+    'मांडव, खुर्च्या व भांडे भांडार',
+    'फोटोग्राफी व व्हिडियोग्राफी',
+    'मेकअप आर्टिस्ट व मेहंदी',
+    'ट्रॅव्हल्स व लग्न गाड्या',
+    'पौरोहित्य / भटजी',
+    'इतर लग्न व्यवसाय'
+  ];
+
+  const [businessName, setBusinessName] = useState('');
+  const [ownerName, setOwnerName] = useState('');
+  const [category, setCategory] = useState(defaultCategories[0] || 'मंगल कार्यालय व लॉन्स');
+  const [district, setDistrict] = useState(MAHARASHTRA_DISTRICTS[0] || 'बीड');
+  const [taluka, setTaluka] = useState('');
+  const [address, setAddress] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [email, setEmail] = useState('');
+  const [pinPassword, setPinPassword] = useState('');
+  const [ratesAndPackages, setRatesAndPackages] = useState('');
+  const [memberDiscount, setMemberDiscount] = useState('वंजारी जोडी सदस्यांसाठी ५% विशेष सवलत');
+  const [commissionRate, setCommissionRate] = useState('१०% कमिशन');
+  const [description, setDescription] = useState('');
+  const [status, setStatus] = useState<'pending' | 'approved' | 'rejected'>('approved');
+
+  const [photoUrl, setPhotoUrl] = useState('');
+  const [pdfUrl, setPdfUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  if (!isOpen) return null;
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'photo' | 'pdf') => {
+    setUploadError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const val = validateFileSize(file);
+    if (!val.valid) {
+      setUploadError(val.errorMsg || 'फाईलचा आकार १० MB पेक्षा लहान असावा.');
+      return;
+    }
+
+    setIsUploading(true);
+    const res = await uploadToCloudinary(file, 'vanjarijodi_vendors');
+    setIsUploading(false);
+
+    if (res.success && res.url) {
+      if (type === 'photo') setPhotoUrl(res.url);
+      else setPdfUrl(res.url);
+    } else {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          if (type === 'photo') setPhotoUrl(reader.result);
+          else setPdfUrl(reader.result);
+        } else {
+          setUploadError('अपलोड अयशस्वी झाले.');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!businessName.trim() || !ownerName.trim() || !mobile.trim() || !ratesAndPackages.trim()) {
+      alert('कृपया आवश्यक सर्व माहिती (व्यवसायाचे नाव, मालकाचे नाव, फोन नंबर व दर) भरा.');
+      return;
+    }
+
+    const targetPin = pinPassword.trim() || mobile.trim().slice(-4) || '1234';
+
+    addBusinessVendor({
+      businessName: businessName.trim(),
+      ownerName: ownerName.trim(),
+      category,
+      district,
+      taluka: taluka.trim(),
+      address: address.trim(),
+      mobile: mobile.trim(),
+      whatsapp: whatsapp.trim() || mobile.trim(),
+      email: email.trim(),
+      ratesAndPackages: ratesAndPackages.trim(),
+      memberDiscount: memberDiscount.trim(),
+      commissionRate: commissionRate.trim(),
+      description: description.trim(),
+      photoUrl: photoUrl || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=800',
+      pdfUrl,
+      pinPassword: targetPin,
+      status,
+    });
+
+    alert(`'${businessName.trim()}' सेवा पुरवठादार यशस्वीरित्या जोडला आणि लॉगिन तयार झाले!`);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-55 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-white border border-amber-300 rounded-3xl shadow-2xl text-slate-900 overflow-hidden my-auto max-h-[92vh] flex flex-col font-sans">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-amber-100 border-b border-amber-300 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-[#800C1E]/10 text-[#800C1E] border border-amber-300">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-black text-[#800C1E]">
+                नवीन लग्न व्यवसाय / सेवा पुरवठादार जोडा (Create Vendor Profile)
+              </h3>
+              <p className="text-[11px] text-slate-600 font-bold">
+                व्यवसाय तपशील नोंदवा आणि त्यांचा पिन/पासवर्ड लॉगिन सेट करा.
+              </p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full cursor-pointer">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content Form */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4">
+          
+          {uploadError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded-xl">
+              ⚠️ {uploadError}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Business Name */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">१. व्यवसायाचे नाव (Business/Hall Name) *</label>
+              <input
+                type="text"
+                required
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
+                placeholder="उदा. राहुल मंगल कार्यालय / स्वाती डेकोरेटर्स"
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              />
+            </div>
+
+            {/* Owner Name */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">२. मालकाचे पूर्ण नाव (Owner Full Name) *</label>
+              <input
+                type="text"
+                required
+                value={ownerName}
+                onChange={(e) => setOwnerName(e.target.value)}
+                placeholder="उदा. राहुल ज्ञानदेव घुगे"
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              />
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">३. व्यवसाय श्रेणी (Category) *</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              >
+                {defaultCategories.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* District */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">४. जिल्हा (District) *</label>
+              <select
+                value={district}
+                onChange={(e) => setDistrict(e.target.value)}
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              >
+                {MAHARASHTRA_DISTRICTS.map((dst) => (
+                  <option key={dst} value={dst}>{dst}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Taluka */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">५. तालुका (Taluka)</label>
+              <input
+                type="text"
+                value={taluka}
+                onChange={(e) => setTaluka(e.target.value)}
+                placeholder="उदा. परळी / बीड / पाथर्डी"
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              />
+            </div>
+
+            {/* Address */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">६. पूर्ण पत्ता (Address)</label>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="उदा. बस स्टँडजवळ, मेन रोड, परळी वैजनाथ"
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              />
+            </div>
+          </div>
+
+          <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-300 space-y-3">
+            <h4 className="font-extrabold text-[#800C1E] text-xs flex items-center gap-1.5">
+              <Lock className="w-4 h-4 text-amber-500" />
+              <span>व्हेंडर लॉगिन माहिती (Credentials & Portal Access)</span>
+            </h4>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+              {/* Login Mobile */}
+              <div>
+                <label className="block text-[10px] font-bold text-slate-700 mb-1">लॉगिन मोबाईल नंबर *</label>
+                <input
+                  type="tel"
+                  required
+                  maxLength={10}
+                  value={mobile}
+                  onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
+                  placeholder="उदा. 9876543210 (लॉगिन आयडी)"
+                  className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-[#800C1E]"
+                />
+              </div>
+
+              {/* Pin Password */}
+              <div>
+                <label className="block text-[10px] font-bold text-slate-700 mb-1">लॉगिन पिन / पासवर्ड (४ ते ६ अंकी पासवर्ड)</label>
+                <input
+                  type="text"
+                  maxLength={8}
+                  value={pinPassword}
+                  onChange={(e) => setPinPassword(e.target.value)}
+                  placeholder="उदा. 1234 (रिकामे सोडल्यास मोबाईलचे शेवटचे ४ अंक राहतील)"
+                  className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-[#800C1E]"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Rates & Packages */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">७. दर व पॅकेजेस (Rates & Packages) *</label>
+              <input
+                type="text"
+                required
+                value={ratesAndPackages}
+                onChange={(e) => setRatesAndPackages(e.target.value)}
+                placeholder="उदा. रु. २५,००० प्रति दिवस / रु. ३०० प्रति ताट"
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              />
+            </div>
+
+            {/* Whatsapp */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">८. व्हॉट्सॲप नंबर (WhatsApp Number)</label>
+              <input
+                type="tel"
+                maxLength={10}
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))}
+                placeholder="उदा. 9876543210"
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              />
+            </div>
+
+            {/* Member Discount */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">९. वंजारी जोडी सवलत (Vanjari Jodi Discount)</label>
+              <input
+                type="text"
+                value={memberDiscount}
+                onChange={(e) => setMemberDiscount(e.target.value)}
+                placeholder="उदा. वंजारी जोडी सदस्यांना ५% किंवा १०% डिस्काउंट"
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              />
+            </div>
+
+            {/* Commission Rate */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">१०. कमिशन दर (Commission Rate)</label>
+              <input
+                type="text"
+                value={commissionRate}
+                onChange={(e) => setCommissionRate(e.target.value)}
+                placeholder="उदा. ५% कमिशन, १०% कमिशन किंवा 'थेट संपर्क'"
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">११. ई-मेल पत्ता (Email)</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="उदा. info@business.com"
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              />
+            </div>
+
+            {/* Status */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">१२. सुरवातीचे स्टेटस (Initial Status)</label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as any)}
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              >
+                <option value="approved">मंजूर (Approved ✓)</option>
+                <option value="pending">प्रलंबित (Pending)</option>
+                <option value="rejected">नाकारलेले (Rejected)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-[11px] font-black text-[#800C1E] mb-1">१३. व्यवसायाचे सविस्तर वर्णन (Description)</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="आमच्या मंगल कार्यालयात सर्व सोयी-सुविधा आहेत, २ एसी हॉल, ३०० गाड्यांचे पार्किंग..."
+              rows={2}
+              className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+            />
+          </div>
+
+          {/* Media Attachments */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            {/* Photo upload */}
+            <div className="p-3 bg-slate-50 rounded-xl border border-dashed border-amber-300 text-center">
+              <span className="block text-[10px] font-black text-[#800C1E] mb-1.5">व्यवसाय / कार्यालय फोटो (Photo)</span>
+              {photoUrl ? (
+                <div className="relative inline-block">
+                  <img src={photoUrl} alt="Preview" className="w-20 h-20 rounded-lg object-cover mx-auto border border-amber-300" />
+                  <button type="button" onClick={() => setPhotoUrl('')} className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white p-0.5 rounded-full hover:bg-rose-800">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <label className="cursor-pointer block p-3 hover:bg-amber-50 rounded-lg transition-colors">
+                  <Camera className="w-6 h-6 text-slate-400 mx-auto mb-1" />
+                  <span className="text-[10px] font-bold text-slate-600">फोटो निवडा किंवा अपलोड करा</span>
+                  <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'photo')} className="hidden" />
+                </label>
+              )}
+            </div>
+
+            {/* PDF Brochure Upload */}
+            <div className="p-3 bg-slate-50 rounded-xl border border-dashed border-amber-300 text-center">
+              <span className="block text-[10px] font-black text-[#800C1E] mb-1.5">रेट कार्ड / ब्रोशर PDF</span>
+              {pdfUrl ? (
+                <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 p-2 rounded-lg max-w-xs mx-auto">
+                  <span className="text-[10px] text-emerald-800 font-bold truncate max-w-[120px]">📄 रेट कार्ड जोडले</span>
+                  <button type="button" onClick={() => setPdfUrl('')} className="text-rose-600 hover:text-rose-800">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className="cursor-pointer block p-3 hover:bg-amber-50 rounded-lg transition-colors">
+                  <FileText className="w-6 h-6 text-slate-400 mx-auto mb-1" />
+                  <span className="text-[10px] font-bold text-slate-600">रेट कार्ड PDF अपलोड करा</span>
+                  <input type="file" accept="application/pdf" onChange={(e) => handleFileUpload(e, 'pdf')} className="hidden" />
+                </label>
+              )}
+            </div>
+          </div>
+
+          {isUploading && (
+            <div className="text-center text-[#A71930] text-[10px] font-black animate-pulse flex items-center justify-center gap-1">
+              <span>फाईल अपलोड होत आहे, कृपया वाट पहा...</span>
+            </div>
+          )}
+
+          {/* Action Footer Buttons */}
+          <div className="flex gap-3 justify-end pt-4 border-t border-slate-100 shrink-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl cursor-pointer"
+            >
+              रद्द करा (Cancel)
+            </button>
+            <button
+              type="submit"
+              disabled={isUploading}
+              className="px-5 py-2 bg-[#A71930] hover:bg-[#800C1E] text-amber-100 font-black text-xs rounded-xl shadow cursor-pointer disabled:opacity-50 flex items-center gap-1"
+            >
+              <CheckCircle className="w-4 h-4" />
+              <span>सेवा पुरवठादार जोडा (Add Vendor)</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+const AdminEditVendorModal: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  vendor: BusinessVendor | null;
+}> = ({ isOpen, onClose, vendor }) => {
+  const { siteConfig, updateVendorDetails } = useApp();
+
+  const defaultCategories = siteConfig?.customVendorCategories || [
+    'मंगल कार्यालय व लॉन्स',
+    'बँड बाजा व वाद्यवृंद',
+    'डेकोरेशन व मंडप',
+    'कॅटरिंग व स्वयंपाकी (Catering)',
+    'मांडव, खुर्च्या व भांडे भांडार',
+    'फोटोग्राफी व व्हिडियोग्राफी',
+    'मेकअप आर्टिस्ट व मेहंदी',
+    'ट्रॅव्हल्स व लग्न गाड्या',
+    'पौरोहित्य / भटजी',
+    'इतर लग्न व्यवसाय'
+  ];
+
+  const [businessName, setBusinessName] = useState('');
+  const [ownerName, setOwnerName] = useState('');
+  const [category, setCategory] = useState('');
+  const [district, setDistrict] = useState('');
+  const [taluka, setTaluka] = useState('');
+  const [address, setAddress] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [email, setEmail] = useState('');
+  const [pinPassword, setPinPassword] = useState('');
+  const [ratesAndPackages, setRatesAndPackages] = useState('');
+  const [memberDiscount, setMemberDiscount] = useState('');
+  const [commissionRate, setCommissionRate] = useState('');
+  const [description, setDescription] = useState('');
+  const [status, setStatus] = useState<'pending' | 'approved' | 'rejected'>('approved');
+
+  const [photoUrl, setPhotoUrl] = useState('');
+  const [pdfUrl, setPdfUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Load values on change
+  useEffect(() => {
+    if (vendor) {
+      setBusinessName(vendor.businessName || '');
+      setOwnerName(vendor.ownerName || '');
+      setCategory(vendor.category || defaultCategories[0]);
+      setDistrict(vendor.district || MAHARASHTRA_DISTRICTS[0]);
+      setTaluka(vendor.taluka || '');
+      setAddress(vendor.address || '');
+      setMobile(vendor.mobile || '');
+      setWhatsapp(vendor.whatsapp || '');
+      setEmail(vendor.email || '');
+      setPinPassword(vendor.pinPassword || '');
+      setRatesAndPackages(vendor.ratesAndPackages || '');
+      setMemberDiscount(vendor.memberDiscount || '');
+      setCommissionRate(vendor.commissionRate || '१०% कमिशन');
+      setDescription(vendor.description || '');
+      setStatus(vendor.status || 'approved');
+      setPhotoUrl(vendor.photoUrl || '');
+      setPdfUrl(vendor.pdfUrl || '');
+    }
+  }, [vendor]);
+
+  if (!isOpen || !vendor) return null;
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'photo' | 'pdf') => {
+    setUploadError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const val = validateFileSize(file);
+    if (!val.valid) {
+      setUploadError(val.errorMsg || 'फाईलचा आकार १० MB पेक्षा लहान असावा.');
+      return;
+    }
+
+    setIsUploading(true);
+    const res = await uploadToCloudinary(file, 'vanjarijodi_vendors');
+    setIsUploading(false);
+
+    if (res.success && res.url) {
+      if (type === 'photo') setPhotoUrl(res.url);
+      else setPdfUrl(res.url);
+    } else {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          if (type === 'photo') setPhotoUrl(reader.result);
+          else setPdfUrl(reader.result);
+        } else {
+          setUploadError('अपलोड अयशस्वी झाले.');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!businessName.trim() || !ownerName.trim() || !mobile.trim() || !ratesAndPackages.trim()) {
+      alert('कृपया आवश्यक सर्व माहिती भरा.');
+      return;
+    }
+
+    updateVendorDetails(vendor.id, {
+      businessName: businessName.trim(),
+      ownerName: ownerName.trim(),
+      category,
+      district,
+      taluka: taluka.trim(),
+      address: address.trim(),
+      mobile: mobile.trim(),
+      whatsapp: whatsapp.trim() || mobile.trim(),
+      email: email.trim(),
+      ratesAndPackages: ratesAndPackages.trim(),
+      memberDiscount: memberDiscount.trim(),
+      commissionRate: commissionRate.trim(),
+      description: description.trim(),
+      photoUrl,
+      pdfUrl,
+      pinPassword: pinPassword.trim(),
+      status,
+    });
+
+    alert(`'${businessName.trim()}' माहिती यशस्वीरीत्या बदलण्यात आली!`);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-55 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md overflow-y-auto font-sans">
+      <div className="relative w-full max-w-2xl bg-white border border-amber-300 rounded-3xl shadow-2xl text-slate-900 overflow-hidden my-auto max-h-[92vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-amber-100 border-b border-amber-300 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-[#800C1E]/10 text-[#800C1E] border border-amber-300">
+              <Edit3 className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-black text-[#800C1E]">
+                व्यवसाय / सेवा पुरवठादार माहिती सुधारा (Edit Vendor & Login Pin)
+              </h3>
+              <p className="text-[11px] text-slate-600 font-bold">
+                त्यांच्या लॉगिन क्रेडेंशियल्स आणि पिनसह सर्व माहिती अपडेट करा.
+              </p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-full cursor-pointer">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content Form */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4 font-medium">
+          
+          {uploadError && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded-xl">
+              ⚠️ {uploadError}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Business Name */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">१. व्यवसायाचे नाव *</label>
+              <input
+                type="text"
+                required
+                value={businessName}
+                onChange={(e) => setBusinessName(e.target.value)}
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              />
+            </div>
+
+            {/* Owner Name */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">२. मालकाचे पूर्ण नाव *</label>
+              <input
+                type="text"
+                required
+                value={ownerName}
+                onChange={(e) => setOwnerName(e.target.value)}
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              />
+            </div>
+
+            {/* Category */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">३. व्यवसाय श्रेणी *</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              >
+                {defaultCategories.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* District */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">४. जिल्हा *</label>
+              <select
+                value={district}
+                onChange={(e) => setDistrict(e.target.value)}
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              >
+                {MAHARASHTRA_DISTRICTS.map((dst) => (
+                  <option key={dst} value={dst}>{dst}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Taluka */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">५. तालुका</label>
+              <input
+                type="text"
+                value={taluka}
+                onChange={(e) => setTaluka(e.target.value)}
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              />
+            </div>
+
+            {/* Address */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">६. पूर्ण पत्ता</label>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              />
+            </div>
+          </div>
+
+          <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-300 space-y-3">
+            <h4 className="font-extrabold text-[#800C1E] text-xs flex items-center gap-1.5">
+              <Lock className="w-4 h-4 text-amber-500" />
+              <span>व्हेंडर लॉगिन क्रेडेंशियल्स सुधारा (Login ID & Security PIN)</span>
+            </h4>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+              {/* Login Mobile */}
+              <div>
+                <label className="block text-[10px] font-bold text-slate-700 mb-1">लॉगिन मोबाईल नंबर *</label>
+                <input
+                  type="tel"
+                  required
+                  maxLength={10}
+                  value={mobile}
+                  onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
+                  className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-[#800C1E]"
+                />
+              </div>
+
+              {/* Pin Password */}
+              <div>
+                <label className="block text-[10px] font-bold text-slate-700 mb-1">लॉगिन पिन / पासवर्ड (४ ते ६ अंकी)</label>
+                <input
+                  type="text"
+                  maxLength={8}
+                  value={pinPassword}
+                  onChange={(e) => setPinPassword(e.target.value)}
+                  className="w-full bg-white border border-amber-300 rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none focus:border-[#800C1E]"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Rates & Packages */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">७. दर व पॅकेजेस *</label>
+              <input
+                type="text"
+                required
+                value={ratesAndPackages}
+                onChange={(e) => setRatesAndPackages(e.target.value)}
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              />
+            </div>
+
+            {/* Whatsapp */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">८. व्हॉट्सॲप नंबर</label>
+              <input
+                type="tel"
+                maxLength={10}
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))}
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              />
+            </div>
+
+            {/* Member Discount */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">९. वंजारी जोडी सवलत</label>
+              <input
+                type="text"
+                value={memberDiscount}
+                onChange={(e) => setMemberDiscount(e.target.value)}
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              />
+            </div>
+
+            {/* Commission Rate */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">१०. कमिशन दर</label>
+              <input
+                type="text"
+                value={commissionRate}
+                onChange={(e) => setCommissionRate(e.target.value)}
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">११. ई-मेल पत्ता</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              />
+            </div>
+
+            {/* Status */}
+            <div>
+              <label className="block text-[11px] font-black text-[#800C1E] mb-1">१२. स्टेटस</label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as any)}
+                className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+              >
+                <option value="approved">मंजूर (Approved ✓)</option>
+                <option value="pending">प्रलंबित (Pending)</option>
+                <option value="rejected">नाकारलेले (Rejected)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-[11px] font-black text-[#800C1E] mb-1">१३. व्यवसायाचे सविस्तर वर्णन</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={2}
+              className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
+            />
+          </div>
+
+          {/* Media Attachments */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            {/* Photo upload */}
+            <div className="p-3 bg-slate-50 rounded-xl border border-dashed border-amber-300 text-center">
+              <span className="block text-[10px] font-black text-[#800C1E] mb-1.5">व्यवसाय / कार्यालय फोटो (Photo)</span>
+              {photoUrl ? (
+                <div className="relative inline-block">
+                  <img src={photoUrl} alt="Preview" className="w-20 h-20 rounded-lg object-cover mx-auto border border-amber-300" />
+                  <button type="button" onClick={() => setPhotoUrl('')} className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white p-0.5 rounded-full hover:bg-rose-800">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
+                <label className="cursor-pointer block p-3 hover:bg-amber-50 rounded-lg transition-colors">
+                  <Camera className="w-6 h-6 text-slate-400 mx-auto mb-1" />
+                  <span className="text-[10px] font-bold text-slate-600">फोटो निवडा किंवा अपलोड करा</span>
+                  <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'photo')} className="hidden" />
+                </label>
+              )}
+            </div>
+
+            {/* PDF Brochure Upload */}
+            <div className="p-3 bg-slate-50 rounded-xl border border-dashed border-amber-300 text-center">
+              <span className="block text-[10px] font-black text-[#800C1E] mb-1.5">रेट कार्ड / ब्रोशर PDF</span>
+              {pdfUrl ? (
+                <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 p-2 rounded-lg max-w-xs mx-auto">
+                  <span className="text-[10px] text-emerald-800 font-bold truncate max-w-[120px]">📄 रेट कार्ड जोडले</span>
+                  <button type="button" onClick={() => setPdfUrl('')} className="text-rose-600 hover:text-rose-800">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className="cursor-pointer block p-3 hover:bg-amber-50 rounded-lg transition-colors">
+                  <FileText className="w-6 h-6 text-slate-400 mx-auto mb-1" />
+                  <span className="text-[10px] font-bold text-slate-600">रेट कार्ड PDF अपलोड करा</span>
+                  <input type="file" accept="application/pdf" onChange={(e) => handleFileUpload(e, 'pdf')} className="hidden" />
+                </label>
+              )}
+            </div>
+          </div>
+
+          {isUploading && (
+            <div className="text-center text-[#A71930] text-[10px] font-black animate-pulse flex items-center justify-center gap-1">
+              <span>फाईल अपलोड होत आहे, कृपया वाट पहा...</span>
+            </div>
+          )}
+
+          {/* Action Footer Buttons */}
+          <div className="flex gap-3 justify-end pt-4 border-t border-slate-100 shrink-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl cursor-pointer"
+            >
+              रद्द करा (Cancel)
+            </button>
+            <button
+              type="submit"
+              disabled={isUploading}
+              className="px-5 py-2 bg-[#A71930] hover:bg-[#800C1E] text-amber-100 font-black text-xs rounded-xl shadow cursor-pointer disabled:opacity-50 flex items-center gap-1"
+            >
+              <CheckCircle className="w-4 h-4" />
+              <span>बदल जतन करा (Save Changes)</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
 
 export const AdminPanel: React.FC<{
   isOpen: boolean;
@@ -155,10 +1008,14 @@ export const AdminPanel: React.FC<{
     deleteAdminSupportMessage,
     bulkDeleteAdminSupportMessages,
     recycleBin,
+    deletedPhotosTrash,
     softDeleteProfile,
     restoreRecycleItem,
     permanentDeleteRecycleItem,
     bulkPurgeRecycleBin,
+    restorePhotoFromTrash,
+    permanentlyDeletePhotoFromTrash,
+    purgeAllPhotosTrash,
     auditLogs,
     logActivity,
     isAdminLoggedIn,
@@ -177,6 +1034,10 @@ export const AdminPanel: React.FC<{
     approveProfileEditRequest,
     rejectProfileEditRequest,
     likedProfileIds,
+    interests,
+    pendingLikes,
+    approveLike,
+    rejectLike,
     setSelectedProfileForModal,
     faceVerificationLogs,
     approveFaceVerification,
@@ -207,15 +1068,26 @@ export const AdminPanel: React.FC<{
     updateProfileDirect,
     sendPushNotification,
     notifications,
+    businessVendors,
+    updateBusinessVendorStatus,
+    deleteBusinessVendor,
+    addCustomVendorCategory,
+    updateVendorDetails,
   } = useApp();
 
   const [selectedEditProfile, setSelectedEditProfile] = useState<UserProfile | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Business Vendor Add/Edit modal states
+  const [isAddVendorModalOpen, setIsAddVendorModalOpen] = useState(false);
+  const [isEditVendorModalOpen, setIsEditVendorModalOpen] = useState(false);
+  const [selectedVendorForEdit, setSelectedVendorForEdit] = useState<BusinessVendor | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [adminLoginError, setAdminLoginError] = useState('');
+  const [likesSearchTerm, setLikesSearchTerm] = useState('');
 
   // Active Admin Category Hub State
   const [activeCategory, setActiveCategory] = useState<
@@ -237,6 +1109,7 @@ export const AdminPanel: React.FC<{
     | 'payment_requests'
     | 'pay_per_contact'
     | 'guest_permissions'
+    | 'permissions_center'
     | 'user_analytics'
     | 'plans_setup'
     | 'support_chat'
@@ -248,6 +1121,8 @@ export const AdminPanel: React.FC<{
     | 'recycle_bin'
     | 'audit_logs'
     | 'privacy_controls'
+    | 'business_vendors'
+    | 'master_settings'
   >('members');
 
   // Push Notification Form State
@@ -271,6 +1146,9 @@ export const AdminPanel: React.FC<{
 
   // Chat Approval Multi-Select State
   const [selectedChatReqIds, setSelectedChatReqIds] = useState<string[]>([]);
+
+  // Per-Member Quick Settings Modal State
+  const [selectedProfileForQuickSettings, setSelectedProfileForQuickSettings] = useState<UserProfile | null>(null);
 
   // Promo Code Modal Form State
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
@@ -385,6 +1263,7 @@ export const AdminPanel: React.FC<{
   const [newAdImageUrl, setNewAdImageUrl] = useState('');
   const [newAdLinkUrl, setNewAdLinkUrl] = useState('');
   const [isUploadingAdImg, setIsUploadingAdImg] = useState(false);
+  const [isUploadingWatermarkImg, setIsUploadingWatermarkImg] = useState(false);
 
   const handleUploadAdImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -495,6 +1374,53 @@ export const AdminPanel: React.FC<{
 
   // EDIT PROFILE MODAL STATE
   const [editingCandidate, setEditingCandidate] = useState<UserProfile | null>(null);
+
+  // VIEW MODE & ZOOM SCALE STATE (DESKTOP / MOBILE SWITCH)
+  const [adminViewMode, setAdminViewMode] = useState<'mobile' | 'desktop'>('mobile');
+  const [adminZoomScale, setAdminZoomScale] = useState<number>(100);
+
+  const desktopScrollContainerRef = useRef<HTMLDivElement>(null);
+  const touchStartRef = useRef<{ x: number; y: number; scrollLeft: number; scrollTop: number } | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (adminViewMode !== 'desktop') return;
+    const target = e.target as HTMLElement;
+    if (target && ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'A', 'LABEL'].includes(target.tagName)) {
+      return;
+    }
+    if (e.touches.length === 1 && desktopScrollContainerRef.current) {
+      const touch = e.touches[0];
+      touchStartRef.current = {
+        x: touch.clientX,
+        y: touch.clientY,
+        scrollLeft: desktopScrollContainerRef.current.scrollLeft,
+        scrollTop: desktopScrollContainerRef.current.scrollTop,
+      };
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (adminViewMode !== 'desktop' || !touchStartRef.current || !desktopScrollContainerRef.current) return;
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      const dx = touch.clientX - touchStartRef.current.x;
+      const dy = touch.clientY - touchStartRef.current.y;
+      desktopScrollContainerRef.current.scrollLeft = touchStartRef.current.scrollLeft - dx;
+      desktopScrollContainerRef.current.scrollTop = touchStartRef.current.scrollTop - dy;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    touchStartRef.current = null;
+  };
+
+  const toggleAdminViewMode = () => {
+    if (adminViewMode === 'mobile') {
+      setAdminViewMode('desktop');
+    } else {
+      setAdminViewMode('mobile');
+    }
+  };
 
   // VIEW CANDIDATE PHOTO MODAL STATE
   const [viewingPhotoCandidate, setViewingPhotoCandidate] = useState<UserProfile | null>(null);
@@ -665,7 +1591,7 @@ export const AdminPanel: React.FC<{
   const handleBulkSoftDelete = () => {
     if (selectedMemberIds.length === 0) return;
     if (confirm(`तुम्ही निवडलेल्या ${selectedMemberIds.length} सदस्यांना रिसायकल बिनमध्ये हलवू इच्छिता का?`)) {
-      selectedMemberIds.forEach((id) => softDeleteProfile(id, 'profile'));
+      bulkSoftDeleteProfiles(selectedMemberIds);
       setSelectedMemberIds([]);
     }
   };
@@ -782,168 +1708,230 @@ export const AdminPanel: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/70 backdrop-blur-md">
-      <div className="relative w-full max-w-7xl bg-[#FFFDF5] border-2 border-amber-400 rounded-3xl shadow-2xl text-slate-800 overflow-hidden my-auto max-h-[96vh] flex flex-col">
+    <div 
+      className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex flex-col w-full h-full p-0 sm:p-2 overflow-hidden"
+    >
+      <div 
+        className="relative w-full h-full bg-[#FFFDF5] sm:border-2 border-amber-400 rounded-none sm:rounded-3xl shadow-2xl text-slate-800 flex flex-col min-h-0 overflow-hidden"
+      >
         
-        {/* HEADER BAR */}
-        <div className="flex items-center justify-between px-6 py-3.5 bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] border-b border-amber-300 text-amber-100 shrink-0">
-          <div className="flex items-center gap-3">
+        {/* COMPACT MOBILE-FRIENDLY HEADER BAR */}
+        <div className="flex items-center justify-between px-3 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] border-b border-amber-300 text-amber-100 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             {siteConfig?.logoUrl ? (
               <img
                 src={siteConfig.logoUrl}
                 alt={siteConfig?.logoTitle || 'वंजारी जोडी'}
-                className="h-10 w-auto object-contain rounded-xl border border-amber-300 bg-white p-0.5 shadow"
+                className="h-7 sm:h-9 w-auto object-contain rounded-lg border border-amber-300 bg-white p-0.5 shadow shrink-0"
               />
             ) : (
-              <div className="p-2 rounded-2xl bg-amber-400/20 text-amber-200 border border-amber-300/40">
-                <Crown className="w-6 h-6 fill-amber-300 text-amber-300" />
+              <div className="p-1.5 rounded-xl bg-amber-400/20 text-amber-200 border border-amber-300/40 shrink-0">
+                <Crown className="w-5 h-5 fill-amber-300 text-amber-300" />
               </div>
             )}
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg sm:text-xl font-black text-amber-100 tracking-tight">
-                  {currentSubAdmin ? `सब-ॲडमिन: ${currentSubAdmin.name}` : 'मुख्य प्रशासक नियंत्रण कक्ष (Primary Admin)'}
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <h2 className="text-sm sm:text-lg font-black text-amber-100 tracking-tight truncate">
+                  {currentSubAdmin ? `सब-ॲडमिन: ${currentSubAdmin.name}` : 'मुख्य प्रशासक नियंत्रण कक्ष'}
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full bg-amber-300 text-[#800C1E] font-extrabold text-[10px]">
-                  {currentSubAdmin ? 'Sub-Admin Role' : 'Super Admin'}
+                <span className="px-2 py-0.5 rounded-full bg-amber-300 text-[#800C1E] font-extrabold text-[9px] sm:text-[10px] shrink-0">
+                  {currentSubAdmin ? 'Sub-Admin' : 'Super Admin'}
                 </span>
               </div>
-              <p className="text-xs text-amber-200/90 font-medium">
+              <p className="hidden sm:block text-xs text-amber-200/90 font-medium truncate">
                 {siteConfig?.logoTitle || 'वंजारी जोडी'} — संपूर्ण पोर्टल व्यवस्थापन व सदस्य नियंत्रण
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* ZOOM IN / ZOOM OUT CONTROLS FOR ADMIN */}
+            <div className="flex items-center gap-0.5 bg-black/40 border border-amber-300/50 rounded-xl px-1.5 py-0.5 text-amber-100 shadow-inner">
+              <button
+                type="button"
+                onClick={() => setAdminZoomScale((prev) => Math.max(40, prev - 10))}
+                className="p-1 hover:bg-amber-400/30 rounded-lg transition-colors cursor-pointer active:scale-95 text-amber-200"
+                title="झूम आऊट करा (Zoom Out)"
+              >
+                <ZoomOut className="w-3.5 h-3.5" />
+              </button>
+
+              <span className="text-[10px] sm:text-xs font-black min-w-[32px] text-center text-amber-200 px-0.5">
+                {adminZoomScale}%
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setAdminZoomScale((prev) => Math.min(200, prev + 10))}
+                className="p-1 hover:bg-amber-400/30 rounded-lg transition-colors cursor-pointer active:scale-95 text-amber-200"
+                title="झूम इन करा (Zoom In)"
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+              </button>
+
+              {adminZoomScale !== 100 && (
+                <button
+                  type="button"
+                  onClick={() => setAdminZoomScale(100)}
+                  className="px-1.5 py-0.5 bg-amber-400/20 hover:bg-amber-400/40 text-amber-200 rounded-md text-[9px] font-bold border border-amber-300/40 cursor-pointer ml-0.5"
+                  title="मूलभूत आकार (Reset 100%)"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+
+            {/* VIEW MODE TOGGLE BUTTON FOR ADMIN */}
+            <button
+              onClick={toggleAdminViewMode}
+              className="px-2 py-1 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 border border-amber-300/40 text-[10px] sm:text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0"
+              title="डेस्कटॉप / मोबाईल व्ह्यू स्विच करा"
+            >
+              {adminViewMode === 'desktop' ? (
+                <>
+                  <Smartphone className="w-3.5 h-3.5 text-amber-300" />
+                  <span className="hidden sm:inline">📱 मोबाईल मोड</span>
+                  <span className="sm:hidden">📱 मोबाईल</span>
+                </>
+              ) : (
+                <>
+                  <Monitor className="w-3.5 h-3.5 text-amber-300" />
+                  <span className="hidden sm:inline">🖥️ डेस्कटॉप मोड</span>
+                  <span className="sm:hidden">🖥️ डेस्कटॉप</span>
+                </>
+              )}
+            </button>
             <button
               onClick={() => {
                 setIsAdminLoggedIn(false);
                 setCurrentSubAdmin(null);
               }}
-              className="px-3.5 py-1.5 rounded-xl bg-amber-100/10 hover:bg-amber-100/20 text-amber-100 border border-amber-300/30 text-xs font-bold transition-all cursor-pointer"
+              className="px-2.5 py-1 rounded-lg bg-amber-100/10 hover:bg-amber-100/20 text-amber-100 border border-amber-300/30 text-[11px] sm:text-xs font-bold transition-all cursor-pointer"
             >
               लॉगआउट
             </button>
             <button
               onClick={onClose}
-              className="p-2 rounded-xl bg-amber-100/10 hover:bg-amber-100/20 text-amber-100 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg bg-amber-100/10 hover:bg-amber-100/20 text-amber-100 transition-colors cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
 
-        {/* 2. REAL-TIME CHAT ANALYTICS BANNER AT THE TOP OF ADMIN LOGIN */}
-        <div className="bg-amber-100 border-b border-amber-300 p-3 sm:p-4 text-xs font-bold shrink-0">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-            <div className="flex items-center gap-2 text-[#800C1E]">
-              <MessageSquare className="w-4 h-4 text-[#A71930] animate-bounce" />
-              <span className="font-black text-sm">रिअल-टाईम चॅट ॲनालिटिक्स (Real-Time Chat Stats):</span>
+        {/* 2. RICH REAL-TIME CHAT ANALYTICS BAR */}
+        <div className="bg-amber-100 border-b border-amber-300 px-3 py-1.5 text-xs font-bold shrink-0">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 text-[#800C1E] text-[11px] sm:text-xs truncate">
+              <MessageSquare className="w-3.5 h-3.5 text-[#A71930] shrink-0 animate-bounce" />
+              <span className="font-black truncate">📊 चॅट ॲनालिटिक्स (WhatsApp Live Hub):</span>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="px-3 py-1 bg-white border border-amber-300 rounded-full text-[#A71930] font-black flex items-center gap-1.5 shadow-sm">
-                <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                <span>एकूण सक्रिय चॅट्स: {adminSupportMessages.length}</span>
+            <div className="flex items-center gap-1.5 text-[10px] sm:text-xs shrink-0 flex-wrap">
+              <span className="px-2 py-0.5 bg-white border border-amber-300 rounded-full text-[#A71930] font-black flex items-center gap-1 shadow-xs">
+                <MessageCircle className="w-3 h-3 text-emerald-600" />
+                <span>संभाषणे: {adminSupportMessages.length}</span>
               </span>
-              <span className="px-3 py-1 bg-[#A71930] text-amber-100 rounded-full font-black flex items-center gap-1.5 shadow-sm border border-amber-300">
-                <Bell className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-                <span>अवाचलेले (Unread): {unreadAdminChatCount}</span>
+              <span className="px-2 py-0.5 bg-white border border-amber-300 rounded-full text-slate-800 font-black flex items-center gap-1 shadow-xs">
+                <FileText className="w-3 h-3 text-rose-600" />
+                <span>मीडिया (फोटो/PDF): {adminSupportMessages.filter(m => m.fileUrl || m.imageUrl || m.pdfUrl).length}</span>
+              </span>
+              <span className="px-2 py-0.5 bg-[#A71930] text-amber-100 rounded-full font-black flex items-center gap-1 shadow-xs border border-amber-300">
+                <Bell className="w-3 h-3 text-amber-300 animate-pulse" />
+                <span>अवाचलेले: {unreadAdminChatCount}</span>
               </span>
             </div>
           </div>
-
-          {/* Recent active user threads summary table */}
-          {adminSupportMessages.length > 0 && (
-            <div className="bg-white rounded-xl border border-amber-200 p-2 overflow-x-auto shadow-inner">
-              <div className="flex items-center gap-4 text-[11px] whitespace-nowrap overflow-x-auto">
-                <span className="text-slate-500 font-bold uppercase shrink-0">नवीनतम संवाद threads:</span>
-                {adminSupportMessages.slice(-4).map((msg) => (
-                  <div
-                    key={msg.id}
-                    onClick={() => setActiveTab('support_chat')}
-                    className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg cursor-pointer flex items-center gap-2 text-slate-800 shrink-0 transition-colors"
-                  >
-                    <span className="font-extrabold text-[#A71930]">{msg.senderName}</span>
-                    <span className="text-slate-500">({msg.senderMobile || 'Guest'})</span>
-                    <span className="text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded font-mono text-[10px]">
-                      {msg.timestamp}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* MAIN BODY FLEX ROW FOR COLLAPSIBLE SIDEBAR & CONTENT */}
-        <div className="flex flex-1 overflow-hidden min-h-0 relative">
-
-          {/* DESKTOP COLLAPSIBLE LEFT VERTICAL SIDEBAR MENU */}
-          <div className={`hidden lg:flex flex-col border-r border-amber-300 bg-gradient-to-b from-amber-50 via-amber-50/50 to-[#FFFDF5] h-full transition-all duration-300 shrink-0 select-none ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
-            {/* Collapse Toggle Button */}
-            <div className="p-3.5 border-b border-amber-200 flex justify-end">
-              <button 
-                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                className="p-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-[#A71930] transition-colors cursor-pointer"
-                title={isSidebarCollapsed ? "मोकळा करा" : "बंद करा"}
-              >
-                <Sliders className={`w-4 h-4 transition-transform ${isSidebarCollapsed ? 'rotate-180' : ''}`} />
-              </button>
-            </div>
-            
-            {/* Sidebar Navigation Options */}
-            <div className="flex-1 overflow-y-auto py-4 px-3 space-y-2">
-              {/* SECTION 1: MEMBERS HUB */}
-              <div className="space-y-1">
-                <button
-                  onClick={() => {
-                    setActiveCategory('members_hub');
-                    setActiveTab('members');
-                  }}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                    activeCategory === 'members_hub'
-                      ? 'bg-[#A71930] text-amber-100 shadow-md ring-1 ring-amber-300'
-                      : 'hover:bg-amber-100 text-slate-700'
-                  }`}
+        {/* MAIN BODY FLEX ROW FOR SCROLLABLE CANVAS & SIDEBAR */}
+        <div 
+          ref={desktopScrollContainerRef}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          className="flex-1 overflow-auto relative min-h-0 w-full scrollbar-thin"
+          style={{ 
+            touchAction: adminViewMode === 'desktop' ? 'pan-x pan-y' : 'auto', 
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehavior: 'contain',
+          }}
+        >
+          <div 
+            style={{
+              zoom: adminZoomScale !== 100 ? `${adminZoomScale}%` : undefined,
+              minWidth: adminViewMode === 'desktop' ? '1150px' : '100%',
+            }}
+            className="w-full h-full flex flex-row min-h-full"
+          >
+            {/* DESKTOP COLLAPSIBLE LEFT VERTICAL SIDEBAR MENU */}
+            <div className={`${adminViewMode === 'desktop' ? 'flex' : 'hidden lg:flex'} flex-col border-r border-amber-300 bg-gradient-to-b from-amber-50 via-amber-50/50 to-[#FFFDF5] h-full transition-all duration-300 shrink-0 select-none ${isSidebarCollapsed ? 'w-14' : 'w-56 sm:w-60'}`}>
+              {/* Collapse Toggle Button */}
+              <div className="p-2 border-b border-amber-200 flex justify-between items-center">
+                {!isSidebarCollapsed && (
+                  <span className="text-[10px] font-black uppercase text-[#800C1E] tracking-wider pl-1.5">नेव्हिगेशन</span>
+                )}
+                <button 
+                  onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                  className="p-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-[#A71930] transition-colors cursor-pointer ml-auto"
+                  title={isSidebarCollapsed ? "मोकळा करा" : "बंद करा"}
                 >
-                  <Users className="w-5 h-5 shrink-0 text-amber-500" />
-                  {!isSidebarCollapsed && (
-                    <div className="flex-1 text-left flex items-center justify-between min-w-0">
-                      <span className="truncate">सदस्य व्यवस्थापन</span>
-                      <span className="px-1.5 py-0.5 rounded-md bg-amber-200 text-[#800C1E] text-[10px] font-black">
-                        {profiles.length}
-                      </span>
-                    </div>
-                  )}
+                  <Sliders className={`w-3.5 h-3.5 transition-transform ${isSidebarCollapsed ? 'rotate-180' : ''}`} />
                 </button>
+              </div>
+              
+              {/* Sidebar Navigation Options */}
+              <div className="flex-1 overflow-y-auto py-2 px-1.5 space-y-1 scrollbar-thin">
+                {/* SECTION 1: MEMBERS HUB */}
+                <div className="space-y-0.5">
+                  <button
+                    onClick={() => {
+                      setActiveCategory('members_hub');
+                      setActiveTab('members');
+                    }}
+                    className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                      activeCategory === 'members_hub'
+                        ? 'bg-[#A71930] text-amber-100 shadow-sm ring-1 ring-amber-300'
+                        : 'hover:bg-amber-100/80 text-slate-700'
+                    }`}
+                  >
+                    <Users className="w-4 h-4 shrink-0 text-amber-500" />
+                    {!isSidebarCollapsed && (
+                      <div className="flex-1 text-left flex items-center justify-between min-w-0">
+                        <span className="whitespace-nowrap text-[11px] font-black">सदस्य व्यवस्थापन</span>
+                        <span className="px-1.5 py-0.2 rounded bg-amber-200 text-[#800C1E] text-[9px] font-black ml-1">
+                          {profiles.length}
+                        </span>
+                      </div>
+                    )}
+                  </button>
                 {!isSidebarCollapsed && activeCategory === 'members_hub' && (
-                  <div className="pl-6 pr-2 py-1 space-y-1 border-l border-amber-200 ml-5 animate-in slide-in-from-left-2 duration-200">
+                  <div className="pl-3 pr-1 py-0.5 space-y-0.5 border-l-2 border-amber-300 ml-3 animate-in slide-in-from-left-2 duration-200">
                     <button
                       onClick={() => setActiveTab('members')}
-                      className={`w-full text-left py-1 px-2 rounded-lg text-[11px] font-extrabold flex items-center justify-between ${activeTab === 'members' ? 'text-[#A71930] bg-amber-100/60' : 'text-slate-600 hover:text-slate-900'}`}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'members' ? 'text-[#A71930] bg-amber-100/80' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                       <span>मान्य सदस्य</span>
                       <span>({approvedMembers.length})</span>
                     </button>
                     <button
                       onClick={() => setActiveTab('pending')}
-                      className={`w-full text-left py-1 px-2 rounded-lg text-[11px] font-extrabold flex items-center justify-between ${activeTab === 'pending' ? 'text-[#A71930] bg-amber-100/60' : 'text-slate-600 hover:text-slate-900'}`}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'pending' ? 'text-[#A71930] bg-amber-100/80' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                       <span>प्रलंबित</span>
                       <span>({pendingMembers.length})</span>
                     </button>
                     <button
                       onClick={() => setActiveTab('profile_edits')}
-                      className={`w-full text-left py-1 px-2 rounded-lg text-[11px] font-extrabold flex items-center justify-between ${activeTab === 'profile_edits' ? 'text-[#A71930] bg-amber-100/60' : 'text-slate-600 hover:text-slate-900'}`}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'profile_edits' ? 'text-[#A71930] bg-amber-100/80' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                       <span>माहिती बदल</span>
                       <span>({pendingProfileEdits.filter(e => e.status === 'pending').length})</span>
                     </button>
                     <button
                       onClick={() => setActiveTab('add_profile')}
-                      className={`w-full text-left py-1 px-2 rounded-lg text-[11px] font-extrabold flex items-center gap-1.5 ${activeTab === 'add_profile' ? 'text-emerald-700 bg-emerald-50' : 'text-slate-600 hover:text-[#A71930]'}`}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center gap-1 ${activeTab === 'add_profile' ? 'text-emerald-700 bg-emerald-50' : 'text-slate-600 hover:text-[#A71930]'}`}
                     >
-                      <PlusCircle className="w-3.5 h-3.5" />
+                      <PlusCircle className="w-3 h-3" />
                       <span>नवीन जोडा</span>
                     </button>
                   </div>
@@ -951,24 +1939,24 @@ export const AdminPanel: React.FC<{
               </div>
 
               {/* SECTION 2: NOTIFICATIONS HUB */}
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 <button
                   onClick={() => {
                     setActiveCategory('notifications_hub');
                     setActiveTab('push_notification');
                   }}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
                     activeCategory === 'notifications_hub'
-                      ? 'bg-[#A71930] text-amber-100 shadow-md ring-1 ring-amber-300'
-                      : 'hover:bg-amber-100 text-slate-700'
+                      ? 'bg-[#A71930] text-amber-100 shadow-sm ring-1 ring-amber-300'
+                      : 'hover:bg-amber-100/80 text-slate-700'
                   }`}
                 >
-                  <Bell className="w-5 h-5 shrink-0 text-amber-500" />
+                  <Bell className="w-4 h-4 shrink-0 text-amber-500" />
                   {!isSidebarCollapsed && (
                     <div className="flex-1 text-left flex items-center justify-between min-w-0">
-                      <span className="truncate">सुरक्षा व सूचना</span>
+                      <span className="truncate text-[11px]">सुरक्षा व सूचना</span>
                       {(unreadAdminChatCount > 0 || pendingChatRequests.length > 0) && (
-                        <span className="px-1.5 py-0.5 rounded-full bg-rose-600 text-white text-[9px] font-black animate-pulse">
+                        <span className="px-1 py-0.2 rounded-full bg-rose-600 text-white text-[8px] font-black animate-pulse">
                           {unreadAdminChatCount + pendingChatRequests.length}
                         </span>
                       )}
@@ -976,30 +1964,30 @@ export const AdminPanel: React.FC<{
                   )}
                 </button>
                 {!isSidebarCollapsed && activeCategory === 'notifications_hub' && (
-                  <div className="pl-6 pr-2 py-1 space-y-1 border-l border-amber-200 ml-5 animate-in slide-in-from-left-2 duration-200">
+                  <div className="pl-3 pr-1 py-0.5 space-y-0.5 border-l-2 border-amber-300 ml-3 animate-in slide-in-from-left-2 duration-200">
                     <button
                       onClick={() => setActiveTab('push_notification')}
-                      className={`w-full text-left py-1 px-2 rounded-lg text-[11px] font-extrabold flex items-center justify-between ${activeTab === 'push_notification' ? 'text-[#A71930] bg-amber-100/60' : 'text-slate-600 hover:text-slate-900'}`}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'push_notification' ? 'text-[#A71930] bg-amber-100/80' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                       <span>पुश नोटिफिकेशन</span>
                     </button>
                     <button
                       onClick={() => setActiveTab('support_chat')}
-                      className={`w-full text-left py-1 px-2 rounded-lg text-[11px] font-extrabold flex items-center justify-between ${activeTab === 'support_chat' ? 'text-[#A71930] bg-amber-100/60' : 'text-slate-600 hover:text-slate-900'}`}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'support_chat' ? 'text-[#A71930] bg-amber-100/80' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                       <span>सदस्य चॅट</span>
                       <span>({unreadAdminChatCount})</span>
                     </button>
                     <button
                       onClick={() => setActiveTab('chat_approvals')}
-                      className={`w-full text-left py-1 px-2 rounded-lg text-[11px] font-extrabold flex items-center justify-between ${activeTab === 'chat_approvals' ? 'text-[#A71930] bg-amber-100/60' : 'text-slate-600 hover:text-slate-900'}`}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'chat_approvals' ? 'text-[#A71930] bg-amber-100/80' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                       <span>संपर्क मंजुरी</span>
                       <span>({pendingChatRequests.length})</span>
                     </button>
                     <button
                       onClick={() => setActiveTab('face_verification')}
-                      className={`w-full text-left py-1 px-2 rounded-lg text-[11px] font-extrabold flex items-center justify-between ${activeTab === 'face_verification' ? 'text-[#A71930] bg-amber-100/60' : 'text-slate-600 hover:text-slate-900'}`}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'face_verification' ? 'text-[#A71930] bg-amber-100/80' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                       <span>चेहरा पडताळणी</span>
                       <span>({faceVerificationLogs.filter(l => l.status === 'pending').length})</span>
@@ -1009,24 +1997,24 @@ export const AdminPanel: React.FC<{
               </div>
 
               {/* SECTION 3: PAYMENTS HUB */}
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 <button
                   onClick={() => {
                     setActiveCategory('payments_hub');
                     setActiveTab('payment_requests');
                   }}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
                     activeCategory === 'payments_hub'
-                      ? 'bg-[#A71930] text-amber-100 shadow-md ring-1 ring-amber-300'
-                      : 'hover:bg-amber-100 text-slate-700'
+                      ? 'bg-[#A71930] text-amber-100 shadow-sm ring-1 ring-amber-300'
+                      : 'hover:bg-amber-100/80 text-slate-700'
                   }`}
                 >
-                  <CreditCard className="w-5 h-5 shrink-0 text-amber-500" />
+                  <CreditCard className="w-4 h-4 shrink-0 text-amber-500" />
                   {!isSidebarCollapsed && (
                     <div className="flex-1 text-left flex items-center justify-between min-w-0">
-                      <span className="truncate">पेमेंट्स व योजना</span>
+                      <span className="truncate text-[11px]">पेमेंट्स व योजना</span>
                       {paymentRequests.filter(p => p.status === 'pending').length > 0 && (
-                        <span className="px-1.5 py-0.5 rounded-full bg-emerald-600 text-white text-[9px] font-black">
+                        <span className="px-1 py-0.2 rounded-full bg-emerald-600 text-white text-[8px] font-black">
                           {paymentRequests.filter(p => p.status === 'pending').length}
                         </span>
                       )}
@@ -1034,22 +2022,22 @@ export const AdminPanel: React.FC<{
                   )}
                 </button>
                 {!isSidebarCollapsed && activeCategory === 'payments_hub' && (
-                  <div className="pl-6 pr-2 py-1 space-y-1 border-l border-amber-200 ml-5 animate-in slide-in-from-left-2 duration-200">
+                  <div className="pl-3 pr-1 py-0.5 space-y-0.5 border-l-2 border-amber-300 ml-3 animate-in slide-in-from-left-2 duration-200">
                     <button
                       onClick={() => setActiveTab('payment_requests')}
-                      className={`w-full text-left py-1 px-2 rounded-lg text-[11px] font-extrabold flex items-center justify-between ${activeTab === 'payment_requests' ? 'text-[#A71930] bg-amber-100/60' : 'text-slate-600 hover:text-slate-900'}`}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'payment_requests' ? 'text-[#A71930] bg-amber-100/80' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                       <span>पेमेंट विनंत्या</span>
                     </button>
                     <button
                       onClick={() => setActiveTab('plans_setup')}
-                      className={`w-full text-left py-1 px-2 rounded-lg text-[11px] font-extrabold flex items-center justify-between ${activeTab === 'plans_setup' ? 'text-[#A71930] bg-amber-100/60' : 'text-slate-600 hover:text-slate-900'}`}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'plans_setup' ? 'text-[#A71930] bg-amber-100/80' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                       <span>योजना दर रचना</span>
                     </button>
                     <button
                       onClick={() => setActiveTab('promo_codes')}
-                      className={`w-full text-left py-1 px-2 rounded-lg text-[11px] font-extrabold flex items-center justify-between ${activeTab === 'promo_codes' ? 'text-[#A71930] bg-amber-100/60' : 'text-slate-600 hover:text-slate-900'}`}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'promo_codes' ? 'text-[#A71930] bg-amber-100/80' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                       <span>सवलत कूपन</span>
                     </button>
@@ -1058,87 +2046,96 @@ export const AdminPanel: React.FC<{
               </div>
 
               {/* SECTION 4: CONTROLS HUB */}
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 <button
                   onClick={() => {
                     setActiveCategory('controls_hub');
                     setActiveTab('apk_manager');
                   }}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
                     activeCategory === 'controls_hub'
-                      ? 'bg-[#A71930] text-amber-100 shadow-md ring-1 ring-amber-300'
-                      : 'hover:bg-amber-100 text-slate-700'
+                      ? 'bg-[#A71930] text-amber-100 shadow-sm ring-1 ring-amber-300'
+                      : 'hover:bg-amber-100/80 text-slate-700'
                   }`}
                 >
-                  <Layout className="w-5 h-5 shrink-0 text-amber-500" />
+                  <Layout className="w-4 h-4 shrink-0 text-amber-500" />
                   {!isSidebarCollapsed && (
                     <div className="flex-1 text-left flex items-center justify-between min-w-0">
-                      <span className="truncate">ॲप आणि ब्रँडिंग</span>
+                      <span className="truncate text-[11px]">ॲप आणि ब्रँडिंग</span>
                     </div>
                   )}
                 </button>
                 {!isSidebarCollapsed && activeCategory === 'controls_hub' && (
-                  <div className="pl-6 pr-2 py-1 space-y-1 border-l border-amber-200 ml-5 animate-in slide-in-from-left-2 duration-200">
+                  <div className="pl-3 pr-1 py-0.5 space-y-0.5 border-l-2 border-amber-300 ml-3 animate-in slide-in-from-left-2 duration-200">
                     <button
                       onClick={() => setActiveTab('apk_manager')}
-                      className={`w-full text-left py-1 px-2 rounded-lg text-[11px] font-extrabold flex items-center justify-between ${activeTab === 'apk_manager' ? 'text-[#A71930] bg-amber-100/60' : 'text-slate-600 hover:text-slate-900'}`}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'apk_manager' ? 'text-[#A71930] bg-amber-100/80' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                       <span>APK मॅनेजर</span>
                     </button>
                     <button
                       onClick={() => setActiveTab('branding')}
-                      className={`w-full text-left py-1 px-2 rounded-lg text-[11px] font-extrabold flex items-center justify-between ${activeTab === 'branding' ? 'text-[#A71930] bg-amber-100/60' : 'text-slate-600 hover:text-slate-900'}`}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'branding' ? 'text-[#A71930] bg-amber-100/80' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                       <span>लोगो व स्लाईड्स</span>
                     </button>
                     <button
                       onClick={() => setActiveTab('stories')}
-                      className={`w-full text-left py-1 px-2 rounded-lg text-[11px] font-extrabold flex items-center justify-between ${activeTab === 'stories' ? 'text-[#A71930] bg-amber-100/60' : 'text-slate-600 hover:text-slate-900'}`}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'stories' ? 'text-[#A71930] bg-amber-100/80' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                       <span>यशस्वी गोष्टी</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('business_vendors')}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'business_vendors' ? 'text-[#A71930] bg-amber-100/80' : 'text-slate-600 hover:text-slate-900'}`}
+                    >
+                      <span>लग्न व्यवसाय व नेटवर्किंग</span>
+                      <span className="px-1 py-0.2 bg-amber-200 text-[#800C1E] text-[8px] rounded font-bold">
+                        {businessVendors.length}
+                      </span>
                     </button>
                   </div>
                 )}
               </div>
 
               {/* SECTION 5: SYSTEM HUB */}
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 <button
                   onClick={() => {
                     setActiveCategory('system_hub');
                     setActiveTab('sub_admins');
                   }}
-                  className={`w-full flex items-center gap-3 p-3 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
                     activeCategory === 'system_hub'
-                      ? 'bg-[#A71930] text-amber-100 shadow-md ring-1 ring-amber-300'
-                      : 'hover:bg-amber-100 text-slate-700'
+                      ? 'bg-[#A71930] text-amber-100 shadow-sm ring-1 ring-amber-300'
+                      : 'hover:bg-amber-100/80 text-slate-700'
                   }`}
                 >
-                  <ShieldCheck className="w-5 h-5 shrink-0 text-amber-500" />
+                  <ShieldCheck className="w-4 h-4 shrink-0 text-amber-500" />
                   {!isSidebarCollapsed && (
                     <div className="flex-1 text-left flex items-center justify-between min-w-0">
-                      <span className="truncate">सिस्टीम सुरक्षा</span>
+                      <span className="truncate text-[11px]">सिस्टीम सुरक्षा</span>
                     </div>
                   )}
                 </button>
                 {!isSidebarCollapsed && activeCategory === 'system_hub' && (
-                  <div className="pl-6 pr-2 py-1 space-y-1 border-l border-amber-200 ml-5 animate-in slide-in-from-left-2 duration-200">
+                  <div className="pl-3 pr-1 py-0.5 space-y-0.5 border-l-2 border-amber-300 ml-3 animate-in slide-in-from-left-2 duration-200">
                     <button
                       onClick={() => setActiveTab('sub_admins')}
-                      className={`w-full text-left py-1 px-2 rounded-lg text-[11px] font-extrabold flex items-center justify-between ${activeTab === 'sub_admins' ? 'text-[#A71930] bg-amber-100/60' : 'text-slate-600 hover:text-slate-900'}`}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'sub_admins' ? 'text-[#A71930] bg-amber-100/80' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                       <span>सब-ॲडमिन्स</span>
                     </button>
                     <button
                       onClick={() => setActiveTab('recycle_bin')}
-                      className={`w-full text-left py-1 px-2 rounded-lg text-[11px] font-extrabold flex items-center justify-between ${activeTab === 'recycle_bin' ? 'text-[#A71930] bg-amber-100/60' : 'text-slate-600 hover:text-slate-900'}`}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'recycle_bin' ? 'text-[#A71930] bg-amber-100/80' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                       <span>रिसायकल बिन</span>
                       <span>({recycleBin.length})</span>
                     </button>
                     <button
                       onClick={() => setActiveTab('audit_logs')}
-                      className={`w-full text-left py-1 px-2 rounded-lg text-[11px] font-extrabold flex items-center justify-between ${activeTab === 'audit_logs' ? 'text-[#A71930] bg-amber-100/60' : 'text-slate-600 hover:text-slate-900'}`}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'audit_logs' ? 'text-[#A71930] bg-amber-100/80' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                       <span>ऑडिट लॉग्स</span>
                     </button>
@@ -1152,9 +2149,9 @@ export const AdminPanel: React.FC<{
           <div className="flex-1 overflow-hidden flex flex-col min-w-0 h-full">
 
             {/* 1. RESPONSIVE MOBILE-ONLY CATEGORY HUBS & SUB-TABS */}
-            <div className="lg:hidden bg-amber-50/90 border-b border-amber-300 p-2 sm:p-3 shrink-0 space-y-2">
-          {/* Top Level Category Hub Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5 sm:gap-2 text-xs font-bold">
+            <div className={`${adminViewMode === 'desktop' ? 'hidden' : 'lg:hidden'} bg-amber-50/90 border-b border-amber-300 p-2 shrink-0 space-y-1.5`}>
+          {/* Top Level Category Hub Cards - Horizontal Scroll Strip */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none whitespace-nowrap text-xs font-bold">
             <button
               onClick={() => {
                 setActiveCategory('members_hub');
@@ -1162,18 +2159,16 @@ export const AdminPanel: React.FC<{
                   setActiveTab('members');
                 }
               }}
-              className={`p-2.5 rounded-2xl flex items-center justify-between gap-1.5 transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
                 activeCategory === 'members_hub'
-                  ? 'bg-[#A71930] text-amber-100 shadow-md border-2 border-amber-300 font-extrabold ring-2 ring-amber-300'
+                  ? 'bg-[#A71930] text-amber-100 shadow-sm border border-amber-300 font-extrabold'
                   : 'bg-white text-slate-800 hover:bg-amber-100 border border-amber-300'
               }`}
             >
-              <div className="flex items-center gap-1.5 min-w-0">
-                <Users className={`w-4 h-4 shrink-0 ${activeCategory === 'members_hub' ? 'text-amber-300' : 'text-[#A71930]'}`} />
-                <span className="truncate">👥 सदस्य</span>
-              </div>
+              <Users className={`w-3.5 h-3.5 shrink-0 ${activeCategory === 'members_hub' ? 'text-amber-300' : 'text-[#A71930]'}`} />
+              <span>👥 सदस्य</span>
               {(pendingMembers.length > 0 || pendingProfileEdits.filter(e => e.status === 'pending').length > 0) && (
-                <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-black shrink-0">
+                <span className="px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-black shrink-0">
                   {pendingMembers.length + pendingProfileEdits.filter(e => e.status === 'pending').length}
                 </span>
               )}
@@ -1186,18 +2181,16 @@ export const AdminPanel: React.FC<{
                   setActiveTab('push_notification');
                 }
               }}
-              className={`p-2.5 rounded-2xl flex items-center justify-between gap-1.5 transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
                 activeCategory === 'notifications_hub'
-                  ? 'bg-[#A71930] text-amber-100 shadow-md border-2 border-amber-300 font-extrabold ring-2 ring-amber-300'
+                  ? 'bg-[#A71930] text-amber-100 shadow-sm border border-amber-300 font-extrabold'
                   : 'bg-white text-slate-800 hover:bg-amber-100 border border-amber-300'
               }`}
             >
-              <div className="flex items-center gap-1.5 min-w-0">
-                <Bell className={`w-4 h-4 shrink-0 ${activeCategory === 'notifications_hub' ? 'text-amber-300' : 'text-[#A71930]'}`} />
-                <span className="truncate">📢 नोटिफिकेशन्स</span>
-              </div>
+              <Bell className={`w-3.5 h-3.5 shrink-0 ${activeCategory === 'notifications_hub' ? 'text-amber-300' : 'text-[#A71930]'}`} />
+              <span>📢 नोटिफिकेशन्स</span>
               {(unreadAdminChatCount > 0 || pendingChatRequests.length > 0) && (
-                <span className="px-1.5 py-0.5 rounded-full bg-rose-600 text-amber-100 text-[10px] font-black animate-pulse shrink-0">
+                <span className="px-1.5 py-0.2 rounded-full bg-rose-600 text-amber-100 text-[10px] font-black animate-pulse shrink-0">
                   {unreadAdminChatCount + pendingChatRequests.length}
                 </span>
               )}
@@ -1210,18 +2203,16 @@ export const AdminPanel: React.FC<{
                   setActiveTab('payment_requests');
                 }
               }}
-              className={`p-2.5 rounded-2xl flex items-center justify-between gap-1.5 transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
                 activeCategory === 'payments_hub'
-                  ? 'bg-[#A71930] text-amber-100 shadow-md border-2 border-amber-300 font-extrabold ring-2 ring-amber-300'
+                  ? 'bg-[#A71930] text-amber-100 shadow-sm border border-amber-300 font-extrabold'
                   : 'bg-white text-slate-800 hover:bg-amber-100 border border-amber-300'
               }`}
             >
-              <div className="flex items-center gap-1.5 min-w-0">
-                <CreditCard className={`w-4 h-4 shrink-0 ${activeCategory === 'payments_hub' ? 'text-amber-300' : 'text-[#A71930]'}`} />
-                <span className="truncate">💳 पेमेंट्स</span>
-              </div>
+              <CreditCard className={`w-3.5 h-3.5 shrink-0 ${activeCategory === 'payments_hub' ? 'text-amber-300' : 'text-[#A71930]'}`} />
+              <span>💳 पेमेंट्स</span>
               {(paymentRequests.filter(p => p.status === 'pending').length > 0) && (
-                <span className="px-1.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-black shrink-0">
+                <span className="px-1.5 py-0.2 rounded-full bg-emerald-600 text-white text-[10px] font-black shrink-0">
                   {paymentRequests.filter(p => p.status === 'pending').length}
                 </span>
               )}
@@ -1230,39 +2221,50 @@ export const AdminPanel: React.FC<{
             <button
               onClick={() => {
                 setActiveCategory('controls_hub');
-                if (!['apk_manager', 'index_controls', 'branding', 'stories', 'guest_permissions'].includes(activeTab)) {
+                if (!['apk_manager', 'index_controls', 'branding', 'stories', 'guest_permissions', 'permissions_center'].includes(activeTab)) {
                   setActiveTab('apk_manager');
                 }
               }}
-              className={`p-2.5 rounded-2xl flex items-center justify-between gap-1.5 transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
                 activeCategory === 'controls_hub'
-                  ? 'bg-[#A71930] text-amber-100 shadow-md border-2 border-amber-300 font-extrabold ring-2 ring-amber-300'
+                  ? 'bg-[#A71930] text-amber-100 shadow-sm border border-amber-300 font-extrabold'
                   : 'bg-white text-slate-800 hover:bg-amber-100 border border-amber-300'
               }`}
             >
-              <div className="flex items-center gap-1.5 min-w-0">
-                <Layout className={`w-4 h-4 shrink-0 ${activeCategory === 'controls_hub' ? 'text-amber-300' : 'text-[#A71930]'}`} />
-                <span className="truncate">📱 ॲप व साईट</span>
-              </div>
+              <Layout className={`w-3.5 h-3.5 shrink-0 ${activeCategory === 'controls_hub' ? 'text-amber-300' : 'text-[#A71930]'}`} />
+              <span>📱 ॲप व साईट</span>
             </button>
 
             <button
               onClick={() => {
                 setActiveCategory('system_hub');
-                if (!['sub_admins', 'user_analytics', 'recycle_bin', 'audit_logs', 'privacy_controls'].includes(activeTab)) {
-                  setActiveTab('sub_admins');
+                if (!['sub_admins', 'user_analytics', 'recycle_bin', 'audit_logs', 'privacy_controls', 'permissions_center'].includes(activeTab)) {
+                  setActiveTab('permissions_center');
                 }
               }}
-              className={`p-2.5 rounded-2xl flex items-center justify-between gap-1.5 transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
                 activeCategory === 'system_hub'
-                  ? 'bg-[#A71930] text-amber-100 shadow-md border-2 border-amber-300 font-extrabold ring-2 ring-amber-300'
+                  ? 'bg-[#A71930] text-amber-100 shadow-sm border border-amber-300 font-extrabold'
                   : 'bg-white text-slate-800 hover:bg-amber-100 border border-amber-300'
               }`}
             >
-              <div className="flex items-center gap-1.5 min-w-0">
-                <ShieldCheck className={`w-4 h-4 shrink-0 ${activeCategory === 'system_hub' ? 'text-amber-300' : 'text-[#A71930]'}`} />
-                <span className="truncate">🔒 सिस्टीम</span>
-              </div>
+              <ShieldCheck className={`w-3.5 h-3.5 shrink-0 ${activeCategory === 'system_hub' ? 'text-amber-300' : 'text-[#A71930]'}`} />
+              <span>🔒 सिस्टीम</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveCategory('system_hub');
+                setActiveTab('master_settings');
+              }}
+              className={`px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+                activeTab === 'master_settings'
+                  ? 'bg-amber-400 text-amber-950 shadow-md font-black border border-amber-300'
+                  : 'bg-amber-100 text-[#A71930] hover:bg-amber-200 border border-amber-300 font-extrabold'
+              }`}
+            >
+              <Sliders className="w-3 h-3 text-[#A71930]" />
+              <span>🎛️ सर्व सेन्ट्रल सेटींग्ज</span>
             </button>
           </div>
 
@@ -1461,21 +2463,31 @@ export const AdminPanel: React.FC<{
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                   <span>🌸 यशोगाथा (Success Stories)</span>
                 </button>
-
-                <button
-                  onClick={() => setActiveTab('guest_permissions')}
-                  className={`px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all ${
-                    activeTab === 'guest_permissions' ? 'bg-[#A71930] text-amber-100 font-black shadow' : 'bg-white border border-amber-200 text-slate-800 hover:bg-amber-100'
-                  }`}
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>👤 अतिथी परवानग्या</span>
-                </button>
               </>
             )}
 
             {activeCategory === 'system_hub' && (
               <>
+                <button
+                  onClick={() => setActiveTab('master_settings')}
+                  className={`px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all ${
+                    activeTab === 'master_settings' ? 'bg-[#A71930] text-amber-100 font-black shadow' : 'bg-white border border-amber-200 text-slate-800 hover:bg-amber-100'
+                  }`}
+                >
+                  <Sliders className="w-3.5 h-3.5 text-amber-400" />
+                  <span>🎛️ सेन्ट्रल मास्टर सेटिंग्ज (Master Control Center)</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('permissions_center')}
+                  className={`px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all ${
+                    activeTab === 'permissions_center' ? 'bg-[#A71930] text-amber-100 font-black shadow' : 'bg-white border border-amber-200 text-slate-800 hover:bg-amber-100'
+                  }`}
+                >
+                  <Lock className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                  <span>🔑 परवानग्या व नियंत्रण केंद्र (Special Permissions Control Center)</span>
+                </button>
+
                 {!currentSubAdmin && (
                   <button
                     onClick={() => setActiveTab('sub_admins')}
@@ -1525,35 +2537,38 @@ export const AdminPanel: React.FC<{
                   }`}
                 >
                   <Settings2 className="w-3.5 h-3.5" />
-                  <span>⚙️ गोपनीयता व पासवर्ड</span>
+                  <span>⚙️ ॲडमिन पासवर्ड सेटिंग्ज</span>
                 </button>
               </>
             )}
           </div>
         </div>
 
-        {/* MAIN CONTENT CONTAINER */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+        {/* MAIN CONTENT CONTAINER WITH DUAL-AXIS TOUCH SCROLLING & PANNING */}
+        <div 
+          className="p-2.5 sm:p-5 overflow-auto flex-1 space-y-3 sm:space-y-6 touch-pan-x touch-pan-y min-h-0 overscroll-contain"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
 
-          {/* ROYAL MAHARASHTRIAN ANALYTICS WIDGETS ROW */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-300 shrink-0">
+          {/* COMPACT MOBILE-FRIENDLY ANALYTICS WIDGETS ROW */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 sm:gap-4 animate-in fade-in slide-in-from-top-4 duration-300 shrink-0">
             {/* Widget 1: Approved Members */}
             <div 
               onClick={() => {
                 setActiveCategory('members_hub');
                 setActiveTab('members');
               }}
-              className="group cursor-pointer p-4 bg-gradient-to-br from-[#800C1E] to-[#A71930] rounded-2xl border-2 border-amber-400 text-amber-50 shadow-md hover:shadow-xl transition-all hover:-translate-y-0.5 select-none"
+              className="group cursor-pointer p-2 sm:p-4 bg-gradient-to-br from-[#800C1E] to-[#A71930] rounded-xl sm:rounded-2xl border border-amber-400 text-amber-50 shadow-sm hover:shadow-md transition-all select-none"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold tracking-wider uppercase text-amber-200">मान्य सदस्य (Approved)</span>
-                <div className="p-2 bg-amber-400/20 rounded-xl group-hover:bg-amber-400/30 transition-colors">
-                  <UserCheck className="w-5 h-5 text-amber-300" />
+                <span className="text-[10px] sm:text-[11px] font-extrabold tracking-tight uppercase text-amber-200 truncate">मान्य सदस्य</span>
+                <div className="p-1 sm:p-2 bg-amber-400/20 rounded-lg group-hover:bg-amber-400/30 transition-colors shrink-0">
+                  <UserCheck className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-amber-300" />
                 </div>
               </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-2xl font-black font-mono tracking-tight">{approvedMembers.length}</span>
-                <span className="text-[10px] text-emerald-400 font-bold">● सक्रिय</span>
+              <div className="mt-1 sm:mt-3 flex items-baseline justify-between gap-1">
+                <span className="text-base sm:text-2xl font-black font-mono tracking-tight">{approvedMembers.length}</span>
+                <span className="text-[9px] sm:text-[10px] text-emerald-400 font-bold shrink-0">● सक्रिय</span>
               </div>
             </div>
 
@@ -1563,17 +2578,17 @@ export const AdminPanel: React.FC<{
                 setActiveCategory('members_hub');
                 setActiveTab('pending');
               }}
-              className="group cursor-pointer p-4 bg-white rounded-2xl border border-amber-200 text-slate-800 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 select-none"
+              className="group cursor-pointer p-2 sm:p-4 bg-white rounded-xl sm:rounded-2xl border border-amber-200 text-slate-800 shadow-sm hover:shadow-md transition-all select-none"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold tracking-wider uppercase text-slate-500">प्रलंबित मंजुरी (Pending)</span>
-                <div className="p-2 bg-amber-100 rounded-xl group-hover:bg-amber-200 transition-colors">
-                  <Clock className="w-5 h-5 text-[#A71930]" />
+                <span className="text-[10px] sm:text-[11px] font-extrabold tracking-tight uppercase text-slate-500 truncate">प्रलंबित</span>
+                <div className="p-1 sm:p-2 bg-amber-100 rounded-lg group-hover:bg-amber-200 transition-colors shrink-0">
+                  <Clock className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-[#A71930]" />
                 </div>
               </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-2xl font-black font-mono tracking-tight text-[#800C1E]">{pendingMembers.length}</span>
-                <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded font-bold animate-pulse">मंजुरी आवश्यक</span>
+              <div className="mt-1 sm:mt-3 flex items-baseline justify-between gap-1">
+                <span className="text-base sm:text-2xl font-black font-mono tracking-tight text-[#800C1E]">{pendingMembers.length}</span>
+                <span className="text-[9px] sm:text-[10px] text-amber-600 bg-amber-50 px-1 py-0.2 rounded font-bold animate-pulse shrink-0">मंजुरी आवश्यक</span>
               </div>
             </div>
 
@@ -1583,19 +2598,19 @@ export const AdminPanel: React.FC<{
                 setActiveCategory('payments_hub');
                 setActiveTab('payment_requests');
               }}
-              className="group cursor-pointer p-4 bg-gradient-to-br from-[#FFFDF0] to-amber-50 rounded-2xl border-2 border-[#F99C00]/40 text-slate-800 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 select-none"
+              className="group cursor-pointer p-2 sm:p-4 bg-gradient-to-br from-[#FFFDF0] to-amber-50 rounded-xl sm:rounded-2xl border border-[#F99C00]/40 text-slate-800 shadow-sm hover:shadow-md transition-all select-none"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold tracking-wider uppercase text-[#800C1E]">एकूण प्रीमियम (Premium)</span>
-                <div className="p-2 bg-[#F99C00]/20 rounded-xl group-hover:bg-[#F99C00]/30 transition-colors">
-                  <Crown className="w-5 h-5 text-[#F99C00]" />
+                <span className="text-[10px] sm:text-[11px] font-extrabold tracking-tight uppercase text-[#800C1E] truncate">प्रीमियम</span>
+                <div className="p-1 sm:p-2 bg-[#F99C00]/20 rounded-lg group-hover:bg-[#F99C00]/30 transition-colors shrink-0">
+                  <Crown className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-[#F99C00]" />
                 </div>
               </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-2xl font-black font-mono tracking-tight text-[#800C1E]">
+              <div className="mt-1 sm:mt-3 flex items-baseline justify-between gap-1">
+                <span className="text-base sm:text-2xl font-black font-mono tracking-tight text-[#800C1E]">
                   {profiles.filter(p => p.isPremium).length}
                 </span>
-                <span className="text-[10px] text-amber-700 font-extrabold bg-amber-100/60 px-1.5 py-0.5 rounded">VIP</span>
+                <span className="text-[9px] sm:text-[10px] text-amber-700 font-extrabold bg-amber-100/60 px-1 py-0.2 rounded shrink-0">VIP</span>
               </div>
             </div>
 
@@ -1605,19 +2620,19 @@ export const AdminPanel: React.FC<{
                 setActiveCategory('controls_hub');
                 setActiveTab('apk_manager');
               }}
-              className="group cursor-pointer p-4 bg-white rounded-2xl border border-amber-200 text-slate-800 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 select-none"
+              className="group cursor-pointer p-2 sm:p-4 bg-white rounded-xl sm:rounded-2xl border border-amber-200 text-slate-800 shadow-sm hover:shadow-md transition-all select-none"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold tracking-wider uppercase text-slate-500">ॲप डाउनलोड्स (APK Hits)</span>
-                <div className="p-2 bg-emerald-50 rounded-xl group-hover:bg-emerald-100 transition-colors">
-                  <Download className="w-5 h-5 text-emerald-600" />
+                <span className="text-[10px] sm:text-[11px] font-extrabold tracking-tight uppercase text-slate-500 truncate">ॲप हिट्स</span>
+                <div className="p-1 sm:p-2 bg-emerald-50 rounded-lg group-hover:bg-emerald-100 transition-colors shrink-0">
+                  <Download className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-emerald-600" />
                 </div>
               </div>
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-2xl font-black font-mono tracking-tight text-[#800C1E]">
+              <div className="mt-1 sm:mt-3 flex items-baseline justify-between gap-1">
+                <span className="text-base sm:text-2xl font-black font-mono tracking-tight text-[#800C1E]">
                   {siteConfig?.apkSettings?.downloadCount || 4280}
                 </span>
-                <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">● लाइव्ह ट्रॅकर</span>
+                <span className="text-[9px] sm:text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1 py-0.2 rounded shrink-0">● ट्रॅकर</span>
               </div>
             </div>
           </div>
@@ -1831,6 +2846,20 @@ export const AdminPanel: React.FC<{
                                 💍 सुचवा
                               </button>
                               <button
+                                onClick={() => setSelectedProfileForQuickSettings(m)}
+                                className="px-2 py-1 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-900 font-black text-[10px] border border-blue-300 cursor-pointer shadow flex items-center gap-1"
+                                title="प्रायव्हसी, मोबाईल नंबर व मेंबरशिप सेटींग्ज बदलण्यासाठी"
+                              >
+                                ⚙️ सेटींग्ज
+                              </button>
+                              <button
+                                onClick={() => setEditingCandidate(m)}
+                                className="px-2 py-1 rounded-lg bg-amber-200 hover:bg-amber-300 text-[#800C1E] font-black text-[10px] border border-amber-400 cursor-pointer shadow flex items-center gap-1"
+                                title="सदस्याची सर्व माहिती, फोटो, दस्तावेज व बॅचेस एडिट करा"
+                              >
+                                ✏️ माहिती/बॅच एडिट
+                              </button>
+                              <button
                                 onClick={() => setSelectedProfileForModal(m)}
                                 className="p-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-[#A71930]"
                                 title="बायोडाटा पहा"
@@ -1859,36 +2888,64 @@ export const AdminPanel: React.FC<{
           {activeTab === 'pending' && (
             <div className="space-y-4">
               {/* Auto Mode Status Banner */}
-              <div className={`p-4 rounded-2xl border-2 flex items-center justify-between flex-wrap gap-3 ${
+              <div className={`p-5 rounded-2xl border-2 flex items-center justify-between flex-wrap gap-4 ${
                 siteConfig.isAutoModeEnabled
                   ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
                   : 'bg-amber-50 border-amber-300 text-amber-950'
               }`}>
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg shrink-0 ${
+                <div className="flex items-center gap-3.5 min-w-[280px] flex-1">
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl shrink-0 shadow-sm ${
                     siteConfig.isAutoModeEnabled ? 'bg-emerald-600 text-white' : 'bg-amber-600 text-white'
                   }`}>
                     {siteConfig.isAutoModeEnabled ? '⚡' : '🔒'}
                   </div>
                   <div>
-                    <h4 className="font-extrabold text-xs">
-                      {siteConfig.isAutoModeEnabled
-                        ? 'वेबसाइट सध्या "ऑटो मोड" (Auto Approval Mode) वर आहे!'
-                        : 'वेबसाइट सध्या "ॲडमिन मॅन्युअल मोड" (Manual Approval Mode) वर आहे.'}
+                    <h4 className="font-extrabold text-sm flex items-center gap-1.5 flex-wrap">
+                      <span>सध्याचा मंजुरी मोड:</span>
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-black tracking-wider uppercase ${
+                        siteConfig.isAutoModeEnabled ? 'bg-emerald-200 text-emerald-900 border border-emerald-300' : 'bg-amber-200 text-amber-900 border border-amber-300'
+                      }`}>
+                        {siteConfig.isAutoModeEnabled ? '⚡ ऑटो मोड (Auto Mode ON)' : '🔒 मॅन्युअल मोड (Manual Mode ON)'}
+                      </span>
                     </h4>
-                    <p className="text-[11px] opacity-90 font-bold mt-0.5">
+                    <p className="text-xs opacity-90 font-bold mt-1.5 leading-relaxed">
                       {siteConfig.isAutoModeEnabled
-                        ? 'नवीन सर्व वधू-वर नोंदण्या व ५ फोटो ऑटोमॅटिक मंजूर होऊन थेट वेबसाईटवर प्रकाशित होत आहेत.'
-                        : 'नवीन नोंदण्या येथे प्रलंबित राहतात व ॲडमिनच्या मंजुरीनंतरच वेबसाईटवर सार्वजनिक दिसतात.'}
+                        ? 'नवीन सर्व वधू-वर नोंदण्या ॲडमिन मंजुरीशिवाय स्वयंचलित मंजूर होऊन थेट वेबसाईटवर सार्वजनिकपणे प्रकाशित होत आहेत.'
+                        : 'नवीन सर्व नोंदण्या येथे प्रलंबित राहतील. ॲडमिनने व्यक्तिशः मंजूर केल्यानंतरच त्या सार्वजनिकरित्या दिसतील.'}
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setActiveTab('settings')}
-                  className="px-3 py-1.5 rounded-xl bg-white text-slate-900 font-extrabold text-xs border border-slate-300 hover:bg-slate-50 cursor-pointer shadow-xs shrink-0"
-                >
-                  ⚙️ मोड सेटिंग्ज बदला
-                </button>
+
+                <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap w-full sm:w-auto justify-end">
+                  {/* Direct Toggle Action Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newStatus = !siteConfig.isAutoModeEnabled;
+                      updateSiteConfig({ isAutoModeEnabled: newStatus });
+                      alert(`वेबसाईट यशस्विरित्या ${newStatus ? '"ऑटो मोड" (Auto Approval Mode)' : '"मॅन्युअल मोड" (Manual Approval Mode)'} वर सेट केली आहे!`);
+                    }}
+                    className={`px-4 py-2.5 rounded-xl font-black text-xs shadow-sm transition-all hover:scale-102 flex items-center gap-1.5 cursor-pointer border-2 w-full sm:w-auto justify-center ${
+                      siteConfig.isAutoModeEnabled
+                        ? 'bg-[#A71930] hover:bg-[#800C1E] text-amber-100 border-[#800C1E]'
+                        : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500'
+                    }`}
+                  >
+                    {siteConfig.isAutoModeEnabled ? '🔒 मॅन्युअल मोड सुरू करा' : '⚡ ऑटो मोड सुरू करा'}
+                  </button>
+
+                  {/* Fix the dead redirection link - direct correctly to index_controls */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveCategory('controls_hub');
+                      setActiveTab('index_controls');
+                    }}
+                    className="px-4 py-2.5 rounded-xl bg-white text-slate-800 font-extrabold text-xs border border-amber-300 hover:bg-amber-50 cursor-pointer shadow-sm transition-all hover:scale-102 flex items-center gap-1.5 shrink-0 w-full sm:w-auto justify-center"
+                  >
+                    <span>⚙️ सर्व ऑटोमेशन सेटिंग्ज</span>
+                  </button>
+                </div>
               </div>
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 bg-gradient-to-r from-amber-100 via-amber-50 to-amber-100 rounded-2xl border-2 border-amber-300 shadow-sm">
@@ -2006,6 +3063,20 @@ export const AdminPanel: React.FC<{
                                 >
                                   <CheckCircle className="w-3.5 h-3.5" />
                                   <span>मंजूर करा (Approve)</span>
+                                </button>
+                                <button
+                                  onClick={() => setSelectedProfileForQuickSettings(m)}
+                                  className="px-2.5 py-1.5 rounded-xl bg-blue-100 hover:bg-blue-200 text-blue-900 font-black text-xs border border-blue-300 cursor-pointer shadow flex items-center gap-1"
+                                  title="प्रायव्हसी व मेंबरशिप सेटिंग्स"
+                                >
+                                  ⚙️ सेटिंग्स
+                                </button>
+                                <button
+                                  onClick={() => setEditingCandidate(m)}
+                                  className="px-2.5 py-1.5 rounded-xl bg-amber-200 hover:bg-amber-300 text-[#800C1E] font-black text-xs border border-amber-400 cursor-pointer shadow flex items-center gap-1"
+                                  title="मंजुरीपूर्वी माहिती किंवा दस्तावेज एडिट करा"
+                                >
+                                  ✏️ एडिट
                                 </button>
                                 <button
                                   onClick={() => setSelectedProfileForModal(m)}
@@ -2155,81 +3226,295 @@ export const AdminPanel: React.FC<{
           )}
 
           {/* TAB 6: DEDICATED PROFILE LIKES TRACKER TAB */}
-          {activeTab === 'profile_likes' && (
-            <div className="space-y-4">
-              <div className="p-4 bg-amber-100 rounded-2xl border border-amber-300 flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-black text-[#A71930] flex items-center gap-2">
-                    <Heart className="w-5 h-5 text-rose-600 fill-rose-600" />
-                    <span>प्रोफाईल लाईक्स व आवडींचा ट्रॅकर (Profile Likes & Bookmarks)</span>
-                  </h3>
-                  <p className="text-xs text-slate-700 font-medium">
-                    कोणत्या सदस्याने कोणाचा बायोडाटा लाईक केला आहे किंवा आवड व्यक्त केली आहे याची रिअल-टाईम माहिती.
-                  </p>
-                </div>
-              </div>
+          {activeTab === 'profile_likes' && (() => {
+            const combinedLikes: Array<{
+              id: string;
+              fromUserId: string;
+              fromUser?: UserProfile;
+              toUserId: string;
+              toUser?: UserProfile;
+              status: string;
+              createdAt: string;
+              type: string;
+            }> = [];
 
-              <div className="bg-white rounded-2xl border border-amber-300 shadow-md overflow-hidden">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-amber-100 text-[#800C1E] font-black border-b border-amber-200">
-                    <tr>
-                      <th className="p-3">आवड व्यक्त करणारा सदस्य (Liking Member)</th>
-                      <th className="p-3">लक्ष्य प्रोफाईल (Target Profile)</th>
-                      <th className="p-3">तारीख & वेळ</th>
-                      <th className="p-3 text-right">प्रोफाईल लिंक</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-amber-100 font-semibold">
-                    {profiles.flatMap((p) =>
-                      p.shortlistedByUsers?.map((likerId) => {
-                        const liker = profiles.find((x) => x.id === likerId);
-                        return {
-                          likerName: liker?.fullName || 'सदस्य (' + likerId + ')',
-                          likerMobile: liker?.mobileNumber || '+91 9822100000',
-                          targetName: p.fullName,
-                          targetId: p.id,
-                          targetProfile: p,
-                        };
-                      }) || []
-                    ).length === 0 ? (
-                      <tr>
-                        <td colSpan={4} className="p-8 text-center text-slate-500 font-bold">
-                          अद्याप कोणत्याही सदस्याची लाईक किंवा बुकमार्क नोंद झालेली नाही.
-                        </td>
-                      </tr>
+            const seenKeys = new Set<string>();
+
+            // 1. From pendingLikes array
+            (pendingLikes || []).forEach((pl) => {
+              const key = `${pl.fromUserId}-${pl.toUserId}`;
+              seenKeys.add(key);
+              combinedLikes.push({
+                id: pl.id || `pl-${key}`,
+                fromUserId: pl.fromUserId,
+                fromUser: profiles.find((p) => p.id === pl.fromUserId),
+                toUserId: pl.toUserId,
+                toUser: profiles.find((p) => p.id === pl.toUserId),
+                status: pl.status || 'approved',
+                createdAt: pl.createdAt || new Date().toISOString(),
+                type: 'direct_like'
+              });
+            });
+
+            // 2. From interests array
+            (interests || []).forEach((i) => {
+              const key = `${i.fromUserId}-${i.toUserId}`;
+              if (!seenKeys.has(key)) {
+                seenKeys.add(key);
+                combinedLikes.push({
+                  id: i.id || `int-${key}`,
+                  fromUserId: i.fromUserId,
+                  fromUser: profiles.find((p) => p.id === i.fromUserId),
+                  toUserId: i.toUserId,
+                  toUser: profiles.find((p) => p.id === i.toUserId),
+                  status: i.status === 'accepted' ? 'approved' : i.status,
+                  createdAt: i.createdAt || new Date().toISOString(),
+                  type: 'interest'
+                });
+              }
+            });
+
+            // 3. From shortlistedByUsers array on profile objects
+            profiles.forEach((p) => {
+              (p.shortlistedByUsers || []).forEach((likerId) => {
+                const key = `${likerId}-${p.id}`;
+                if (!seenKeys.has(key)) {
+                  seenKeys.add(key);
+                  combinedLikes.push({
+                    id: `short-${key}`,
+                    fromUserId: likerId,
+                    fromUser: profiles.find((x) => x.id === likerId),
+                    toUserId: p.id,
+                    toUser: p,
+                    status: 'approved',
+                    createdAt: new Date().toISOString(),
+                    type: 'shortlist'
+                  });
+                }
+              });
+            });
+
+            // Filter by search term
+            const filteredLikes = combinedLikes.filter((item) => {
+              if (!likesSearchTerm.trim()) return true;
+              const term = likesSearchTerm.toLowerCase();
+              const fName = (item.fromUser?.fullName || '').toLowerCase();
+              const fId = (item.fromUserId || '').toLowerCase();
+              const fMob = (item.fromUser?.mobile || (item.fromUser as any)?.mobileNumber || '').toLowerCase();
+              const tName = (item.toUser?.fullName || '').toLowerCase();
+              const tId = (item.toUserId || '').toLowerCase();
+              const tMob = (item.toUser?.mobile || (item.toUser as any)?.mobileNumber || '').toLowerCase();
+
+              return fName.includes(term) || fId.includes(term) || fMob.includes(term) ||
+                     tName.includes(term) || tId.includes(term) || tMob.includes(term);
+            });
+
+            const totalLikes = combinedLikes.length;
+            const approvedLikes = combinedLikes.filter((x) => x.status === 'approved' || x.status === 'accepted').length;
+            const pendingLikesCount = combinedLikes.filter((x) => x.status === 'pending').length;
+
+            return (
+              <div className="space-y-4">
+                {/* Header Banner */}
+                <div className="p-4 bg-amber-100/90 rounded-2xl border border-amber-300 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+                  <div>
+                    <h3 className="text-lg font-black text-[#A71930] flex items-center gap-2">
+                      <Heart className="w-5 h-5 text-rose-600 fill-rose-600" />
+                      <span>प्रोफाईल लाईक्स व सदस्यांची आवडी ट्रॅकर (Profile Likes Activity Log)</span>
+                    </h3>
+                    <p className="text-xs text-slate-700 font-medium">
+                      कोणत्या सदस्याने कोणाच्या प्रोफाईलला लाईक किंवा पसंती पाठवली आहे याची संपूर्ण रिअल-टाईम माहिती.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1.5 bg-white text-[#A71930] font-black text-xs rounded-xl border border-amber-300 shadow-sm">
+                      एकूण लाईक्स: {totalLikes}
+                    </span>
+                    <span className="px-3 py-1.5 bg-emerald-600 text-white font-black text-xs rounded-xl shadow-sm">
+                      थेट मंजूर: {approvedLikes}
+                    </span>
+                    {pendingLikesCount > 0 && (
+                      <span className="px-3 py-1.5 bg-amber-600 text-white font-black text-xs rounded-xl shadow-sm animate-pulse">
+                        प्रलंबित: {pendingLikesCount}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Search Bar & Auto-Approve Setting Status Notice */}
+                <div className="bg-white p-4 rounded-2xl border border-amber-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                    <input
+                      type="text"
+                      placeholder="लाईक करणाऱ्याचे किंवा मिळणाऱ्याचे नाव, ID किंवा मोबाईलने शोधा..."
+                      value={likesSearchTerm}
+                      onChange={(e) => setLikesSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-xl text-xs text-slate-900 font-bold focus:ring-2 focus:ring-[#A71930]"
+                    />
+                  </div>
+
+                  <div className="text-xs font-bold text-slate-700 flex items-center gap-2 shrink-0 bg-amber-50 px-3 py-2 rounded-xl border border-amber-200">
+                    <span>⚡ ऑटो-लाईक स्थिती:</span>
+                    {siteConfig?.autoApproveLikes !== false ? (
+                      <span className="text-emerald-700 font-black flex items-center gap-1">
+                        <CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> चालू (Direct Push Notification)
+                      </span>
                     ) : (
-                      profiles.flatMap((p) =>
-                        (p.shortlistedByUsers || []).map((likerId) => {
-                          const liker = profiles.find((x) => x.id === likerId);
-                          return (
-                            <tr key={`${p.id}-${likerId}`} className="hover:bg-amber-50">
+                      <span className="text-rose-700 font-black flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-rose-600" /> ॲडमिन मंजुरी प्रलंबित
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Likes Table */}
+                <div className="bg-white rounded-2xl border border-amber-300 shadow-md overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-amber-100 text-[#800C1E] font-black border-b border-amber-200">
+                        <tr>
+                          <th className="p-3">लाईक करणारा सदस्य (Liker Profile)</th>
+                          <th className="p-3 text-center">दिशा</th>
+                          <th className="p-3">मिळणारा सदस्य (Target Profile)</th>
+                          <th className="p-3">तारीख & वेळ</th>
+                          <th className="p-3">स्थिती (Status)</th>
+                          <th className="p-3 text-right">कृती (Actions)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-amber-100 font-semibold">
+                        {filteredLikes.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="p-8 text-center text-slate-500 font-bold">
+                              {likesSearchTerm ? 'शोधाशोध अनुसार कोणताही लाईक रेकॉर्ड आढळला नाही.' : 'अद्याप कोणत्याही सदस्याची लाईक किंवा आवडीची नोंद झालेली नाही.'}
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredLikes.map((item) => (
+                            <tr key={item.id} className="hover:bg-amber-50/60 transition-colors">
+                              {/* Sender */}
                               <td className="p-3">
-                                <p className="font-extrabold text-slate-900">{liker?.fullName || likerId}</p>
-                                <p className="text-[11px] text-slate-500">{liker?.mobileNumber || ''}</p>
+                                <div className="flex items-center gap-2.5">
+                                  {(item.fromUser as any)?.photoUrl || item.fromUser?.photos?.[0] ? (
+                                    <img
+                                      src={(item.fromUser as any)?.photoUrl || item.fromUser?.photos?.[0]}
+                                      alt={item.fromUser?.fullName}
+                                      className="w-9 h-9 rounded-full object-cover border border-amber-300"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                  ) : (
+                                    <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center font-black text-slate-600 text-xs">
+                                      {(item.fromUser?.fullName || item.fromUserId)?.[0]?.toUpperCase() || 'U'}
+                                    </div>
+                                  )}
+                                  <div>
+                                    <p className="font-extrabold text-slate-900">{item.fromUser?.fullName || `ID: ${item.fromUserId}`}</p>
+                                    <p className="text-[11px] text-slate-500 font-mono">
+                                      ID: {item.fromUserId} • {item.fromUser?.mobile || (item.fromUser as any)?.mobileNumber || ''}
+                                    </p>
+                                  </div>
+                                </div>
                               </td>
+
+                              {/* Direction */}
+                              <td className="p-3 text-center">
+                                <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-rose-100 text-rose-700 shadow-sm">
+                                  ❤️
+                                </div>
+                              </td>
+
+                              {/* Receiver */}
                               <td className="p-3">
-                                <p className="font-extrabold text-[#A71930]">{p.fullName}</p>
-                                <p className="text-[11px] text-slate-500">{p.district} ({p.id})</p>
+                                <div className="flex items-center gap-2.5">
+                                  {(item.toUser as any)?.photoUrl || item.toUser?.photos?.[0] ? (
+                                    <img
+                                      src={(item.toUser as any)?.photoUrl || item.toUser?.photos?.[0]}
+                                      alt={item.toUser?.fullName}
+                                      className="w-9 h-9 rounded-full object-cover border border-amber-300"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                  ) : (
+                                    <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center font-black text-slate-600 text-xs">
+                                      {(item.toUser?.fullName || item.toUserId)?.[0]?.toUpperCase() || 'U'}
+                                    </div>
+                                  )}
+                                  <div>
+                                    <p className="font-extrabold text-[#A71930]">{item.toUser?.fullName || `ID: ${item.toUserId}`}</p>
+                                    <p className="text-[11px] text-slate-500 font-mono">
+                                      ID: {item.toUserId} • {item.toUser?.district || ''}
+                                    </p>
+                                  </div>
+                                </div>
                               </td>
-                              <td className="p-3 font-mono text-slate-600">२४ तास आधी</td>
+
+                              {/* Date & Time */}
+                              <td className="p-3 text-slate-600 font-mono text-[11px]">
+                                {new Date(item.createdAt).toLocaleString('mr-IN', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </td>
+
+                              {/* Status Badge */}
+                              <td className="p-3">
+                                {item.status === 'approved' || item.status === 'accepted' ? (
+                                  <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full font-black text-[11px] border border-emerald-300 flex items-center gap-1 w-max">
+                                    <CheckCircle className="w-3 h-3 text-emerald-600" /> थेट मंजूर (Approved)
+                                  </span>
+                                ) : item.status === 'rejected' ? (
+                                  <span className="px-2.5 py-1 bg-rose-100 text-rose-800 rounded-full font-black text-[11px] border border-rose-300 flex items-center gap-1 w-max">
+                                    ❌ अमान्य (Rejected)
+                                  </span>
+                                ) : (
+                                  <span className="px-2.5 py-1 bg-amber-100 text-amber-900 rounded-full font-black text-[11px] border border-amber-300 flex items-center gap-1 w-max animate-pulse">
+                                    <Clock className="w-3 h-3 text-amber-700" /> प्रलंबित (Pending)
+                                  </span>
+                                )}
+                              </td>
+
+                              {/* Actions */}
                               <td className="p-3 text-right">
-                                <button
-                                  onClick={() => setSelectedProfileForModal(p)}
-                                  className="px-3 py-1 bg-amber-100 hover:bg-amber-200 text-[#A71930] font-bold text-xs rounded-xl border border-amber-300 cursor-pointer"
-                                >
-                                  बायोडाटा उघडा
-                                </button>
+                                <div className="flex items-center justify-end gap-1.5">
+                                  {item.status === 'pending' && (
+                                    <>
+                                      <button
+                                        onClick={() => approveLike(item.id)}
+                                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] rounded-lg shadow transition cursor-pointer"
+                                      >
+                                        मंजूर करा
+                                      </button>
+                                      <button
+                                        onClick={() => rejectLike(item.id)}
+                                        className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-black text-[11px] rounded-lg shadow transition cursor-pointer"
+                                      >
+                                        नाकारा
+                                      </button>
+                                    </>
+                                  )}
+                                  {item.toUser && (
+                                    <button
+                                      onClick={() => setSelectedProfileForModal(item.toUser!)}
+                                      className="px-3 py-1 bg-amber-100 hover:bg-amber-200 text-[#A71930] font-black text-xs rounded-xl border border-amber-300 transition cursor-pointer"
+                                    >
+                                      प्रोफाईल पहा
+                                    </button>
+                                  )}
+                                </div>
                               </td>
                             </tr>
-                          );
-                        })
-                      )
-                    )}
-                  </tbody>
-                </table>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* TAB 7: PROMO CODES ENGINE TAB */}
           {activeTab === 'promo_codes' && (
@@ -2496,153 +3781,781 @@ export const AdminPanel: React.FC<{
             </div>
           )}
 
-          {/* TAB 4: PRIVACY & SITE CONTROLS (WITH CHAT CONTENT RESTRICTION TOGGLES) */}
+          {/* TAB 4: ADMIN PASSWORD & PRIVACY SETTINGS */}
           {activeTab === 'privacy_controls' && (
             <div className="space-y-6">
               <div className="p-4 bg-amber-100 rounded-2xl border border-amber-300">
                 <h3 className="text-lg font-black text-[#A71930] flex items-center gap-2">
-                  <ShieldAlert className="w-5 h-5 text-[#A71930]" />
-                  <span>गोपनीयता, चॅट विषयक नियम व फोटो ब्लर सेटिंग्ज</span>
+                  <Lock className="w-5 h-5 text-[#A71930]" />
+                  <span>मुख्य ॲडमिन क्रेडेंशियल्स आणि पासवर्ड बदला (Admin Credentials & Password)</span>
                 </h3>
+                <p className="text-xs text-slate-700 font-medium mt-1">
+                  इथून तुम्ही मुख्य प्रशासकाचे (Super Admin) लॉगिन युझरनेम आणि पासवर्ड बदलू शकता.
+                </p>
               </div>
 
-              {/* SELECTIVE CHAT CONTENT RESTRICTION TOGGLES */}
-              <div className="bg-white p-5 rounded-2xl border border-amber-300 shadow-sm space-y-4">
-                <h4 className="font-extrabold text-[#A71930] text-sm flex items-center gap-2 border-b border-amber-100 pb-2">
-                  <Lock className="w-4 h-4 text-[#A71930]" />
-                  <span>चॅट माहिती शेअरिंग नियम (Chat Content Restriction Toggles)</span>
-                </h4>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-bold">
-                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-900">गावाचे/शहराचे नाव शेअरिंग</p>
-                      <p className="text-[10px] text-slate-500 font-normal">चॅटमध्ये गावाचे नाव परवानगी</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateSiteConfig({
-                          ...siteConfig,
-                          allowShareVillage: !siteConfig.allowShareVillage,
-                        })
-                      }
-                      className={`px-3 py-1.5 rounded-xl font-black text-xs cursor-pointer ${
-                        siteConfig.allowShareVillage ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
-                      }`}
-                    >
-                      {siteConfig.allowShareVillage ? 'चालू (ON)' : 'बंद (OFF)'}
-                    </button>
-                  </div>
-
-                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-900">मोबाईल नंबर शेअरिंग</p>
-                      <p className="text-[10px] text-slate-500 font-normal">चॅटमध्ये फोन नंबर ब्लॉक</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateSiteConfig({
-                          ...siteConfig,
-                          allowShareMobile: !siteConfig.allowShareMobile,
-                        })
-                      }
-                      className={`px-3 py-1.5 rounded-xl font-black text-xs cursor-pointer ${
-                        siteConfig.allowShareMobile ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
-                      }`}
-                    >
-                      {siteConfig.allowShareMobile ? 'चालू (ON)' : 'बंद (OFF)'}
-                    </button>
-                  </div>
-
-                  <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between">
-                    <div>
-                      <p className="text-slate-900">ई-मेल आयडी शेअरिंग</p>
-                      <p className="text-[10px] text-slate-500 font-normal">चॅटमध्ये ई-मेल ब्लॉक</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateSiteConfig({
-                          ...siteConfig,
-                          allowShareEmail: !siteConfig.allowShareEmail,
-                        })
-                      }
-                      className={`px-3 py-1.5 rounded-xl font-black text-xs cursor-pointer ${
-                        siteConfig.allowShareEmail ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
-                      }`}
-                    >
-                      {siteConfig.allowShareEmail ? 'चालू (ON)' : 'बंद (OFF)'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Photo Blur % & Selective Blur Switches */}
-              <div className="bg-white p-5 rounded-2xl border border-amber-300 shadow-sm space-y-4">
+              <div className="bg-white p-5 rounded-3xl border border-amber-300 shadow-sm space-y-4">
                 <h4 className="font-extrabold text-[#A71930] text-sm border-b border-amber-100 pb-2">
-                  फोटो ब्लर व माहिती ब्लर कस्टमायझर (Blur Controls):
+                  🔐 युझरनेम व पासवर्ड बदला:
                 </h4>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-800">
-                      फोटो अस्पष्टता टक्केवारी (Photo Blur Percent: {siteConfig.photoBlurPercent || 30}%):
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={siteConfig.photoBlurPercent || 30}
-                      onChange={(e) =>
-                        updateSiteConfig({
-                          ...siteConfig,
-                          photoBlurPercent: Number(e.target.value),
-                        })
-                      }
-                      className="w-48 accent-[#A71930]"
-                    />
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const usernameInput = (document.getElementById('admin-new-username') as HTMLInputElement)?.value?.trim();
+                    const passwordInput = (document.getElementById('admin-new-password') as HTMLInputElement)?.value?.trim();
+                    if (!usernameInput || !passwordInput) {
+                      alert('कृपया युझरनेम आणि पासवर्ड दोन्ही भरा!');
+                      return;
+                    }
+                    updateSiteConfig({
+                      adminCredentials: {
+                        name: 'Primary Admin',
+                        username: usernameInput,
+                        password: passwordInput,
+                      },
+                    });
+                    alert('मुख्य ॲडमिनचे क्रेडेंशियल्स यशस्वीरित्या बदलले गेले आहेत!');
+                  }}
+                  className="space-y-4 text-xs font-bold"
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-slate-700">नवीन युझरनेम (New Admin Username):</label>
+                      <input
+                        id="admin-new-username"
+                        type="text"
+                        defaultValue={siteConfig?.adminCredentials?.username || 'admin'}
+                        className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-1 focus:ring-[#A71930] focus:border-[#A71930] outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-slate-700">नवीन पासवर्ड (New Admin Password):</label>
+                      <input
+                        id="admin-new-password"
+                        type="text"
+                        defaultValue={siteConfig?.adminCredentials?.password || 'password'}
+                        className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-1 focus:ring-[#A71930] focus:border-[#A71930] outline-none"
+                      />
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-bold">
-                    <label className="p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between">
-                      <span>शिक्षण ब्लर करा (Blur Education)</span>
-                      <input
-                        type="checkbox"
-                        checked={siteConfig.blurEducation}
-                        onChange={(e) =>
-                          updateSiteConfig({ ...siteConfig, blurEducation: e.target.checked })
-                        }
-                        className="w-4 h-4 rounded text-[#A71930]"
-                      />
-                    </label>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 bg-[#A71930] hover:bg-[#800C1E] text-white font-black text-xs rounded-xl shadow-md cursor-pointer"
+                  >
+                    क्रेडेंशियल्स जतन करा (Save Credentials)
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
 
-                    <label className="p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between">
-                      <span>नोकरी/व्यवसाय ब्लर (Blur Occupation)</span>
-                      <input
-                        type="checkbox"
-                        checked={siteConfig.blurOccupation}
-                        onChange={(e) =>
-                          updateSiteConfig({ ...siteConfig, blurOccupation: e.target.checked })
-                        }
-                        className="w-4 h-4 rounded text-[#A71930]"
-                      />
-                    </label>
+          {/* TAB: CENTRAL MASTER SETTINGS CENTER */}
+          {activeTab === 'master_settings' && (
+            <AdminMasterSettingsCenter />
+          )}
 
-                    <label className="p-3 bg-amber-50 rounded-xl border border-amber-200 flex items-center justify-between">
-                      <span>वार्षिक उत्पन्न ब्लर (Blur Income)</span>
-                      <input
-                        type="checkbox"
-                        checked={siteConfig.blurIncome}
-                        onChange={(e) =>
-                          updateSiteConfig({ ...siteConfig, blurIncome: e.target.checked })
-                        }
-                        className="w-4 h-4 rounded text-[#A71930]"
-                      />
-                    </label>
+          {/* TAB: SPECIAL UNIFIED PERMISSIONS & CONTROLS CENTER */}
+          {activeTab === 'permissions_center' && (
+            <div className="space-y-6 animate-fadeIn">
+              {/* Header Banner */}
+              <div className="p-5 bg-gradient-to-r from-amber-500/10 to-amber-600/5 rounded-3xl border-2 border-amber-300 space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-[#A71930] text-white rounded-2xl shadow-md">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-black text-[#A71930]">
+                      🔑 परवानग्या व नियंत्रण केंद्र (Master System Controls)
+                    </h3>
+                    <p className="text-xs text-slate-700 font-semibold leading-relaxed">
+                      सदस्यांचे फोटो, लॉक केलेले मोबाईल नंबर, पेमेंट व ॲडमिन परवानग्यांचे सोपे व सुटसुटीत नियंत्रण.
+                    </p>
                   </div>
                 </div>
+              </div>
+
+              {/* EASY LAUNCH SYSTEM STATUS SUMMARY CARD */}
+              <div className="p-5 bg-gradient-to-br from-amber-50 via-orange-50/40 to-rose-50 rounded-3xl border-2 border-amber-400 shadow-md space-y-4">
+                <div className="flex items-center gap-2 text-[#A71930] font-black text-sm border-b border-amber-200 pb-2">
+                  <Sparkles className="w-5 h-5 text-amber-500 fill-amber-400" />
+                  <span>सध्याचे सक्रिय सिस्टीम नियम (Final System Workflow Status):</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3">
+                  
+                  {/* Card 1: Photos Status */}
+                  <div className="p-3.5 bg-white rounded-2xl border border-amber-300 shadow-xs space-y-2 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-xs font-black text-slate-900 flex items-center gap-1">
+                          📸 १. फोटो दृश्यता
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black border border-emerald-300">
+                          सक्रिय ✓
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 font-medium leading-relaxed mt-1.5">
+                        सबस्क्रिप्शन पेमेंट पूर्ण केलेल्या सदस्यांना सर्व बायोडाटाचे फोटो स्पष्ट दिसतात.
+                      </p>
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-500 pt-1 border-t border-slate-100">
+                      स्थिती: <strong>स्पष्ट फोटो (Clear Photos)</strong>
+                    </div>
+                  </div>
+
+                  {/* Card 2: Mobile Number Lock & Admin Approval */}
+                  <div className="p-3.5 bg-white rounded-2xl border border-amber-300 shadow-xs space-y-2 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-xs font-black text-slate-900 flex items-center gap-1">
+                          🔒 २. मोबाईल नंबर लॉक
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-black border border-amber-300">
+                          सुरक्षित (Locked)
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 font-medium leading-relaxed mt-1.5">
+                        मोबाईल नंबर थेट कोणालाही दिसत नाही. सदस्य विनंती पाठवतील आणि ॲडमिनने परवानगी दिल्यावरच दिसेल.
+                      </p>
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-500 pt-1 border-t border-slate-100">
+                      स्थिती: <strong>ॲडमिन परवानगी आवश्यक</strong>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Paid Plan Access */}
+                  <div className="p-3.5 bg-white rounded-2xl border border-amber-300 shadow-xs space-y-2 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-xs font-black text-slate-900 flex items-center gap-1">
+                          💳 ३. सबस्क्रिप्शन प्लॅन्स
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${siteConfig?.showOnlyWelcomePlan !== false ? 'bg-amber-100 text-amber-900 border-amber-300' : 'bg-blue-100 text-blue-900 border-blue-300'}`}>
+                          {siteConfig?.showOnlyWelcomePlan !== false ? 'फक्त वेलकम प्लॅन' : 'सर्व प्लॅन दृश्यमान'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 font-medium leading-relaxed mt-1.5">
+                        {siteConfig?.showOnlyWelcomePlan !== false 
+                          ? "ग्राहकांना सध्या फक्त 'विशेष वेलकम ऑफर प्लॅन' दिसेल. इतर प्लॅन्स लपवले आहेत."
+                          : "ग्राहकांना सर्व उपलब्ध प्लॅन्स (मंथली, इयरली, इ.) दिसतील."
+                        }
+                      </p>
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-500 pt-1 border-t border-slate-100 flex items-center justify-between">
+                      <span>स्थिती: <strong>{siteConfig?.showOnlyWelcomePlan !== false ? 'फक्त वेलकम प्लॅन' : 'सर्व प्लॅन'}</strong></span>
+                      <button
+                        onClick={() => updateSiteConfig({ showOnlyWelcomePlan: siteConfig?.showOnlyWelcomePlan === false ? true : false })}
+                        className="text-[10px] font-black text-[#A71930] hover:underline cursor-pointer"
+                      >
+                        बदला
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Card 4: Simple Search Filter */}
+                  <div className="p-3.5 bg-white rounded-2xl border border-amber-300 shadow-xs space-y-2 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-xs font-black text-slate-900 flex items-center gap-1">
+                          🔎 ४. सुलभ शोध मोड
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[10px] font-black border border-blue-300">
+                          सुलभ फिल्टर
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 font-medium leading-relaxed mt-1.5">
+                        गोंधळ न होण्यासाठी फक्त लिंग (वधू/वर) आणि नोकरी/व्यवसाय (Profession) हे २ मुख्य फिल्टर सक्रिय आहेत.
+                      </p>
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-500 pt-1 border-t border-slate-100">
+                      स्थिती: <strong>लिंग + प्रोफेशन शोध</strong>
+                    </div>
+                  </div>
+
+                  {/* Card 5: Mutual Like Contact Unlock */}
+                  <div className="p-3.5 bg-white rounded-2xl border border-amber-300 shadow-xs space-y-2 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-xs font-black text-slate-900 flex items-center gap-1">
+                          ❤️ ५. म्युचुअल लाईक अनलॉक
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${siteConfig?.enableMutualLikeContactUnlock !== false ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-rose-100 text-rose-800 border-rose-300'}`}>
+                          {siteConfig?.enableMutualLikeContactUnlock !== false ? 'ऑटो अनलॉक ON' : 'बंद OFF'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 font-medium leading-relaxed mt-1.5">
+                        {siteConfig?.enableMutualLikeContactUnlock !== false
+                          ? "दोघांनी एकमेकांना लाईक केल्यावर मोबाईल नंबर ऑटोमॅटिक अनलॉक होतो."
+                          : "म्युचुअल लाईक ऑटो-अनलॉक बंद आहे."
+                        }
+                      </p>
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-500 pt-1 border-t border-slate-100 flex items-center justify-between">
+                      <span>स्थिती: <strong>{siteConfig?.enableMutualLikeContactUnlock !== false ? 'सुरू (ON)' : 'बंद (OFF)'}</strong></span>
+                      <button
+                        onClick={() => updateSiteConfig({ enableMutualLikeContactUnlock: siteConfig?.enableMutualLikeContactUnlock === false ? true : false })}
+                        className="text-[10px] font-black text-[#A71930] hover:underline cursor-pointer"
+                      >
+                        बदला
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Card 6: Plan Contact Limits */}
+                  <div className="p-3.5 bg-white rounded-2xl border border-amber-300 shadow-xs space-y-2 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-xs font-black text-slate-900 flex items-center gap-1">
+                          🔢 ६. प्लॅन नंबर मर्यादा
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${siteConfig?.disablePlanContactLimit ? 'bg-purple-100 text-purple-900 border-purple-300' : 'bg-amber-100 text-amber-900 border-amber-300'}`}>
+                          {siteConfig?.disablePlanContactLimit ? 'अमर्याद (No Limit)' : 'मर्यादित (5/10/..)'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 font-medium leading-relaxed mt-1.5">
+                        {siteConfig?.disablePlanContactLimit
+                          ? "५-१० नंबर मर्यादा बंद आहे. लाईक/अनलॉक वर अमर्याद नंबर दिसतील."
+                          : "प्लॅननुसार ५ किंवा १० नंबर अनलॉक मर्यादा लागू आहे."
+                        }
+                      </p>
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-500 pt-1 border-t border-slate-100 flex items-center justify-between">
+                      <span>स्थिती: <strong>{siteConfig?.disablePlanContactLimit ? 'अमर्याद ON' : 'मर्यादा लागू'}</strong></span>
+                      <button
+                        onClick={() => updateSiteConfig({ disablePlanContactLimit: !siteConfig?.disablePlanContactLimit })}
+                        className="text-[10px] font-black text-[#A71930] hover:underline cursor-pointer"
+                      >
+                        बदला
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Card 7: Member-to-Member Chatting System */}
+                  <div className="p-3.5 bg-white rounded-2xl border border-amber-300 shadow-xs space-y-2 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-xs font-black text-slate-900 flex items-center gap-1">
+                          💬 ७. सदस्य चॅटिंग
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${siteConfig?.enableChatGlobal !== false ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-rose-100 text-rose-800 border-rose-300'}`}>
+                          {siteConfig?.enableChatGlobal !== false ? 'सुरू (ON)' : 'बंद (OFF)'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 font-medium leading-relaxed mt-1.5">
+                        {siteConfig?.enableChatGlobal !== false
+                          ? "सदस्य-सदस्य चॅटिंग सिस्टीम सध्या चालू आहे."
+                          : "सदस्य-सदस्य डायरेक्ट चॅटिंग सध्या पूर्णपणे बंद आहे."
+                        }
+                      </p>
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-500 pt-1 border-t border-slate-100 flex items-center justify-between">
+                      <span>स्थिती: <strong>{siteConfig?.enableChatGlobal !== false ? 'सुरू (ON)' : 'बंद (OFF)'}</strong></span>
+                      <button
+                        onClick={() => updateSiteConfig({ enableChatGlobal: siteConfig?.enableChatGlobal === false ? true : false })}
+                        className="text-[10px] font-black text-[#A71930] hover:underline cursor-pointer"
+                      >
+                        बदला
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* SPECIAL ADMIN PRIVACY OVERVIEW & OVERRIDE PANEL */}
+              <div className="p-5 bg-red-50 rounded-3xl border border-red-200 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <h4 className="font-extrabold text-[#A71930] text-sm flex items-center gap-2">
+                      <Lock className="w-4.5 h-4.5 text-[#A71930]" />
+                      सदस्यांच्या वैयक्तिक गोपनीयतेवर ॲडमिनचे थेट नियंत्रण (Admin Privacy Override Control)
+                    </h4>
+                    <p className="text-xs text-slate-600 font-semibold leading-relaxed">
+                      जर सदस्याने नोंदणी करताना किंवा प्रोफाइलमध्ये "नंबर लपवा" (Hide Contact) अथवा "फोटो लपवा" (Hide Photo) निवडले असेल, तर ॲडमिन म्हणून तुम्हाला ते अमान्य (Override) करून थेट उघडे करण्याची परवानगी आहे का?
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      updateSiteConfig({
+                        adminOverrideMemberPrivacy: !siteConfig.adminOverrideMemberPrivacy,
+                      })
+                    }
+                    className={`px-5 py-2.5 rounded-xl font-black text-xs cursor-pointer shadow-md transition-all shrink-0 ${
+                      siteConfig.adminOverrideMemberPrivacy 
+                        ? 'bg-emerald-600 text-white hover:bg-emerald-700' 
+                        : 'bg-rose-600 text-white hover:bg-rose-700'
+                    }`}
+                  >
+                    {siteConfig.adminOverrideMemberPrivacy ? 'ओव्हरराइड सक्रिय (OVERRIDE ON)' : 'सदस्य पसंती पाळा (RESPECT USER CHOICE)'}
+                  </button>
+                </div>
+                <div className="p-3.5 bg-white rounded-2xl border border-red-100 text-[11px] text-slate-500 font-bold leading-normal">
+                  💡 <strong>महत्त्वाचे (Important):</strong> <br />
+                  - <strong>OVERRIDE ON:</strong> सदस्यांचे वैयक्तिक 'लपवा' सेटिंग दुर्लक्षित केले जाईल. सर्व काही ॲडमिनच्या खालील जागतिक नियमांनुसार चालेल. (अतिशय सुलभ आणि स्पष्ट!) <br />
+                  - <strong>RESPECT USER CHOICE:</strong> सदस्याने नंबर किंवा फोटो लपवला असल्यास, तो कुणालाही दिसणार नाही, जोपर्यंत तो सदस्य स्वतःहून परवानगी देत नाही.
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                {/* CATEGORY 1: लॉगिन नसलेले अतिथी (Unregistered Public Visitors) */}
+                <div className="bg-white p-5 rounded-3xl border border-amber-300 shadow-sm space-y-5 flex flex-col justify-between">
+                  <div className="space-y-5">
+                    <div className="flex items-center gap-2 border-b border-amber-100 pb-3">
+                      <div className="p-1.5 bg-rose-100 text-[#A71930] rounded-lg shrink-0">
+                        <UserCheck className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-[#A71930] text-sm">
+                          १. लॉगिन नसलेले विझिटर्स (Public)
+                        </h4>
+                        <p className="text-[10px] text-slate-500 font-medium">लॉगिन न करता थेट वेबसाईटला भेट देणारे लोक</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Toggle: View Contacts for Public Visitors */}
+                      <div className="p-3.5 bg-amber-50/50 rounded-2xl border border-amber-200 flex items-center justify-between gap-4">
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-black text-slate-800">मोबाईल नंबर थेट दाखवा?</p>
+                          <p className="text-[10px] text-slate-500 font-semibold leading-normal">
+                            चालू केल्यास, लॉगिन नसलेल्या सामान्य लोकांना इतर सदस्यांचे मोबाईल नंबर थेट स्पष्ट दिसतील.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateSiteConfig({
+                              allowPublicVisitorsToViewContacts: !siteConfig.allowPublicVisitorsToViewContacts,
+                            })
+                          }
+                          className={`px-4 py-2 rounded-xl font-black text-xs cursor-pointer shadow-xs transition-all shrink-0 ${
+                            siteConfig.allowPublicVisitorsToViewContacts ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-rose-600 text-white hover:bg-rose-700'
+                          }`}
+                        >
+                          {siteConfig.allowPublicVisitorsToViewContacts ? 'सुरू (ON)' : 'बंद (OFF)'}
+                        </button>
+                      </div>
+
+                      {/* Toggle: Blur Photos for Public Visitors */}
+                      <div className="p-3.5 bg-amber-50/50 rounded-2xl border border-amber-200 flex items-center justify-between gap-4">
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-black text-slate-800">फोटो स्पष्ट दाखवा?</p>
+                          <p className="text-[10px] text-slate-500 font-semibold leading-normal">
+                            बंद केल्यास लॉगिन नसलेल्या विझिटर्सना सर्व सदस्यांचे फोटो अस्पष्ट (Blur) दिसतील.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateSiteConfig({
+                              allowPublicVisitorsToViewPhotos: siteConfig.allowPublicVisitorsToViewPhotos === false ? true : false,
+                            })
+                          }
+                          className={`px-4 py-2 rounded-xl font-black text-xs cursor-pointer shadow-xs transition-all shrink-0 ${
+                            siteConfig.allowPublicVisitorsToViewPhotos !== false ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-rose-600 text-white hover:bg-rose-700'
+                          }`}
+                        >
+                          {siteConfig.allowPublicVisitorsToViewPhotos !== false ? 'स्पष्ट (Clear)' : 'अस्पष्ट (Blur)'}
+                        </button>
+                      </div>
+
+                      {/* Granular Public visitor Permissions Matrix list */}
+                      <div className="space-y-2.5 pt-2 border-t border-amber-100">
+                        <p className="text-xs font-black text-slate-700">तपशीलवार परवानग्या (Public visitor Limits):</p>
+                        {[
+                          { key: 'viewProfiles', label: 'बायोडाटा पाहणे', desc: 'लॉगिन नसलेले लोक बायोडाटा यादी पाहू शकतात.' },
+                          { key: 'searchFilters', label: 'शोधाशोध फिल्टर्स वापरणे', desc: 'जिल्हा, शिक्षण व वयानुसार शोधणे.' },
+                        ].map((item) => {
+                          const currentPerms = siteConfig.guestPermissions || {
+                            viewProfiles: true,
+                            searchFilters: true,
+                            kundaliView: false,
+                            expressInterest: false,
+                            viewPhotos: true,
+                            directChat: false,
+                          };
+                          const isEnabled = currentPerms[item.key as keyof typeof currentPerms] ?? true;
+
+                          return (
+                            <div key={item.key} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                              <div>
+                                <p className="text-xs font-bold text-slate-800">{item.label}</p>
+                                <p className="text-[9px] text-slate-500 font-medium">{item.desc}</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = {
+                                    ...currentPerms,
+                                    [item.key]: !isEnabled,
+                                  };
+                                  updateSiteConfig({ guestPermissions: updated });
+                                }}
+                                className={`px-3 py-1 rounded-lg text-[10px] font-black cursor-pointer shadow-xs ${
+                                  isEnabled ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-rose-100 text-rose-800 border border-rose-200'
+                                }`}
+                              >
+                                {isEnabled ? 'सुरू' : 'बंद'}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* CATEGORY 2: गेस्ट लॉगिन युझर्स (Temporary Guest Accounts) */}
+                <div className="bg-white p-5 rounded-3xl border border-amber-300 shadow-sm space-y-5 flex flex-col justify-between">
+                  <div className="space-y-5">
+                    <div className="flex items-center gap-2 border-b border-amber-100 pb-3">
+                      <div className="p-1.5 bg-amber-100 text-amber-800 rounded-lg shrink-0">
+                        <KeyRound className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-[#A71930] text-sm">
+                          २. गेस्ट लॉगिन युझर्स (Guest Logins)
+                        </h4>
+                        <p className="text-[10px] text-slate-500 font-medium">तात्पुरते 'गेस्ट लॉगिन' केलेल्या लोकांसाठी परवानग्या</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Toggle: View Contacts for Guest Logins */}
+                      <div className="p-3.5 bg-amber-50/50 rounded-2xl border border-amber-200 flex items-center justify-between gap-4">
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-black text-slate-800">मोबाईल नंबर थेट दाखवा?</p>
+                          <p className="text-[10px] text-slate-500 font-semibold leading-normal">
+                            हे चालू केल्यास, गेस्ट लॉगिन खात्याद्वारे आलेल्यांना सर्व सदस्यांचे मोबाईल नंबर स्पष्ट दिसतील.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateSiteConfig({
+                              allowGuestsToViewContacts: !siteConfig.allowGuestsToViewContacts,
+                            })
+                          }
+                          className={`px-4 py-2 rounded-xl font-black text-xs cursor-pointer shadow-xs transition-all shrink-0 ${
+                            siteConfig.allowGuestsToViewContacts ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-rose-600 text-white hover:bg-rose-700'
+                          }`}
+                        >
+                          {siteConfig.allowGuestsToViewContacts ? 'सुरू (ON)' : 'बंद (OFF)'}
+                        </button>
+                      </div>
+
+                      {/* Toggle: Blur Photos for Guest Logins */}
+                      <div className="p-3.5 bg-amber-50/50 rounded-2xl border border-amber-200 flex items-center justify-between gap-4">
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-black text-slate-800">फोटो स्पष्ट दाखवा?</p>
+                          <p className="text-[10px] text-slate-500 font-semibold leading-normal">
+                            बंद केल्यास गेस्ट लॉगिन युझर्सना सर्व सदस्यांचे फोटो अस्पष्ट (Blur) दिसतील.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateSiteConfig({
+                              allowGuestsToViewPhotos: siteConfig.allowGuestsToViewPhotos === false ? true : false,
+                            })
+                          }
+                          className={`px-4 py-2 rounded-xl font-black text-xs cursor-pointer shadow-xs transition-all shrink-0 ${
+                            siteConfig.allowGuestsToViewPhotos !== false ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-rose-600 text-white hover:bg-rose-700'
+                          }`}
+                        >
+                          {siteConfig.allowGuestsToViewPhotos !== false ? 'स्पष्ट (Clear)' : 'अस्पष्ट (Blur)'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* CATEGORY 2: नोंदणीकृत सदस्य (Members) नियम */}
+                <div className="bg-white p-5 rounded-3xl border border-amber-300 shadow-sm space-y-5 flex flex-col justify-between">
+                  <div className="space-y-5">
+                    <div className="flex items-center gap-2 border-b border-amber-100 pb-3">
+                      <div className="p-1.5 bg-indigo-100 text-indigo-800 rounded-lg shrink-0">
+                        <Users className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="font-extrabold text-[#A71930] text-sm">
+                          नोंदणीकृत सदस्य नियम (Registered Member Rules)
+                        </h4>
+                        <p className="text-[10px] text-slate-500 font-medium">खाते तयार करून लॉग-इन असलेल्या लोकांसाठी नियम</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Toggle: View Contacts for Members */}
+                      <div className="p-3.5 bg-amber-50/50 rounded-2xl border border-amber-200 flex items-center justify-between gap-4">
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-black text-slate-800">मोबाईल नंबर थेट दाखवा?</p>
+                          <p className="text-[10px] text-slate-500 font-semibold leading-normal">
+                            हे सुरू केल्यास, लॉगिन असलेल्या सर्व सदस्यांना इतर सर्व सदस्यांचे संपर्क क्रमांक थेट दिसतील (पेमेंट किंवा ॲडमिन मंजुरीशिवाय).
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateSiteConfig({
+                              allowMembersToViewContacts: !siteConfig.allowMembersToViewContacts,
+                            })
+                          }
+                          className={`px-4 py-2 rounded-xl font-black text-xs cursor-pointer shadow-xs transition-all shrink-0 ${
+                            siteConfig.allowMembersToViewContacts ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-rose-600 text-white hover:bg-rose-700'
+                          }`}
+                        >
+                          {siteConfig.allowMembersToViewContacts ? 'सुरू (ON)' : 'बंद (OFF)'}
+                        </button>
+                      </div>
+
+                      {/* Toggle: Blur Photos for Members */}
+                      <div className="p-3.5 bg-amber-50/50 rounded-2xl border border-amber-200 flex items-center justify-between gap-4">
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-black text-slate-800">फोटो स्पष्ट दाखवा?</p>
+                          <p className="text-[10px] text-slate-500 font-semibold leading-normal">
+                            बंद केल्यास सदस्यांना इतर सदस्यांचे फोटो अस्पष्ट (Blur) दिसतील.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateSiteConfig({
+                              allowMembersToViewPhotos: siteConfig.allowMembersToViewPhotos === false ? true : false,
+                            })
+                          }
+                          className={`px-4 py-2 rounded-xl font-black text-xs cursor-pointer shadow-xs transition-all shrink-0 ${
+                            siteConfig.allowMembersToViewPhotos !== false ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-rose-600 text-white hover:bg-rose-700'
+                          }`}
+                        >
+                          {siteConfig.allowMembersToViewPhotos !== false ? 'स्पष्ट (Clear)' : 'अस्पष्ट (Blur)'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* MASTER AUTO-APPROVALS & MODES */}
+                  <div className="space-y-4 pt-4 border-t border-amber-100">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4.5 h-4.5 text-amber-500 animate-bounce shrink-0" />
+                      <p className="text-xs font-black text-slate-800">ऑटो-मंजुरी व ऑटो-मोड (Auto-Approvals):</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      {/* Auto approve new registrations */}
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between gap-2">
+                        <div>
+                          <p className="font-bold text-slate-800">नवीन सदस्यांना ऑटो-मंजूर करा?</p>
+                          <p className="text-[9px] text-slate-500 font-semibold mt-0.5 leading-normal">
+                            चालू केल्यास नोंदणी केलेले सदस्य थेट मंजूर होऊन मुख्य यादीत जातील.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateSiteConfig({
+                              autoApproveNewRegistrations: !siteConfig.autoApproveNewRegistrations,
+                            })
+                          }
+                          className={`w-full py-1.5 rounded-lg text-center font-black text-[10px] cursor-pointer shadow-xs ${
+                            siteConfig.autoApproveNewRegistrations ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+                          }`}
+                        >
+                          {siteConfig.autoApproveNewRegistrations ? 'चालू (AUTO)' : 'बंद (MANUAL APPROVAL)'}
+                        </button>
+                      </div>
+
+                      {/* Offer mode */}
+                      <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between gap-2">
+                        <div>
+                          <p className="font-bold text-slate-800">सण विशेष ऑफर मोड (Offer Mode)</p>
+                          <p className="text-[9px] text-slate-500 font-semibold mt-0.5 leading-normal">
+                            सर्व संपर्क आणि चॅट तात्पुरते मोफत व खुले करण्यासाठी.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateSiteConfig({
+                              isOfferModeEnabled: !siteConfig.isOfferModeEnabled,
+                            })
+                          }
+                          className={`w-full py-1.5 rounded-lg text-center font-black text-[10px] cursor-pointer shadow-xs ${
+                            siteConfig.isOfferModeEnabled ? 'bg-amber-500 text-white' : 'bg-slate-600 text-white'
+                          }`}
+                        >
+                          {siteConfig.isOfferModeEnabled ? 'सुरू (OFFER ON)' : 'बंद (OFF)'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* CATEGORY 3: चॅट नियम व सुरक्षा नियंत्रणे */}
+                <div className="bg-white p-5 rounded-3xl border border-amber-300 shadow-sm space-y-4 lg:col-span-2">
+                  <div className="flex items-center gap-2 border-b border-amber-100 pb-3">
+                    <div className="p-1.5 bg-emerald-100 text-emerald-800 rounded-lg shrink-0">
+                      <MessageSquare className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-extrabold text-[#A71930] text-sm">
+                        चॅट नियम व सुरक्षा नियंत्रणे (Chat & Security Restrictions)
+                      </h4>
+                      <p className="text-[10px] text-slate-500 font-medium">चॅटमध्ये माहिती शेअरिंगवर नियंत्रण ठेवण्यासाठी सेटिंग्ज</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs font-bold">
+                    <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-200 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-slate-900 text-xs font-black">गावाचे नाव शेअरिंग</p>
+                        <p className="text-[9px] text-slate-500 font-semibold">चॅटमध्ये गावाचे नाव परवानगी</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateSiteConfig({
+                            allowShareVillage: !siteConfig.allowShareVillage,
+                          })
+                        }
+                        className={`px-3 py-1.5 rounded-lg font-black text-[10px] cursor-pointer shadow-xs shrink-0 ${
+                          siteConfig.allowShareVillage ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+                        }`}
+                      >
+                        {siteConfig.allowShareVillage ? 'चालू (ON)' : 'बंद (OFF)'}
+                      </button>
+                    </div>
+
+                    <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-200 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-slate-900 text-xs font-black">मोबाईल नंबर शेअरिंग</p>
+                        <p className="text-[9px] text-slate-500 font-semibold">चॅटमध्ये फोन नंबर ब्लॉक</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateSiteConfig({
+                            allowShareMobile: !siteConfig.allowShareMobile,
+                          })
+                        }
+                        className={`px-3 py-1.5 rounded-lg font-black text-[10px] cursor-pointer shadow-xs shrink-0 ${
+                          siteConfig.allowShareMobile ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+                        }`}
+                      >
+                        {siteConfig.allowShareMobile ? 'चालू (ON)' : 'बंद (OFF)'}
+                      </button>
+                    </div>
+
+                    <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-200 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-slate-900 text-xs font-black">ई-मेल आयडी शेअरिंग</p>
+                        <p className="text-[9px] text-slate-500 font-semibold">चॅटमध्ये ईमेल ब्लॉक</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateSiteConfig({
+                            allowShareEmail: !siteConfig.allowShareEmail,
+                          })
+                        }
+                        className={`px-3 py-1.5 rounded-lg font-black text-[10px] cursor-pointer shadow-xs shrink-0 ${
+                          siteConfig.allowShareEmail ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+                        }`}
+                      >
+                        {siteConfig.allowShareEmail ? 'चालू (ON)' : 'बंद (OFF)'}
+                      </button>
+                    </div>
+
+                    <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-200 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-slate-900 text-xs font-black">चॅट मेसेज डिलीट</p>
+                        <p className="text-[9px] text-slate-500 font-semibold">सदस्यांना डिलीट करण्याची परवानगी</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateSiteConfig({
+                            allowUsersToDeleteChatMessages: !siteConfig.allowUsersToDeleteChatMessages,
+                          })
+                        }
+                        className={`px-3 py-1.5 rounded-lg font-black text-[10px] cursor-pointer shadow-xs shrink-0 ${
+                          siteConfig.allowUsersToDeleteChatMessages ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+                        }`}
+                      >
+                        {siteConfig.allowUsersToDeleteChatMessages ? 'चालू (ON)' : 'फक्त ॲडमिन (OFF)'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Photo Blur Percent slider & selective blurs */}
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-black text-slate-800">फोटो अस्पष्टता टक्केवारी (Photo Blur Percent):</p>
+                        <p className="text-[10px] text-slate-500 font-semibold">फोटो किती प्रमाणात ब्लर करावा (मूळ मूल्य ३०%)</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-700">{siteConfig.photoBlurPercent || 30}%</span>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={siteConfig.photoBlurPercent || 30}
+                          onChange={(e) =>
+                            updateSiteConfig({
+                              photoBlurPercent: Number(e.target.value),
+                            })
+                          }
+                          className="w-40 accent-[#A71930] h-1.5 bg-slate-200 rounded-lg cursor-pointer"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-bold pt-2 border-t border-slate-200/50">
+                      <label className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between gap-2 cursor-pointer">
+                        <span className="text-slate-800 text-[11px] font-bold">शिक्षण ब्लर करा</span>
+                        <input
+                          type="checkbox"
+                          checked={siteConfig.blurEducation || false}
+                          onChange={(e) =>
+                            updateSiteConfig({ blurEducation: e.target.checked })
+                          }
+                          className="w-4 h-4 rounded text-[#A71930] accent-[#A71930] cursor-pointer"
+                        />
+                      </label>
+
+                      <label className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between gap-2 cursor-pointer">
+                        <span className="text-slate-800 text-[11px] font-bold">नोकरी/व्यवसाय ब्लर</span>
+                        <input
+                          type="checkbox"
+                          checked={siteConfig.blurOccupation || false}
+                          onChange={(e) =>
+                            updateSiteConfig({ blurOccupation: e.target.checked })
+                          }
+                          className="w-4 h-4 rounded text-[#A71930] accent-[#A71930] cursor-pointer"
+                        />
+                      </label>
+
+                      <label className="p-2.5 bg-white rounded-xl border border-slate-200 flex items-center justify-between gap-2 cursor-pointer">
+                        <span className="text-slate-800 text-[11px] font-bold">वार्षिक उत्पन्न ब्लर</span>
+                        <input
+                          type="checkbox"
+                          checked={siteConfig.blurIncome || false}
+                          onChange={(e) =>
+                            updateSiteConfig({ blurIncome: e.target.checked })
+                          }
+                          className="w-4 h-4 rounded text-[#A71930] accent-[#A71930] cursor-pointer"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
           )}
@@ -3172,6 +5085,85 @@ export const AdminPanel: React.FC<{
                         className="w-full px-3 py-2 rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-[#A71930]"
                       />
                     </div>
+
+                    {/* Payment Gateway Mode Selector */}
+                    <div className="pt-2 border-t border-amber-200 space-y-3">
+                      <div>
+                        <label className="block text-slate-800 text-xs font-black mb-1 flex items-center gap-1.5">
+                          <CreditCard className="w-4 h-4 text-[#A71930]" />
+                          <span>पेमेंट पद्धत निवडा (Payment Gateway Option Mode):</span>
+                        </label>
+                        <select
+                          value={siteConfig.paymentMode || 'both'}
+                          onChange={(e) => updateSiteConfig({ paymentMode: e.target.value as any })}
+                          className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-[#A71930] bg-white text-slate-900 cursor-pointer"
+                        >
+                          <option value="both">⚡ दोन्ही सुरू ठेवा (Razorpay + UPI QR कोड दोन्ही)</option>
+                          <option value="razorpay_only">💳 फक्त Razorpay ऑनलाईन सुरू ठेवा (Razorpay Only)</option>
+                          <option value="upi_qr_only">📲 फक्त UPI QR कोड व UTR पावती सुरू ठेवा (UPI QR Only)</option>
+                        </select>
+                        <p className="text-[11px] text-slate-600 font-bold mt-1">
+                          ॲडमिन इच्छेनुसार फक्त एकच पेमेंट पर्याय किंवा दोन्ही पर्याय वापरकर्त्यांना दाखवू शकतात.
+                        </p>
+                      </div>
+
+                      {/* Full Access For Paid Members Toggle */}
+                      <div className="flex items-center justify-between bg-amber-50 p-3 rounded-xl border border-amber-300">
+                        <div>
+                          <span className="font-extrabold text-xs text-slate-900 block">
+                            🔓 पेड मेंबर्सना सर्व नंबर थेट दाखवणे (Paid Member Full Access):
+                          </span>
+                          <span className="text-[11px] text-slate-600 font-medium block">
+                            सक्रिय केल्यास, कोणत्याही पेड मेम्बरला सर्व बायोडाटाचे संपर्क थेट दिसतील.
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => updateSiteConfig({ enableFullAccessForPaidMembers: siteConfig.enableFullAccessForPaidMembers === false })}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                            siteConfig.enableFullAccessForPaidMembers !== false
+                              ? 'bg-emerald-600 text-white shadow'
+                              : 'bg-rose-600 text-white shadow'
+                          }`}
+                        >
+                          {siteConfig.enableFullAccessForPaidMembers !== false ? 'चालू (Enabled)' : 'बंद (Disabled)'}
+                        </button>
+                      </div>
+
+                      {/* Razorpay Gateway Admin Config */}
+                      <div className="pt-2 border-t border-amber-200 space-y-2">
+                        <div className="flex items-center justify-between bg-blue-50 p-2.5 rounded-xl border border-blue-200">
+                          <div>
+                            <span className="font-extrabold text-xs text-blue-900 block">Razorpay ऑनलाईन गेटवे (Razorpay Payment Gateway):</span>
+                            <span className="text-[11px] text-blue-700 font-medium">कार्ड, युपीआय, नेटबँकिंग ने ऑटो-पेमेंट सक्रिय करा</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => updateSiteConfig({ enableRazorpay: siteConfig.enableRazorpay === false })}
+                            className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                              siteConfig.enableRazorpay !== false
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-slate-200 text-slate-700'
+                            }`}
+                          >
+                            {siteConfig.enableRazorpay !== false ? 'सक्रिय (ON)' : 'बंद (OFF)'}
+                          </button>
+                        </div>
+
+                        {siteConfig.enableRazorpay !== false && (
+                          <div>
+                            <label className="block text-slate-700 text-[11px] font-bold mb-1">Razorpay Key ID (उदा. rzp_live_xxxxxxxx):</label>
+                            <input
+                              type="text"
+                              value={siteConfig.razorpayKeyId || ''}
+                              onChange={(e) => updateSiteConfig({ razorpayKeyId: e.target.value })}
+                              placeholder="rzp_test_5173VanjariJodi किंवा rzp_live_..."
+                              className="w-full px-3 py-2 font-mono text-xs rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-[#A71930]"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200 flex flex-col items-center justify-center text-center space-y-2">
@@ -3195,6 +5187,132 @@ export const AdminPanel: React.FC<{
                 </div>
               </div>
 
+              {/* CUSTOMER PLAN VISIBILITY CONTROL BANNER */}
+              <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl border-2 border-amber-400 space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#A71930] text-amber-100 text-[10px] font-black uppercase tracking-wider inline-block">
+                      🔥 मुख्य प्लॅन सेटिंग (Primary Plan Visibility)
+                    </span>
+                    <h4 className="font-black text-slate-900 text-sm sm:text-base">
+                      ग्राहकांसाठी फक्त 'स्पेशल वेलकम प्लॅन' दाखवा (Show Only Welcome Plan)
+                    </h4>
+                    <p className="text-xs text-slate-600 font-medium">
+                      सध्या चालू (ON) असल्यास ग्राहकांना नोंदणी व सबस्क्रिप्शन वेळी फक्त <strong>स्पेशल वेलकम ऑफर प्लॅन</strong> दिसेल. इतर प्लॅन्स लपवले जातील. बंद (OFF) केल्यास सर्व प्लॅन्स दिसतील.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => updateSiteConfig({ showOnlyWelcomePlan: siteConfig.showOnlyWelcomePlan === false ? true : false })}
+                    className={`px-4 py-2.5 rounded-xl font-black text-xs transition-all border cursor-pointer shrink-0 shadow-md ${
+                      siteConfig.showOnlyWelcomePlan !== false
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700'
+                        : 'bg-slate-700 hover:bg-slate-800 text-slate-200 border-slate-800'
+                    }`}
+                  >
+                    {siteConfig.showOnlyWelcomePlan !== false ? '✓ फक्त वेलकम प्लॅन (सक्रिय ON)' : '✕ सर्व प्लॅन्स दाखवा (OFF)'}
+                  </button>
+                </div>
+              </div>
+
+              {/* MUTUAL LIKE CONTACT UNLOCK CONTROL BANNER */}
+              <div className="p-4 bg-gradient-to-r from-rose-50 via-pink-50 to-amber-50 rounded-2xl border-2 border-rose-300 space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <span className="px-2.5 py-0.5 rounded-full bg-[#A71930] text-amber-100 text-[10px] font-black uppercase tracking-wider inline-block">
+                      ❤️ म्युचुअल लाईक ऑटो-अनलॉक (Mutual Like Contact Unlock)
+                    </span>
+                    <h4 className="font-black text-slate-900 text-sm sm:text-base">
+                      एकमेकांना लाईक केल्यावर ऑटोमॅटिक मोबाईल नंबर दिसेल (Auto Unlock on Mutual Match)
+                    </h4>
+                    <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                      हे बटण चालू (ON) असल्यास, जेव्हा दोन सदस्यांनी एकमेकांना लाईक (Like) केले असेल (म्युचुअल मॅच), तेव्हा दोघांचाही मोबाईल नंबर एकमेकांना ऑटोमॅटिक दिसेल. बंद (OFF) केल्यास फक्त ॲडमिन मंजुरीनेच नंबर दिसेल.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => updateSiteConfig({ enableMutualLikeContactUnlock: siteConfig.enableMutualLikeContactUnlock === false ? true : false })}
+                    className={`px-4 py-2.5 rounded-xl font-black text-xs transition-all border cursor-pointer shrink-0 shadow-md ${
+                      siteConfig.enableMutualLikeContactUnlock !== false
+                        ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-700'
+                        : 'bg-slate-700 hover:bg-slate-800 text-slate-200 border-slate-800'
+                    }`}
+                  >
+                    {siteConfig.enableMutualLikeContactUnlock !== false ? '✓ म्युचुअल लाईक अनलॉक (सक्रिय ON)' : '✕ बंद आहे (OFF)'}
+                  </button>
+                </div>
+              </div>
+
+              {/* DISABLE PLAN CONTACT LIMIT CONTROL BANNER */}
+              <div className="p-4 bg-gradient-to-r from-purple-50 via-indigo-50 to-amber-50 rounded-2xl border-2 border-purple-300 space-y-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <span className="px-2.5 py-0.5 rounded-full bg-purple-900 text-purple-100 text-[10px] font-black uppercase tracking-wider inline-block">
+                      🔢 अमर्याद नंबर अनलॉक सिस्टीम (Unlimited Contact Unlocks System)
+                    </span>
+                    <h4 className="font-black text-slate-900 text-sm sm:text-base">
+                      ५ / १० नंबर मर्यादेची सिस्टीम बंद करा (Disable 5/10 Contact Limit)
+                    </h4>
+                    <p className="text-xs text-slate-600 font-medium leading-relaxed">
+                      हे बटण चालू (ON) केल्यास ५ किंवा १० मोबाईल नंबर अनलॉक मर्यादेची सिस्टीम पूर्णपणे बंद होईल. सदस्यांना अमर्याद मोबाईल नंबर अनलॉक करता येतील व म्युचुअल लाईक (एकमेकांना लाईक) केल्यावर नंबर दिसेल. मर्यादा बंद (OFF) ठेवल्यास ५ किंवा १० ची नेहमीची मर्यादा लागू राहील.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => updateSiteConfig({ disablePlanContactLimit: !siteConfig.disablePlanContactLimit })}
+                    className={`px-4 py-2.5 rounded-xl font-black text-xs transition-all border cursor-pointer shrink-0 shadow-md ${
+                      siteConfig.disablePlanContactLimit
+                        ? 'bg-purple-700 hover:bg-purple-800 text-white border-purple-800'
+                        : 'bg-slate-700 hover:bg-slate-800 text-slate-200 border-slate-800'
+                    }`}
+                  >
+                    {siteConfig.disablePlanContactLimit ? '✓ अमर्याद नंबर अनलॉक (सक्रिय ON)' : '✕ प्लॅन ५/१० मर्यादा चालू (OFF)'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Upgrade Plan Settings */}
+              <div className="bg-gradient-to-r from-amber-500/10 via-rose-50 to-amber-500/10 p-4 rounded-2xl border-2 border-amber-400 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h5 className="font-black text-[#A71930] text-xs sm:text-sm flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-600" />
+                    <span>५ नंबर पूर्ण झाल्यावर दाखवायचा 'अपग्रेड प्लॅन' (Target Upgrade Plan Settings)</span>
+                  </h5>
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-black border border-amber-300">
+                    ॲडमिन अधिकार (Admin Control)
+                  </span>
+                </div>
+                <p className="text-xs text-slate-700 font-bold leading-relaxed">
+                  जेव्हा एखादा सदस्य वेलकम ऑफर मधील ५ मोबाईल नंबर अनलॉक मर्यादा पूर्ण करतो, तेव्हा त्याला पुढील अमर्याद नंबर व बायोडाटा पाहण्यासाठी हा अपग्रेड प्लॅन सुचवला जाईल:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                  <div>
+                    <label className="block text-slate-900 text-xs font-black mb-1">
+                      सुचवायचा अपग्रेड प्लॅन निवडा (Recommended Upgrade Plan):
+                    </label>
+                    <select
+                      value={siteConfig.upgradeRecommendedPlanId || 'monthly'}
+                      onChange={(e) => updateSiteConfig({ upgradeRecommendedPlanId: e.target.value })}
+                      className="w-full px-3 py-2 text-xs font-bold rounded-xl border-2 border-amber-400 focus:outline-none focus:ring-2 focus:ring-[#A71930] bg-white text-slate-900 cursor-pointer"
+                    >
+                      {plansList
+                        .filter((p) => p.id !== 'welcome_offer')
+                        .map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.nameMr} — ₹{p.price} ({p.durationLabelMr || `${p.durationMonths} महिने`})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <div className="p-3 bg-white rounded-xl border border-amber-300 text-xs space-y-1">
+                    <span className="font-black text-[#A71930] block">निवडलेला अपग्रेड प्लॅन:</span>
+                    <span className="font-extrabold text-slate-800 block">
+                      {plansList.find((p) => p.id === (siteConfig.upgradeRecommendedPlanId || 'monthly'))?.nameMr || 'मंथली प्लॅन'} — ₹{plansList.find((p) => p.id === (siteConfig.upgradeRecommendedPlanId || 'monthly'))?.price || 299}
+                    </span>
+                    <span className="text-[11px] text-slate-500 block">
+                      सदस्याचे ५ नंबर संपल्यास हा प्लॅन थेट पेमेंटसाठी उघडेल.
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               {/* Plans Pricing & Features Cards */}
               <div className="space-y-4">
                 <h4 className="font-black text-[#A71930] text-sm flex items-center gap-2">
@@ -3203,102 +5321,411 @@ export const AdminPanel: React.FC<{
                 </h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {plansList.map((plan) => (
-                    <div
-                      key={plan.id}
-                      className={`p-5 rounded-2xl border-2 bg-white shadow-sm space-y-4 relative ${
-                        plan.recommended ? 'border-[#A71930] bg-amber-50/30' : 'border-amber-300'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between border-b border-amber-200 pb-2">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2.5 py-0.5 rounded-full bg-[#A71930] text-amber-100 font-extrabold text-[10px] uppercase">
-                            {plan.id}
-                          </span>
-                          <h5 className="font-black text-slate-900 text-sm">{plan.nameMr}</h5>
-                        </div>
-                        {plan.recommended && (
-                          <span className="px-2 py-0.5 bg-amber-400 text-amber-950 font-black text-[10px] rounded-full">
-                            ★ लोकप्रिय सुचवलेला प्लॅन
-                          </span>
-                        )}
-                      </div>
+                  {plansList.map((plan) => {
+                    const isLimitReached =
+                      plan.isLimitedSlotsPlan &&
+                      plan.maxMemberLimit &&
+                      plan.maxMemberLimit > 0 &&
+                      (plan.currentMemberCount || 0) >= plan.maxMemberLimit;
 
-                      <div className="grid grid-cols-2 gap-3 text-xs font-bold">
-                        <div>
-                          <label className="block text-slate-700 mb-1">मराठी नाव:</label>
-                          <input
-                            type="text"
-                            value={plan.nameMr}
-                            onChange={(e) => updatePlan({ ...plan, nameMr: e.target.value })}
-                            className="w-full px-3 py-1.5 rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-[#A71930]"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-slate-700 mb-1">दर / किंमत (₹):</label>
-                          <input
-                            type="number"
-                            value={plan.price}
-                            onChange={(e) => updatePlan({ ...plan, price: Number(e.target.value) })}
-                            className="w-full px-3 py-1.5 rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-[#A71930] font-mono text-emerald-800 font-extrabold"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-slate-700 mb-1">कालावधी (महिने):</label>
-                          <input
-                            type="number"
-                            value={plan.durationMonths}
-                            onChange={(e) => updatePlan({ ...plan, durationMonths: Number(e.target.value) })}
-                            className="w-full px-3 py-1.5 rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-[#A71930] font-mono"
-                          />
+                    return (
+                      <div
+                        key={plan.id}
+                        className={`p-5 rounded-2xl border-2 bg-white shadow-sm space-y-4 relative ${
+                          plan.id === 'welcome_offer'
+                            ? 'border-amber-500 bg-amber-50/50 ring-2 ring-amber-400/50'
+                            : plan.recommended
+                            ? 'border-[#A71930] bg-amber-50/30'
+                            : 'border-amber-300'
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-center justify-between border-b border-amber-200 pb-2 gap-2">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-full bg-[#A71930] text-amber-100 font-extrabold text-[10px] uppercase">
+                              {plan.id}
+                            </span>
+                            <h5 className="font-black text-slate-900 text-sm">{plan.nameMr}</h5>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {plan.id === 'welcome_offer' && (
+                              <span className="px-2.5 py-0.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-[10px] rounded-full shadow-2xs">
+                                🔥 वेलकम ऑफर (रु. {plan.price}/-)
+                              </span>
+                            )}
+                            {plan.recommended && (
+                              <span className="px-2 py-0.5 bg-amber-400 text-amber-950 font-black text-[10px] rounded-full">
+                                ★ सुचवलेला
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => updatePlan({ ...plan, isActive: plan.isActive === false ? true : false })}
+                              className={`px-3 py-1 rounded-full text-xs font-black cursor-pointer border transition-all ${
+                                plan.isActive !== false
+                                  ? 'bg-emerald-100 text-emerald-950 border-emerald-300 hover:bg-emerald-200'
+                                  : 'bg-rose-100 text-rose-950 border-rose-300 hover:bg-rose-200'
+                              }`}
+                            >
+                              {plan.isActive !== false ? '✓ चालू (Active)' : '✕ बंद (Disabled)'}
+                            </button>
+                          </div>
                         </div>
 
-                        <div className="flex items-center pt-5">
-                          <label className="flex items-center gap-2 text-slate-800 text-xs cursor-pointer">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs font-bold">
+                          <div>
+                            <label className="block text-slate-700 mb-1">मराठी नाव:</label>
                             <input
-                              type="checkbox"
-                              checked={!!plan.recommended}
-                              onChange={(e) => updatePlan({ ...plan, recommended: e.target.checked })}
-                              className="w-4 h-4 rounded border-amber-400 text-[#A71930]"
+                              type="text"
+                              value={plan.nameMr}
+                              onChange={(e) => updatePlan({ ...plan, nameMr: e.target.value })}
+                              className="w-full px-3 py-1.5 rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-[#A71930]"
                             />
-                            <span>सुचवलेला (Recommended)</span>
+                          </div>
+
+                          <div>
+                            <label className="block text-slate-700 mb-1">दर / किंमत (₹):</label>
+                            <input
+                              type="number"
+                              value={plan.price}
+                              onChange={(e) => updatePlan({ ...plan, price: Number(e.target.value) })}
+                              className="w-full px-3 py-1.5 rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-[#A71930] font-mono text-emerald-800 font-extrabold"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-slate-700 mb-1">कालावधी (महिने):</label>
+                            <input
+                              type="number"
+                              value={plan.durationMonths}
+                              onChange={(e) => updatePlan({ ...plan, durationMonths: Number(e.target.value) })}
+                              className="w-full px-3 py-1.5 rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-[#A71930] font-mono"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-slate-700 mb-1">संपर्क नंबर अनलॉक संख्या:</label>
+                            <input
+                              type="number"
+                              value={plan.unlockCount || (plan.id === 'welcome_offer' ? 5 : 0)}
+                              onChange={(e) => updatePlan({ ...plan, unlockCount: Number(e.target.value) })}
+                              className="w-full px-3 py-1.5 rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-[#A71930] font-mono text-blue-900"
+                              placeholder="उदा. 5, 15, 25"
+                            />
+                          </div>
+
+                          <div className="col-span-2 flex items-center pt-2">
+                            <label className="flex items-center gap-2 text-slate-800 text-xs cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={!!plan.recommended}
+                                onChange={(e) => updatePlan({ ...plan, recommended: e.target.checked })}
+                                className="w-4 h-4 rounded border-amber-400 text-[#A71930]"
+                              />
+                              <span>सुचवलेला प्लॅन (Recommended Banner)</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* LIMITED MEMBER SEATS & AUTO-EXPIRY SETTINGS */}
+                        <div className="p-3.5 rounded-2xl bg-amber-100/70 border border-amber-300 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="flex items-center gap-2 text-slate-900 font-black text-xs cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={!!plan.isLimitedSlotsPlan}
+                                onChange={(e) =>
+                                  updatePlan({
+                                    ...plan,
+                                    isLimitedSlotsPlan: e.target.checked,
+                                    maxMemberLimit: plan.maxMemberLimit || 100,
+                                    currentMemberCount: plan.currentMemberCount || 0,
+                                  })
+                                }
+                                className="w-4 h-4 rounded border-amber-500 text-[#A71930]"
+                              />
+                              <span>🎯 लिमिटेड मेम्बर्स ऑफर ऑटो-बंद सेटिंग (Auto-Close Seat Limit)</span>
+                            </label>
+
+                            {plan.isLimitedSlotsPlan && (
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-black border ${
+                                  isLimitReached
+                                    ? 'bg-rose-200 text-rose-950 border-rose-400 animate-pulse'
+                                    : 'bg-emerald-200 text-emerald-950 border-emerald-400'
+                                }`}
+                              >
+                                {isLimitReached
+                                  ? '⚠️ लिमिट पूर्ण! ऑफर ऑटो बंद'
+                                  : `चालू - ${Math.max(0, (plan.maxMemberLimit || 100) - (plan.currentMemberCount || 0))} जागा बाकी`}
+                              </span>
+                            )}
+                          </div>
+
+                          {plan.isLimitedSlotsPlan && (
+                            <div className="space-y-2 pt-1 border-t border-amber-200">
+                              <div className="grid grid-cols-2 gap-3 text-xs">
+                                <div>
+                                  <label className="block text-slate-800 font-bold mb-1">
+                                    जास्तीत जास्त मर्यादा (Max Seat Limit):
+                                  </label>
+                                  <input
+                                    type="number"
+                                    value={plan.maxMemberLimit || 100}
+                                    onChange={(e) =>
+                                      updatePlan({ ...plan, maxMemberLimit: Math.max(1, Number(e.target.value)) })
+                                    }
+                                    className="w-full px-3 py-1.5 rounded-xl border border-amber-400 bg-white text-slate-900 font-bold"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-slate-800 font-extrabold text-xs mb-1">
+                                    🎯 मॅन्यूअली जॉईन मेम्बर्स संख्या (Manipulate Joined Count for Marketing):
+                                  </label>
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="number"
+                                      value={plan.currentMemberCount || 0}
+                                      onChange={(e) =>
+                                        updatePlan({ ...plan, currentMemberCount: Math.max(0, Number(e.target.value)) })
+                                      }
+                                      className="w-28 px-3 py-1.5 rounded-xl border-2 border-amber-400 bg-white text-[#800C1E] font-black text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                    />
+                                    <div className="flex flex-wrap items-center gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          updatePlan({
+                                            ...plan,
+                                            currentMemberCount: Math.max(0, (plan.currentMemberCount || 0) + 5),
+                                          })
+                                        }
+                                        className="px-2 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-950 font-black text-[10px] rounded-lg border border-emerald-400 cursor-pointer"
+                                      >
+                                        +५ सभासद
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          updatePlan({
+                                            ...plan,
+                                            currentMemberCount: Math.max(0, (plan.currentMemberCount || 0) + 10),
+                                          })
+                                        }
+                                        className="px-2 py-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-950 font-black text-[10px] rounded-lg border border-emerald-400 cursor-pointer"
+                                      >
+                                        +१० सभासद
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          updatePlan({
+                                            ...plan,
+                                            currentMemberCount: Math.max(0, (plan.currentMemberCount || 0) - 5),
+                                          })
+                                        }
+                                        className="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-amber-950 font-black text-[10px] rounded-lg border border-amber-300 cursor-pointer"
+                                      >
+                                        -५
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          updatePlan({
+                                            ...plan,
+                                            currentMemberCount: Math.floor((plan.maxMemberLimit || 100) * 0.85),
+                                          })
+                                        }
+                                        className="px-2 py-1 bg-amber-200 hover:bg-amber-300 text-amber-950 font-extrabold text-[10px] rounded-lg border border-amber-400 cursor-pointer"
+                                        title="जाहीरातीत घाई निर्माण करण्यासाठी ८५% फुल करा"
+                                      >
+                                        🔥 ८५% Full
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          updatePlan({
+                                            ...plan,
+                                            currentMemberCount: Math.floor((plan.maxMemberLimit || 100) * 0.95),
+                                          })
+                                        }
+                                        className="px-2 py-1 bg-rose-200 hover:bg-rose-300 text-rose-950 font-extrabold text-[10px] rounded-lg border border-rose-400 cursor-pointer"
+                                        title="जाहीरातीत अत्यंत घाई निर्माण करण्यासाठी ९५% फुल करा"
+                                      >
+                                        ⚡ ९५% Full
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Progress bar visual */}
+                              <div>
+                                <div className="flex justify-between text-[11px] font-black text-slate-800 mb-1">
+                                  <span>सीट भरती प्रगती:</span>
+                                  <span>
+                                    {plan.currentMemberCount || 0} / {plan.maxMemberLimit || 100} सभासद (
+                                    {Math.round(
+                                      ((plan.currentMemberCount || 0) / (plan.maxMemberLimit || 100)) * 100
+                                    )}
+                                    %)
+                                  </span>
+                                </div>
+                                <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden border border-amber-300">
+                                  <div
+                                    className={`h-full transition-all duration-500 ${
+                                      isLimitReached
+                                        ? 'bg-rose-600'
+                                        : 'bg-gradient-to-r from-amber-500 to-emerald-600'
+                                    }`}
+                                    style={{
+                                      width: `${Math.min(
+                                        100,
+                                        Math.round(
+                                          ((plan.currentMemberCount || 0) / (plan.maxMemberLimit || 100)) * 100
+                                        )
+                                      )}%`,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Public Seat Display Toggle */}
+                              <div className="p-2.5 rounded-xl bg-white border border-amber-300 flex items-center justify-between">
+                                <label className="flex items-center gap-2 text-xs font-bold text-slate-800 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={plan.showRemainingSeatsToPublic !== false}
+                                    onChange={(e) =>
+                                      updatePlan({
+                                        ...plan,
+                                        showRemainingSeatsToPublic: e.target.checked,
+                                      })
+                                    }
+                                    className="w-4 h-4 rounded border-amber-400 text-[#A71930]"
+                                  />
+                                  <span>👁️ ग्राहकांना शिल्लक जागांचा आकडा व प्रोग्रेस बार दाखवायचा? (Show Remaining Seats to Public)</span>
+                                </label>
+                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${plan.showRemainingSeatsToPublic !== false ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'}`}>
+                                  {plan.showRemainingSeatsToPublic !== false ? '✓ सार्वजनिक दिसत आहे' : '🙈 लपवले आहे'}
+                                </span>
+                              </div>
+
+                              {/* Relaunch Banner Text */}
+                              <div>
+                                <label className="block text-slate-800 font-extrabold text-xs mb-1">
+                                  📢 ऑफर पुन्हा सुरू केल्याचा जाहिरात मेसेज (Relaunch Announcement Banner):
+                                </label>
+                                <input
+                                  type="text"
+                                  value={plan.relaunchBannerText || ''}
+                                  placeholder="उदा. 🎉 मेम्बर्सच्या आग्रहास्तव सवलत ऑफर पुन्हा सुरू! ५० नवीन जागा उपलब्ध."
+                                  onChange={(e) =>
+                                    updatePlan({
+                                      ...plan,
+                                      relaunchBannerText: e.target.value,
+                                    })
+                                  }
+                                  className="w-full px-3 py-2 rounded-xl border border-amber-300 text-xs font-bold bg-white focus:outline-none focus:ring-2 focus:ring-[#A71930]"
+                                />
+                              </div>
+
+                              {/* Quick Action buttons to expand seats or re-open */}
+                              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                                <span className="text-[10px] font-black text-slate-700">तब्बल जागा वाढवा:</span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    updatePlan({
+                                      ...plan,
+                                      maxMemberLimit: (plan.maxMemberLimit || 100) + 25,
+                                      isActive: true,
+                                    })
+                                  }
+                                  className="px-2 py-1 bg-amber-200 hover:bg-amber-300 text-amber-950 font-extrabold text-[10px] rounded-lg border border-amber-400 cursor-pointer"
+                                >
+                                  +२५ जागा वाढवा
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    updatePlan({
+                                      ...plan,
+                                      maxMemberLimit: (plan.maxMemberLimit || 100) + 50,
+                                      isActive: true,
+                                    })
+                                  }
+                                  className="px-2 py-1 bg-amber-200 hover:bg-amber-300 text-amber-950 font-extrabold text-[10px] rounded-lg border border-amber-400 cursor-pointer"
+                                >
+                                  +५० जागा वाढवा
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newMax = (plan.maxMemberLimit || 100) + 50;
+                                    const bannerMsg = plan.relaunchBannerText || '🎉 मेम्बर्सच्या आग्रहास्तव ऑफर पुन्हा सुरू करण्यात आली आहे!';
+                                    updatePlan({
+                                      ...plan,
+                                      maxMemberLimit: newMax,
+                                      isActive: true,
+                                      relaunchBannerText: bannerMsg,
+                                    });
+                                    alert(`ऑफर यशस्वीरित्या पुन्हा सुरू केली! ५० नवीन जागा वाढवल्या (एकूण जागा: ${newMax}).`);
+                                  }}
+                                  className="px-2.5 py-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-[10px] rounded-lg border border-emerald-400 cursor-pointer shadow"
+                                >
+                                  🚀 ऑफर पुन्हा सुरू करा (+५०)
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    updatePlan({
+                                      ...plan,
+                                      currentMemberCount: 0,
+                                      isActive: true,
+                                    })
+                                  }
+                                  className="px-2 py-1 bg-rose-100 hover:bg-rose-200 text-rose-950 font-extrabold text-[10px] rounded-lg border border-rose-300 ml-auto cursor-pointer"
+                                >
+                                  काउंटर झिरो करा
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-bold text-slate-700 mb-1">
+                            वैशिष्ट्ये (Features - प्रत्येक ओळीवर नवीन वैशिष्ट्य प्रविष्ट करा):
                           </label>
+                          <textarea
+                            rows={3}
+                            value={plan.featuresMr ? plan.featuresMr.join('\n') : ''}
+                            onChange={(e) =>
+                              updatePlan({
+                                ...plan,
+                                featuresMr: e.target.value.split('\n').filter((f) => f.trim() !== ''),
+                              })
+                            }
+                            className="w-full p-2.5 text-xs font-semibold rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-[#A71930]"
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2 border-t border-amber-100">
+                          <span className="text-[11px] text-slate-500 font-bold">
+                            वर्तमान: ₹{plan.price} ({plan.durationMonths} महिने)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => alert(`'${plan.nameMr}' प्लॅनची माहिती व मर्यादा सेव्ह झाली!`)}
+                            className="px-4 py-1.5 bg-[#A71930] hover:bg-[#800C1E] text-amber-100 font-extrabold text-xs rounded-xl shadow cursor-pointer border border-amber-300"
+                          >
+                            बदल सेव्ह करा
+                          </button>
                         </div>
                       </div>
-
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1">
-                          वैशिष्ट्ये (Features - प्रत्येक ओळीवर किंवा स्वल्पविरामाने प्रविष्ट करा):
-                        </label>
-                        <textarea
-                          rows={3}
-                          value={plan.featuresMr ? plan.featuresMr.join('\n') : ''}
-                          onChange={(e) =>
-                            updatePlan({
-                              ...plan,
-                              featuresMr: e.target.value.split('\n').filter((f) => f.trim() !== ''),
-                            })
-                          }
-                          className="w-full p-2.5 text-xs font-semibold rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-[#A71930]"
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between pt-2 border-t border-amber-100">
-                        <span className="text-[11px] text-slate-500 font-bold">
-                          वर्तमान: ₹{plan.price} ({plan.durationMonths} महिने)
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => alert(`'${plan.nameMr}' प्लॅनची माहिती यशस्वीरित्या जतन केली गेली!`)}
-                          className="px-4 py-1.5 bg-[#A71930] hover:bg-[#800C1E] text-amber-100 font-extrabold text-xs rounded-xl shadow cursor-pointer border border-amber-300"
-                        >
-                          बदल सेव्ह करा
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -3928,10 +6355,10 @@ export const AdminPanel: React.FC<{
                 <div>
                   <h3 className="text-lg font-black text-[#A71930] flex items-center gap-2">
                     <Camera className="w-5 h-5 text-blue-600" />
-                    <span>AI चेहरा पडताळणी ऑथेंटिकेशन लॉग्स (Face Verification Logs)</span>
+                    <span>चेहरा व फोटो पडताळणी ऑथेंटिकेशन लॉग्स (Face Verification Logs)</span>
                   </h3>
                   <p className="text-xs text-slate-700 font-medium">
-                    सदस्यांनी स्कॅन केलेले लाईव्ह चेहऱ्यांचे फोटो तपासा, मॅच स्कोर पहा आणि मॅन्युअली Approved किंवा Rejected करा.
+                    सदस्यांनी पाठवलेले फोटो तपासा, मूळ प्रोफाइल फोटोशी तुलना करून मॅन्युअली Approved (मंजूर) किंवा Rejected (अमान्य) करा.
                   </p>
                 </div>
 
@@ -3947,10 +6374,10 @@ export const AdminPanel: React.FC<{
                   <thead className="bg-amber-100 text-[#800C1E] font-black border-b border-amber-200">
                     <tr>
                       <th className="p-3">सदस्याचे नाव & ID</th>
-                      <th className="p-3">स्कॅन केलेला चेहऱ्याचा फोटो</th>
+                      <th className="p-3">सादर केलेला चेहऱ्याचा फोटो</th>
                       <th className="p-3">मूळ प्रोफाइल फोटो</th>
-                      <th className="p-3">AI मॅच स्कोर</th>
-                      <th className="p-3">स्कॅन वेळ</th>
+                      <th className="p-3">पडताळणी प्रकार</th>
+                      <th className="p-3">सादर वेळ</th>
                       <th className="p-3 text-right">कृती (Actions)</th>
                     </tr>
                   </thead>
@@ -3958,7 +6385,7 @@ export const AdminPanel: React.FC<{
                     {faceVerificationLogs.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="p-8 text-center text-slate-500 font-bold">
-                          अद्याप कोणत्याही सदस्याने चेहरा पडताळणीसाठी अर्ज केलेला नाही.
+                          अद्याप कोणत्याही सदस्याने चेहरा पडताळणीसाठी फोटो पाठवलेला नाही.
                         </td>
                       </tr>
                     ) : (
@@ -3990,14 +6417,10 @@ export const AdminPanel: React.FC<{
                           </td>
                           <td className="p-3">
                             <span
-                              className={`px-2.5 py-1 rounded-full font-black text-xs inline-flex items-center gap-1 ${
-                                log.matchScore >= 80
-                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                                  : 'bg-amber-100 text-amber-800 border border-amber-300'
-                              }`}
+                              className="px-2.5 py-1 rounded-full font-black text-xs inline-flex items-center gap-1 bg-amber-100 text-amber-900 border border-amber-300"
                             >
-                              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                              <span>{log.matchScore}% Match</span>
+                              <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                              <span>मॅन्युअल ॲडमिन रिव्ह्यू</span>
                             </span>
                           </td>
                           <td className="p-3 font-mono text-slate-500 text-[11px]">{log.submittedAt}</td>
@@ -4301,7 +6724,7 @@ export const AdminPanel: React.FC<{
                     <label className="block text-slate-700 mb-1">हेल्पलाईन मोबाईल नंबर (Phone Number):</label>
                     <input
                       type="text"
-                      value={siteConfig?.contactPhone || '+91 98220 00000'}
+                      value={siteConfig?.contactPhone || '+91 00000 00000'}
                       onChange={(e) => updateSiteConfig({ contactPhone: e.target.value })}
                       className="w-full bg-white border border-amber-300 rounded-xl p-2.5 font-mono text-slate-900"
                     />
@@ -4311,7 +6734,7 @@ export const AdminPanel: React.FC<{
                     <label className="block text-slate-700 mb-1">व्हॉट्सॲप नंबर (WhatsApp Number):</label>
                     <input
                       type="text"
-                      value={siteConfig?.contactWhatsapp || '+91 98220 00000'}
+                      value={siteConfig?.contactWhatsapp || '+91 00000 00000'}
                       onChange={(e) => updateSiteConfig({ contactWhatsapp: e.target.value })}
                       className="w-full bg-white border border-amber-300 rounded-xl p-2.5 font-mono text-slate-900"
                     />
@@ -4989,30 +7412,118 @@ export const AdminPanel: React.FC<{
                         </div>
 
                         {/* 🔎 SEARCH FILTERS ON/OFF TOGGLE CARD */}
-                        <div className="p-3 bg-amber-50 rounded-xl border border-amber-300 flex items-center justify-between col-span-full">
-                          <div>
-                            <span className="block text-slate-900 text-xs font-bold flex items-center gap-1">
-                              <span>🔎 प्रगत शोध फिल्टर (Advanced Search Filters):</span>
-                            </span>
-                            <span className="text-[10px] text-slate-600 font-medium">
-                              बायोडाटा कमी असल्यामुळे हे बंद ठेवण्याची शिफारस आहे. गरज भासल्यास नंतर इथून सुरू करा.
-                            </span>
+                        <div className="col-span-full space-y-3 p-4 bg-amber-50 rounded-2xl border border-amber-300">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="block text-slate-900 text-xs font-bold flex items-center gap-1">
+                                <span>🔎 प्रगत शोध फिल्टर नियंत्रण (Advanced Search Filters Master Control):</span>
+                              </span>
+                              <span className="text-[10px] text-slate-600 font-semibold block mt-0.5">
+                                बायोडाटा संख्या कमी असल्यामुळे हे बंद ठेवल्यास सर्व वधू-वर थेट दिसतात. आवश्यकतेनुसार सुरू/बंद करा.
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateSiteConfig({
+                                  enableSearchFilters: !siteConfig?.enableSearchFilters,
+                                })
+                              }
+                              className={`px-3 py-1.5 rounded-xl text-[10px] font-black cursor-pointer transition-all border shrink-0 ${
+                                siteConfig?.enableSearchFilters
+                                  ? 'bg-emerald-600 text-white border-emerald-400 shadow-xs'
+                                  : 'bg-rose-700 text-white border-rose-400 shadow-xs'
+                              }`}
+                            >
+                              {siteConfig?.enableSearchFilters ? '✅ फिल्टर चालू (ON)' : '❌ फिल्टर बंद (OFF)'}
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              updateSiteConfig({
-                                enableSearchFilters: !siteConfig?.enableSearchFilters,
-                              })
-                            }
-                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black cursor-pointer transition-all border shrink-0 ${
-                              siteConfig?.enableSearchFilters
-                                ? 'bg-emerald-600 text-white border-emerald-400'
-                                : 'bg-rose-700 text-white border-rose-400'
-                            }`}
-                          >
-                            {siteConfig?.enableSearchFilters ? '✅ फिल्टर चालू (ON)' : '❌ फिल्टर बंद (OFF)'}
-                          </button>
+
+                          {/* Sub-Filters options shown for configuration */}
+                          <div className="pt-3 border-t border-amber-200/60">
+                            <span className="block text-slate-800 text-[11px] font-black mb-2.5 uppercase tracking-wider">
+                              ⚙️ कोणते कोणते फिल्टर दाखवायचे ते निवडा (Select Filters to Display):
+                            </span>
+                            
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                              {/* Gender Filter Toggle */}
+                              <label className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-amber-200 cursor-pointer hover:bg-amber-100/50 transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={siteConfig?.filterShowGender !== false}
+                                  onChange={() => updateSiteConfig({ filterShowGender: siteConfig?.filterShowGender === false ? true : false })}
+                                  className="w-3.5 h-3.5 accent-[#800C1E] rounded"
+                                />
+                                <span className="text-[10px] font-bold text-slate-700">👤 वधू / वर (Gender)</span>
+                              </label>
+
+                              {/* Profession Filter Toggle */}
+                              <label className="flex items-center gap-2 bg-amber-50 px-3 py-2 rounded-xl border border-amber-300 cursor-pointer hover:bg-amber-100 transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={siteConfig?.enableProfessionFilter !== false}
+                                  onChange={() => updateSiteConfig({ enableProfessionFilter: siteConfig?.enableProfessionFilter === false ? true : false })}
+                                  className="w-3.5 h-3.5 accent-[#800C1E] rounded"
+                                />
+                                <span className="text-[10px] font-black text-[#A71930]">💼 नोकरी/व्यवसाय (Profession)</span>
+                              </label>
+
+                              {/* Age Filter Toggle */}
+                              <label className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-amber-200 cursor-pointer hover:bg-amber-100/50 transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={siteConfig?.filterShowAge !== false}
+                                  onChange={() => updateSiteConfig({ filterShowAge: siteConfig?.filterShowAge === false ? true : false })}
+                                  className="w-3.5 h-3.5 accent-[#800C1E] rounded"
+                                />
+                                <span className="text-[10px] font-bold text-slate-700">📅 वयोमर्यादा (Age)</span>
+                              </label>
+
+                              {/* District Filter Toggle */}
+                              <label className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-amber-200 cursor-pointer hover:bg-amber-100/50 transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={siteConfig?.filterShowDistrict !== false}
+                                  onChange={() => updateSiteConfig({ filterShowDistrict: siteConfig?.filterShowDistrict === false ? true : false })}
+                                  className="w-3.5 h-3.5 accent-[#800C1E] rounded"
+                                />
+                                <span className="text-[10px] font-bold text-slate-700">📍 जिल्हा (District)</span>
+                              </label>
+
+                              {/* Education Filter Toggle */}
+                              <label className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-amber-200 cursor-pointer hover:bg-amber-100/50 transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={siteConfig?.filterShowEducation !== false}
+                                  onChange={() => updateSiteConfig({ filterShowEducation: siteConfig?.filterShowEducation === false ? true : false })}
+                                  className="w-3.5 h-3.5 accent-[#800C1E] rounded"
+                                />
+                                <span className="text-[10px] font-bold text-slate-700">🎓 शिक्षण (Education)</span>
+                              </label>
+
+                              {/* Marital Status Filter Toggle */}
+                              <label className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-amber-200 cursor-pointer hover:bg-amber-100/50 transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={siteConfig?.filterShowMaritalStatus !== false}
+                                  onChange={() => updateSiteConfig({ filterShowMaritalStatus: siteConfig?.filterShowMaritalStatus === false ? true : false })}
+                                  className="w-3.5 h-3.5 accent-[#800C1E] rounded"
+                                />
+                                <span className="text-[10px] font-bold text-slate-700">💍 वैवाहिक स्थिती (Marital)</span>
+                              </label>
+
+                              {/* Verification Status Toggle */}
+                              <label className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-amber-200 cursor-pointer hover:bg-amber-100/50 transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={siteConfig?.filterShowVerified !== false}
+                                  onChange={() => updateSiteConfig({ filterShowVerified: siteConfig?.filterShowVerified === false ? true : false })}
+                                  className="w-3.5 h-3.5 accent-[#800C1E] rounded"
+                                />
+                                <span className="text-[10px] font-bold text-slate-700">🛡️ प्रमाणित (Verified Profile)</span>
+                              </label>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -5592,6 +8103,195 @@ export const AdminPanel: React.FC<{
                   </div>
                 )}
               </div>
+
+              {/* TIMED FLASH / POPUP PHOTO AD CONTROL CARD (विशेष पॉपअप जाहिरात कंट्रोल) */}
+              <div id="flash-popup-ad-admin" className="bg-white p-5 rounded-2xl border-2 border-amber-400 shadow-xl space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-amber-200 pb-3">
+                  <div>
+                    <h4 className="font-extrabold text-[#A71930] text-sm flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+                      <span>विशेष ऑटो पॉपअप व स्लाईड फोटो जाहिरात कंट्रोल (Timed Flash / Popup Ad Settings)</span>
+                    </h4>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      युझर ॲपवर आल्यावर अचानक समोर येणारी आणि काही सेकंदात आपोआप गायब होणारी आकर्षक फोटो जाहिरात किंवा ऑफर.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs font-bold text-slate-700">पॉपअप जाहिरात चालू/बंद:</span>
+                    <button
+                      type="button"
+                      onClick={() => updateSiteConfig({ isFlashAdEnabled: !siteConfig?.isFlashAdEnabled })}
+                      className={`px-4 py-1.5 rounded-full text-xs font-black cursor-pointer shadow border transition-all ${
+                        siteConfig?.isFlashAdEnabled !== false
+                          ? 'bg-emerald-600 text-white border-emerald-500 hover:bg-emerald-700'
+                          : 'bg-rose-600 text-white border-rose-500 hover:bg-rose-700'
+                      }`}
+                    >
+                      {siteConfig?.isFlashAdEnabled !== false ? 'सक्रिय (ON)' : 'बंद (OFF)'}
+                    </button>
+                  </div>
+                </div>
+
+                {siteConfig?.isFlashAdEnabled === false ? (
+                  <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-bold flex items-center gap-2">
+                    <span>🚫 ऑटो पॉपअप जाहिरात सध्या बंद (OFF) ठेवण्यात आली आहे. युझरला कोणतीही पॉपअप विंडो दिसणार नाही.</span>
+                  </div>
+                ) : (
+                  <div className="space-y-4 text-xs font-bold">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      
+                      {/* Display Mode Selector */}
+                      <div>
+                        <label className="block text-slate-700 mb-1">जाहिरात दाखवण्याची पद्धत (Display Style):</label>
+                        <select
+                          value={siteConfig?.flashAdDisplayMode || 'popup_modal'}
+                          onChange={(e) => updateSiteConfig({ flashAdDisplayMode: e.target.value as any })}
+                          className="w-full bg-slate-50 border border-amber-300 rounded-xl p-2.5 text-slate-900 font-bold"
+                        >
+                          <option value="popup_modal">🎯 सेंटर पॉपअप विंडो (Central Modal Popup)</option>
+                          <option value="top_slide">⬇️ वरून खाली येणारी स्लाईड पट्टी (Top Slide Banner)</option>
+                          <option value="bottom_float">↗️ कोपर्‍यात तरंगणारी लहान जाहिरात (Bottom-Right Float)</option>
+                        </select>
+                      </div>
+
+                      {/* Display Delay (Seconds) */}
+                      <div>
+                        <label className="block text-slate-700 mb-1">ॲप उघडल्यावर किती सेकंदांनी दिसावी (Delay Sec):</label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={30}
+                          value={siteConfig?.flashAdDelaySeconds ?? 1}
+                          onChange={(e) => updateSiteConfig({ flashAdDelaySeconds: Number(e.target.value) })}
+                          className="w-full bg-slate-50 border border-amber-300 rounded-xl p-2.5 text-slate-900"
+                          placeholder="१ सेकंद"
+                        />
+                      </div>
+
+                      {/* Auto Close Duration (Seconds) */}
+                      <div>
+                        <label className="block text-slate-700 mb-1">किती सेकंदांनी आपोआप गायब व्हावी (Auto Close Sec):</label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={60}
+                          value={siteConfig?.flashAdAutoCloseSeconds ?? 8}
+                          onChange={(e) => updateSiteConfig({ flashAdAutoCloseSeconds: Number(e.target.value) })}
+                          className="w-full bg-slate-50 border border-amber-300 rounded-xl p-2.5 text-slate-900"
+                          placeholder="८ सेकंद (० = मॅन्युअली बंद करेपर्यंत दिसेल)"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {/* Ad Title */}
+                      <div>
+                        <label className="block text-slate-700 mb-1">जाहिरातीचे मुख्य नाव / हेडिंग (Ad Title):</label>
+                        <input
+                          type="text"
+                          value={siteConfig?.flashAdTitle || ''}
+                          onChange={(e) => updateSiteConfig({ flashAdTitle: e.target.value })}
+                          className="w-full bg-white border border-amber-300 rounded-xl p-2.5 text-slate-900"
+                          placeholder="उदा. 🎯 भव्य वंजारी वधू-वर परिचय मेळावा २०२६"
+                        />
+                      </div>
+
+                      {/* Ad Subtitle */}
+                      <div>
+                        <label className="block text-slate-700 mb-1">थोडक्यात माहिती व संदेश (Ad Subtitle / Text):</label>
+                        <input
+                          type="text"
+                          value={siteConfig?.flashAdSubtitle || ''}
+                          onChange={(e) => updateSiteConfig({ flashAdSubtitle: e.target.value })}
+                          className="w-full bg-white border border-amber-300 rounded-xl p-2.5 text-slate-900"
+                          placeholder="उदा. परळी वैजनाथ, बीड व पुणे येथे मोफत बायोडाटा पुस्तक वाटप!"
+                        />
+                      </div>
+
+                      {/* Ad Image URL */}
+                      <div>
+                        <label className="block text-slate-700 mb-1">जाहिरातीचा मुख्य फोटो / बॅनर प्रतिमा (Image URL):</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={siteConfig?.flashAdImageUrl || ''}
+                            onChange={(e) => updateSiteConfig({ flashAdImageUrl: e.target.value })}
+                            className="w-full bg-white border border-amber-300 rounded-xl p-2.5 text-slate-900"
+                            placeholder="https://..."
+                          />
+                          <label className="px-3 py-2 bg-amber-200 hover:bg-amber-300 text-[#800C1E] rounded-xl text-xs font-bold cursor-pointer shrink-0 border border-amber-300 flex items-center gap-1">
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>{isUploadingAdImg ? 'अपलोड...' : 'फोटो निवडा'}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                setIsUploadingAdImg(true);
+                                try {
+                                  const res = await uploadToCloudinary(file, 'vanjarijodi_ads');
+                                  if (res.success && res.url) {
+                                    updateSiteConfig({ flashAdImageUrl: res.url });
+                                  } else {
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => {
+                                      if (typeof reader.result === 'string') {
+                                        updateSiteConfig({ flashAdImageUrl: reader.result });
+                                      }
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                } catch {
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    if (typeof reader.result === 'string') {
+                                      updateSiteConfig({ flashAdImageUrl: reader.result });
+                                    }
+                                  };
+                                  reader.readAsDataURL(file);
+                                } finally {
+                                  setIsUploadingAdImg(false);
+                                }
+                              }}
+                              className="hidden"
+                              disabled={isUploadingAdImg}
+                            />
+                          </label>
+                        </div>
+                      </div>
+
+                      {/* Target Link URL */}
+                      <div>
+                        <label className="block text-slate-700 mb-1">जाहिरातीवर क्लिक केल्यावर उघडणारी लिंक (Link / WhatsApp URL):</label>
+                        <input
+                          type="text"
+                          value={siteConfig?.flashAdLinkUrl || ''}
+                          onChange={(e) => updateSiteConfig({ flashAdLinkUrl: e.target.value })}
+                          className="w-full bg-white border border-amber-300 rounded-xl p-2.5 text-slate-900 font-mono"
+                          placeholder="https://wa.me/910000000000?text=जाहिरात_चौकशी"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Preview Box */}
+                    {siteConfig?.flashAdImageUrl && (
+                      <div className="p-3 bg-amber-50/80 rounded-xl border border-amber-300 flex items-center gap-4">
+                        <img
+                          src={siteConfig.flashAdImageUrl}
+                          alt="Ad Preview"
+                          className="w-20 h-16 object-cover rounded-lg border border-amber-400 shrink-0 shadow"
+                        />
+                        <div className="text-left flex-1">
+                          <span className="text-[10px] text-[#A71930] font-black uppercase">जाहिरात प्रिव्ह्यू</span>
+                          <h6 className="font-extrabold text-xs text-slate-900">{siteConfig.flashAdTitle || 'शीर्षक'}</h6>
+                          <p className="text-[11px] text-slate-600 line-clamp-1">{siteConfig.flashAdSubtitle || 'वर्णन'}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -5775,6 +8475,297 @@ export const AdminPanel: React.FC<{
                 </div>
               </div>
 
+              {/* 1.5 BIODATA WATERMARK & PLAY STORE PROMOTION SETTINGS */}
+              <div className="bg-white p-5 rounded-2xl border border-amber-300 shadow-md space-y-5">
+                <div className="border-b border-amber-200 pb-3 flex items-center justify-between">
+                  <div>
+                    <h4 className="font-extrabold text-[#A71930] text-sm flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-[#A71930]" />
+                      <span>बायोडाटा वॉटरमार्क व प्ले स्टोअर जाहिरात व्यवस्थापन (BioData Customizer Settings)</span>
+                    </h4>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      युझरने बनवलेल्या बायोडाटावर आणि पीडीएफ (PDF) वर वॉटरमार्क तसेच गुगल प्ले स्टोअर डाउनलोड जाहिरात सेट करा.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateSiteConfig({
+                        biodataWatermarkEnabled: true,
+                        biodataWatermarkUrl: '',
+                        biodataWatermarkOpacity: 0.12,
+                        biodataWatermarkSize: 35,
+                        biodataPlaystoreAdEnabled: true,
+                        biodataPlaystoreAdText: '📲 वंजारी जोडी (VanjariJodi) अँप गुगल प्ले स्टोअर वरून आत्ताच डाउनलोड करा!',
+                        biodataPlaystoreUrl: 'https://play.google.com/store/apps/details?id=com.vanjarijodi.app',
+                        biodataPlaystoreQrEnabled: true
+                      });
+                      alert('बायोडाटा वॉटरमार्क आणि जाहिरात पर्याय मूळ डीफॉल्ट वर रिसेट केले गेले!');
+                    }}
+                    className="px-3 py-1 bg-amber-100 hover:bg-amber-200 text-[#A71930] rounded-xl text-xs font-bold border border-amber-300 flex items-center gap-1 cursor-pointer shrink-0"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>डीफॉल्ट रिसेट</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-left">
+                  {/* Left Column: Watermark Controls */}
+                  <div className="space-y-4 border-r border-amber-200/60 pr-0 lg:pr-6">
+                    <div className="flex items-center justify-between p-2.5 bg-amber-50/50 rounded-xl border border-amber-200">
+                      <div className="text-left">
+                        <label className="text-xs font-black text-slate-800 block">बायोडाटा वॉटरमार्क चालू करा (Enable Watermark)</label>
+                        <span className="text-[10px] text-slate-500 font-medium">बायोडाटाच्या मध्यभागी अंधक लोगो दिसेल</span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={siteConfig?.biodataWatermarkEnabled !== false}
+                        onChange={(e) => updateSiteConfig({ biodataWatermarkEnabled: e.target.checked })}
+                        className="w-4 h-4 accent-[#A71930] cursor-pointer"
+                      />
+                    </div>
+
+                    {siteConfig?.biodataWatermarkEnabled !== false && (
+                      <div className="space-y-3.5 animate-fade-in text-xs font-bold">
+                        {/* Image URL & File Upload */}
+                        <div>
+                          <label className="block text-slate-700 mb-1">वॉटरमार्क लोगो प्रतिमा (Watermark Logo Image):</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={siteConfig?.biodataWatermarkUrl || ''}
+                              onChange={(e) => updateSiteConfig({ biodataWatermarkUrl: e.target.value })}
+                              className="flex-1 bg-white border border-amber-300 rounded-xl p-2 text-slate-900 font-mono text-xs"
+                              placeholder="खालील अपलोड बटण वापरा किंवा URL टाका"
+                            />
+                            
+                            <label className="px-3 py-2 bg-amber-200 hover:bg-amber-300 text-[#800C1E] rounded-xl text-xs font-bold cursor-pointer shrink-0 border border-amber-300 flex items-center gap-1">
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>{isUploadingWatermarkImg ? 'अपलोड...' : 'लोगो निवडा'}</span>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={async (e) => {
+                                  const file = e.target.files?.[0];
+                                  if (!file) return;
+                                  setIsUploadingWatermarkImg(true);
+                                  try {
+                                    const res = await uploadToCloudinary(file, 'vanjarijodi_watermark');
+                                    if (res.success && res.url) {
+                                      updateSiteConfig({ biodataWatermarkUrl: res.url });
+                                    } else {
+                                      const reader = new FileReader();
+                                      reader.onloadend = () => {
+                                        if (typeof reader.result === 'string') {
+                                          updateSiteConfig({ biodataWatermarkUrl: reader.result });
+                                        }
+                                      };
+                                      reader.readAsDataURL(file);
+                                    }
+                                  } catch {
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => {
+                                      if (typeof reader.result === 'string') {
+                                        updateSiteConfig({ biodataWatermarkUrl: reader.result });
+                                      }
+                                    };
+                                    reader.readAsDataURL(file);
+                                  } finally {
+                                    setIsUploadingWatermarkImg(false);
+                                  }
+                                }}
+                                className="hidden"
+                                disabled={isUploadingWatermarkImg}
+                              />
+                            </label>
+                          </div>
+                          <span className="text-[10px] text-slate-500 font-medium block mt-1">
+                            मोकळा PNG ट्रान्सपरंट लोगो सर्वोत्तम दिसतो. नसल्यास मूळ वंजारी जोडी लोगो वापरला जाईल.
+                          </span>
+                        </div>
+
+                        {/* Range: Opacity */}
+                        <div>
+                          <div className="flex justify-between items-center mb-1">
+                            <label className="text-slate-700">वॉटरमार्क अंधकपणा / ओपेसिटी (Opacity):</label>
+                            <span className="text-slate-900 font-mono bg-slate-100 px-2 py-0.5 rounded text-[11px]">
+                              {Math.round((siteConfig?.biodataWatermarkOpacity ?? 0.12) * 100)}%
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min={0.05}
+                            max={0.50}
+                            step={0.01}
+                            value={siteConfig?.biodataWatermarkOpacity ?? 0.12}
+                            onChange={(e) => updateSiteConfig({ biodataWatermarkOpacity: Number(e.target.value) })}
+                            className="w-full accent-[#A71930] cursor-pointer"
+                          />
+                          <span className="text-[10px] text-slate-500 font-medium block">
+                            शिफारस: खूप फिकट (8% ते 15%) ठेवा जेणेकरून मजकूर वाचण्यास अडचण येणार नाही.
+                          </span>
+                        </div>
+
+                        {/* Range: Size */}
+                        <div>
+                          <div className="flex justify-between items-center mb-1">
+                            <label className="text-slate-700">वॉटरमार्क आकार (Watermark Size):</label>
+                            <span className="text-slate-900 font-mono bg-slate-100 px-2 py-0.5 rounded text-[11px]">
+                              {siteConfig?.biodataWatermarkSize ?? 35}%
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min={15}
+                            max={65}
+                            step={1}
+                            value={siteConfig?.biodataWatermarkSize ?? 35}
+                            onChange={(e) => updateSiteConfig({ biodataWatermarkSize: Number(e.target.value) })}
+                            className="w-full accent-[#A71930] cursor-pointer"
+                          />
+                          <span className="text-[10px] text-slate-500 font-medium block">
+                            बायोडाटा पानावर लोगो किती टक्के भागात पसरेल तो आकार निवडा.
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column: Play Store Ad Controls */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-2.5 bg-amber-50/50 rounded-xl border border-amber-200">
+                      <div className="text-left">
+                        <label className="text-xs font-black text-slate-800 block">प्ले स्टोअर जाहिरात चालू करा (Enable PlayStore Ad)</label>
+                        <span className="text-[10px] text-slate-500 font-medium">बायोडाटाच्या शेवटी डाऊनलोड जाहिरात पट्टी दिसेल</span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={siteConfig?.biodataPlaystoreAdEnabled !== false}
+                        onChange={(e) => updateSiteConfig({ biodataPlaystoreAdEnabled: e.target.checked })}
+                        className="w-4 h-4 accent-[#A71930] cursor-pointer"
+                      />
+                    </div>
+
+                    {siteConfig?.biodataPlaystoreAdEnabled !== false && (
+                      <div className="space-y-3.5 animate-fade-in text-xs font-bold">
+                        {/* Play Store Ad Text */}
+                        <div>
+                          <label className="block text-slate-700 mb-1">जाहिरात मजकूर (Ad Display Text):</label>
+                          <textarea
+                            value={siteConfig?.biodataPlaystoreAdText || ''}
+                            onChange={(e) => updateSiteConfig({ biodataPlaystoreAdText: e.target.value })}
+                            rows={2}
+                            className="w-full bg-white border border-amber-300 rounded-xl p-2 text-slate-900 text-xs font-medium leading-relaxed"
+                            placeholder="📲 वंजारी जोडी (VanjariJodi) अँप गुगल प्ले स्टोअर वरून आत्ताच डाउनलोड करा!"
+                          />
+                        </div>
+
+                        {/* Play Store App Link */}
+                        <div>
+                          <label className="block text-slate-700 mb-1">प्ले स्टोअर अँप लिंक (Play Store Link):</label>
+                          <input
+                            type="text"
+                            value={siteConfig?.biodataPlaystoreUrl || ''}
+                            onChange={(e) => updateSiteConfig({ biodataPlaystoreUrl: e.target.value })}
+                            className="w-full bg-white border border-amber-300 rounded-xl p-2 text-slate-900 font-mono text-xs"
+                            placeholder="https://play.google.com/store/apps/details?id=com.vanjarijodi.app"
+                          />
+                        </div>
+
+                        {/* Show QR Code toggle */}
+                        <div className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200">
+                          <div className="text-left">
+                            <label className="text-xs font-black text-slate-700 block">QR कोड दाखवा (Show Scan QR Code)</label>
+                            <span className="text-[10px] text-slate-500 font-medium">स्कॅन करून डाऊनलोड करण्यासाठी क्यूआर कोड जनरेट होईल</span>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={siteConfig?.biodataPlaystoreQrEnabled !== false}
+                            onChange={(e) => updateSiteConfig({ biodataPlaystoreQrEnabled: e.target.checked })}
+                            className="w-4 h-4 accent-[#A71930] cursor-pointer"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Live Sandbox Preview for Admin */}
+                <div className="pt-3 border-t border-amber-200 text-left">
+                  <h5 className="font-extrabold text-slate-700 text-xs flex items-center gap-1.5 mb-2.5">
+                    <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+                    <span>वॉटरमार्क आणि जाहिरात लाइव्ह प्रिव्ह्यू (Live Preview Checklist):</span>
+                  </h5>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Watermark Preview */}
+                    <div className="p-4 bg-amber-50/40 rounded-2xl border border-amber-200 relative overflow-hidden h-32 flex items-center justify-center">
+                      <span className="text-[11px] font-black text-amber-800 absolute top-2 left-2 z-10 bg-white/80 px-2 py-0.5 rounded shadow-sm border border-amber-200">
+                        १. वॉटरमार्क प्रिव्ह्यू (Watermark Demo)
+                      </span>
+                      
+                      {siteConfig?.biodataWatermarkEnabled !== false ? (
+                        <img
+                          src={
+                            siteConfig?.biodataWatermarkUrl ||
+                            siteConfig?.logoUrl ||
+                            "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80"
+                          }
+                          alt="Demo Watermark"
+                          className="max-h-24 object-contain pointer-events-none select-none transition-all duration-300"
+                          style={{
+                            opacity: siteConfig?.biodataWatermarkOpacity ?? 0.12,
+                            width: `${siteConfig?.biodataWatermarkSize ?? 35}%`,
+                            maxWidth: '120px',
+                            transform: 'rotate(-10deg)',
+                          }}
+                        />
+                      ) : (
+                        <span className="text-slate-400 font-bold text-xs italic">वॉटरमार्क सध्या बंद आहे</span>
+                      )}
+                      <div className="text-[9px] text-slate-400 font-mono absolute bottom-1 right-2">
+                        opacity: {siteConfig?.biodataWatermarkOpacity ?? 0.12} | size: {siteConfig?.biodataWatermarkSize ?? 35}%
+                      </div>
+                    </div>
+
+                    {/* Ad Banner Preview */}
+                    <div className="p-4 bg-amber-50/40 rounded-2xl border border-amber-200 relative flex flex-col justify-between h-32">
+                      <span className="text-[11px] font-black text-amber-800 bg-white/80 px-2 py-0.5 rounded shadow-sm border border-amber-200 self-start">
+                        २. जाहिरात पट्टी प्रिव्ह्यू (Ad Banner Demo)
+                      </span>
+
+                      {siteConfig?.biodataPlaystoreAdEnabled !== false ? (
+                        <div className="mt-1 p-2 rounded-xl bg-amber-500/10 border border-dashed border-amber-500/40 flex items-center justify-between gap-3 text-left">
+                          <p className="text-[10px] font-bold text-slate-800 leading-snug line-clamp-2 flex-1">
+                            {siteConfig?.biodataPlaystoreAdText || '📲 वंजारी जोडी (VanjariJodi) अँप गुगल प्ले स्टोअर वरून आत्ताच डाउनलोड करा!'}
+                          </p>
+                          {siteConfig?.biodataPlaystoreQrEnabled !== false && (
+                            <img
+                              src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(
+                                siteConfig?.biodataPlaystoreUrl || 'https://play.google.com/store/apps/details?id=com.vanjarijodi.app'
+                              )}`}
+                              alt="demo qr"
+                              className="w-8 h-8 border border-amber-400 p-0.5 bg-white rounded shrink-0"
+                            />
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-slate-400 font-bold text-xs italic self-center my-auto">जाहिरात पट्टी सध्या बंद आहे</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => alert('बायोडाटा वॉटरमार्क व जाहिरात सेटिंग्ज यशस्वी सेव्ह झाल्या!')}
+                  className="w-full py-2.5 bg-[#A71930] hover:bg-[#800C1E] text-amber-100 font-black text-xs rounded-xl shadow cursor-pointer border border-amber-300 flex items-center justify-center gap-2"
+                >
+                  <Check className="w-4 h-4 text-amber-300" />
+                  <span>बायोडाटा वॉटरमार्क आणि जाहिरात बदल सेव्ह करा (Save BioData Settings)</span>
+                </button>
+              </div>
+
               {/* 2. HERO SLIDER BANNER IMAGES MANAGER */}
               <div className="bg-white p-5 rounded-2xl border border-amber-300 shadow-md space-y-4">
                 <div className="border-b border-amber-200 pb-3 flex items-center justify-between">
@@ -5891,6 +8882,306 @@ export const AdminPanel: React.FC<{
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* TAB: BUSINESS VENDORS & WEDDING NETWORK MANAGEMENT */}
+          {activeTab === 'business_vendors' && (
+            <div className="space-y-6">
+              
+              {/* Top Banner & Control Settings */}
+              <div className="bg-amber-100/90 rounded-2xl p-5 border border-amber-300 space-y-4 shadow-sm">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-black text-[#A71930] flex items-center gap-2">
+                      <Handshake className="w-6 h-6 text-[#A71930]" />
+                      <span>लग्न व्यवसाय व नेटवर्किंग व्यवस्थापन (Vendor & Business Network)</span>
+                    </h3>
+                    <p className="text-xs text-slate-700 font-medium mt-1">
+                      मंगल कार्यालये, बँड बाजा, कॅटरिंग, फोटोग्राफी व इतर लग्न व्यवसायांची नोंदणी व ५% ते १०% कमिशन नियंत्रण.
+                    </p>
+                  </div>
+
+                  <span className="px-3.5 py-1.5 bg-[#A71930] text-amber-100 rounded-full text-xs font-black shadow">
+                    एकूण व्हेंडर्स: {businessVendors.length} | प्रलंबित: {businessVendors.filter(v => v.status === 'pending').length}
+                  </span>
+                </div>
+
+                {/* Feature Toggles */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-amber-300/80 text-xs">
+                  
+                  {/* Toggle 1: Enable Feature */}
+                  <div className="p-3.5 bg-white rounded-xl border border-amber-300 flex items-center justify-between gap-3 shadow-sm">
+                    <div>
+                      <span className="font-extrabold text-[#A71930] block">
+                        १. 'आमच्यासोबत व्यवसाय करा' सुविधा सक्षम करा:
+                      </span>
+                      <p className="text-[11px] text-slate-600 mt-0.5">
+                        ॲपवर युझर्सना मंगल कार्यालय व व्यवसाय डिरेक्टरी दाखवावी की लपवावी.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => updateSiteConfig({ enableBusinessVendors: !siteConfig.enableBusinessVendors })}
+                      className={`px-3 py-1.5 rounded-xl font-black text-xs transition-colors shrink-0 cursor-pointer ${
+                        siteConfig.enableBusinessVendors !== false
+                          ? 'bg-emerald-600 text-white shadow'
+                          : 'bg-slate-300 text-slate-700'
+                      }`}
+                    >
+                      {siteConfig.enableBusinessVendors !== false ? 'सक्षम (Enabled ✓)' : 'अक्षम (Disabled)'}
+                    </button>
+                  </div>
+
+                  {/* Toggle 2: Show Contacts Publicly vs Admin Booking Only */}
+                  <div className="p-3.5 bg-white rounded-xl border border-amber-300 flex items-center justify-between gap-3 shadow-sm">
+                    <div>
+                      <span className="font-extrabold text-[#A71930] block">
+                        २. संपर्क व बुकींग पद्धत (Contact Display Mode):
+                      </span>
+                      <p className="text-[11px] text-slate-600 mt-0.5">
+                        {siteConfig.showVendorContactsToPublic !== false
+                          ? 'सध्या: युझर्स थेट व्हेंडर्सला कॉल/व्हॉट्सॲप करू शकतात.'
+                          : 'सध्या: युझर्स ॲडमिनद्वारे बुकींग करतात (५%-१०% कमिशन गॅरंटी).'}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => updateSiteConfig({ showVendorContactsToPublic: !siteConfig.showVendorContactsToPublic })}
+                      className={`px-3 py-1.5 rounded-xl font-black text-xs transition-colors shrink-0 cursor-pointer ${
+                        siteConfig.showVendorContactsToPublic !== false
+                          ? 'bg-amber-500 text-slate-950 shadow'
+                          : 'bg-[#A71930] text-amber-100 shadow'
+                      }`}
+                    >
+                      {siteConfig.showVendorContactsToPublic !== false ? 'थेट संपर्क (Direct)' : 'ॲडमिन बुकींग (Commission)'}
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* Add Custom Vendor Category Box */}
+              <div className="bg-white rounded-2xl p-4 border border-amber-300 space-y-3 shadow-sm">
+                <h4 className="font-extrabold text-xs text-[#A71930] flex items-center gap-1.5">
+                  <Tag className="w-4 h-4 text-amber-500" />
+                  <span>नवीन व्यवसाय श्रेणी (Category) जोडा:</span>
+                </h4>
+
+                <div className="flex gap-2 max-w-lg">
+                  <input
+                    type="text"
+                    id="newVendorCatInput"
+                    placeholder="उदा. डीजे व साउंड सिस्टीम / जेवण मांडव भांडे"
+                    className="flex-1 bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const input = document.getElementById('newVendorCatInput') as HTMLInputElement;
+                      if (input && input.value.trim()) {
+                        addCustomVendorCategory(input.value.trim());
+                        alert(`'${input.value.trim()}' ही नवीन श्रेणी जोडली गेली!`);
+                        input.value = '';
+                      }
+                    }}
+                    className="px-4 py-2 bg-[#A71930] hover:bg-[#800C1E] text-amber-100 font-bold text-xs rounded-xl shadow cursor-pointer"
+                  >
+                    + श्रेणी जोडा
+                  </button>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  <span className="text-[11px] font-bold text-slate-600 self-center">सध्याच्या श्रेणी:</span>
+                  {(siteConfig.customVendorCategories || [
+                    'मंगल कार्यालय व लॉन्स',
+                    'बँड बाजा व वाद्यवृंद',
+                    'डेकोरेशन व मंडप',
+                    'कॅटरिंग व स्वयंपाकी (Catering)',
+                    'मांडव, खुर्च्या व भांडे भांडार',
+                    'फोटोग्राफी व व्हिडियोग्राफी',
+                    'मेकअप आर्टिस्ट व मेहंदी',
+                    'ट्रॅव्हल्स व लग्न गाड्या',
+                    'पौरोहित्य / भटजी',
+                    'इतर लग्न व्यवसाय'
+                  ]).map((cat) => (
+                    <span key={cat} className="px-2.5 py-1 bg-amber-100 text-[#800C1E] rounded-lg text-[10px] font-bold border border-amber-300">
+                      {cat}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Vendors List Table */}
+              <div className="bg-white rounded-2xl border border-amber-300 overflow-hidden shadow-md">
+                <div className="p-4 bg-gradient-to-r from-amber-200 via-amber-100 to-amber-200 border-b border-amber-300 flex flex-wrap items-center justify-between gap-2">
+                  <h4 className="font-black text-[#A71930] text-sm flex items-center gap-2">
+                    <Building2 className="w-5 h-5 text-[#A71930]" />
+                    <span>नोंदणीकृत व्यवसाय व अर्ज सूची ({businessVendors.length})</span>
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddVendorModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#A71930] hover:bg-[#800C1E] text-amber-100 rounded-xl text-xs font-black shadow transition-all hover:scale-102 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>नवीन व्हेंडर जोडा (Create Login)</span>
+                  </button>
+                </div>
+
+                {businessVendors.length === 0 ? (
+                  <div className="p-10 text-center text-slate-500 text-xs font-bold">
+                    कोणताही व्यवसाय नोंदवलेला नाही.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-amber-100/70 border-b border-amber-300 text-[#800C1E] font-black text-[11px]">
+                          <th className="p-3">फोटो / नाव</th>
+                          <th className="p-3">मालक व संपर्क</th>
+                          <th className="p-3">श्रेणी व ठिकाण</th>
+                          <th className="p-3">दर व सवलत</th>
+                          <th className="p-3">कमिशन</th>
+                          <th className="p-3">स्टेटस</th>
+                          <th className="p-3 text-right">कृती (Actions)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-amber-100 font-medium text-slate-800">
+                        {businessVendors.map((vendor) => (
+                          <tr key={vendor.id} className="hover:bg-amber-50/60 transition-colors">
+                            <td className="p-3">
+                              <div className="flex items-center gap-2.5">
+                                <img
+                                  src={vendor.photoUrl || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=200'}
+                                  alt={vendor.businessName}
+                                  className="w-10 h-10 rounded-lg object-cover border border-amber-300 shrink-0"
+                                />
+                                <div>
+                                  <span className="font-extrabold text-slate-900 block">{vendor.businessName}</span>
+                                  {vendor.pdfUrl && (
+                                    <a
+                                      href={vendor.pdfUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-[10px] text-rose-700 font-bold underline hover:text-rose-900"
+                                    >
+                                      📄 रेट कार्ड PDF
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="p-3">
+                              <span className="font-bold text-slate-900 block">{vendor.ownerName}</span>
+                              <div className="flex flex-col gap-1 mt-1">
+                                <a href={`tel:${vendor.mobile}`} className="text-[10px] text-slate-700 font-bold hover:text-[#A71930] font-mono flex items-center gap-1">
+                                  📞 {vendor.mobile}
+                                </a>
+                                <div className="inline-flex items-center gap-1 bg-amber-50 text-slate-700 text-[10px] px-1.5 py-0.5 rounded border border-amber-200 w-fit">
+                                  <KeyRound className="w-3.5 h-3.5 text-[#A71930]" />
+                                  <span>पिन: <strong className="font-mono text-[#A71930]">{vendor.pinPassword || 'सेट नाही'}</strong></span>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="p-3">
+                              <span className="px-2 py-0.5 bg-amber-200 text-[#800C1E] rounded-full text-[10px] font-bold block w-fit mb-0.5">
+                                {vendor.category}
+                              </span>
+                              <span className="text-[10px] text-slate-600 block">
+                                📍 {vendor.district} {vendor.taluka ? `(${vendor.taluka})` : ''}
+                              </span>
+                            </td>
+
+                            <td className="p-3 max-w-xs">
+                              <p className="font-bold text-slate-900 text-[11px] line-clamp-1">{vendor.ratesAndPackages}</p>
+                              {vendor.memberDiscount && (
+                                <span className="text-[10px] text-emerald-700 font-bold block">
+                                  🏷️ {vendor.memberDiscount}
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="p-3">
+                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold text-[10px]">
+                                {vendor.commissionRate || '१०% कमिशन'}
+                              </span>
+                            </td>
+
+                            <td className="p-3">
+                              {vendor.status === 'approved' ? (
+                                <span className="px-2 py-0.5 bg-emerald-600 text-white rounded-full font-bold text-[10px]">
+                                  मंजूर (Approved ✓)
+                                </span>
+                              ) : vendor.status === 'rejected' ? (
+                                <span className="px-2 py-0.5 bg-rose-600 text-white rounded-full font-bold text-[10px]">
+                                  रद्द (Rejected)
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 bg-amber-500 text-slate-950 rounded-full font-bold text-[10px] animate-pulse">
+                                  प्रलंबित (Pending)
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="p-3 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => {
+                                    setSelectedVendorForEdit(vendor);
+                                    setIsEditVendorModalOpen(true);
+                                  }}
+                                  className="p-1 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded cursor-pointer"
+                                  title="सुधारा (Edit & PIN)"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </button>
+
+                                {vendor.status !== 'approved' && (
+                                  <button
+                                    onClick={() => updateBusinessVendorStatus(vendor.id, 'approved')}
+                                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg shadow cursor-pointer"
+                                    title="मंजूर करा"
+                                  >
+                                    मंजूर
+                                  </button>
+                                )}
+
+                                {vendor.status !== 'rejected' && (
+                                  <button
+                                    onClick={() => updateBusinessVendorStatus(vendor.id, 'rejected')}
+                                    className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold rounded-lg cursor-pointer"
+                                    title="नाकारा"
+                                  >
+                                    रद्द
+                                  </button>
+                                )}
+
+                                <button
+                                  onClick={() => {
+                                    if (confirm(`नक्की '${vendor.businessName}' हा व्यवसाय हटवायचा आहे का?`)) {
+                                      deleteBusinessVendor(vendor.id);
+                                    }
+                                  }}
+                                  className="p-1 text-rose-600 hover:text-rose-800 hover:bg-rose-100 rounded cursor-pointer"
+                                  title="हटवा"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
             </div>
           )}
 
@@ -6709,6 +10000,109 @@ export const AdminPanel: React.FC<{
                   </table>
                 </div>
               </div>
+
+              {/* SECTION: DELETED PHOTOS & MEDIA TRASH */}
+              <div className="bg-white rounded-3xl border-2 border-amber-300 p-6 shadow-md space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-amber-200 pb-4">
+                  <div>
+                    <h4 className="text-base sm:text-lg font-black text-[#800C1E] flex items-center gap-2">
+                      <Camera className="w-5 h-5 text-amber-600" />
+                      <span>📷 ट्रॅश केलेले फोटो व मीडिया (Deleted Photos Trash - Storage Saver)</span>
+                    </h4>
+                    <p className="text-xs text-slate-600 font-medium">
+                      प्रोफाइल किंवा गॅलरीमधून हटवलेले फोटो येथे सुरक्षितपणे साठवले जातात. तुम्ही ते पुन्हा उमेदवाराच्या प्रोफाइलला जोडल्यास किंवा हवे तसे ठेवू शकता किंवा सर्व्हरची जागा मोकळी करण्यासाठी कायमचे नष्ट करू शकता.
+                    </p>
+                  </div>
+
+                  {deletedPhotosTrash.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (
+                          window.confirm('⚠️ महत्त्वाचा इशारा: ट्रॅशमधील सर्व फोटो कायमचे डिलीट करून सर्व्हर स्टोरेज मोकळे करायचे आहे का? ही क्रिया बदलता येणार नाही!')
+                        ) {
+                          if (window.confirm('कृपया पुन्हा एकदा खात्री करा. सर्व हटवलेले फोटो कायमचे नष्ट होतील!')) {
+                            purgeAllPhotosTrash();
+                          }
+                        }
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs shadow flex items-center gap-1.5 cursor-pointer transition shrink-0"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>सर्व फोटो ट्रॅश रिकामे करा (Clear All Photos Trash)</span>
+                    </button>
+                  )}
+                </div>
+
+                {deletedPhotosTrash.length === 0 ? (
+                  <div className="p-6 text-center text-slate-500 font-bold space-y-1.5 bg-amber-50/50 rounded-2xl border border-dashed border-amber-300">
+                    <p className="text-sm font-extrabold text-slate-700">फोटो ट्रॅश सध्या रिकामे आहे. (No Trashed Photos)</p>
+                    <p className="text-xs text-slate-500 font-normal">
+                      जेव्हा एखादा फोटो प्रोफाइलमधून काढून टाकला जातो, तेव्हा तो सुरक्षिततेसाठी प्रथम येथे जमा होतो.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {deletedPhotosTrash.map((item) => (
+                      <div
+                        key={item.id}
+                        className="p-3 bg-amber-50/70 rounded-2xl border border-amber-300 flex flex-col justify-between space-y-2.5 shadow-sm hover:shadow-md transition"
+                      >
+                        <div className="relative aspect-square rounded-xl overflow-hidden bg-slate-200 border border-amber-200">
+                          <img
+                            src={item.photoUrl}
+                            alt={item.profileName}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                          <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-slate-900/80 text-amber-300 font-black text-[10px] backdrop-blur-sm">
+                            {item.photoType === 'avatar' ? 'मुख्य फोटो' : 'गॅलरी फोटो'}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <p className="font-extrabold text-xs text-slate-900 truncate" title={item.profileName}>
+                            {item.profileName}
+                          </p>
+                          <p className="text-[10px] text-slate-500 font-mono">
+                            📅 {item.deletedAt} • ~{item.sizeEstimateKb || 200} KB
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 pt-1 border-t border-amber-200/80">
+                          <button
+                            type="button"
+                            onClick={() => restorePhotoFromTrash(item.id)}
+                            className="flex-1 py-1.5 px-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[11px] rounded-lg shadow flex items-center justify-center gap-1 cursor-pointer transition"
+                            title="उमेदवाराच्या प्रोफाईलला हा फोटो पुन्हा जोडा"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            <span>रीस्टोअर</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`खरोखरच ${item.profileName} यांचा हा फोटो कायमचा नष्ट करायचा आहे का?`)) {
+                                if (window.confirm('कन्फर्मेशन: फोटो पूर्णपणे डिलीट होईल. पुढे जायचे?')) {
+                                  permanentlyDeletePhotoFromTrash(item.id);
+                                }
+                              }
+                            }}
+                            className="py-1.5 px-2.5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs rounded-lg shadow flex items-center justify-center gap-1 cursor-pointer transition"
+                            title="कायमचे डिलीट करा"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>डिलीट</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -7036,6 +10430,39 @@ export const AdminPanel: React.FC<{
           </div>
         )}
 
+        {/* BUSINESS VENDOR ADD & EDIT MODALS */}
+        <AdminAddVendorModal
+          isOpen={isAddVendorModalOpen}
+          onClose={() => setIsAddVendorModalOpen(false)}
+        />
+
+        <AdminEditVendorModal
+          isOpen={isEditVendorModalOpen}
+          onClose={() => {
+            setIsEditVendorModalOpen(false);
+            setSelectedVendorForEdit(null);
+          }}
+          vendor={selectedVendorForEdit}
+        />
+
+        {/* FULL PROFILE, DOCUMENTS, FACE VERIFICATION & BADGES EDITOR MODAL */}
+        <AdminEditProfileModal
+          profile={editingCandidate}
+          isOpen={Boolean(editingCandidate)}
+          onClose={() => setEditingCandidate(null)}
+          onSave={(profileId, updatedFields) => {
+            updateProfileDirect(profileId, updatedFields);
+          }}
+          canEdit={hasPermission('edit_profiles') || hasPermission('manage_profiles')}
+        />
+
+        {/* PER-MEMBER QUICK SETTINGS & PRIVACY OVERRIDES MODAL */}
+        <AdminMemberQuickSettingsModal
+          profile={selectedProfileForQuickSettings}
+          onClose={() => setSelectedProfileForQuickSettings(null)}
+        />
+
+            </div>
           </div>
         </div>
 

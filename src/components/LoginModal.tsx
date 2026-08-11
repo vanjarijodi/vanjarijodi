@@ -7,7 +7,7 @@ export const LoginModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
 }> = ({ isOpen, onClose }) => {
-  const { t, language, setIsRegisterOpen, setCurrentUser, profiles, setIsAdminOpen, loginAsGuest, siteConfig, loginModalMode } = useApp();
+  const { t, language, setIsRegisterOpen, setCurrentUser, setCurrentView, profiles, setIsAdminOpen, loginAsGuest, siteConfig, loginModalMode } = useApp();
 
   const isGuestAllowed = siteConfig?.enableGuestLogin !== false;
 
@@ -64,7 +64,7 @@ export const LoginModal: React.FC<{
   // Handler: Verify Member OTP & Login
   const handleVerifyMemberOtpLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (memberOtpInput === generatedMemberOtp || memberOtpInput === '123456' || memberOtpInput.trim().length === 6) {
+    if (memberOtpInput === generatedMemberOtp) {
       const cleanInput = memberMobile.replace(/\D/g, '');
       const match = profiles.find((p) => {
         const cleanP = (p.mobile || '').replace(/\D/g, '');
@@ -85,6 +85,7 @@ export const LoginModal: React.FC<{
         return;
       }
       setCurrentUser(match);
+      setCurrentView('profiles');
       alert(language === 'mr' ? `सस्नेह नमस्कार ${match.fullName}! हयात सदस्य लॉगिन यशस्वी झाले.` : `Welcome ${match.fullName}! Login successful.`);
       onClose();
     } else {
@@ -118,7 +119,14 @@ export const LoginModal: React.FC<{
       alert(language === 'mr' ? '🚫 क्षमस्व! तुमचे अकाऊंट ॲडमिनद्वारे ब्लॉक करण्यात आले आहे. कृपया अधिक माहितीसाठी ॲडमिनशी संपर्क साधा.' : 'Your account has been blocked by Admin.');
       return;
     }
+
+    if (match.password !== memberPassword) {
+      alert(language === 'mr' ? 'चुकीचा पासवर्ड! कृपया पुन्हा प्रयत्न करा.' : 'Invalid password! Please try again.');
+      return;
+    }
+
     setCurrentUser(match);
+    setCurrentView('profiles');
     alert(language === 'mr' ? `नमस्कार ${match.fullName}! लॉगिन यशस्वी.` : `Welcome ${match.fullName}!`);
     onClose();
   };
@@ -142,8 +150,9 @@ export const LoginModal: React.FC<{
       alert(language === 'mr' ? 'प्रथम "OTP पाठवा" वर क्लिक करा.' : 'Click "Send OTP" first.');
       return;
     }
-    if (guestOtpInput === generatedGuestOtp || guestOtpInput === '123456' || guestOtpInput.length === 6) {
+    if (guestOtpInput === generatedGuestOtp) {
       loginAsGuest(guestMobile, guestName || 'पाहुणे सदस्य', guestDistrict);
+      setCurrentView('profiles');
       alert(language === 'mr' ? `मोबाईल ${guestMobile} पडताळणी यशस्वी! गेस्ट म्हणून तुमचा प्रवेश मंजूर झाला आहे.` : `Mobile ${guestMobile} verified! Guest access granted.`);
       onClose();
     } else {
@@ -350,7 +359,9 @@ export const LoginModal: React.FC<{
                           setMemberOtpInput(code);
                           setMemberOtpSent(true);
                           const waText = encodeURIComponent(`नमस्कार वंजारी जोडी टीम, माझा लॉगिन पडताळणी कोड आहे: ${code}`);
-                          window.open(`https://wa.me/919420950303?text=${waText}`, '_blank');
+                          const adminWa = (siteConfig?.contactWhatsapp || '0000000000').replace(/\D/g, '');
+                          const cleanWa = adminWa.length === 10 ? '91' + adminWa : (adminWa || '910000000000');
+                          window.open(`https://wa.me/${cleanWa}?text=${waText}`, '_blank');
                         }}
                         className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-xs shadow flex items-center gap-1 cursor-pointer"
                       >

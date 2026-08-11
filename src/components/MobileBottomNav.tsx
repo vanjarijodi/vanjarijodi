@@ -63,24 +63,24 @@ export const MobileBottomNav: React.FC = () => {
     'grid-cols-5';
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 block md:hidden pb-safe">
+    <div className="fixed bottom-3 left-3 right-3 z-50 block md:hidden max-w-md mx-auto">
       {/* Sleek Royal Maharashtrian Maroon & Gold Glassmorphism Bottom Nav */}
-      <div className="bg-[#800C1E]/95 backdrop-blur-md border-t border-[#F99C00]/40 px-3 py-2 shadow-[0_-10px_35px_rgba(128,12,30,0.3)] rounded-t-3xl">
-        <div className={`grid ${gridColsClass} gap-1 items-center max-w-md mx-auto`}>
+      <div className="bg-[#800C1E]/92 backdrop-blur-md border border-[#F99C00]/30 px-3 py-1 shadow-lg rounded-[20px]">
+        <div className={`grid ${gridColsClass} gap-1 items-center`}>
           
           {/* 1. Home / Explore */}
           <button
             onClick={() => handleTabClick('home')}
-            className={`relative flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-300 cursor-pointer active:scale-90 ${
+            className={`relative flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all duration-200 cursor-pointer active:scale-90 ${
               currentView === 'home'
-                ? 'bg-gradient-to-br from-[#A71930] to-[#800C1E] text-amber-300 shadow-inner border border-[#F99C00]/30 font-black scale-105'
+                ? 'bg-gradient-to-br from-[#A71930] to-[#800C1E] text-amber-300 shadow-inner border border-[#F99C00]/30 font-black scale-102'
                 : 'text-amber-100/70 hover:text-amber-200'
             }`}
           >
-            <Home className={`w-5 h-5 transition-transform ${currentView === 'home' ? 'scale-110 text-[#F99C00]' : ''}`} />
-            <span className="text-[10px] tracking-tight mt-1 font-bold">होम</span>
+            <Home className={`w-4 h-4 transition-transform ${currentView === 'home' ? 'scale-105 text-[#F99C00]' : ''}`} />
+            <span className="text-[9px] tracking-tight mt-0.5 font-bold">होम</span>
             {currentView === 'home' && (
-              <span className="absolute bottom-1 w-1.5 h-1.5 bg-[#F99C00] rounded-full shadow-[0_0_8px_#F99C00]" />
+              <span className="absolute bottom-0.5 w-1 h-1 bg-[#F99C00] rounded-full shadow-[0_0_6px_#F99C00]" />
             )}
           </button>
 
@@ -88,10 +88,10 @@ export const MobileBottomNav: React.FC = () => {
           {showSearchTab && (
             <button
               onClick={() => handleTabClick('search')}
-              className="relative flex flex-col items-center justify-center py-2 px-1 rounded-2xl text-amber-100/70 hover:text-amber-200 transition-all duration-300 cursor-pointer active:scale-90"
+              className="relative flex flex-col items-center justify-center py-1 px-1 rounded-xl text-amber-100/70 hover:text-amber-200 transition-all duration-200 cursor-pointer active:scale-90"
             >
-              <Search className="w-5 h-5 text-amber-200" />
-              <span className="text-[10px] tracking-tight mt-1 font-bold">शोध</span>
+              <Search className="w-4 h-4 text-amber-200" />
+              <span className="text-[9px] tracking-tight mt-0.5 font-bold">शोध</span>
             </button>
           )}
 
@@ -99,19 +99,19 @@ export const MobileBottomNav: React.FC = () => {
           {showMatchesTab && (
             <button
               onClick={() => handleTabClick('matches')}
-              className={`relative flex flex-col items-center justify-center py-2 px-1 rounded-2xl transition-all duration-300 cursor-pointer active:scale-90 ${
+              className={`relative flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all duration-200 cursor-pointer active:scale-90 ${
                 currentView === 'profiles'
-                  ? 'bg-gradient-to-br from-[#A71930] to-[#800C1E] text-amber-300 shadow-inner border border-[#F99C00]/30 font-black scale-105'
+                  ? 'bg-gradient-to-br from-[#A71930] to-[#800C1E] text-amber-300 shadow-inner border border-[#F99C00]/30 font-black scale-102'
                   : 'text-amber-100/70 hover:text-amber-200'
               }`}
             >
               <div className="relative">
-                <Sparkles className={`w-5 h-5 transition-transform ${currentView === 'profiles' ? 'scale-110 text-amber-300' : 'text-[#F99C00] animate-pulse'}`} />
-                <span className="absolute -top-1.5 -right-2 bg-rose-600 text-[8px] font-black px-1 py-0.2 rounded-full text-white border border-amber-300 scale-90">AI</span>
+                <Sparkles className={`w-4 h-4 transition-transform ${currentView === 'profiles' ? 'scale-105 text-amber-300' : 'text-[#F99C00] animate-pulse'}`} />
+                <span className="absolute -top-1 -right-1.5 bg-rose-600 text-[7px] font-black px-0.5 rounded-full text-white border border-amber-300 scale-90">AI</span>
               </div>
-              <span className="text-[10px] tracking-tight mt-1 font-bold">स्मार्ट मॅच</span>
+              <span className="text-[9px] tracking-tight mt-0.5 font-bold">स्मार्ट मॅच</span>
               {currentView === 'profiles' && (
-                <span className="absolute bottom-1 w-1.5 h-1.5 bg-[#F99C00] rounded-full shadow-[0_0_8px_#F99C00]" />
+                <span className="absolute bottom-0.5 w-1 h-1 bg-[#F99C00] rounded-full shadow-[0_0_6px_#F99C00]" />
               )}
             </button>
           )}
@@ -119,25 +119,25 @@ export const MobileBottomNav: React.FC = () => {
           {/* 4. Messages / Requests */}
           <button
             onClick={() => handleTabClick('messages')}
-            className="relative flex flex-col items-center justify-center py-2 px-1 rounded-2xl text-amber-100/70 hover:text-amber-200 transition-all duration-300 cursor-pointer active:scale-90"
+            className="relative flex flex-col items-center justify-center py-1 px-1 rounded-xl text-amber-100/70 hover:text-amber-200 transition-all duration-200 cursor-pointer active:scale-90"
           >
             <div className="relative">
-              <MessageCircle className="w-5 h-5" />
+              <MessageCircle className="w-4 h-4" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-[#F99C00] text-slate-950 font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center animate-bounce border border-[#800C1E]">
+                <span className="absolute -top-1 -right-1.5 bg-[#F99C00] text-slate-950 font-black text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center animate-bounce border border-[#800C1E]">
                   {unreadCount}
                 </span>
               )}
             </div>
-            <span className="text-[10px] tracking-tight mt-1 font-bold">संपर्क</span>
+            <span className="text-[9px] tracking-tight mt-0.5 font-bold">संपर्क</span>
           </button>
 
           {/* 5. Profile (Triggers Left Drawer Menu) */}
           <button
             onClick={() => handleTabClick('profile')}
-            className="relative flex flex-col items-center justify-center py-2 px-1 rounded-2xl text-amber-100/70 hover:text-amber-200 transition-all duration-300 cursor-pointer active:scale-90"
+            className="relative flex flex-col items-center justify-center py-1 px-1 rounded-xl text-amber-100/70 hover:text-amber-200 transition-all duration-200 cursor-pointer active:scale-90"
           >
-            <div className="w-6 h-6 rounded-full border border-amber-400 overflow-hidden bg-amber-50 shadow-sm flex items-center justify-center mx-auto">
+            <div className="w-4.5 h-4.5 rounded-full border border-amber-400 overflow-hidden bg-amber-50 shadow-sm flex items-center justify-center mx-auto">
               {currentUser && currentUser.photos && currentUser.photos.length > 0 ? (
                 <img
                   src={currentUser.photos[0]}
@@ -146,10 +146,10 @@ export const MobileBottomNav: React.FC = () => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <User className="w-3.5 h-3.5 text-[#800C1E]" />
+                <User className="w-3 h-3 text-[#800C1E]" />
               )}
             </div>
-            <span className="text-[10px] tracking-tight mt-0.5 font-bold">प्रोफाईल</span>
+            <span className="text-[9px] tracking-tight mt-0.5 font-bold">प्रोफाईल</span>
           </button>
 
         </div>

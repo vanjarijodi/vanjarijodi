@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { MAHARASHTRA_DISTRICTS } from '../data/initialData';
 import { UserProfile, Gender, MaritalStatus } from '../types';
+import { PROFESSION_PRESETS } from '../utils/professionUtils';
 import { AIBioDataExtractor } from './AIBioDataExtractor';
 import { uploadToCloudinary } from '../utils/cloudinary';
 import { compressAndResizeImage } from '../utils/imageCompressor';
@@ -35,9 +36,14 @@ export const RegisterModal: React.FC<{
     t,
     language,
     addProfile,
+    setCurrentUser,
     siteConfig,
     registrationStep,
-    setRegistrationStep
+    setRegistrationStep,
+    plansList,
+    setSelectedPlanForPayment,
+    setIsPaymentOpen,
+    validatePromoCode
   } = useApp();
 
   // Selected registration mode: 'manual' | 'ocr_photo'
@@ -48,6 +54,17 @@ export const RegisterModal: React.FC<{
 
   // Form Steps for Manual Mode
   const [step, setStep] = useState<number>(1);
+
+  // Selected Membership Plan state
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('welcome_offer');
+  const [regPromoCode, setRegPromoCode] = useState<string>('');
+  const [appliedRegPromoRes, setAppliedRegPromoRes] = useState<{
+    valid: boolean;
+    discountAmount: number;
+    finalAmount: number;
+    isVipFree: boolean;
+    message: string;
+  } | null>(null);
 
   // Form Fields State
   const [fullName, setFullName] = useState('');
@@ -79,6 +96,7 @@ export const RegisterModal: React.FC<{
   const [occupation, setOccupation] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [income, setIncome] = useState('');
+  const [regProfessionTags, setRegProfessionTags] = useState<string[]>([]);
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
   const [bloodGroup, setBloodGroup] = useState('');
@@ -218,12 +236,14 @@ export const RegisterModal: React.FC<{
 
   const handleSubmitRegistration = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName) {
-      alert('कृपया संपूर्ण नाव टाका.');
+    if (!fullName || !fullName.trim()) {
+      setStep(1);
+      alert('कृपया टप्पा १ मधील उमेदवाराचे संपूर्ण नाव प्रविष्ट करा.');
       return;
     }
-    if (!mobile) {
-      alert('कृपया मुख्य मोबाईल नंबर टाका.');
+    if (!mobile || mobile.trim().replace(/\D/g, '').length < 10) {
+      setStep(1);
+      alert('कृपया टप्पा १ मधील उमेदवाराचा १०-अंकी मुख्य मोबाईल नंबर प्रविष्ट करा.');
       return;
     }
 
@@ -235,17 +255,20 @@ export const RegisterModal: React.FC<{
       orderedPhotos.unshift(primaryPhoto);
     }
 
+    const chosenPlan = plansList.find((p) => p.id === selectedPlanId);
+    const assignedMembership = chosenPlan ? chosenPlan.id : 'free';
+
     const newProfile: UserProfile = {
-      id: 'vj-' + Math.floor(100 + Math.random() * 900),
-      fullName,
+      id: 'vj-' + Date.now() + '-' + Math.floor(1000 + Math.random() * 9000),
+      fullName: fullName.trim(),
       gender,
       dob,
       age: currentAge,
       birthTime,
       birthPlace,
-      mobile,
-      secondaryMobile,
-      email: email || 'user@vanjarijodi.com',
+      mobile: mobile.trim(),
+      secondaryMobile: secondaryMobile ? secondaryMobile.trim() : '',
+      email: email ? email.trim() : 'user@vanjarijodi.com',
       district,
       taluka: taluka || 'मुख्य तालुका',
       city: city || 'शहर',
@@ -255,6 +278,7 @@ export const RegisterModal: React.FC<{
       occupation: occupation || 'व्यवसाय / नोकरी',
       companyName,
       income,
+      professionTags: regProfessionTags,
       height,
       weight,
       bloodGroup,
@@ -286,10 +310,10 @@ export const RegisterModal: React.FC<{
       aadhaarCardUrl: aadhaarDocUrl || '',
       aadhaarVerified: !!aadhaarDocUrl,
       isIdVerified: !!aadhaarDocUrl,
-      isVerified: true,
+      isVerified: !!aadhaarDocUrl,
       isFeatured: false,
       isApproved: false,
-      membership: 'free',
+      membership: assignedMembership,
       createdAt: new Date().toISOString().split('T')[0],
       lastActive: 'आत्ताच नोंदणी',
       bio: `नोंदणी प्रकार: ${activeMode === 'ocr_photo' ? 'फोटो/PDF एआय स्कॅन' : 'मॅन्युअल नोंदणी'}.`,
@@ -297,15 +321,26 @@ export const RegisterModal: React.FC<{
       registrationType: activeMode === 'ocr_photo' ? 'ocr_ai' : 'manual',
     };
 
+    // 1. Add Profile to Store
     addProfile(newProfile);
+
+    // 2. Set newly registered user as current logged in user instantly
+    setCurrentUser(newProfile);
 
     const isAutoApproved = siteConfig.isAutoModeEnabled && (siteConfig.autoApproveNewRegistrations || siteConfig.autoModeType === 'free_for_all');
 
     alert(
       isAutoApproved
-        ? 'अभिनंदन! वेबसाइट ऑटो मोडवर असल्याने तुमची नोंदणी व फोटो थेट ऑटोमॅटिक मंजूर झाले आहेत व सार्वजनिक झाले आहेत.'
-        : 'धन्यवाद! तुमची नोंदणी, फोटो व गोपनीयता पर्याय सबमिट झाले आहेत. तुमचे प्रोफाइल ॲडमिनकडे मंजुरीसाठी (Pending Approval) पाठवले आहे.'
+        ? '🎉 अभिनंदन! तुमची नोंदणी यशस्वी झाली आहे व तुमचे प्रोफाइल थेट लॉगिन झाले आहे!'
+        : '🎉 धन्यवाद! तुमची नोंदणी, फोटो व सर्व माहिती यशस्वीरित्या सबमिट झाली आहे. तुमचे खाते थेट लॉगिन झाले आहे.'
     );
+
+    // 3. If a paid plan was chosen, trigger payment modal automatically
+    if (chosenPlan && chosenPlan.price > 0 && !appliedRegPromoRes?.isVipFree) {
+      setSelectedPlanForPayment(chosenPlan);
+      setIsPaymentOpen(true);
+    }
+
     onClose();
   };
 
@@ -501,8 +536,8 @@ export const RegisterModal: React.FC<{
 
                     setExtractedSuccessBadge(
                       ext.candidatePhotoUrl
-                        ? '✨ एआय वाचन व फोटो डिटेक्शन यशस्वी! सर्व माहिती आणि वधू/वराचा फोटो स्वयंचलित डिटेक्ट करून प्रोफाईलला लिंक केला आहे.'
-                        : 'एआय वाचन यशस्वी! १९ रकाने स्वयंचलित भरले गेले आहेत. खाली तपासून जतन करा.'
+                        ? '✨ एआय माहिती वाचन व प्रोफाईल फोटो जोडणे यशस्वी! सर्व रकाने स्वयंचलित भरले गेले आहेत.'
+                        : '✨ एआय माहिती वाचन यशस्वी! सर्व रकाने स्वयंचलित भरले गेले आहेत. कागदपत्राचा फोटो प्रोफाइल फोटो म्हणून जोडलेला नाही. (फोटो जोडायचा असल्यास ४ थ्या टप्प्यातून अपलोड करा - ऐच्छिक)'
                     );
                     setActiveMode('manual');
                     setStep(1);
@@ -720,6 +755,44 @@ export const RegisterModal: React.FC<{
                           onChange={(e) => setIncome(e.target.value)}
                           className="w-full bg-white border-2 border-amber-200 rounded-xl px-3.5 py-2 text-slate-900 outline-none focus:border-[#A71930]"
                         />
+                      </div>
+
+                      {/* Multi-Profession Badges Selection */}
+                      <div className="col-span-full pt-2">
+                        <label className="block text-slate-800 font-extrabold text-xs mb-1.5 flex flex-wrap items-center justify-between gap-1">
+                          <span>प्रोफेशन / नोकरी श्रेणी निवडा (Profession Badges):</span>
+                          <span className="text-[10px] text-amber-900 bg-amber-100 px-2 py-0.5 rounded-full font-bold border border-amber-300">
+                            लागू असणारे निवडा (उदा. डॉक्टर + सरकारी नोकरी)
+                          </span>
+                        </label>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {PROFESSION_PRESETS.map((preset) => {
+                            const isSelected = regProfessionTags.includes(preset.label);
+                            return (
+                              <button
+                                type="button"
+                                key={preset.id}
+                                onClick={() => {
+                                  setRegProfessionTags((prev) =>
+                                    prev.includes(preset.label)
+                                      ? prev.filter((t) => t !== preset.label)
+                                      : [...prev, preset.label]
+                                  );
+                                }}
+                                className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-[#800C1E] text-amber-100 border-[#800C1E] shadow-sm'
+                                    : 'bg-white text-slate-700 border-amber-200 hover:bg-amber-50'
+                                }`}
+                              >
+                                <span className="font-extrabold text-xs flex items-center justify-between">
+                                  <span>{preset.label}</span>
+                                  {isSelected && <CheckCircle className="w-3.5 h-3.5 text-amber-300 shrink-0" />}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
 
@@ -998,7 +1071,7 @@ export const RegisterModal: React.FC<{
                             <>
                               <Camera className="w-8 h-8 text-[#A71930] mx-auto mb-1" />
                               <p className="text-xs text-slate-800 font-bold">
-                                इथे क्लिक करून ५ पर्यंत फोटो जोडा (जास्तीत जास्त ८०० KB प्रति फोटो)
+                                इथे क्लिक करून ५ पर्यंत फोटो जोडा (स्पष्ट HD फोटो, ऑटो-कॉम्प्रेस होतो)
                               </p>
                               <input
                                 type="file"
@@ -1306,6 +1379,122 @@ export const RegisterModal: React.FC<{
                           </div>
                         </label>
                       </div>
+                    </div>
+
+                    {/* Membership Plan Selection during Registration */}
+                    <div className="bg-gradient-to-br from-amber-100 to-amber-200/80 p-5 rounded-2xl border-2 border-amber-400 space-y-4 shadow-md">
+                      <div className="flex items-center justify-between border-b border-amber-300 pb-2">
+                        <h4 className="font-black text-[#A71930] text-sm flex items-center gap-2">
+                          <Sparkles className="w-5 h-5 text-[#A71930]" />
+                          <span>💎 सबस्क्रिप्शन प्लॅन निवडा (Membership Plan Selection):</span>
+                        </h4>
+                        <span className="text-[10px] font-black bg-[#A71930] text-amber-100 px-2 py-0.5 rounded-full">
+                          नोंदणी ऑफर 🎯
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-800 font-bold">
+                        तुम्हाला हवे असलेले सदस्यत्व (Membership) निवडा. तुम्ही नंतर देखील प्लॅन अपग्रेड करू शकता:
+                      </p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {(siteConfig?.showOnlyWelcomePlan !== false
+                          ? plansList.filter((p) => p.id === 'welcome_offer' && p.isActive !== false)
+                          : plansList.filter((p) => p.isActive !== false)
+                        ).map((p) => {
+                          const isSelected = selectedPlanId === p.id;
+                          return (
+                            <div
+                              key={p.id}
+                              onClick={() => setSelectedPlanId(p.id)}
+                              className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer relative ${
+                                isSelected
+                                  ? 'bg-white border-[#A71930] ring-2 ring-[#A71930]/30 shadow-md'
+                                  : 'bg-white/80 border-amber-300 hover:border-amber-400'
+                              }`}
+                            >
+                              {p.recommended && (
+                                <span className="absolute -top-2.5 right-3 bg-[#A71930] text-amber-100 text-[9px] font-black px-2 py-0.5 rounded-full shadow">
+                                  ★ सर्वाधिक लोकप्रिय (Best Value)
+                                </span>
+                              )}
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <span className="font-black text-slate-900 text-xs block">{p.nameMr}</span>
+                                  <span className="text-[10px] text-slate-600 font-bold block">{p.durationLabelMr || `${p.durationMonths} महिने`}</span>
+                                </div>
+                                <span className="text-base font-black text-[#A71930]">
+                                  {p.price === 0 ? 'मोफत' : `₹${p.price}`}
+                                </span>
+                              </div>
+                              <div className="mt-2 text-[10px] text-slate-700 font-bold space-y-0.5">
+                                {p.featuresMr?.slice(0, 2).map((feat, idx) => (
+                                  <div key={idx} className="flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                                    <span className="truncate">{feat}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {/* Free Option */}
+                        <div
+                          onClick={() => setSelectedPlanId('free')}
+                          className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer ${
+                            selectedPlanId === 'free'
+                              ? 'bg-white border-[#A71930] ring-2 ring-[#A71930]/30 shadow-md'
+                              : 'bg-white/80 border-amber-300'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <span className="font-black text-slate-900 text-xs block">फ्री नोंदणी (Free Membership)</span>
+                              <span className="text-[10px] text-slate-600 font-bold block">बेसिक विनामूल्य खाते</span>
+                            </div>
+                            <span className="text-base font-black text-emerald-700">₹०</span>
+                          </div>
+                          <span className="text-[10px] text-slate-600 font-bold block mt-1">
+                            ✓ प्रोफाईल तयार करा व इतरांना मोफत इंटरेस्ट पाठवा.
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Promo Code Input */}
+                      {selectedPlanId !== 'free' && (
+                        <div className="pt-2">
+                          <label className="block text-slate-900 font-extrabold text-xs mb-1">
+                            🎁 ऑफर प्रोमो कोड किंवा कूपन टाका (Promo Code):
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              placeholder="उदा. FESTIVE50 किंवा VIPFREE"
+                              value={regPromoCode}
+                              onChange={(e) => setRegPromoCode(e.target.value)}
+                              className="flex-1 bg-white border border-amber-300 rounded-xl px-3 py-2 text-xs font-mono font-bold uppercase text-slate-900 outline-none focus:border-[#A71930]"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!regPromoCode.trim()) return;
+                                const planObj = plansList.find((p) => p.id === selectedPlanId);
+                                const origPrice = planObj ? planObj.price : 999;
+                                const res = validatePromoCode(regPromoCode, origPrice);
+                                setAppliedRegPromoRes(res);
+                              }}
+                              className="px-4 py-2 bg-[#A71930] hover:bg-[#800C1E] text-amber-100 font-bold text-xs rounded-xl shadow cursor-pointer"
+                            >
+                              लागू करा
+                            </button>
+                          </div>
+                          {appliedRegPromoRes && (
+                            <p className={`text-xs font-bold mt-1 ${appliedRegPromoRes.valid ? 'text-emerald-700' : 'text-rose-600'}`}>
+                              {appliedRegPromoRes.message}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Admin Approval Notice */}

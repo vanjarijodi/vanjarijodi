@@ -16,7 +16,10 @@ import {
   ChevronRight,
   ShieldCheck,
   UserCheck,
-  Headphones
+  Headphones,
+  Handshake,
+  Building2,
+  Scroll,
 } from 'lucide-react';
 import { VerifiedBadge } from './VerifiedBadge';
 
@@ -30,7 +33,10 @@ export const LeftDrawer: React.FC = () => {
     setCurrentView,
     setIsPaymentOpen,
     setIsLoginOpen,
-    setLoginModalMode
+    setLoginModalMode,
+    setIsBusinessVendorDirectoryOpen,
+    setIsBioDataMakerOpen,
+    siteConfig
   } = useApp();
 
   if (!isLeftDrawerOpen) return null;
@@ -107,7 +113,7 @@ export const LeftDrawer: React.FC = () => {
                     </div>
                     {/* Golden Verification Badge */}
                     <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-amber-400 to-yellow-300 text-[#1A0307] p-1 rounded-full shadow-lg border border-amber-200">
-                      <VerifiedBadge isVerified={currentUser.isVerified} isFaceVerified={currentUser.isFaceVerified} size="sm" />
+                      <VerifiedBadge profile={currentUser} size="sm" />
                     </div>
                   </div>
 
@@ -162,6 +168,25 @@ export const LeftDrawer: React.FC = () => {
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
             </button>
+
+            {/* WEDDING VENDORS & HALLS DIRECTORY */}
+            {siteConfig?.enableBusinessVendors !== false && (
+              <button
+                onClick={() => {
+                  setIsBusinessVendorDirectoryOpen(true);
+                  setIsLeftDrawerOpen(false);
+                }}
+                className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-amber-100/80 hover:bg-amber-200/80 text-[#800C1E] font-black border border-amber-300 transition-all cursor-pointer shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <Handshake className="w-5 h-5 text-[#A71930]" />
+                  <span>लग्न व्यवसाय व नेटवर्किंग</span>
+                </div>
+                <span className="text-[10px] bg-[#A71930] text-amber-100 px-2 py-0.5 rounded-full font-extrabold shadow-sm">
+                  5%-10% OFF
+                </span>
+              </button>
+            )}
 
             {/* 2. My Profile & BioData (Requires login, leads to dashboard) */}
             <button
@@ -256,6 +281,24 @@ export const LeftDrawer: React.FC = () => {
                 <span>प्रीमियम VIP योजना (Upgrade)</span>
               </div>
               <ChevronRight className="w-4 h-4 text-amber-500" />
+            </button>
+
+            {/* 6.5. Online BioData Maker (PDF/JPG Generator) */}
+            <button
+              onClick={() => {
+                setIsBioDataMakerOpen(true);
+                setIsLeftDrawerOpen(false);
+              }}
+              className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/20 to-amber-500/5 border border-amber-400 text-amber-900 font-black transition-all cursor-pointer shadow-xs hover:scale-[1.01]"
+            >
+              <div className="flex items-center gap-3">
+                <Scroll className="w-5 h-5 text-[#A71930]" />
+                <div className="text-left">
+                  <span className="block text-xs font-black text-[#800C1E]">🎨 ऑनलाईन बायोडाटा मेकर</span>
+                  <span className="block text-[9px] text-amber-800 font-bold">मोफत JPG & PDF डाऊनलोड करा</span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-amber-700" />
             </button>
 
             {/* 7. OCR / AI BioData Reader */}

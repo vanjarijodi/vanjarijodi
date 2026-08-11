@@ -205,11 +205,18 @@ export const VanjariJodiLogo: React.FC<LogoProps> = ({
         </div>
 
         <div className="flex flex-col items-center">
-          <span className="text-xl sm:text-3xl font-black tracking-tight text-[#E65100] drop-shadow-sm">
+          <span 
+            className="text-2xl sm:text-4xl font-normal tracking-wide select-none transition-all leading-normal drop-shadow-xs"
+            style={{
+              fontFamily: "'Yatra One', serif",
+              color: '#A71930',
+              textShadow: '1px 1px 0px #FFE082, 2px 2px 0px #FFB300, 4px 4px 10px rgba(167, 25, 48, 0.25)'
+            }}
+          >
             {logoTitle}
           </span>
           {showSubtitle && (
-            <span className="text-[10px] sm:text-xs uppercase font-black tracking-widest text-[#00695C] bg-amber-100 px-3 py-0.5 rounded-full border border-amber-300/80 mt-1">
+            <span className="text-[10px] sm:text-xs uppercase font-black tracking-widest text-[#00695C] bg-amber-50 px-3 py-1 rounded-full border border-amber-300 mt-1.5 shadow-2xs">
               {logoSubtitle}
             </span>
           )}
@@ -226,18 +233,25 @@ export const VanjariJodiLogo: React.FC<LogoProps> = ({
       </div>
 
       <div className="flex flex-col min-w-0 justify-center">
-        <div className="flex items-center gap-1 sm:gap-1.5">
-          <span className="text-base sm:text-2xl md:text-3xl font-black tracking-tight text-[#E65100] leading-tight whitespace-nowrap drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <span 
+            className="text-lg sm:text-2xl md:text-3xl lg:text-3.5xl font-normal leading-tight whitespace-nowrap tracking-wide select-none transition-all"
+            style={{
+              fontFamily: "'Yatra One', serif",
+              color: '#A71930',
+              textShadow: '1px 1px 0px #FFE082, 1.5px 1.5px 0px #FFB300, 3px 3px 6px rgba(167, 25, 48, 0.2)'
+            }}
+          >
             {logoTitle}
           </span>
-          <span className="text-[8px] sm:text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-100 to-amber-200 text-[#800C1E] border border-amber-300 font-black uppercase tracking-wider shadow-sm shrink-0 hidden sm:inline-block">
+          <span className="text-[8px] sm:text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-100 to-amber-200 text-[#800C1E] border border-amber-300 font-black uppercase tracking-wider shadow-xs shrink-0 hidden sm:inline-block">
             अधिकृत
           </span>
         </div>
 
         {showSubtitle && (
           <div className="mt-0.5">
-            <p className="text-[9px] sm:text-xs font-black text-[#00695C] leading-none whitespace-nowrap">
+            <p className="text-[9px] sm:text-xs font-black text-[#00695C]/90 leading-none whitespace-nowrap tracking-wider">
               {logoSubtitle}
             </p>
           </div>

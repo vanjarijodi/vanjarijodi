@@ -13,7 +13,11 @@ import {
   LayoutDashboard,
   Download,
   Smartphone,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Handshake,
+  Building2,
+  Scroll,
+  Headphones,
 } from 'lucide-react';
 import { VerifiedBadge } from './VerifiedBadge';
 import { NoticeBanner } from './NoticeBanner';
@@ -35,7 +39,9 @@ export const Navbar: React.FC<{
     incrementApkDownloadCount,
     setLoginModalMode,
     setIsLeftDrawerOpen,
-    setIsRightDrawerOpen
+    setIsRightDrawerOpen,
+    setIsBusinessVendorDirectoryOpen,
+    setIsBioDataMakerOpen,
   } = useApp();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -76,6 +82,21 @@ export const Navbar: React.FC<{
           {/* RIGHT SIDE CONTROLS: Registration, Login, APK Download, Menu */}
           <div className="flex items-center gap-1 sm:gap-2.5 shrink-0">
             
+            {/* WEDDING VENDORS & HALLS DIRECTORY BUTTON */}
+            {siteConfig?.enableBusinessVendors !== false && (
+              <button
+                onClick={() => setIsBusinessVendorDirectoryOpen(true)}
+                title="मंगल कार्यालये, कॅटरिंग व लग्न व्यवसाय डिरेक्टरी"
+                className="hidden lg:flex px-3 py-1.5 sm:py-2 rounded-full bg-amber-100 hover:bg-amber-200 text-[#800C1E] text-[10px] sm:text-xs font-black shadow-sm items-center gap-1.5 transition-transform active:scale-95 border border-amber-300 cursor-pointer shrink-0"
+              >
+                <Handshake className="w-3.5 h-3.5 text-[#A71930]" />
+                <span>लग्न व्यवसाय</span>
+                <span className="bg-[#A71930] text-amber-100 px-1.5 py-0.2 rounded-full text-[9px] font-bold">
+                  १०% बंद
+                </span>
+              </button>
+            )}
+
             {/* DIRECT APK DOWNLOAD BUTTON */}
             {siteConfig?.apkSettings?.isEnabled && (
               <button
@@ -108,7 +129,7 @@ export const Navbar: React.FC<{
                 <LayoutDashboard className="w-3.5 h-3.5 text-[#A71930]" />
                 <span className="flex items-center gap-1">
                   <span>{currentUser.fullName.split(' ')[0]}</span>
-                  <VerifiedBadge isVerified={currentUser.isVerified} isFaceVerified={currentUser.isFaceVerified} size="sm" />
+                  <VerifiedBadge profile={currentUser} size="sm" />
                 </span>
               </button>
             ) : (
@@ -187,6 +208,24 @@ export const Navbar: React.FC<{
                       <span>नोंदणी करा</span>
                     </button>
 
+                    {siteConfig?.enableBusinessVendors !== false && (
+                      <button
+                        onClick={() => {
+                          setIsBusinessVendorDirectoryOpen(true);
+                          setMenuOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between p-2.5 rounded-xl bg-amber-100/90 hover:bg-amber-200 text-[#800C1E] font-black cursor-pointer border border-amber-300 shadow-sm"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Handshake className="w-4 h-4 text-[#A71930]" />
+                          <span>लग्न व्यवसाय व नेटवर्किंग</span>
+                        </div>
+                        <span className="text-[9px] bg-[#A71930] text-amber-100 px-1.5 py-0.5 rounded font-bold">
+                          10% OFF
+                        </span>
+                      </button>
+                    )}
+
                      {!currentUser && (
                       <>
                         <button
@@ -226,6 +265,22 @@ export const Navbar: React.FC<{
                         <span>एंड्रॉइड ॲप (APK) डाउनलोड</span>
                       </button>
                     )}
+
+                    <button
+                      onClick={() => {
+                        const supportBtn = document.getElementById('support-chat-trigger-btn');
+                        if (supportBtn) {
+                          supportBtn.click();
+                        } else {
+                          alert('मदत व सहाय्यासाठी कृपया स्क्रीनवरील ॲडमिन चॅट आयकॉनवर क्लिक करा.');
+                        }
+                        setMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-gradient-to-r from-amber-100 to-amber-200 text-[#800C1E] font-extrabold cursor-pointer border border-amber-300 shadow-xs"
+                    >
+                      <Headphones className="w-4 h-4 text-[#A71930] animate-pulse" />
+                      <span>🎧 मदत व ॲडमिन सपोर्ट चॅट</span>
+                    </button>
                   </div>
 
                   {/* Language Selector */}

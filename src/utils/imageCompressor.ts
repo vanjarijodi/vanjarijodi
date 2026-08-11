@@ -13,13 +13,13 @@ export interface CompressedImageResult {
 
 export const compressAndResizeImage = async (
   file: File,
-  maxDimension = 1200,
-  quality = 0.82
+  maxDimension = 1800,
+  quality = 0.92
 ): Promise<CompressedImageResult> => {
   const originalSizeKB = Math.round(file.size / 1024);
 
-  // If already under 400 KB and it's an image, read directly
-  if (file.size <= 400 * 1024 && file.type.startsWith('image/')) {
+  // If already under 1.5 MB and it's an image, pass directly for maximum HD sharpness
+  if (file.size <= 1500 * 1024 && file.type.startsWith('image/')) {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { Heart, Phone, Mail, MapPin, Download, ShieldCheck, Sparkles, ShieldAlert } from 'lucide-react';
+import { Heart, Phone, Mail, MapPin, Download, ShieldCheck, Sparkles, ShieldAlert, MessageCircle } from 'lucide-react';
 import { VanjariJodiLogo } from './VanjariJodiLogo';
 
 export const Footer: React.FC = () => {
@@ -48,21 +48,34 @@ export const Footer: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-3 flex-wrap justify-center text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => {
+                  const btn = document.getElementById('support-chat-trigger-btn');
+                  if (btn) btn.click();
+                  else alert('मदत व सहाय्यासाठी कृपया स्क्रीनवरील ॲडमिन चॅट आयकॉनवर क्लिक करा.');
+                }}
+                className="px-4 py-2 bg-gradient-to-r from-amber-300 to-amber-200 text-[#800C1E] hover:from-amber-200 hover:to-amber-100 rounded-xl font-black shadow-md flex items-center gap-2 border border-amber-400 cursor-pointer active:scale-95 transition-all"
+              >
+                <MessageCircle className="w-4 h-4 text-[#A71930]" />
+                <span>💬 थेट ॲडमिन चॅट करा</span>
+              </button>
+
               <a
-                href={`tel:${siteConfig?.contactPhone || '+91 98220 00000'}`}
+                href={`tel:${siteConfig?.contactPhone || '0000000000'}`}
                 className="px-4 py-2 bg-white text-[#A71930] hover:bg-amber-100 rounded-xl font-black shadow flex items-center gap-2 border border-amber-300"
               >
                 <Phone className="w-4 h-4 text-[#A71930]" />
-                <span>{siteConfig?.contactPhone || '+91 98220 00000'}</span>
+                <span>{siteConfig?.contactPhone || '0000000000'}</span>
               </a>
               {siteConfig?.contactWhatsapp && (
                 <a
-                  href={`https://wa.me/${siteConfig.contactWhatsapp.replace(/\D/g, '')}`}
+                  href={`https://wa.me/${siteConfig.contactWhatsapp.replace(/\D/g, '') || '0000000000'}`}
                   target="_blank"
                   rel="noreferrer"
                   className="px-4 py-2 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl font-bold shadow flex items-center gap-2"
                 >
-                  <span>व्हॉट्सॲप: {siteConfig.contactWhatsapp}</span>
+                  <span>व्हॉट्सॲप: {siteConfig.contactWhatsapp || '0000000000'}</span>
                 </a>
               )}
               <a

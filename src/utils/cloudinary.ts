@@ -15,17 +15,17 @@ export const CLOUDINARY_CLOUD_NAME = (import.meta as any).env?.VITE_CLOUDINARY_C
 export const CLOUDINARY_API_KEY = (import.meta as any).env?.VITE_CLOUDINARY_API_KEY || '884727253851869';
 export const CLOUDINARY_UPLOAD_PRESET = (import.meta as any).env?.VITE_CLOUDINARY_UPLOAD_PRESET || 'vanjari_preset';
 
-export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+export const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB allowance with auto-compression
 
 /**
- * Validates file size against 10 MB limit.
+ * Validates file size - smooth auto-compression handles large camera photos.
  */
 export const validateFileSize = (file: File | Blob): { valid: boolean; errorMsg?: string } => {
   if (file.size > MAX_FILE_SIZE_BYTES) {
     const sizeInMB = (file.size / (1024 * 1024)).toFixed(1);
     return {
       valid: false,
-      errorMsg: `फाईलचा आकार ${sizeInMB} MB आहे! कृपया १० MB पेक्षा कमी आकाराची फाईल निवडा.`,
+      errorMsg: `फाईलचा आकार खूप मोठा (${sizeInMB} MB) आहे. ५० MB पेक्षा लहान फोटो निवडा.`,
     };
   }
   return { valid: true };
@@ -49,7 +49,7 @@ export const uploadToCloudinary = async (
         return {
           success: false,
           url: '',
-          error: validation.errorMsg || 'File size exceeds 600 KB limit.',
+          error: validation.errorMsg || 'फोटो अपलोड करताना अडचण आली.',
         };
       }
     } else if (typeof fileOrDataUrl === 'string' && fileOrDataUrl.startsWith('data:')) {
@@ -57,11 +57,11 @@ export const uploadToCloudinary = async (
       const stringLength = fileOrDataUrl.length - (fileOrDataUrl.indexOf(',') + 1);
       const sizeInBytes = 4 * Math.ceil(stringLength / 3) * 0.5624896;
       if (sizeInBytes > MAX_FILE_SIZE_BYTES) {
-        const sizeInKB = (sizeInBytes / 1024).toFixed(0);
+        const sizeInMB = (sizeInBytes / (1024 * 1024)).toFixed(1);
         return {
           success: false,
           url: '',
-          error: `फोटोचा आकार ${sizeInKB} KB आहे! 600 KB पेक्षा कमी फोटो निवडा.`,
+          error: `फोटोचा आकार खूप मोठा (${sizeInMB} MB) आहे.`,
         };
       }
     }
@@ -160,4 +160,75 @@ export const uploadToCloudinary = async (
     });
     return { success: true, url: dataUrl };
   }
+};
+
+/**
+ * Compresses and resizes an image file using HTML5 canvas.
+ * Returns compressed File and dataUrl string.
+ */
+export const compressAndResizeImage = async (
+  file: File,
+  maxWidth = 1800,
+  quality = 0.92
+): Promise<{ file: File; dataUrl: string }> => {
+  return new Promise((resolve) => {
+    // If file is already reasonably sized (< 1.5 MB), pass directly for maximum HD sharpness
+    if (file.size <= 1500 * 1024) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        resolve({ file, dataUrl: e.target?.result as string });
+      };
+      reader.onerror = () => {
+        resolve({ file, dataUrl: '' });
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve({ file, dataUrl: e.target?.result as string });
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve({ file: compressedFile, dataUrl });
+            } else {
+              resolve({ file, dataUrl });
+            }
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = () => resolve({ file, dataUrl: e.target?.result as string });
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => resolve({ file, dataUrl: '' });
+    reader.readAsDataURL(file);
+  });
 };

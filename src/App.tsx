@@ -30,6 +30,11 @@ import { PWAInstallPrompt } from './components/PWAInstallPrompt';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { LeftDrawer } from './components/LeftDrawer';
 import { RightFilterDrawer } from './components/RightFilterDrawer';
+import { BusinessVendorDirectoryModal } from './components/BusinessVendorDirectoryModal';
+import { BusinessVendorRegisterModal } from './components/BusinessVendorRegisterModal';
+import { BusinessVendorPortalModal } from './components/BusinessVendorPortalModal';
+import { FlashAdPopup } from './components/FlashAdPopup';
+import { BioDataMakerModal } from './components/BioDataMakerModal';
 
 const MainAppContent: React.FC = () => {
   const {
@@ -53,7 +58,15 @@ const MainAppContent: React.FC = () => {
     setIsPaymentOpen,
     selectedPlanForPayment,
     siteConfig,
-    currentUser
+    currentUser,
+    isBusinessVendorDirectoryOpen,
+    setIsBusinessVendorDirectoryOpen,
+    isBusinessVendorRegisterModalOpen,
+    setIsBusinessVendorRegisterModalOpen,
+    isVendorPortalOpen,
+    setIsVendorPortalOpen,
+    isBioDataMakerOpen,
+    setIsBioDataMakerOpen,
   } = useApp();
 
   const [showSplash, setShowSplash] = React.useState(true);
@@ -92,8 +105,8 @@ const MainAppContent: React.FC = () => {
           {/* Featured Advertisements & Community Notices (डिजिटल जाहिरात व प्रायोजित उपक्रम मंच) */}
           <CommunityAds />
 
-          {/* Main Profiles Section (Only shown if explicitly enabled by admin in siteConfig) */}
-          {currentUser && siteConfig?.showProfilesOnIndexPage && <ProfilesGrid />}
+          {/* Main Profiles Section */}
+          {currentUser && siteConfig?.showProfilesOnIndexPage !== false && <ProfilesGrid />}
 
           {/* Success Stories Image Slider */}
           <SuccessStories />
@@ -115,7 +128,7 @@ const MainAppContent: React.FC = () => {
         </main>
       )}
 
-      {currentUser && currentView === 'profiles' && (
+      {currentView === 'profiles' && (
         <main className="flex-1 pb-16 md:pb-0 pt-4">
           <ProfilesGrid />
         </main>
@@ -187,6 +200,26 @@ const MainAppContent: React.FC = () => {
 
       {/* Prompts to Install PWA Call-to-Action Banner */}
       <PWAInstallPrompt />
+
+      {/* Interactive Timed Flash / Popup Ad Banner */}
+      <FlashAdPopup />
+
+      {/* Business Vendor Directory, Registration & Portal Modals */}
+      {isBusinessVendorDirectoryOpen && (
+        <BusinessVendorDirectoryModal onClose={() => setIsBusinessVendorDirectoryOpen(false)} />
+      )}
+      {isBusinessVendorRegisterModalOpen && (
+        <BusinessVendorRegisterModal onClose={() => setIsBusinessVendorRegisterModalOpen(false)} />
+      )}
+      {isVendorPortalOpen && (
+        <BusinessVendorPortalModal onClose={() => setIsVendorPortalOpen(false)} />
+      )}
+
+      {/* Online Marathi BioData Maker Modal */}
+      <BioDataMakerModal
+        isOpen={isBioDataMakerOpen}
+        onClose={() => setIsBioDataMakerOpen(false)}
+      />
 
     </div>
   );

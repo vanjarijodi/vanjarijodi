@@ -6,7 +6,7 @@ export type Gender = 'bride' | 'groom';
 
 export type MaritalStatus = 'never_married' | 'divorced' | 'widowed' | 'awaiting_divorce';
 
-export type MembershipTier = 'free' | 'silver' | 'gold' | 'diamond';
+export type MembershipTier = 'free' | 'monthly' | 'yearly' | 'lifetime' | 'silver' | 'gold' | 'diamond' | 'vip' | string;
 
 export interface ContactRequest {
   id: string;
@@ -110,10 +110,17 @@ export interface UserProfile {
   isCustomAccessGranted?: boolean;
   badge?: string;
   customBadge?: string;
+  hideBadge?: boolean;
   isHiddenByAdmin?: boolean;
   viewsCount?: number;
   pendingPhotoApproval?: boolean;
   aadhaarCardUrl?: string;
+  allowGuestContactView?: boolean;
+  forceShowContact?: boolean;
+  forceHideContact?: boolean;
+  forceShowPhoto?: boolean;
+  forceHidePhoto?: boolean;
+  professionTags?: string[]; // e.g. ['🩺 डॉक्टर', '🏛️ सरकारी नोकरी', '💻 इंजिनिअर', '👨‍🏫 शिक्षक']
 }
 
 export interface ProfileReport {
@@ -165,9 +172,20 @@ export interface Plan {
   nameMr: string;
   price: number;
   durationMonths: number;
+  durationLabelMr?: string;
+  planType?: 'monthly' | 'yearly' | 'lifetime' | 'pay_per_contact' | 'welcome_offer' | string;
+  unlockCount?: number;
+  isLimitedSlotsPlan?: boolean;
+  maxMemberLimit?: number;
+  currentMemberCount?: number;
+  showRemainingSeatsToPublic?: boolean;
+  relaunchBannerText?: string;
+  customBadgeText?: string;
+  badgeText?: string;
   features: string[];
   featuresMr: string[];
   recommended?: boolean;
+  isActive?: boolean;
 }
 
 export interface ChatMessage {
@@ -178,6 +196,9 @@ export interface ChatMessage {
   timestamp: string;
   isRead: boolean;
   imageUrl?: string;
+  pdfUrl?: string;
+  pdfName?: string;
+  fileType?: 'image' | 'pdf' | 'voice';
   voiceUrl?: string;
 }
 
@@ -311,6 +332,10 @@ export interface AdminSupportMessage {
   message: string;
   fileUrl?: string;
   fileName?: string;
+  fileType?: 'image' | 'pdf' | 'doc';
+  imageUrl?: string;
+  pdfUrl?: string;
+  pdfName?: string;
   timestamp: string;
   isReadByAdmin: boolean;
   isReadByUser: boolean;
@@ -445,6 +470,43 @@ export interface PendingLike {
   status: 'pending' | 'approved' | 'rejected';
 }
 
+export interface BusinessVendor {
+  id: string;
+  businessName: string;
+  ownerName: string;
+  category: string;
+  district: string;
+  taluka?: string;
+  address?: string;
+  mobile: string;
+  whatsapp?: string;
+  email?: string;
+  ratesAndPackages: string; // उदा. रु. १५,००० प्रति दिवस / रु. २५० प्रति ताट
+  memberDiscount?: string; // उदा. वंजारी जोडी सदस्यांना ५% किंवा १०% डिस्काउंट
+  commissionRate?: string; // उदा. ५% कमिशन, १०% कमिशन
+  photoUrl?: string;
+  pdfUrl?: string; // रेट कार्ड किंवा ब्रोशर PDF
+  description?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  viewsCount?: number;
+  bookedDates?: string[]; // YYYY-MM-DD format (उदा. ['2025-11-25', '2025-12-02'])
+  pinPassword?: string; // व्हेंडर पोर्टल लॉगिनसाठी पिन/पासवर्ड
+}
+
+export interface VendorBookingInquiry {
+  id: string;
+  vendorId: string;
+  vendorName: string;
+  userName: string;
+  userMobile: string;
+  eventDate: string; // YYYY-MM-DD
+  eventType?: string; // उदा. लग्नकार्य, हळदी, साखरपुडा
+  notes?: string;
+  status: 'pending' | 'accepted' | 'date_unavailable' | 'completed';
+  createdAt: string;
+}
+
 export interface SiteConfig {
   topBarText: string;
   logoTitle: string;
@@ -456,6 +518,12 @@ export interface SiteConfig {
   paymentQrUrl?: string;
   paymentUpiId?: string;
   paymentNote?: string;
+  paymentMode?: 'both' | 'razorpay_only' | 'upi_qr_only';
+  enableRazorpay?: boolean;
+  enableUpiQr?: boolean;
+  enableFullAccessForPaidMembers?: boolean;
+  upgradeRecommendedPlanId?: string;
+  razorpayKeyId?: string;
   heroHeading: string;
   heroSubheading: string;
   heroDescription?: string;
@@ -483,6 +551,12 @@ export interface SiteConfig {
   showProfilesOnIndexPage?: boolean;
   hideEmptyProfilesSection?: boolean;
   enableSearchFilters?: boolean;
+  filterShowGender?: boolean;
+  filterShowAge?: boolean;
+  filterShowDistrict?: boolean;
+  filterShowEducation?: boolean;
+  filterShowMaritalStatus?: boolean;
+  filterShowVerified?: boolean;
   blurProfilePhotos?: boolean;
   photoBlurPercent?: number;
   blurProfileNames?: boolean;
@@ -523,6 +597,17 @@ export interface SiteConfig {
   guestPermissions?: GuestPermissions;
   isNoticeBannerEnabled?: boolean;
   noticeBannerText?: string;
+  allowGuestsToViewContacts?: boolean;
+  allowPublicVisitorsToViewContacts?: boolean;
+  allowMembersToViewContacts?: boolean;
+  allowGuestsToViewPhotos?: boolean;
+  allowPublicVisitorsToViewPhotos?: boolean;
+  allowMembersToViewPhotos?: boolean;
+  showOnlyWelcomePlan?: boolean;
+  enableMutualLikeContactUnlock?: boolean;
+  disablePlanContactLimit?: boolean;
+  adminOverrideMemberPrivacy?: boolean;
+  allowMembersToControlPrivacy?: boolean;
   noticeBannerBg?: 'saffron' | 'emerald' | 'crimson' | 'maroon';
   regOption1Title?: string;
   regOption1Icon?: string;
@@ -547,5 +632,58 @@ export interface SiteConfig {
   apkSettings?: ApkSettings;
   socialLinks?: SocialLinkItem[];
   featureBoxes?: FeatureBoxItem[];
+  enableBusinessVendors?: boolean;
+  showVendorContactsToPublic?: boolean;
+  customVendorCategories?: string[];
+  // Flash / Popup Ad Settings (आकर्षक जाहिरात / पॉपअप फोटो)
+  isFlashAdEnabled?: boolean;
+  flashAdImageUrl?: string;
+  flashAdTitle?: string;
+  flashAdSubtitle?: string;
+  flashAdLinkUrl?: string;
+  flashAdDisplayMode?: 'popup_modal' | 'top_slide' | 'bottom_float';
+  flashAdAutoCloseSeconds?: number;
+  flashAdDelaySeconds?: number;
+  // Chat Message Permissions
+  allowUsersToDeleteChatMessages?: boolean;
+  // BioData Maker / Watermark & Promotion settings
+  biodataWatermarkEnabled?: boolean;
+  biodataWatermarkUrl?: string;
+  biodataWatermarkOpacity?: number;
+  biodataWatermarkSize?: number;
+  biodataPlaystoreAdEnabled?: boolean;
+  biodataPlaystoreAdText?: string;
+  biodataPlaystoreUrl?: string;
+  biodataPlaystoreQrEnabled?: boolean;
+  // Search Filter & Badge Controls
+  enableProfessionFilter?: boolean;
+  enableEducationFilter?: boolean;
+  enableDistrictFilter?: boolean;
+  enableMaritalStatusFilter?: boolean;
+  enableAgeFilter?: boolean;
+  showProfessionBadgesOnCards?: boolean;
+  showGovtJobHighlight?: boolean;
+}
+
+export interface TrashedProfile {
+  id: string;
+  profile: UserProfile;
+  deletedAt: string;
+  deletedBy: string;
+  reason?: string;
+}
+
+export interface TrashedPhoto {
+  id: string;
+  profileId: string;
+  originalProfileId?: string;
+  profileName: string;
+  profileRegId: string;
+  photoUrl: string;
+  photoType: 'avatar' | 'gallery';
+  deletedAt: string;
+  deletedBy: string;
+  estimatedSizeKb?: number;
+  sizeEstimateKb?: number;
 }
 
