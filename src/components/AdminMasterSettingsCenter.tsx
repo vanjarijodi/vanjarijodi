@@ -245,6 +245,39 @@ export const AdminMasterSettingsCenter: React.FC = () => {
               </button>
             </div>
 
+            {/* Auto Unlock Mobile Numbers on Payment */}
+            <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-300 flex items-center justify-between gap-3 shadow-sm">
+              <div>
+                <span className="font-black text-slate-900 block flex items-center gap-1.5 text-xs sm:text-sm">
+                  <Phone className="w-4 h-4 text-emerald-600" />
+                  <span>पेमेंट केलेल्या सदस्यांना मोबाईल नंबर ऑटो दाखवा (Auto-Unlock on Payment):</span>
+                </span>
+                <span className="text-[11px] text-slate-700 font-medium block mt-0.5">
+                  चालू ठेवल्यास सबस्क्रिप्शन पेमेंट केलेल्या सदस्यांना मोबाईल नंबर ऑटोमॅटिक (थेट) दिसतील. बंद केल्यास मोबाईल लॉक राहतील व ॲडमिन मंजुरी आवश्यक असेल.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const currentVal = siteConfig.autoUnlockOnPayment !== false || siteConfig.allowMembersToViewContacts;
+                  handleToggle('autoUnlockOnPayment', currentVal, 'पेमेंट ऑटो अनलॉक');
+                  updateSiteConfig({
+                    autoUnlockOnPayment: !currentVal,
+                    allowMembersToViewContacts: !currentVal,
+                  });
+                }}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black shrink-0 transition-all cursor-pointer ${
+                  siteConfig.autoUnlockOnPayment !== false || siteConfig.allowMembersToViewContacts
+                    ? 'bg-emerald-600 text-white shadow'
+                    : 'bg-rose-600 text-white shadow'
+                }`}
+              >
+                {siteConfig.autoUnlockOnPayment !== false || siteConfig.allowMembersToViewContacts
+                  ? 'ऑटो अनलॉक (ON)'
+                  : 'मोबाईल लॉक (OFF)'}
+              </button>
+            </div>
+
             {/* Global Hide Phone Numbers */}
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
               <div>
@@ -420,7 +453,7 @@ export const AdminMasterSettingsCenter: React.FC = () => {
                   <span>नवीन नोंदणी थेट मंजूर करा (Auto Approve New Profiles):</span>
                 </span>
                 <span className="text-[11px] text-slate-600 font-medium block mt-0.5">
-                  नवीन भरलेले प्रोफाईल्स ॲडमिन मंजुरीशिवाय लगेच थेट सार्वजनिक होतील.
+                  नवीन भरलेले प्रोफाईल्स ॲडमिन मंजुरीशिवाय लगेच थेट सार्वजनिक होतील. ऑफ ठेवल्यास सर्व प्रलंबित (Pending) मध्ये जातील.
                 </span>
               </div>
               <button
@@ -438,8 +471,55 @@ export const AdminMasterSettingsCenter: React.FC = () => {
                     : 'bg-rose-600 text-white shadow'
                 }`}
               >
-                {siteConfig.autoApproveNewRegistrations === true ? 'थेट मंजूर (ON)' : 'ॲडमिन मंजुरी प्रलंबित'}
+                {siteConfig.autoApproveNewRegistrations === true ? 'थेट मंजूर (ON)' : 'ॲडमिन मंजुरी प्रलंबित (OFF)'}
               </button>
+            </div>
+
+            {/* Name Display Control for Free Users */}
+            <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-300 space-y-2">
+              <div>
+                <span className="font-black text-slate-900 block flex items-center gap-1.5 text-xs">
+                  <span>👤 बिन-प्लॅन सदस्यांना नावाची दृश्यमानता (Free User Name Visibility):</span>
+                </span>
+                <span className="text-[11px] text-slate-600 font-medium block mt-0.5">
+                  फ्री / बिन-प्लॅन युझर्सना बायोडाटा दाखवताना नाव कसे दिसेल ते ठरवा:
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => updateSiteConfig({ nameDisplayModeForFreeUsers: 'full_name' })}
+                  className={`py-2 px-1.5 rounded-xl text-[10px] sm:text-xs font-black cursor-pointer border transition-all text-center ${
+                    (siteConfig.nameDisplayModeForFreeUsers || 'full_name') === 'full_name'
+                      ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  🟢 पूर्ण नाव
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateSiteConfig({ nameDisplayModeForFreeUsers: 'first_name_only' })}
+                  className={`py-2 px-1.5 rounded-xl text-[10px] sm:text-xs font-black cursor-pointer border transition-all text-center ${
+                    siteConfig.nameDisplayModeForFreeUsers === 'first_name_only' || siteConfig.nameDisplayModeForFreeUsers === 'middle_surname_only'
+                      ? 'bg-amber-600 text-white border-amber-700 shadow-xs'
+                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  🟡 मधले व आडनाव
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateSiteConfig({ nameDisplayModeForFreeUsers: 'hidden_star' })}
+                  className={`py-2 px-1.5 rounded-xl text-[10px] sm:text-xs font-black cursor-pointer border transition-all text-center ${
+                    siteConfig.nameDisplayModeForFreeUsers === 'hidden_star'
+                      ? 'bg-rose-600 text-white border-rose-700 shadow-xs'
+                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  🔴 गुप्त (स्टार्स)
+                </button>
+              </div>
             </div>
 
             {/* Auto Approve Likes & Direct Push Notification Toggle */}

@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { UserProfile, Gender } from '../types';
 import { VerifiedBadge } from './VerifiedBadge';
 import { getProfessionBadges } from '../utils/professionUtils';
+import { formatProfileDisplayName } from '../utils/nameFormatter';
 import {
   ShieldCheck,
   Heart,
@@ -305,16 +306,10 @@ export const ProfilesGrid: React.FC<{
                         </span>
                         
                         <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-1.5 flex-wrap">
-                          {(!isAuthorized && !currentUser && (siteConfig?.blurProfileNames ?? true)) ? (
-                            <span className="inline-flex items-center gap-1 text-xs text-amber-200 font-extrabold">
-                              🔒 नाव गुप्त (लॉगिन करा)
-                            </span>
-                          ) : (
-                            <>
-                              <span className="drop-shadow-md">{profile.fullName}</span>
-                              <VerifiedBadge profile={profile} size="sm" />
-                            </>
-                          )}
+                          <span className="drop-shadow-md">
+                            {formatProfileDisplayName(profile.fullName, currentUser, false, isAuthorized, siteConfig)}
+                          </span>
+                          <VerifiedBadge profile={profile} size="sm" />
                         </h3>
 
                         <div className="flex items-center gap-2 text-xs text-amber-100 font-bold">

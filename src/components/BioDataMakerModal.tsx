@@ -1165,7 +1165,7 @@ export const BioDataMakerModal: React.FC<{
               {/* Watermark Footer */}
               <div className="pt-3 border-t border-amber-500/30 text-center flex items-center justify-between text-[10px] text-slate-600 font-bold relative z-10">
                 <span>वंजारी जोडी मॅट्रिमोनी पोर्टल</span>
-                <span>www.vanjarijodi.com</span>
+                <span>vanjarijodi.web.app</span>
               </div>
 
             </div>
@@ -1583,7 +1583,7 @@ export const BioDataMakerModal: React.FC<{
                   }}
                 >
                   <span>वंजारी जोडी मॅट्रिमोनी पोर्टल</span>
-                  <span>www.vanjarijodi.com</span>
+                  <span>vanjarijodi.web.app</span>
                 </div>
               </div>
             </div>

@@ -3887,42 +3887,89 @@ export const AdminPanel: React.FC<{
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3">
                   
                   {/* Card 1: Photos Status */}
+                  {/* Card 1: Photo Visibility */}
                   <div className="p-3.5 bg-white rounded-2xl border border-amber-300 shadow-xs space-y-2 flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between gap-1">
                         <span className="text-xs font-black text-slate-900 flex items-center gap-1">
                           📸 १. फोटो दृश्यता
                         </span>
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black border border-emerald-300">
-                          सक्रिय ✓
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
+                          siteConfig?.allowMembersToViewPhotos !== false
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                            : 'bg-amber-100 text-amber-900 border-amber-300'
+                        }`}>
+                          {siteConfig?.allowMembersToViewPhotos !== false ? 'सक्रिय (Clear) ✓' : 'अस्पष्ट (Blurred)'}
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-600 font-medium leading-relaxed mt-1.5">
-                        सबस्क्रिप्शन पेमेंट पूर्ण केलेल्या सदस्यांना सर्व बायोडाटाचे फोटो स्पष्ट दिसतात.
+                        {siteConfig?.allowMembersToViewPhotos !== false
+                          ? 'सबस्क्रिप्शन पेमेंट पूर्ण केलेल्या सदस्यांना सर्व बायोडाटाचे फोटो स्पष्ट दिसतात.'
+                          : 'बिन-प्लॅन युझर्सना बायोडाटाचे सर्व फोटो ब्लर (अस्पष्ट) दिसतील.'}
                       </p>
                     </div>
-                    <div className="text-[10px] font-bold text-slate-500 pt-1 border-t border-slate-100">
-                      स्थिती: <strong>स्पष्ट फोटो (Clear Photos)</strong>
+                    <div className="text-[10px] font-bold text-slate-500 pt-1 border-t border-slate-100 flex items-center justify-between gap-2">
+                      <span>स्थिती: <strong>{siteConfig?.allowMembersToViewPhotos !== false ? 'स्पष्ट फोटो (Clear Photos)' : 'अस्पष्ट फोटो (Blur)'}</strong></span>
+                      <button
+                        type="button"
+                        onClick={() => updateSiteConfig({ allowMembersToViewPhotos: siteConfig?.allowMembersToViewPhotos === false ? true : false })}
+                        className="text-[10px] font-black text-[#A71930] hover:underline cursor-pointer bg-amber-50 px-2 py-1 rounded-lg border border-amber-200"
+                      >
+                        बदला
+                      </button>
                     </div>
                   </div>
 
-                  {/* Card 2: Mobile Number Lock & Admin Approval */}
+                  {/* Card 2: Mobile Number Lock & Auto-Unlock on Payment */}
                   <div className="p-3.5 bg-white rounded-2xl border border-amber-300 shadow-xs space-y-2 flex flex-col justify-between">
                     <div>
                       <div className="flex items-center justify-between gap-1">
                         <span className="text-xs font-black text-slate-900 flex items-center gap-1">
                           🔒 २. मोबाईल नंबर लॉक
                         </span>
-                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-black border border-amber-300">
-                          सुरक्षित (Locked)
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
+                          (siteConfig?.autoUnlockOnPayment !== false || siteConfig?.allowMembersToViewContacts)
+                            ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                            : 'bg-amber-100 text-amber-900 border-amber-300'
+                        }`}>
+                          {(siteConfig?.autoUnlockOnPayment !== false || siteConfig?.allowMembersToViewContacts)
+                            ? '⚡ ॲटो अनलॉक (ON)'
+                            : '🔒 सुरक्षित (Locked)'}
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-600 font-medium leading-relaxed mt-1.5">
-                        मोबाईल नंबर थेट कोणालाही दिसत नाही. सदस्य विनंती पाठवतील आणि ॲडमिनने परवानगी दिल्यावरच दिसेल.
+                        {(siteConfig?.autoUnlockOnPayment !== false || siteConfig?.allowMembersToViewContacts)
+                          ? 'पेमेंट केलेल्या किंवा सर्व सदस्यांना बायोडाटाचे मोबाईल नंबर ऑटोमॅटिक थेट दिसतील. ॲडमिन परवानगीची गरज नाही.'
+                          : 'मोबाईल नंबर थेट कोणालाही दिसत नाही. सदस्य विनंती पाठवतील आणि ॲडमिनने परवानगी दिल्यावरच दिसेल.'}
                       </p>
                     </div>
-                    <div className="text-[10px] font-bold text-slate-500 pt-1 border-t border-slate-100">
-                      स्थिती: <strong>ॲडमिन परवानगी आवश्यक</strong>
+                    <div className="text-[10px] font-bold text-slate-500 pt-1 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+                      <span>
+                        स्थिती: <strong>
+                          {(siteConfig?.autoUnlockOnPayment !== false || siteConfig?.allowMembersToViewContacts)
+                            ? 'पेमेंटला ॲटो दिसणार (Direct View)'
+                            : 'ॲडमिन परवानगी आवश्यक'}
+                        </strong>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const isAuto = (siteConfig?.autoUnlockOnPayment !== false || siteConfig?.allowMembersToViewContacts);
+                          updateSiteConfig({
+                            autoUnlockOnPayment: !isAuto,
+                            allowMembersToViewContacts: !isAuto,
+                          });
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-black border cursor-pointer transition-all ${
+                          (siteConfig?.autoUnlockOnPayment !== false || siteConfig?.allowMembersToViewContacts)
+                            ? 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100'
+                            : 'bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700 shadow-xs'
+                        }`}
+                      >
+                        {(siteConfig?.autoUnlockOnPayment !== false || siteConfig?.allowMembersToViewContacts)
+                          ? '🔒 लॉक करा (Turn Lock ON)'
+                          : '🔓 ॲटो अनलॉक चालू करा (Turn Auto ON)'}
+                      </button>
                     </div>
                   </div>
 
@@ -4335,6 +4382,51 @@ export const AdminPanel: React.FC<{
                         >
                           {siteConfig.allowMembersToViewPhotos !== false ? 'स्पष्ट (Clear)' : 'अस्पष्ट (Blur)'}
                         </button>
+                      </div>
+
+                      {/* Toggle: Name Display Mode for Free Users */}
+                      <div className="p-3.5 bg-amber-50/50 rounded-2xl border border-amber-200 space-y-2">
+                        <div>
+                          <p className="text-xs font-black text-slate-800">बिन-प्लॅनवाल्यांना (Free/Guest) नावाची दृश्यमानता कसली ठेवायची?</p>
+                          <p className="text-[10px] text-slate-500 font-semibold leading-normal">
+                            फ्री युझर्सना बायोडाटा ब्राऊझ करताना नाव पूर्ण दाखवायचे, फक्त पहिले नाव दाखवायचे की गुप्त ठेवायचे हे निवडा.
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => updateSiteConfig({ nameDisplayModeForFreeUsers: 'full_name' })}
+                            className={`py-2 px-2 rounded-xl text-[11px] font-black cursor-pointer border transition-all text-center ${
+                              (siteConfig.nameDisplayModeForFreeUsers || 'full_name') === 'full_name'
+                                ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                            }`}
+                          >
+                            🟢 पूर्ण नाव (उदा. राहुल सानप)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateSiteConfig({ nameDisplayModeForFreeUsers: 'first_name_only' })}
+                            className={`py-2 px-2 rounded-xl text-[11px] font-black cursor-pointer border transition-all text-center ${
+                              siteConfig.nameDisplayModeForFreeUsers === 'first_name_only' || siteConfig.nameDisplayModeForFreeUsers === 'middle_surname_only'
+                                ? 'bg-amber-600 text-white border-amber-700 shadow-xs'
+                                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                            }`}
+                          >
+                            🟡 मधले व आडनाव (उदा. बबनराव मुंडे)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateSiteConfig({ nameDisplayModeForFreeUsers: 'hidden_star' })}
+                            className={`py-2 px-2 rounded-xl text-[11px] font-black cursor-pointer border transition-all text-center ${
+                              siteConfig.nameDisplayModeForFreeUsers === 'hidden_star'
+                                ? 'bg-rose-600 text-white border-rose-700 shadow-xs'
+                                : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                            }`}
+                          >
+                            🔴 गुप्त नाव (उदा. रा****)
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

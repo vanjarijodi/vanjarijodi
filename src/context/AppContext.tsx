@@ -1477,6 +1477,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (unlockedContacts.includes(targetProfileId)) {
             return true;
           }
+          if (siteConfig?.autoUnlockOnPayment !== false || siteConfig?.allowMembersToViewContacts) {
+            return true;
+          }
           return false;
         }
         return true;
@@ -1662,6 +1665,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const updated = {
             ...p,
             membership: tier,
+            isApproved: true,
             isVerified: true,
             unlockedContactsCount: (p.unlockedContactsCount || 0) + (bonusUnlocks || (tier === 'welcome_offer' ? 5 : 0)),
           };
@@ -1678,6 +1682,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ? {
               ...prev,
               membership: tier,
+              isApproved: true,
               isVerified: true,
               unlockedContactsCount: (prev.unlockedContactsCount || 0) + (bonusUnlocks || (tier === 'welcome_offer' ? 5 : 0)),
             }
@@ -1687,13 +1692,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addProfile = (newProfile: UserProfile) => {
-    const isAutoApproved = siteConfig.isAutoModeEnabled && (siteConfig.autoApproveNewRegistrations || siteConfig.autoModeType === 'free_for_all');
-    const isApprovedStatus = isAutoApproved ? true : (typeof newProfile.isApproved === 'boolean' ? newProfile.isApproved : false);
+    const isPaidMember = Boolean(newProfile.membership && newProfile.membership !== 'free');
+    const isAutoApproved = isPaidMember || (siteConfig.isAutoModeEnabled && (siteConfig.autoApproveNewRegistrations || siteConfig.autoModeType === 'free_for_all'));
+    const isApprovedStatus = typeof newProfile.isApproved === 'boolean'
+      ? newProfile.isApproved
+      : (isAutoApproved ? true : false);
     const profileToSave = { ...newProfile, isApproved: isApprovedStatus };
     setProfiles((prev) => [profileToSave, ...prev]);
     setCurrentUser(profileToSave);
     syncDocToFirestore('profiles', profileToSave.id, profileToSave);
-    logActivity('New Registration', `नवीन प्रोफाईल जोडले: ${profileToSave.fullName} (${profileToSave.gender === 'bride' ? 'वधू' : 'वर'}) ${isApprovedStatus ? '[ऑटो मोड ऑटो मंजूर]' : '[ॲडमिन मंजुरी प्रलंबित]'}`, profileToSave.fullName);
+    logActivity('New Registration', `नवीन प्रोफाईल जोडले: ${profileToSave.fullName} (${profileToSave.gender === 'bride' ? 'वधू' : 'वर'}) ${isApprovedStatus ? '[ऑटो मंजूर]' : '[ॲडमिन मंजुरी प्रलंबित]'}`, profileToSave.fullName);
   };
 
   // 16. Admin Direct Support Chat Messages & Real-time Notifications
@@ -1841,6 +1849,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const target = profiles.find((p) => p.id === profileId);
     if (!target) return;
 
+    // Send profile photos to Photo Trash / Recycle Bin
+    if (target.photoUrl && target.photoUrl.trim() !== '') {
+      trashPhoto(target.id, target.photoUrl, 'avatar', target.fullName);
+    }
+    if (target.photos && target.photos.length > 0) {
+      target.photos.forEach((ph) => {
+        if (ph && ph !== target.photoUrl) {
+          trashPhoto(target.id, ph, 'gallery', target.fullName);
+        }
+      });
+    }
+
     const newItem: RecycleBinItem = {
       id: 'recy-' + Date.now(),
       originalType: 'biodata',
@@ -1852,13 +1872,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setRecycleBin((prev) => [newItem, ...prev]);
     setProfiles((prev) => prev.filter((p) => p.id !== profileId));
     deleteDocFromFirestore('profiles', profileId);
-    logActivity('Soft Delete', `${target.fullName} यांची प्रोफाईल रिसायकल बिन मध्ये टाकली`, 'Admin');
+    logActivity('Soft Delete', `${target.fullName} यांची प्रोफाईल व फोटो रिसायकल बिन मध्ये टाकले`, 'Admin');
   };
 
   const bulkSoftDeleteProfiles = (profileIds: string[]) => {
     profileIds.forEach((pid) => {
       const target = profiles.find((p) => p.id === pid);
       if (target) {
+        if (target.photoUrl && target.photoUrl.trim() !== '') {
+          trashPhoto(target.id, target.photoUrl, 'avatar', target.fullName);
+        }
+        if (target.photos && target.photos.length > 0) {
+          target.photos.forEach((ph) => {
+            if (ph && ph !== target.photoUrl) {
+              trashPhoto(target.id, ph, 'gallery', target.fullName);
+            }
+          });
+        }
         const newItem: RecycleBinItem = {
           id: 'recy-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
           originalType: 'biodata',
@@ -1871,7 +1901,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     });
     setProfiles((prev) => prev.filter((p) => !profileIds.includes(p.id)));
-    logActivity('Bulk Soft Delete', `${profileIds.length} प्रोफाईल एकत्र रिसायकल बिनमध्ये हलवल्या`, 'Admin');
+    logActivity('Bulk Soft Delete', `${profileIds.length} प्रोफाईल व फोटो एकत्र रिसायकल बिनमध्ये हलवले`, 'Admin');
   };
 
   // Profile Removal & Marriage Fixed Requests Engine
@@ -2856,11 +2886,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const deleteMemberPhoto = (profileId: string, photoIndex: number) => {
+    const target = profiles.find((p) => p.id === profileId) || (currentUser?.id === profileId ? currentUser : null);
+    if (target && target.photos && target.photos[photoIndex]) {
+      const removedUrl = target.photos[photoIndex];
+      trashPhoto(profileId, removedUrl, photoIndex === 0 ? 'avatar' : 'gallery', target.fullName);
+    }
+
     setProfiles((prev) =>
       prev.map((p) => {
         if (p.id === profileId && p.photos && p.photos.length > photoIndex) {
           const newPhotos = p.photos.filter((_, idx) => idx !== photoIndex);
-          const updated = { ...p, photos: newPhotos };
+          const updated = {
+            ...p,
+            photos: newPhotos,
+            photoUrl: newPhotos.length > 0 ? newPhotos[0] : (p.photos[photoIndex] === p.photoUrl ? '' : p.photoUrl)
+          };
           syncDocToFirestore('profiles', updated.id, updated);
           return updated;
         }
@@ -2871,7 +2911,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCurrentUser((prev) => {
         if (!prev || !prev.photos) return prev;
         const newPhotos = prev.photos.filter((_, idx) => idx !== photoIndex);
-        return { ...prev, photos: newPhotos };
+        return {
+          ...prev,
+          photos: newPhotos,
+          photoUrl: newPhotos.length > 0 ? newPhotos[0] : (prev.photos[photoIndex] === prev.photoUrl ? '' : prev.photoUrl)
+        };
       });
     }
   };

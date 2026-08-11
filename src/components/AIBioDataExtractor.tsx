@@ -162,15 +162,8 @@ export const AIBioDataExtractor: React.FC<AIBioDataExtractorProps> = ({
       }
 
       let apiUrl = '/api/extract-biodata';
-      if (typeof window !== 'undefined') {
-        const isCapacitorOrLocal =
-          (window as any).Capacitor ||
-          window.location.protocol === 'file:' ||
-          (window.location.hostname === 'localhost' && (window.location.port === '' || window.location.port === '80'));
-        if (isCapacitorOrLocal) {
-          const cloudRunHost = 'https://ais-dev-gd3elul22zl4zk3i4alrw5-542294010175.asia-east1.run.app';
-          apiUrl = `${cloudRunHost}/api/extract-biodata`;
-        }
+      if (typeof window !== 'undefined' && window.location.origin && window.location.origin !== 'null') {
+        apiUrl = `${window.location.origin}/api/extract-biodata`;
       }
 
       const response = await fetch(apiUrl, {
@@ -192,9 +185,7 @@ export const AIBioDataExtractor: React.FC<AIBioDataExtractorProps> = ({
       }
 
       if (data.success && data.extractedData) {
-        // Crucial fix: Do NOT set the document/paper photo as the candidate profile photo!
-        // The uploaded BioData image is strictly used for text OCR reading.
-        // candidatePhotoUrl will ONLY be set if a candidate profile photo was explicitly uploaded by the user.
+        // Do NOT set full paper document image as profile photo
         const finalCandidatePhoto = candidateProfilePhotoUrl || undefined;
 
         const result: ExtractedBioData = {
@@ -203,8 +194,8 @@ export const AIBioDataExtractor: React.FC<AIBioDataExtractorProps> = ({
           hasCandidatePhoto: !!finalCandidatePhoto,
           candidatePhotoDescription: finalCandidatePhoto
             ? (data.extractedData.gender === 'bride'
-              ? 'वधूचा (मुलीचा) स्वतंत्र प्रोफाईल फोटो जोडला गेला आहे.'
-              : 'वराचा (मुलाचा) स्वतंत्र प्रोफाईल फोटो जोडला गेला आहे.')
+              ? 'वधूचा (मुलीचा) फोटो यशस्वीपणे जोडला गेला आहे.'
+              : 'वराचा (मुलाचा) फोटो यशस्वीपणे जोडला गेला आहे.')
             : undefined,
         };
         setExtractedResult(result);
@@ -254,87 +245,6 @@ export const AIBioDataExtractor: React.FC<AIBioDataExtractorProps> = ({
             </p>
           </div>
         </div>
-      </div>
-
-      {/* INFORMATIONAL BANNER REGARDING DOCUMENT PHOTO VS PROFILE PHOTO */}
-      <div className="mb-6 p-3.5 bg-slate-900/90 rounded-2xl border border-amber-500/30 flex items-start gap-3 text-xs text-slate-200">
-        <Info className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-        <div className="space-y-1">
-          <p className="font-bold text-amber-300">
-            💡 महत्वाचे: बायोडाटा कागदपत्राचा फोटो केवळ माहिती वाचण्यासाठी वापरला जाईल.
-          </p>
-          <p className="text-[11px] text-slate-300 leading-relaxed">
-            अपलोड केलेल्या कागदपत्र किंवा पत्रिकेचा फोटो प्रोफाइल फोटो म्हणून लावला जात नाही. तुम्हाला हवा असल्यास खालील ऐच्छिक (Optional) पर्यायावरून उमेदवाराचा वेगळा प्रोफाईल फोटो जोडू शकता.
-          </p>
-        </div>
-      </div>
-
-      {/* OPTIONAL CANDIDATE PROFILE PHOTO UPLOAD CARD */}
-      <div className="mb-6 p-4 bg-slate-950/80 rounded-2xl border border-amber-500/30 space-y-2.5">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <label className="text-xs font-black text-amber-300 flex items-center gap-1.5">
-            <Camera className="w-4 h-4 text-amber-400" />
-            <span>वधू/वराचा प्रोफाईल फोटो जोडा (ऐच्छिक / Optional)</span>
-          </label>
-          <span className="text-[10px] font-bold bg-slate-800 text-amber-200 px-2.5 py-0.5 rounded-full border border-slate-700">
-            नॉट कंपल्सरी
-          </span>
-        </div>
-
-        {candidateProfilePhotoUrl ? (
-          <div className="flex items-center justify-between p-3 bg-slate-900 rounded-xl border border-emerald-500/50">
-            <div className="flex items-center gap-3">
-              <img
-                src={candidateProfilePhotoUrl}
-                alt="Candidate Profile"
-                className="w-14 h-14 rounded-xl object-cover border-2 border-amber-400 shadow shrink-0"
-              />
-              <div>
-                <span className="text-xs font-black text-emerald-400 flex items-center gap-1">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>प्रोफाईल फोटो जोडला गेला!</span>
-                </span>
-                <p className="text-[11px] text-slate-300 mt-0.5">
-                  हा फोटो नवीन प्रोफाईलचा मुख्य फोटो म्हणून सेव्ह होईल.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setCandidateProfilePhotoUrl(null)}
-              className="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-bold border border-rose-500/40 cursor-pointer transition-colors"
-            >
-              हटवा
-            </button>
-          </div>
-        ) : (
-          <div className="relative">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleCandidatePhotoChange}
-              disabled={isUploadingCandidatePhoto}
-              className="hidden"
-              id="ai-candidate-profile-photo-input"
-            />
-            <label
-              htmlFor="ai-candidate-profile-photo-input"
-              className="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 font-bold text-xs border border-dashed border-amber-500/40 cursor-pointer flex items-center justify-center gap-2 transition-all shadow-sm"
-            >
-              {isUploadingCandidatePhoto ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin text-amber-300" />
-                  <span>प्रोफाईल फोटो अपलोड होत आहे...</span>
-                </>
-              ) : (
-                <>
-                  <Upload className="w-4 h-4 text-amber-400" />
-                  <span>📸 वधू/वराचा स्वतंत्र प्रोफाईल फोटो निवडा (ऐच्छिक)</span>
-                </>
-              )}
-            </label>
-          </div>
-        )}
       </div>
 
       {/* INPUT TABS SWITCH (Image Upload vs Text Paste) */}

@@ -23,6 +23,12 @@ export const FlashAdPopup: React.FC = () => {
       return;
     }
 
+    const isAlreadyDismissed = sessionStorage.getItem('flash_ad_dismissed') === 'true';
+    if (isAlreadyDismissed) {
+      setIsVisible(false);
+      return;
+    }
+
     // Delay before showing ad
     const showTimer = setTimeout(() => {
       setIsVisible(true);
@@ -55,6 +61,7 @@ export const FlashAdPopup: React.FC = () => {
   if (!isEnabled || !isVisible) return null;
 
   const handleClose = () => {
+    sessionStorage.setItem('flash_ad_dismissed', 'true');
     setIsVisible(false);
   };
 

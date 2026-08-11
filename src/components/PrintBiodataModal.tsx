@@ -395,7 +395,7 @@ export const PrintBiodataModal: React.FC<{
 
           {/* Print Footer Disclaimer */}
           <div className="mt-8 pt-4 border-t border-amber-300 flex items-center justify-between text-[11px] text-slate-500 font-medium">
-            <p>© २०२६ {siteConfig?.logoTitle || 'वंजारी जोडी'} — www.vanjarijodi.org</p>
+            <p>© २०२६ {siteConfig?.logoTitle || 'वंजारी जोडी'} — vanjarijodi.web.app</p>
             <p className="font-bold text-[#A71930]">॥ संत भगवान बाबा आशीर्वाद ॥</p>
           </div>
         </div>
@@ -806,7 +806,7 @@ export const PrintBiodataModal: React.FC<{
               zIndex: 10
             }}
           >
-            <p>© २०२६ {siteConfig?.logoTitle || 'वंजारी जोडी'} — www.vanjarijodi.org</p>
+            <p>© २०२६ {siteConfig?.logoTitle || 'वंजारी जोडी'} — vanjarijodi.web.app</p>
             <p style={{ color: '#A71930' }}>॥ संत भगवान बाबा आशीर्वाद ॥</p>
           </div>
         </div>

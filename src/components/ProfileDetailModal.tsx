@@ -5,6 +5,7 @@ import { PrintBiodataModal } from './PrintBiodataModal';
 import { ReportProfileModal } from './ReportProfileModal';
 import { VerifiedBadge } from './VerifiedBadge';
 import { getProfessionBadges } from '../utils/professionUtils';
+import { formatProfileDisplayName } from '../utils/nameFormatter';
 import { uploadToCloudinary, compressAndResizeImage } from '../utils/cloudinary';
 import {
   X,
@@ -150,7 +151,7 @@ export const ProfileDetailModal: React.FC<{
                 आयडी: {profile.id}
               </span>
               <h2 className="text-base sm:text-lg font-black text-amber-100 break-words">
-                {(!isAuthorized && !currentUser && (siteConfig?.blurProfileNames ?? true)) ? '🔒 [नाव गुप्त लपवले आहे]' : profile.fullName}
+                {formatProfileDisplayName(profile.fullName, currentUser, isAdminLoggedIn, isAuthorized, siteConfig)}
               </h2>
             </div>
             <div className="flex items-center gap-2">
@@ -712,22 +713,10 @@ export const ProfileDetailModal: React.FC<{
                   </div>
 
                   <h1 className="text-xl sm:text-2xl font-black text-[#A71930] mt-2 flex flex-col items-start gap-1">
-                    {(!isAuthorized && !currentUser && (siteConfig?.blurProfileNames ?? true)) ? (
-                      <div className="flex flex-col items-start gap-1">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-red-50 text-[#A71930] text-xs font-black border border-red-200 select-none animate-pulse">
-                          <Lock className="w-4 h-4 text-[#A71930] shrink-0" />
-                          <span>नाव पाहाण्यासाठी लॉग इन करा</span>
-                        </span>
-                        <span className="blur-[6px] select-none pointer-events-none font-black text-slate-800 tracking-wider">
-                          {profile.fullName}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span>{profile.fullName}</span>
-                        <VerifiedBadge isVerified={profile.isVerified} isFaceVerified={profile.isFaceVerified} size="md" showLabel={true} />
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span>{formatProfileDisplayName(profile.fullName, currentUser, isAdminLoggedIn, isAuthorized, siteConfig)}</span>
+                      <VerifiedBadge profile={profile} size="md" />
+                    </div>
                   </h1>
 
                   {/* High Contrast District & Qualification Highlight Box */}

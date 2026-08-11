@@ -6,6 +6,7 @@ import {
 import { UserProfile, Gender, MaritalStatus, MembershipTier } from '../types';
 import { uploadToCloudinary, compressAndResizeImage } from '../utils/cloudinary';
 import { PROFESSION_PRESETS } from '../utils/professionUtils';
+import { useApp } from '../context/AppContext';
 
 interface AdminEditProfileModalProps {
   profile: UserProfile | null;
@@ -35,6 +36,7 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
   onSave,
   canEdit = true,
 }) => {
+  const { trashPhoto } = useApp();
   const [activeSubTab, setActiveSubTab] = useState<
     'personal' | 'astrology' | 'location' | 'education' | 'family' | 'documents' | 'badge'
   >('personal');
@@ -282,6 +284,10 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
   };
 
   const removePhoto = (indexToRemove: number) => {
+    const removedUrl = photos[indexToRemove];
+    if (removedUrl && profile) {
+      trashPhoto(profile.id, removedUrl, indexToRemove === 0 ? 'avatar' : 'gallery', fullName || profile.fullName);
+    }
     setPhotos((prev) => prev.filter((_, idx) => idx !== indexToRemove));
   };
 

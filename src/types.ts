@@ -591,6 +591,7 @@ export interface SiteConfig {
   isAutoModeEnabled?: boolean;
   autoModeType?: 'payment_required' | 'free_for_all';
   autoApproveNewRegistrations?: boolean;
+  autoApprovePaidRegistrations?: boolean;
   autoUnlockOnPayment?: boolean;
   freeForAllMode?: boolean;
   autoModeForGuests?: boolean;
@@ -604,6 +605,7 @@ export interface SiteConfig {
   allowGuestsToViewPhotos?: boolean;
   allowPublicVisitorsToViewPhotos?: boolean;
   allowMembersToViewPhotos?: boolean;
+  nameDisplayModeForFreeUsers?: 'full_name' | 'first_name_only' | 'hidden_star';
   showOnlyWelcomePlan?: boolean;
   enableMutualLikeContactUnlock?: boolean;
   disablePlanContactLimit?: boolean;
