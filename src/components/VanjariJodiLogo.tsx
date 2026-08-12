@@ -15,7 +15,7 @@ export const VanjariJodiLogo: React.FC<LogoProps> = ({
   variant = 'full',
   showSubtitle = true,
 }) => {
-  const { siteConfig } = useApp();
+  const { siteConfig, language } = useApp();
   const [imgError, setImgError] = React.useState(false);
 
   const customLogoUrl = siteConfig?.logoUrl;
@@ -245,7 +245,7 @@ export const VanjariJodiLogo: React.FC<LogoProps> = ({
             {logoTitle}
           </span>
           <span className="text-[8px] sm:text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-100 to-amber-200 text-[#800C1E] border border-amber-300 font-black uppercase tracking-wider shadow-xs shrink-0 hidden sm:inline-block">
-            अधिकृत
+            {language === 'en' ? 'Official' : 'अधिकृत'}
           </span>
         </div>
 

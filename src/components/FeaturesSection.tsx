@@ -16,7 +16,7 @@ const ICON_MAP: Record<string, any> = {
 };
 
 export const FeaturesSection: React.FC = () => {
-  const { setIsRegisterOpen, siteConfig } = useApp();
+  const { setIsRegisterOpen, siteConfig, language } = useApp();
 
   const customBoxes = siteConfig.featureBoxes?.filter((b) => b.isEnabled) || [];
 
@@ -25,29 +25,29 @@ export const FeaturesSection: React.FC = () => {
       id: 'f-1',
       icon: ShieldCheck,
       color: 'from-amber-500 to-orange-500',
-      titleMr: 'सत्यापित प्रोफाइल (Verified Profiles)',
-      descMr: '१००% आधार व शासकीय ओळखपत्राद्वारे प्रत्येक प्रोफाईलची सत्यता ॲडमिनद्वारे पडताळली जाते.'
+      title: language === 'en' ? 'Verified Profiles' : 'सत्यापित प्रोफाइल (Verified Profiles)',
+      desc: language === 'en' ? '100% Aadhaar & Govt ID verified profiles reviewed by Admin team.' : '१००% आधार व शासकीय ओळखपत्राद्वारे प्रत्येक प्रोफाईलची सत्यता ॲडमिनद्वारे पडताळली जाते.'
     },
     {
       id: 'f-2',
       icon: Lock,
       color: 'from-orange-500 to-amber-600',
-      titleMr: 'संपूर्ण गोपनीयता (100% Privacy)',
-      descMr: 'तुमचे फोटो आणि वैयक्तिक माहिती पूर्णपणे सुरक्षित. तुमच्या परवानगीशिवाय संपर्क उघड केला जात नाही.'
+      title: language === 'en' ? '100% Privacy' : 'संपूर्ण गोपनीयता (100% Privacy)',
+      desc: language === 'en' ? 'Your photos and personal details are fully safe. Contact options disclosed only with permission.' : 'तुमचे फोटो आणि वैयक्तिक माहिती पूर्णपणे सुरक्षित. तुमच्या परवानगीशिवाय संपर्क उघड केला जात नाही.'
     },
     {
       id: 'f-3',
       icon: PhoneCall,
       color: 'from-amber-600 to-rose-600',
-      titleMr: 'सुरक्षित संपर्क (Secure Contact)',
-      descMr: 'मोबाईल नंबर सार्वजनिकपणे उघडे नसून ॲडमिनद्वारे authorized झाल्यानंतरच संपर्क साधता येतो.'
+      title: language === 'en' ? 'Secure Contact' : 'सुरक्षित संपर्क (Secure Contact)',
+      desc: language === 'en' ? 'Mobile numbers are kept confidential and accessible only after Admin authorization.' : 'मोबाईल नंबर सार्वजनिकपणे उघडे नसून ॲडमिनद्वारे authorized झाल्यानंतरच संपर्क साधता येतो.'
     },
     {
       id: 'f-4',
       icon: UserCheck,
       color: 'from-amber-500 to-emerald-600',
-      titleMr: 'प्रशासकीय मान्यता (Admin Approval)',
-      descMr: 'प्रत्येक नवीन नोंदणीची ॲडमिन टीमद्वारे कसून तपासणी करूनच प्रणालीत मंजुरी दिली जाते.'
+      title: language === 'en' ? 'Admin Approval' : 'प्रशासकीय मान्यता (Admin Approval)',
+      desc: language === 'en' ? 'Every new registration undergoes strict background check by Admin team before approval.' : 'प्रत्येक नवीन नोंदणीची ॲडमिन टीमद्वारे कसून तपासणी करूनच प्रणालीत मंजुरी दिली जाते.'
     }
   ];
 
@@ -63,13 +63,19 @@ export const FeaturesSection: React.FC = () => {
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 text-amber-300 text-xs font-bold border border-amber-500/30 uppercase tracking-widest shadow-inner">
             <CheckCircle2 className="w-4 h-4 text-amber-400" />
-            <span>खास वैशिष्ट्ये (Special Features)</span>
+            <span>{language === 'en' ? 'Special Features' : 'खास वैशिष्ट्ये (Special Features)'}</span>
           </div>
           <h2 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
-            वंजारी समाजासाठी <span className="bg-gradient-to-r from-amber-300 via-orange-400 to-amber-200 bg-clip-text text-transparent">सुरक्षित व आधुनिक</span> सेवा
+            {language === 'en' ? (
+              <span>Safe & Modern Matrimonial Services for <span className="bg-gradient-to-r from-amber-300 via-orange-400 to-amber-200 bg-clip-text text-transparent">Vanjari Samaj</span></span>
+            ) : (
+              <>वंजारी समाजासाठी <span className="bg-gradient-to-r from-amber-300 via-orange-400 to-amber-200 bg-clip-text text-transparent">सुरक्षित व आधुनिक</span> सेवा</>
+            )}
           </h2>
           <p className="text-slate-400 text-sm sm:text-base leading-relaxed">
-            सुरक्षितता, गोपनीयता आणि आधुनिक तंत्रज्ञानाची सांगड घालून तयार केलेले नंबर १ मॅट्रीमोनी पोर्टल.
+            {language === 'en'
+              ? 'No. 1 matrimonial portal built with privacy, safety, and modern technology.'
+              : 'सुरक्षितता, गोपनीयता आणि आधुनिक तंत्रज्ञानाची सांगड घालून तयार केलेले नंबर १ मॅट्रीमोनी पोर्टल.'}
           </p>
         </div>
 
@@ -102,7 +108,7 @@ export const FeaturesSection: React.FC = () => {
                     </div>
 
                     <div className="pt-6 mt-6 border-t border-slate-900 flex items-center justify-between text-xs font-bold text-amber-400">
-                      <span>१००% सुरक्षित व प्रमाणित</span>
+                      <span>{language === 'en' ? '100% Safe & Verified' : '१००% सुरक्षित व प्रमाणित'}</span>
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                     </div>
                   </div>
@@ -125,16 +131,16 @@ export const FeaturesSection: React.FC = () => {
                       </div>
 
                       <h3 className="text-xl font-bold text-white mb-3 group-hover:text-amber-300 transition-colors">
-                        {item.titleMr}
+                        {item.title}
                       </h3>
 
                       <p className="text-slate-400 text-sm leading-relaxed">
-                        {item.descMr}
+                        {item.desc}
                       </p>
                     </div>
 
                     <div className="pt-6 mt-6 border-t border-slate-900 flex items-center justify-between text-xs font-bold text-amber-400">
-                      <span>१००% सुरक्षित व प्रमाणित</span>
+                      <span>{language === 'en' ? '100% Safe & Verified' : '१००% सुरक्षित व प्रमाणित'}</span>
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                     </div>
                   </div>
@@ -151,16 +157,18 @@ export const FeaturesSection: React.FC = () => {
                 <Sparkles className="w-8 h-8 text-white fill-white animate-spin" style={{ animationDuration: '6s' }} />
               </div>
               <h3 className="text-2xl font-black mb-3">
-                आत्ताच प्रोफाइल नोंदवा!
+                {language === 'en' ? 'Register Profile Now!' : 'आत्ताच प्रोफाइल नोंदवा!'}
               </h3>
               <p className="text-amber-100 text-sm leading-relaxed">
-                तुमच्या कुटुंबातील उपवधू-वरांसाठी आजच नोंदणी करा आणि हजारोंमधून योग्य जोडीदार शोधा.
+                {language === 'en'
+                  ? 'Register today for your family bride/groom and find the right match among thousands.'
+                  : 'तुमच्या कुटुंबातील उपवधू-वरांसाठी आजच नोंदणी करा आणि हजारोंमधून योग्य जोडीदार शोधा.'}
               </p>
             </div>
 
             <div className="pt-6">
               <span className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-slate-950 text-amber-300 font-extrabold text-xs shadow-xl group-hover:bg-slate-900 transition-colors">
-                <span>नोंदणी फॉर्म उघडा</span>
+                <span>{language === 'en' ? 'Open Registration Form' : 'नोंदणी फॉर्म उघडा'}</span>
                 <Sparkles className="w-4 h-4 fill-amber-300" />
               </span>
             </div>

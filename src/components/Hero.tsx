@@ -3,11 +3,13 @@ import { useApp } from '../context/AppContext';
 import { Sparkles, UserCheck, UserPlus, LogIn, Heart, Handshake, Building2, ChevronRight, Store, Scroll, Search, Send, X } from 'lucide-react';
 import { VanjariJodiLogo } from './VanjariJodiLogo';
 import { MAHARASHTRA_DISTRICTS } from '../data/initialData';
+import { transliterateMarathiToEnglish } from '../utils/transliterate';
 
 export const Hero: React.FC = () => {
   const {
     heroSlides,
     siteConfig,
+    language,
     setIsRegisterOpen,
     setIsLoginOpen,
     setLoginModalMode,
@@ -125,7 +127,7 @@ export const Hero: React.FC = () => {
                       textShadow: '0.75px 0.75px 0px #F59E0B, 1.5px 1.5px 0px #F59E0B, 3px 3px 6px rgba(128,12,30,0.22)'
                     }}
                   >
-                    {siteConfig?.logoTitle || 'वंजारी जोडी'}
+                    {language === 'en' ? 'VanjariJodi Matrimony' : (siteConfig?.logoTitle || 'वंजारी जोडी')}
                   </h1>
                   
                   <span className="hidden sm:inline-block w-8 sm:w-16 h-[1.5px] bg-gradient-to-l from-transparent via-amber-400 to-transparent"></span>
@@ -134,7 +136,7 @@ export const Hero: React.FC = () => {
                 {/* Tagline directly below */}
                 <p className="text-[10px] sm:text-xs font-extrabold text-[#A71930] tracking-wider mt-0.5 flex items-center justify-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                  {siteConfig?.logoSubtitle || 'पवित्र नात्यांची सुंदर सुरुवात'}
+                  {language === 'en' ? 'Trusted Vanjari Community Matrimonial Portal' : (siteConfig?.logoSubtitle || 'पवित्र नात्यांची सुंदर सुरुवात')}
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
                 </p>
               </div>
@@ -144,7 +146,9 @@ export const Hero: React.FC = () => {
             <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-rose-50/90 border border-rose-200/70 shadow-2xs backdrop-blur-xs text-[#800C1E] text-[8.5px] sm:text-[10px] font-bold tracking-wide text-center mt-1">
               <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 shrink-0 animate-pulse" />
               <span>
-                हृदयाला हृदयाची मिळावी साथ, वंजारी जोडीचा हातात हात.
+                {language === 'en' 
+                  ? 'Connecting Hearts across Vanjari Families worldwide.' 
+                  : 'हृदयाला हृदयाची मिळावी साथ, वंजारी जोडीचा हातात हात.'}
               </span>
             </div>
             {/* Telegram Group Join Banner on Index Hero */}
@@ -200,13 +204,15 @@ export const Hero: React.FC = () => {
           <div className="w-full bg-[#FFFDFB]/85 backdrop-blur-md border border-amber-300/60 shadow-lg rounded-[20px] p-3 sm:p-4 text-left relative z-10 transition-all duration-300">
             <div className="flex items-center gap-2 text-[#800C1E] font-black text-xs border-b border-amber-200/50 pb-1.5 mb-2.5">
               <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-              <span>झटपट वधू-वर शोध प्रणाली (Quick Search)</span>
+              <span>{language === 'en' ? 'Quick Bride/Groom Search' : 'झटपट वधू-वर शोध प्रणाली (Quick Search)'}</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
               {/* 1. Looking for (Gender) */}
               <div className="sm:col-span-5 flex flex-col gap-1">
-                <label className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider">१. मला शोधायचे आहे</label>
+                <label className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                  {language === 'en' ? '1. Looking For' : '१. मला शोधायचे आहे'}
+                </label>
                 <div className="grid grid-cols-3 gap-0.5 bg-amber-50/60 border border-amber-200 p-0.5 rounded-lg">
                   <button
                     type="button"
@@ -217,7 +223,7 @@ export const Hero: React.FC = () => {
                         : 'text-slate-600 hover:text-[#800C1E]'
                     }`}
                   >
-                    दोन्ही
+                    {language === 'en' ? 'Both' : 'दोन्ही'}
                   </button>
                   <button
                     type="button"
@@ -228,7 +234,7 @@ export const Hero: React.FC = () => {
                         : 'text-slate-600 hover:text-[#800C1E]'
                     }`}
                   >
-                    👰 वधू
+                    👰 {language === 'en' ? 'Bride' : 'वधू'}
                   </button>
                   <button
                     type="button"
@@ -239,23 +245,25 @@ export const Hero: React.FC = () => {
                         : 'text-slate-600 hover:text-[#800C1E]'
                     }`}
                   >
-                    🤵 वर
+                    🤵 {language === 'en' ? 'Groom' : 'वर'}
                   </button>
                 </div>
               </div>
 
               {/* 2. District Selection */}
               <div className="sm:col-span-4 flex flex-col gap-1">
-                <label className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider">२. जिल्हा निवडा</label>
+                <label className="text-[9px] sm:text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                  {language === 'en' ? '2. Select District' : '२. जिल्हा निवडा'}
+                </label>
                 <select
                   value={quickDistrict}
                   onChange={(e) => setQuickDistrict(e.target.value)}
                   className="w-full bg-amber-50/60 border border-amber-200 rounded-lg px-2 py-1 text-[11px] sm:text-xs font-bold text-slate-800 outline-none focus:border-[#800C1E] transition-colors"
                 >
-                  <option value="">-- सर्व महाराष्ट्र --</option>
+                  <option value="">{language === 'en' ? '-- All Districts --' : '-- सर्व महाराष्ट्र --'}</option>
                   {MAHARASHTRA_DISTRICTS.map((d) => (
                     <option key={d} value={d}>
-                      {d}
+                      {language === 'en' ? transliterateMarathiToEnglish(d) : d}
                     </option>
                   ))}
                 </select>
@@ -269,18 +277,24 @@ export const Hero: React.FC = () => {
                   className="w-full py-1.5 rounded-lg bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-slate-950 font-black text-[11px] sm:text-xs shadow-xs hover:shadow flex items-center justify-center gap-1 transition-all transform hover:-translate-y-0.5 active:scale-98 cursor-pointer"
                 >
                   <Search className="w-3.5 h-3.5 shrink-0" />
-                  <span>शोध सुरू करा</span>
+                  <span>{language === 'en' ? 'Search Now' : 'शोध सुरू करा'}</span>
                 </button>
               </div>
             </div>
 
             {/* Quick Stats bar inside search system */}
             <div className="flex items-center justify-center gap-2 flex-wrap mt-2 pt-1.5 border-t border-amber-200/40 text-[8px] sm:text-[9px] font-bold text-slate-500">
-              <span className="flex items-center gap-0.5">🛡️ सत्यापित वधू-वर</span>
+              <span className="flex items-center gap-0.5">
+                {language === 'en' ? '🛡️ Verified Profiles' : '🛡️ सत्यापित वधू-वर'}
+              </span>
               <span className="text-amber-300">•</span>
-              <span className="flex items-center gap-0.5">🔒 १००% खाजगी आणि सुरक्षित</span>
+              <span className="flex items-center gap-0.5">
+                {language === 'en' ? '🔒 100% Private & Safe' : '🔒 १००% खाजगी आणि सुरक्षित'}
+              </span>
               <span className="text-amber-300">•</span>
-              <span className="flex items-center gap-0.5">🤝 सोपी विवाह जुळवणी</span>
+              <span className="flex items-center gap-0.5">
+                {language === 'en' ? '🤝 Easy Matchmaking' : '🤝 सोपी विवाह जुळवणी'}
+              </span>
             </div>
           </div>
         )}
@@ -300,13 +314,17 @@ export const Hero: React.FC = () => {
                   <UserPlus className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[11px] sm:text-xs font-black text-slate-800 leading-tight">१. नवीन मोफत नोंदणी करा</p>
-                  <p className="text-[9px] text-slate-500 font-bold leading-none truncate">नवीन वधू-वर प्रोफाईल जोडण्यासाठी</p>
+                  <p className="text-[11px] sm:text-xs font-black text-slate-800 leading-tight">
+                    {language === 'en' ? '1. Free New Registration' : '१. नवीन मोफत नोंदणी करा'}
+                  </p>
+                  <p className="text-[9px] text-slate-500 font-bold leading-none truncate">
+                    {language === 'en' ? 'Create new Bride/Groom profile' : 'नवीन वधू-वर प्रोफाईल जोडण्यासाठी'}
+                  </p>
                 </div>
               </div>
               
               <div className="flex items-center gap-0.5 bg-[#A71930] hover:bg-[#800C1E] text-white px-2 py-1 rounded-full text-[8.5px] font-black shadow-xs shrink-0 transition-colors">
-                <span>मोफत (FREE)</span>
+                <span>{language === 'en' ? 'FREE' : 'मोफत (FREE)'}</span>
                 <ChevronRight className="w-3 h-3 shrink-0" />
               </div>
             </button>
@@ -322,13 +340,17 @@ export const Hero: React.FC = () => {
                   <LogIn className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[11px] sm:text-xs font-black text-slate-800 leading-tight">२. विद्यमान सदस्य लॉगिन</p>
-                  <p className="text-[9px] text-slate-500 font-bold leading-none truncate">OTP द्वारे तुमचे खाते उघडा</p>
+                  <p className="text-[11px] sm:text-xs font-black text-slate-800 leading-tight">
+                    {language === 'en' ? '2. Existing Member Login' : '२. विद्यमान सदस्य लॉगिन'}
+                  </p>
+                  <p className="text-[9px] text-slate-500 font-bold leading-none truncate">
+                    {language === 'en' ? 'Login with Mobile OTP or Password' : 'OTP द्वारे तुमचे खाते उघडा'}
+                  </p>
                 </div>
               </div>
               
               <div className="flex items-center gap-0.5 bg-[#A71930] hover:bg-[#800C1E] text-white px-2 py-1 rounded-full text-[8.5px] font-black shadow-xs shrink-0 transition-colors">
-                <span>लॉगिन (LOGIN)</span>
+                <span>{language === 'en' ? 'LOGIN' : 'लॉगिन (LOGIN)'}</span>
                 <ChevronRight className="w-3 h-3 shrink-0" />
               </div>
             </button>
@@ -344,13 +366,17 @@ export const Hero: React.FC = () => {
                   <UserCheck className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[11px] sm:text-xs font-black text-slate-800 leading-tight">३. पाहुणे / गेस्ट प्रवेश</p>
-                  <p className="text-[9px] text-slate-500 font-bold leading-none truncate">थेट सर्व प्रोफाईल्स पाहण्यासाठी</p>
+                  <p className="text-[11px] sm:text-xs font-black text-slate-800 leading-tight">
+                    {language === 'en' ? '3. Guest Visitor Entry' : '३. पाहुणे / गेस्ट प्रवेश'}
+                  </p>
+                  <p className="text-[9px] text-slate-500 font-bold leading-none truncate">
+                    {language === 'en' ? 'Quick view of all profiles' : 'थेट सर्व प्रोफाईल्स पाहण्यासाठी'}
+                  </p>
                 </div>
               </div>
               
               <div className="flex items-center gap-0.5 bg-slate-900 hover:bg-slate-850 text-amber-300 px-2 py-1 rounded-full text-[8.5px] font-black shadow-xs shrink-0 transition-colors">
-                <span>प्रवेश (GUEST)</span>
+                <span>{language === 'en' ? 'GUEST' : 'प्रवेश (GUEST)'}</span>
                 <ChevronRight className="w-3 h-3 shrink-0" />
               </div>
             </button>
@@ -368,25 +394,31 @@ export const Hero: React.FC = () => {
                       <Handshake className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[11px] sm:text-xs font-black text-slate-800 leading-tight">४. लग्न व्यवसाय व हॉल नेटवर्किंग</p>
-                      <p className="text-[9px] text-slate-500 font-bold leading-none truncate">मंगल कार्यालय, कॅटरिंग व इतर सेवा</p>
+                      <p className="text-[11px] sm:text-xs font-black text-slate-800 leading-tight">
+                        {language === 'en' ? '4. Wedding Vendors & Halls' : '४. लग्न व्यवसाय व हॉल नेटवर्किंग'}
+                      </p>
+                      <p className="text-[9px] text-slate-500 font-bold leading-none truncate">
+                        {language === 'en' ? 'Halls, Catering & Photography' : 'मंगल कार्यालय, कॅटरिंग व इतर सेवा'}
+                      </p>
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-0.5 bg-emerald-700 hover:bg-emerald-800 text-white px-2 py-1 rounded-full text-[8.5px] font-black shadow-xs shrink-0 transition-colors">
-                    <span>सेवा (VENDORS)</span>
+                    <span>{language === 'en' ? 'VENDORS' : 'सेवा (VENDORS)'}</span>
                     <ChevronRight className="w-3 h-3 shrink-0" />
                   </div>
                 </button>
 
                 <div className="flex items-center justify-between gap-2 w-full px-2 text-[8px] sm:text-[9px] font-bold text-slate-600">
-                  <span className="truncate">मंगल कार्यालय, कॅटरिंग, फोटोग्राफी व लग्न सेवा</span>
+                  <span className="truncate">
+                    {language === 'en' ? 'Wedding halls, catering, photo services' : 'मंगल कार्यालय, कॅटरिंग, फोटोग्राफी व लग्न सेवा'}
+                  </span>
                   <button
                     type="button"
                     onClick={() => setIsBusinessVendorRegisterModalOpen(true)}
                     className="text-[#A71930] hover:text-amber-700 font-black underline shrink-0 cursor-pointer"
                   >
-                    + नवीन नोंदणी
+                    {language === 'en' ? '+ Register Vendor' : '+ नवीन नोंदणी'}
                   </button>
                 </div>
               </div>
@@ -403,13 +435,17 @@ export const Hero: React.FC = () => {
                   <Scroll className="w-4 h-4" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[11px] sm:text-xs font-black text-slate-800 leading-tight">५. ऑनलाईन बायोडाटा मेकर</p>
-                  <p className="text-[9px] text-slate-500 font-bold leading-none truncate">मोफत आकर्षक PDF बायोडाटा बनवा</p>
+                  <p className="text-[11px] sm:text-xs font-black text-slate-800 leading-tight">
+                    {language === 'en' ? '5. Online BioData Maker' : '५. ऑनलाईन बायोडाटा मेकर'}
+                  </p>
+                  <p className="text-[9px] text-slate-500 font-bold leading-none truncate">
+                    {language === 'en' ? 'Create free PDF biodata' : 'मोफत आकर्षक PDF बायोडाटा बनवा'}
+                  </p>
                 </div>
               </div>
               
               <div className="flex items-center gap-0.5 bg-amber-600 hover:bg-amber-700 text-slate-950 px-2 py-1 rounded-full text-[8.5px] font-black shadow-xs shrink-0 transition-colors">
-                <span>बनवा (CREATE)</span>
+                <span>{language === 'en' ? 'CREATE' : 'बनवा (CREATE)'}</span>
                 <ChevronRight className="w-3 h-3 shrink-0" />
               </div>
             </button>

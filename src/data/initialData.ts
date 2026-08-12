@@ -319,12 +319,12 @@ export const MEMBERSHIP_PLANS: Plan[] = [
   {
     id: 'welcome_offer',
     name: 'Welcome Offer Plan',
-    nameMr: 'स्पेशल वेलकम ऑफर - ₹१९९ (५ नंबर अनलॉक)',
+    nameMr: 'स्पेशल वेलकम ऑफर - ₹१९९ (म्युचुअल लाईकवर नंबर अनलॉक)',
     price: 199,
     durationMonths: 6,
-    durationLabelMr: '६ महिने वैध (५ मोबाईल नंबर व बायोडाटा)',
+    durationLabelMr: '६ महिने वैध (दोघांनी लाईक केल्यावर नंबर अनलॉक)',
     planType: 'welcome_offer',
-    unlockCount: 5,
+    unlockCount: 999,
     isLimitedSlotsPlan: true,
     maxMemberLimit: 100,
     currentMemberCount: 18,
@@ -332,16 +332,16 @@ export const MEMBERSHIP_PLANS: Plan[] = [
     recommended: true,
     isActive: true,
     features: [
-      'Unlock 5 Mobile Numbers & Biodata',
-      '6 Months Profile Validity',
-      'Unlimited Express Interest',
-      'Direct WhatsApp Chat & Call'
+      'Mutual Like Mobile & WhatsApp Number Unlock',
+      '6 Months Profile & Biodata Access',
+      'Unlimited Express Interest (Likes)',
+      'Direct WhatsApp Chat & Family Details'
     ],
     featuresMr: [
-      '५ वधू-वर मोबाईल नंबर व बायोडाटा पाहणे/अनलॉक',
-      '६ महिने (१८० दिवस) संपूर्ण प्रोफाईल वैधता',
-      'अनलिमिटेड मोफत एक्सप्रेस प्रतिसाद पाठवा',
-      'थेट व्हॉट्सॲप चॅट व फोन नंबर अनलॉक'
+      'दोघांनी एकमेकांना लाईक केल्यावर (Mutual Like) मोबाईल नंबर अनलॉक',
+      '६ महिने (१८० दिवस) संपूर्ण प्रोफाईल व बायोडाटा पाहणे',
+      'अनलिमिटेड मोफत एक्सप्रेस प्रतिसाद (Likes) पाठवा',
+      'थेट व्हॉट्सॲप चॅट व कौटुंबिक संपर्क'
     ]
   },
   {

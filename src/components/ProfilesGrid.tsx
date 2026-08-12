@@ -4,6 +4,7 @@ import { UserProfile, Gender } from '../types';
 import { VerifiedBadge } from './VerifiedBadge';
 import { getProfessionBadges } from '../utils/professionUtils';
 import { formatProfileDisplayName } from '../utils/nameFormatter';
+import { transliterateMarathiToEnglish } from '../utils/transliterate';
 import {
   ShieldCheck,
   Heart,
@@ -250,14 +251,15 @@ export const ProfilesGrid: React.FC<{
                       const mainPhoto = (profile.photos && profile.photos.length > 0 && profile.photos[0]) ? profile.photos[0] : (profile.photoUrl || null);
                       const isOverride = siteConfig?.adminOverrideMemberPrivacy === true;
                       const isPhotoBlurred = isAuthorized ? false : (
-                        profile.privacy?.hidePhoto && !isOverride
-                        ? true
-                        : !currentUser
-                        ? (siteConfig?.allowPublicVisitorsToViewPhotos === false || siteConfig?.blurProfilePhotos)
-                        : currentUser.id.startsWith('guest')
-                        ? (siteConfig?.allowGuestsToViewPhotos === false || siteConfig?.blurProfilePhotos)
-                        : (siteConfig?.allowMembersToViewPhotos === false)
+                        (profile.privacy?.hidePhoto && !isOverride) ||
+                        siteConfig?.blurPhotosForFreeUsers === true ||
+                        siteConfig?.blurProfilePhotos === true ||
+                        (!currentUser && siteConfig?.allowPublicVisitorsToViewPhotos === false) ||
+                        (currentUser?.id?.startsWith('guest') && siteConfig?.allowGuestsToViewPhotos === false)
                       );
+
+                      const blurPct = siteConfig?.photoBlurPercentage || 50;
+                      const blurClass = blurPct >= 100 ? 'blur-2xl scale-125' : blurPct >= 75 ? 'blur-lg scale-110' : blurPct >= 50 ? 'blur-md scale-105' : 'blur-xs scale-102';
 
                       if (mainPhoto) {
                         return (
@@ -270,7 +272,7 @@ export const ProfilesGrid: React.FC<{
                               alt={profile.fullName}
                               referrerPolicy="no-referrer"
                               className={`w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105 ${
-                                isPhotoBlurred ? 'blur-md scale-110' : ''
+                                isPhotoBlurred ? blurClass : ''
                               }`}
                             />
                             {isPhotoBlurred && (
@@ -292,7 +294,9 @@ export const ProfilesGrid: React.FC<{
                           className="w-full h-full bg-gradient-to-tr from-[#800C1E] via-[#A71930] to-[#C82333] flex flex-col items-center justify-center text-white cursor-pointer relative"
                         >
                           <span className="text-6xl mb-2">{profile.gender === 'bride' ? '👰' : '🤵'}</span>
-                          <span className="text-xs font-bold text-amber-200 uppercase tracking-widest">फोटो उपलब्ध नाही</span>
+                          <span className="text-xs font-bold text-amber-200 uppercase tracking-widest">
+                            {language === 'en' ? 'Photo Not Available' : 'फोटो उपलब्ध नाही'}
+                          </span>
                           <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
                         </div>
                       );
@@ -302,12 +306,16 @@ export const ProfilesGrid: React.FC<{
                     <div className="absolute bottom-4 inset-x-4 text-white z-10 pointer-events-none">
                       <div className="backdrop-blur-md bg-[#1A0307]/65 border border-white/20 p-3 rounded-2xl shadow-xl space-y-1">
                         <span className="inline-block text-[8px] font-black uppercase tracking-wider text-amber-300 bg-amber-400/25 px-2 py-0.5 rounded-md">
-                          आयडी: {profile.id}
+                          {language === 'en' ? 'ID:' : 'आयडी:'} {profile.id}
                         </span>
                         
                         <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-1.5 flex-wrap">
-                          <span className="drop-shadow-md">
-                            {formatProfileDisplayName(profile.fullName, currentUser, false, isAuthorized, siteConfig)}
+                          <span className={`drop-shadow-md ${
+                            (!isAuthorized && (!currentUser || currentUser?.membership === 'free') && siteConfig?.nameDisplayModeForFreeUsers === 'blurred_name')
+                              ? ((siteConfig?.nameBlurPercentage || 50) >= 75 ? 'blur-sm select-none opacity-60' : 'blur-xs select-none opacity-80')
+                              : ''
+                          }`}>
+                            {formatProfileDisplayName(profile.fullName, currentUser, false, isAuthorized, siteConfig, language)}
                           </span>
                           <VerifiedBadge profile={profile} size="sm" />
                         </h3>
@@ -315,12 +323,18 @@ export const ProfilesGrid: React.FC<{
                         <div className="flex items-center gap-2 text-xs text-amber-100 font-bold">
                           <span className="flex items-center gap-1">
                             <MapPin className="w-3 h-3 text-amber-400 shrink-0" />
-                            <span>{profile.district || 'महाराष्ट्र'}</span>
+                            <span>
+                              {language === 'en' 
+                                ? transliterateMarathiToEnglish(profile.district || 'Maharashtra') 
+                                : (profile.district || 'महाराष्ट्र')}
+                            </span>
                           </span>
                           <span>•</span>
-                          <span>{profile.age} वर्षे</span>
+                          <span>{profile.age} {language === 'en' ? 'Yrs' : 'वर्षे'}</span>
                           <span>•</span>
-                          <span className="text-amber-300">{profile.subCaste}</span>
+                          <span className="text-amber-300">
+                            {language === 'en' ? transliterateMarathiToEnglish(profile.subCaste) : profile.subCaste}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -336,14 +350,20 @@ export const ProfilesGrid: React.FC<{
                       </div>
                       <div>
                         <span className="text-slate-500 text-[11px] block font-semibold">{t('sub_caste')}</span>
-                        <span className="font-bold text-[#A71930]">{profile.subCaste}</span>
+                        <span className="font-bold text-[#A71930]">
+                          {language === 'en' ? transliterateMarathiToEnglish(profile.subCaste) : profile.subCaste}
+                        </span>
                       </div>
                     </div>
 
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-slate-700 font-medium">
                         <Briefcase className="w-3.5 h-3.5 text-[#A71930] shrink-0" />
-                        <span className="truncate font-bold">{profile.occupation || 'माहिती उपलब्ध नाही'}</span>
+                        <span className="truncate font-bold">
+                          {language === 'en' 
+                            ? transliterateMarathiToEnglish(profile.occupation || 'Information Not Available') 
+                            : (profile.occupation || 'माहिती उपलब्ध नाही')}
+                        </span>
                       </div>
 
                       {/* Dynamic Profession & Govt Badges */}
@@ -369,7 +389,7 @@ export const ProfilesGrid: React.FC<{
                                     : 'bg-slate-100 text-slate-800 border-slate-300'
                                 }`}
                               >
-                                {tag}
+                                {language === 'en' ? transliterateMarathiToEnglish(tag) : tag}
                               </span>
                             ))}
                           </div>
@@ -384,13 +404,17 @@ export const ProfilesGrid: React.FC<{
                           <div className="flex items-center justify-between font-bold text-emerald-700">
                             <span className="flex items-center gap-1">
                               <PhoneCall className="w-3.5 h-3.5" />
-                              <span>संपर्क:</span>
+                              <span>{language === 'en' ? 'Contact:' : 'संपर्क:'}</span>
                             </span>
                             <span>{profile.mobile}</span>
                           </div>
                           {isMutualMatch && (
                             <p className="text-[10px] font-black text-rose-700 flex items-center gap-1 pt-0.5 border-t border-amber-200/50">
-                              <span>💞 म्युचुअल लाईकमुळे संपर्क अनलॉक झाला आहे!</span>
+                              <span>
+                                {language === 'en' 
+                                  ? '💞 Contact unlocked via mutual like!' 
+                                  : '💞 म्युचुअल लाईकमुळे संपर्क अनलॉक झाला आहे!'}
+                              </span>
                             </p>
                           )}
                         </div>
@@ -398,7 +422,7 @@ export const ProfilesGrid: React.FC<{
                         <div className="flex items-center justify-between text-slate-600 font-medium">
                           <span className="flex items-center gap-1">
                             <Lock className="w-3 h-3 text-[#A71930]" />
-                            <span>मोबाईल नंबर:</span>
+                            <span>{language === 'en' ? 'Mobile:' : 'मोबाईल नंबर:'}</span>
                           </span>
                           <span className="font-mono font-bold text-amber-900">+91 98*****234</span>
                         </div>
@@ -415,7 +439,7 @@ export const ProfilesGrid: React.FC<{
                       className="w-full py-2.5 rounded-xl bg-white hover:bg-amber-50 text-[#A71930] font-black text-xs border border-amber-200 shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
                     >
                       <FileText className="w-4 h-4 text-[#A71930]" />
-                      <span>{t('view_full_biodata')} (संपूर्ण माहिती)</span>
+                      <span>{t('view_full_biodata')}</span>
                     </button>
 
                     <div className="grid grid-cols-2 gap-2">
@@ -432,12 +456,12 @@ export const ProfilesGrid: React.FC<{
                         {interestObj || likedProfileIds.includes(profile.id) ? (
                           <>
                             <CheckCircle className="w-3.5 h-3.5 text-rose-700" />
-                            <span>लाईक केले</span>
+                            <span>{language === 'en' ? 'Liked' : 'लाईक केले'}</span>
                           </>
                         ) : (
                           <>
                             <Heart className="w-3.5 h-3.5 fill-amber-200 text-amber-200" />
-                            <span>लाईक करा</span>
+                            <span>{language === 'en' ? 'Like' : 'लाईक करा'}</span>
                           </>
                         )}
                       </button>

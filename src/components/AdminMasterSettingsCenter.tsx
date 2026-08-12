@@ -477,50 +477,165 @@ export const AdminMasterSettingsCenter: React.FC = () => {
             </div>
 
             {/* Name Display Control for Free Users */}
-            <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-300 space-y-2">
+            <div className="p-4 rounded-2xl bg-amber-50/90 border-2 border-amber-300 space-y-3">
               <div>
-                <span className="font-black text-slate-900 block flex items-center gap-1.5 text-xs">
-                  <span>👤 बिन-प्लॅन सदस्यांना नावाची दृश्यमानता (Free User Name Visibility):</span>
+                <span className="font-black text-slate-900 block flex items-center gap-1.5 text-xs sm:text-sm">
+                  <span>👤 बिन-पेमेंट (Free) सदस्यांना नावाची दृश्यमानता (Name Display Controls):</span>
                 </span>
                 <span className="text-[11px] text-slate-600 font-medium block mt-0.5">
-                  फ्री / बिन-प्लॅन युझर्सना बायोडाटा दाखवताना नाव कसे दिसेल ते ठरवा:
+                  ज्या सदस्यांनी पेमेंट केलेले नाही त्यांना वधू-वरांचे नाव कशा प्रकारे दिसावे ते निवडा:
                 </span>
               </div>
-              <div className="grid grid-cols-3 gap-2 pt-1">
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => updateSiteConfig({ nameDisplayModeForFreeUsers: 'full_name' })}
-                  className={`py-2 px-1.5 rounded-xl text-[10px] sm:text-xs font-black cursor-pointer border transition-all text-center ${
+                  className={`py-2 px-2 rounded-xl text-[10px] sm:text-xs font-black cursor-pointer border transition-all text-center ${
                     (siteConfig.nameDisplayModeForFreeUsers || 'full_name') === 'full_name'
                       ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
                       : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  🟢 पूर्ण नाव
+                  🟢 पूर्ण नाव (Full Name)
                 </button>
+
                 <button
                   type="button"
                   onClick={() => updateSiteConfig({ nameDisplayModeForFreeUsers: 'first_name_only' })}
-                  className={`py-2 px-1.5 rounded-xl text-[10px] sm:text-xs font-black cursor-pointer border transition-all text-center ${
-                    siteConfig.nameDisplayModeForFreeUsers === 'first_name_only' || siteConfig.nameDisplayModeForFreeUsers === 'middle_surname_only'
+                  className={`py-2 px-2 rounded-xl text-[10px] sm:text-xs font-black cursor-pointer border transition-all text-center ${
+                    siteConfig.nameDisplayModeForFreeUsers === 'first_name_only'
                       ? 'bg-amber-600 text-white border-amber-700 shadow-xs'
                       : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  🟡 मधले व आडनाव
+                  🟡 फक्त पहिले नाव (First Name)
                 </button>
+
+                <button
+                  type="button"
+                  onClick={() => updateSiteConfig({ nameDisplayModeForFreeUsers: 'first_and_last' })}
+                  className={`py-2 px-2 rounded-xl text-[10px] sm:text-xs font-black cursor-pointer border transition-all text-center ${
+                    siteConfig.nameDisplayModeForFreeUsers === 'first_and_last'
+                      ? 'bg-blue-600 text-white border-blue-700 shadow-xs'
+                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  🔵 नाव + आडनाव (First & Last)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => updateSiteConfig({ nameDisplayModeForFreeUsers: 'surname_only' })}
+                  className={`py-2 px-2 rounded-xl text-[10px] sm:text-xs font-black cursor-pointer border transition-all text-center ${
+                    siteConfig.nameDisplayModeForFreeUsers === 'surname_only'
+                      ? 'bg-purple-600 text-white border-purple-700 shadow-xs'
+                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  🟣 फक्त आडनाव (Surname Only)
+                </button>
+
                 <button
                   type="button"
                   onClick={() => updateSiteConfig({ nameDisplayModeForFreeUsers: 'hidden_star' })}
-                  className={`py-2 px-1.5 rounded-xl text-[10px] sm:text-xs font-black cursor-pointer border transition-all text-center ${
+                  className={`py-2 px-2 rounded-xl text-[10px] sm:text-xs font-black cursor-pointer border transition-all text-center ${
                     siteConfig.nameDisplayModeForFreeUsers === 'hidden_star'
                       ? 'bg-rose-600 text-white border-rose-700 shadow-xs'
                       : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  🔴 गुप्त (स्टार्स)
+                  🔴 स्टार्स मास्क (र**** ब****)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => updateSiteConfig({ nameDisplayModeForFreeUsers: 'blurred_name' })}
+                  className={`py-2 px-2 rounded-xl text-[10px] sm:text-xs font-black cursor-pointer border transition-all text-center ${
+                    siteConfig.nameDisplayModeForFreeUsers === 'blurred_name'
+                      ? 'bg-slate-800 text-amber-200 border-slate-900 shadow-xs'
+                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  🌫️ पूर्ण नाव ब्लर (Blurred Name)
                 </button>
               </div>
+
+              {/* Name Blur Intensity Selector if Blurred Name selected */}
+              {siteConfig.nameDisplayModeForFreeUsers === 'blurred_name' && (
+                <div className="p-2.5 bg-white/80 rounded-xl border border-amber-200 flex items-center justify-between gap-2 text-xs">
+                  <span className="font-bold text-slate-700">नाव ब्लर तीव्रता (% Intensity):</span>
+                  <div className="flex items-center gap-1">
+                    {[25, 50, 75, 100].map((pct) => (
+                      <button
+                        key={pct}
+                        type="button"
+                        onClick={() => updateSiteConfig({ nameBlurPercentage: pct })}
+                        className={`px-2.5 py-1 rounded-lg font-black text-[10px] border cursor-pointer transition-all ${
+                          (siteConfig.nameBlurPercentage || 50) === pct
+                            ? 'bg-[#A71930] text-white border-[#800C1E] shadow-2xs'
+                            : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
+                        }`}
+                      >
+                        {pct}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Photo Blur Controls for Free Users */}
+            <div className="p-4 rounded-2xl bg-amber-50/90 border-2 border-amber-300 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <span className="font-black text-slate-900 block flex items-center gap-1.5 text-xs sm:text-sm">
+                    <span>🖼️ बिन-पेमेंट सदस्यांसाठी फोटो ब्लर सेटिंग (Photo Blur & % Controls):</span>
+                  </span>
+                  <span className="text-[11px] text-slate-600 font-medium block mt-0.5">
+                    नॉन-पेईड सदस्यांना फोटो धुसर (Blur) दाखवायचा का आणि किती % ब्लर ठेवायचा ते ठरवा:
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => updateSiteConfig({ blurPhotosForFreeUsers: !siteConfig.blurPhotosForFreeUsers })}
+                  className={`px-3 py-1.5 rounded-xl font-black text-xs shrink-0 cursor-pointer transition-all border ${
+                    siteConfig.blurPhotosForFreeUsers
+                      ? 'bg-rose-600 text-white border-rose-700 shadow-sm'
+                      : 'bg-slate-200 text-slate-700 border-slate-300 hover:bg-slate-300'
+                  }`}
+                >
+                  {siteConfig.blurPhotosForFreeUsers ? '🔒 फोटो ब्लर सुरु (ON)' : '👁️ फोटो स्पष्ट (OFF)'}
+                </button>
+              </div>
+
+              {siteConfig.blurPhotosForFreeUsers && (
+                <div className="p-3 bg-white/90 rounded-xl border border-amber-200 space-y-2 text-xs">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="font-black text-slate-800">फोटो ब्लर प्रमाण (% Blur Percentage Intensity):</span>
+                    <div className="flex items-center gap-1">
+                      {[25, 50, 75, 100].map((pct) => (
+                        <button
+                          key={pct}
+                          type="button"
+                          onClick={() => updateSiteConfig({ photoBlurPercentage: pct })}
+                          className={`px-3 py-1.5 rounded-xl font-black text-xs border cursor-pointer transition-all ${
+                            (siteConfig.photoBlurPercentage || 50) === pct
+                              ? 'bg-[#A71930] text-white border-[#800C1E] shadow-sm'
+                              : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
+                          }`}
+                        >
+                          {pct}% {pct === 25 ? '(हलका)' : pct === 50 ? '(मध्यम)' : pct === 75 ? '(गडद)' : '(पूर्ण लॉक)'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-amber-900 font-bold">
+                    💡 टीप: सदस्याने प्रीमियम सबस्क्रिप्शन घेतल्यानंतर किंवा म्युचुअल लाईक झाल्यावर फोटो आपोआप १-सेकंदात पूर्ण स्पष्ट दिसेल.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Auto Approve Likes & Direct Push Notification Toggle */}

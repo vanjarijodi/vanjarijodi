@@ -4,14 +4,18 @@ import { X, ExternalLink, Sparkles, Megaphone, Clock, EyeOff } from 'lucide-reac
 import { useApp } from '../context/AppContext';
 
 export const FlashAdPopup: React.FC = () => {
-  const { siteConfig } = useApp();
+  const { siteConfig, language } = useApp();
   const [isVisible, setIsVisible] = useState(false);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
 
   const isEnabled = siteConfig?.isFlashAdEnabled ?? true;
   const imageUrl = siteConfig?.flashAdImageUrl || 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=1200';
-  const title = siteConfig?.flashAdTitle || '🎯 राज्यस्तरीय भव्य वंजारी वधू-वर परिचय मेळावा २०२६';
-  const subtitle = siteConfig?.flashAdSubtitle || 'परळी वैजनाथ, बीड व पुणे येथे मोफत बायोडाटा पुस्तक वाटप व प्रत्यक्ष गाठीभेटी!';
+  const title = language === 'en'
+    ? (siteConfig?.flashAdTitleEn || siteConfig?.flashAdTitle || '🎯 State Level Grand Vanjari Matrimonial Meet 2026')
+    : (siteConfig?.flashAdTitle || '🎯 राज्यस्तरीय भव्य वंजारी वधू-वर परिचय मेळावा २०२६');
+  const subtitle = language === 'en'
+    ? (siteConfig?.flashAdSubtitleEn || siteConfig?.flashAdSubtitle || 'Free bio-data book distribution & direct family meetings at Parli, Beed & Pune!')
+    : (siteConfig?.flashAdSubtitle || 'परळी वैजनाथ, बीड व पुणे येथे मोफत बायोडाटा पुस्तक वाटप व प्रत्यक्ष गाठीभेटी!');
   const linkUrl = siteConfig?.flashAdLinkUrl || 'https://wa.me/910000000000?text=मेळावा_जाहिरात_चौकशी';
   const displayMode = siteConfig?.flashAdDisplayMode || 'popup_modal';
   const autoCloseSecs = siteConfig?.flashAdAutoCloseSeconds ?? 8;
@@ -90,20 +94,20 @@ export const FlashAdPopup: React.FC = () => {
             <div className="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 px-4 py-2 flex items-center justify-between text-slate-950 font-black text-xs">
               <div className="flex items-center gap-1.5">
                 <Megaphone className="w-4 h-4 text-slate-950 animate-bounce" />
-                <span className="uppercase tracking-wider">विशेष प्रायोजित जाहिरात</span>
+                <span className="uppercase tracking-wider">{language === 'en' ? 'Sponsored Feature' : 'विशेष प्रायोजित जाहिरात'}</span>
               </div>
               <div className="flex items-center gap-3">
                 {remainingSeconds !== null && remainingSeconds > 0 && (
                   <span className="flex items-center gap-1 bg-slate-950/20 px-2 py-0.5 rounded-full text-[10px] font-mono">
                     <Clock className="w-3 h-3" />
-                    <span>{remainingSeconds} सेकंदात आपोआप बंद होईल</span>
+                    <span>{remainingSeconds} {language === 'en' ? 'seconds' : 'सेकंदात आपोआप बंद होईल'}</span>
                   </span>
                 )}
                 <button
                   type="button"
                   onClick={handleClose}
                   className="p-1 rounded-full bg-slate-950/20 hover:bg-slate-950/40 text-slate-950 hover:text-white transition-colors cursor-pointer"
-                  title="बंद करा"
+                  title={language === 'en' ? 'Close' : 'बंद करा'}
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -123,7 +127,7 @@ export const FlashAdPopup: React.FC = () => {
                 {/* Floating Ribbon Badge */}
                 <div className="absolute top-3 left-3 px-3 py-1 rounded-full bg-red-600 text-amber-200 text-[11px] font-black shadow-lg flex items-center gap-1 border border-amber-400/50">
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>खास ऑफर / अपडेट</span>
+                  <span>{language === 'en' ? 'Special Offer / Update' : 'खास ऑफर / अपडेट'}</span>
                 </div>
               </div>
             )}
@@ -146,7 +150,7 @@ export const FlashAdPopup: React.FC = () => {
                     onClick={handleActionClick}
                     className="w-full sm:w-auto flex-1 px-5 py-3 rounded-xl bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 border border-amber-200 cursor-pointer transform active:scale-95 transition-all"
                   >
-                    <span>अधिक माहिती / नाव नोंदवा</span>
+                    <span>{language === 'en' ? 'More Info / Register' : 'अधिक माहिती / नाव नोंदवा'}</span>
                     <ExternalLink className="w-4 h-4" />
                   </button>
                 )}
@@ -157,7 +161,7 @@ export const FlashAdPopup: React.FC = () => {
                   className="w-full sm:w-auto px-4 py-3 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 border border-slate-700 cursor-pointer transition-colors"
                 >
                   <EyeOff className="w-3.5 h-3.5" />
-                  <span>बंद करा ({remainingSeconds ?? 'X'})</span>
+                  <span>{language === 'en' ? 'Close' : 'बंद करा'} ({remainingSeconds ?? 'X'})</span>
                 </button>
               </div>
             </div>

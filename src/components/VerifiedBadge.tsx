@@ -25,16 +25,14 @@ export const VerifiedBadge: React.FC<VerifiedBadgeProps> = ({
   showLabel = true,
   className = ''
 }) => {
-  const isVerified = profile
-    ? Boolean(profile.isVerified && (profile.isApproved !== false || profile.isFaceVerified || profile.isIdVerified || profile.aadhaarVerified))
-    : Boolean(propIsVerified);
-  const isFaceVerified = profile ? Boolean(profile.isFaceVerified) : Boolean(propIsFaceVerified);
-  const isIdVerified = profile ? Boolean(profile.isIdVerified || profile.aadhaarVerified) : Boolean(propIsIdVerified);
-  const isPhotoVerified = profile ? Boolean(profile.isPhotoVerified) : Boolean(propIsPhotoVerified);
-  const isPremiumVerified = profile ? Boolean(profile.isPremiumVerified) : Boolean(propIsPremiumVerified);
+  // Only show public verified badge if admin explicitly enabled showVerifiedBadge/manuallyVerified or set a custom badge
   const customBadgeText = profile?.hideBadge ? null : (profile?.badge || profile?.customBadge);
+  const showManualVerified = Boolean(
+    profile?.showVerifiedBadge || profile?.manuallyVerified || propIsVerified
+  );
+  const isPremiumVerified = profile ? Boolean(profile.isPremiumVerified) : Boolean(propIsPremiumVerified);
 
-  if (!isVerified && !isFaceVerified && !isIdVerified && !isPhotoVerified && !isPremiumVerified && !customBadgeText) {
+  if (!showManualVerified && !isPremiumVerified && !customBadgeText) {
     return null;
   }
 
@@ -54,19 +52,11 @@ export const VerifiedBadge: React.FC<VerifiedBadgeProps> = ({
         </span>
       )}
 
-      {/* ID Verified Badge */}
-      {isIdVerified && (
+      {/* Manual Admin Verified Badge */}
+      {showManualVerified && (
         <span className={`rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 font-bold ${textSizes[size]} inline-flex items-center gap-1 shadow-2xs`}>
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-          <span>{showLabel ? 'ID प्रमाणित' : ''}</span>
-        </span>
-      )}
-
-      {/* Photo / Face Verified Badge */}
-      {(isPhotoVerified || isFaceVerified) && (
-        <span className={`rounded-full bg-blue-50 text-blue-800 border border-blue-300 font-bold ${textSizes[size]} inline-flex items-center gap-1 shadow-2xs`}>
-          <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-          <span>{showLabel ? 'फोटो प्रमाणित' : ''}</span>
+          <span>{showLabel ? 'प्रमाणित' : ''}</span>
         </span>
       )}
 
@@ -75,14 +65,6 @@ export const VerifiedBadge: React.FC<VerifiedBadgeProps> = ({
         <span className={`rounded-full bg-amber-50 text-amber-900 border border-amber-300 font-bold ${textSizes[size]} inline-flex items-center gap-1 shadow-2xs`}>
           <Award className="w-3.5 h-3.5 text-amber-600 shrink-0" />
           <span>{showLabel ? 'प्रीमियम' : ''}</span>
-        </span>
-      )}
-
-      {/* General Verified Profile Badge */}
-      {isVerified && !isIdVerified && !isPhotoVerified && (
-        <span className={`rounded-full bg-purple-50 text-purple-800 border border-purple-300 font-bold ${textSizes[size]} inline-flex items-center gap-1 shadow-2xs`}>
-          <Sparkles className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-          <span>{showLabel ? 'प्रमाणित' : ''}</span>
         </span>
       )}
     </div>

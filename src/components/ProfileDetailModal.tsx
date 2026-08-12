@@ -6,6 +6,7 @@ import { ReportProfileModal } from './ReportProfileModal';
 import { VerifiedBadge } from './VerifiedBadge';
 import { getProfessionBadges } from '../utils/professionUtils';
 import { formatProfileDisplayName } from '../utils/nameFormatter';
+import { transliterateMarathiToEnglish } from '../utils/transliterate';
 import { uploadToCloudinary, compressAndResizeImage } from '../utils/cloudinary';
 import {
   X,
@@ -151,7 +152,7 @@ export const ProfileDetailModal: React.FC<{
                 आयडी: {profile.id}
               </span>
               <h2 className="text-base sm:text-lg font-black text-amber-100 break-words">
-                {formatProfileDisplayName(profile.fullName, currentUser, isAdminLoggedIn, isAuthorized, siteConfig)}
+                {formatProfileDisplayName(profile.fullName, currentUser, isAdminLoggedIn, isAuthorized, siteConfig, language)}
               </h2>
             </div>
             <div className="flex items-center gap-2">
@@ -644,16 +645,17 @@ export const ProfileDetailModal: React.FC<{
                       filter: (() => {
                         const isOverride = siteConfig?.adminOverrideMemberPrivacy === true;
                         const isPhotoBlurred = isAuthorized ? false : (
-                          profile.privacy?.hidePhoto && !isOverride
-                          ? true
-                          : !currentUser
-                          ? (siteConfig?.allowPublicVisitorsToViewPhotos === false || siteConfig?.blurProfilePhotos)
-                          : currentUser.id.startsWith('guest')
-                          ? (siteConfig?.allowGuestsToViewPhotos === false || siteConfig?.blurProfilePhotos)
-                          : (siteConfig?.allowMembersToViewPhotos === false)
+                          (profile.privacy?.hidePhoto && !isOverride) ||
+                          siteConfig?.blurPhotosForFreeUsers === true ||
+                          siteConfig?.blurProfilePhotos === true ||
+                          (!currentUser && siteConfig?.allowPublicVisitorsToViewPhotos === false) ||
+                          (currentUser?.id?.startsWith('guest') && siteConfig?.allowGuestsToViewPhotos === false)
                         );
 
-                        return isPhotoBlurred ? `blur(${siteConfig?.photoBlurPercent || 20}px)` : 'none';
+                        const blurPct = siteConfig?.photoBlurPercentage || siteConfig?.photoBlurPercent || 50;
+                        const blurPx = blurPct >= 100 ? 30 : blurPct >= 75 ? 20 : blurPct >= 50 ? 12 : 6;
+
+                        return isPhotoBlurred ? `blur(${blurPx}px)` : 'none';
                       })()
                     }}
                     className="w-full h-full object-cover pointer-events-none group-hover:scale-105 transition-transform duration-300"
@@ -669,7 +671,7 @@ export const ProfileDetailModal: React.FC<{
                     वंजारी जोडी (VanjariJodi.com)
                   </div>
 
-                  {profile.isVerified && (
+                  {profile.showVerifiedBadge && (
                     <span className="absolute top-3 left-3 px-3 py-1 rounded-full bg-emerald-700 text-white text-xs font-bold border border-emerald-400 flex items-center gap-1 shadow">
                       <ShieldCheck className="w-3.5 h-3.5" />
                       <span>प्रमाणित प्रोफाईल</span>
@@ -714,7 +716,7 @@ export const ProfileDetailModal: React.FC<{
 
                   <h1 className="text-xl sm:text-2xl font-black text-[#A71930] mt-2 flex flex-col items-start gap-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span>{formatProfileDisplayName(profile.fullName, currentUser, isAdminLoggedIn, isAuthorized, siteConfig)}</span>
+                      <span>{formatProfileDisplayName(profile.fullName, currentUser, isAdminLoggedIn, isAuthorized, siteConfig, language)}</span>
                       <VerifiedBadge profile={profile} size="md" />
                     </div>
                   </h1>

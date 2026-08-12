@@ -3,12 +3,16 @@ import { useApp } from '../context/AppContext';
 import { Megaphone, ArrowRight, X } from 'lucide-react';
 
 export const NoticeBanner: React.FC = () => {
-  const { siteConfig, setIsRegisterOpen } = useApp();
+  const { siteConfig, setIsRegisterOpen, language } = useApp();
   const [dismissed, setDismissed] = useState(false);
 
   if (!siteConfig?.isNoticeBannerEnabled || !siteConfig?.noticeBannerText || dismissed) {
     return null;
   }
+
+  const noticeText = language === 'en'
+    ? (siteConfig.noticeBannerTextEn || siteConfig.noticeBannerText)
+    : siteConfig.noticeBannerText;
 
   const bgStyles: Record<string, string> = {
     crimson: 'bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] text-amber-100 border-amber-300/40',
@@ -28,7 +32,7 @@ export const NoticeBanner: React.FC = () => {
         <div className="overflow-hidden whitespace-nowrap flex-1">
           <div className="inline-block animate-marquee pl-4 hover:pause">
             <span className="font-extrabold tracking-wide">
-              {siteConfig.noticeBannerText}
+              {noticeText}
             </span>
           </div>
         </div>
@@ -39,13 +43,13 @@ export const NoticeBanner: React.FC = () => {
           onClick={() => setIsRegisterOpen(true)}
           className="hidden xs:flex px-2.5 py-1 bg-white/20 hover:bg-white/30 text-current rounded-lg text-xs font-black transition cursor-pointer items-center gap-1 border border-current/20 shrink-0 shadow-sm"
         >
-          <span>नोंदणी करा</span>
+          <span>{language === 'en' ? 'Register' : 'नोंदणी करा'}</span>
           <ArrowRight className="w-3 h-3" />
         </button>
         <button
           onClick={() => setDismissed(true)}
           className="p-1 hover:bg-black/20 rounded-lg transition cursor-pointer text-current opacity-80 hover:opacity-100"
-          title="बंद करा"
+          title={language === 'en' ? 'Close' : 'बंद करा'}
         >
           <X className="w-4 h-4" />
         </button>

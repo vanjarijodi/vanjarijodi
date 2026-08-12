@@ -54,14 +54,16 @@ export const CommunityAds: React.FC = () => {
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-300 text-xs font-black mb-3 border border-amber-500/40 shadow-lg">
               <Megaphone className="w-4 h-4 text-amber-400 animate-bounce" />
-              <span>डिजिटल जाहिरात व प्रायोजित उपक्रम मंच (Community Ads & Showcase)</span>
+              <span>{language === 'en' ? 'Community Ads & Showcase' : 'डिजिटल जाहिरात व प्रायोजित उपक्रम मंच (Community Ads & Showcase)'}</span>
             </div>
             
             <h2 className="text-2xl sm:text-4xl font-black text-amber-200 tracking-tight leading-tight">
-              {language === 'mr' ? 'वंजारी समाज जाहिराती, मेळावे व प्रायोजक' : 'Vanjari Community Meetups, Ads & Sponsors'}
+              {language === 'en' ? 'Vanjari Community Meetups, Ads & Sponsors' : 'वंजारी समाज जाहिराती, मेळावे व प्रायोजक'}
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 font-medium mt-2 max-w-2xl">
-              वंजारी समाजातील अधिकृत वधू-वर मेळावे, मंगल कार्यालये, व्यवसाय, सेवा व उपक्रमांच्या आकर्षित जाहिराती.
+              {language === 'en'
+                ? 'Official matrimonial meets, wedding halls, photography, businesses, and community services.'
+                : 'वंजारी समाजातील अधिकृत वधू-वर मेळावे, मंगल कार्यालये, व्यवसाय, सेवा व उपक्रमांच्या आकर्षित जाहिराती.'}
             </p>
           </div>
 
@@ -71,7 +73,7 @@ export const CommunityAds: React.FC = () => {
               className="px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs sm:text-sm border border-amber-300 shadow-xl flex items-center gap-2 transition-all transform hover:scale-105"
             >
               <PlusCircle className="w-4 h-4" />
-              <span>जाहिरात जोडा / संपादन (Admin)</span>
+              <span>{language === 'en' ? 'Add / Edit Ad (Admin)' : 'जाहिरात जोडा / संपादन (Admin)'}</span>
             </button>
           </div>
         </div>
@@ -79,11 +81,11 @@ export const CommunityAds: React.FC = () => {
         {/* Category Filter Pills */}
         <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none">
           {[
-            { id: 'all', label: 'सर्व जाहिराती', icon: Megaphone, count: activeAds.length },
-            { id: 'meetup', label: 'वधू-वर मेळावे', icon: Calendar, count: activeAds.filter(a => a.type === 'meetup' || a.categoryTag?.includes('मेळावा')).length },
-            { id: 'hall', label: 'मंगल कार्यालये', icon: Building2, count: activeAds.filter(a => a.categoryTag?.includes('मंगल') || a.categoryTag?.includes('हॉल')).length },
-            { id: 'photography', label: 'फोटोग्राफी व कॅमेरा', icon: Camera, count: activeAds.filter(a => a.categoryTag?.includes('फोटो')).length },
-            { id: 'sponsor', label: 'विशेष प्रायोजक', icon: Award, count: activeAds.filter(a => a.type === 'sponsor' || a.type === 'business').length },
+            { id: 'all', label: language === 'en' ? 'All Ads' : 'सर्व जाहिराती', icon: Megaphone, count: activeAds.length },
+            { id: 'meetup', label: language === 'en' ? 'Matrimonial Meets' : 'वधू-वर मेळावे', icon: Calendar, count: activeAds.filter(a => a.type === 'meetup' || a.categoryTag?.includes('मेळावा')).length },
+            { id: 'hall', label: language === 'en' ? 'Wedding Halls' : 'मंगल कार्यालये', icon: Building2, count: activeAds.filter(a => a.categoryTag?.includes('मंगल') || a.categoryTag?.includes('हॉल')).length },
+            { id: 'photography', label: language === 'en' ? 'Photography' : 'फोटोग्राफी व कॅमेरा', icon: Camera, count: activeAds.filter(a => a.categoryTag?.includes('फोटो')).length },
+            { id: 'sponsor', label: language === 'en' ? 'Sponsors' : 'विशेष प्रायोजक', icon: Award, count: activeAds.filter(a => a.type === 'sponsor' || a.type === 'business').length },
           ].map((cat) => {
             const Icon = cat.icon;
             const isSelected = selectedCategory === cat.id;
@@ -113,8 +115,8 @@ export const CommunityAds: React.FC = () => {
         {filteredAds.length === 0 ? (
           <div className="text-center py-16 bg-slate-900/60 rounded-3xl border border-slate-800 p-8">
             <Megaphone className="w-12 h-12 text-amber-400 mx-auto mb-3 opacity-60" />
-            <p className="text-base font-bold text-slate-300">या श्रेणीमध्ये सध्या जाहिराती उपलब्ध नाहीत.</p>
-            <p className="text-xs text-slate-400 mt-1">ॲडमिन पॅनेलवरून नवीन जाहिरात त्वरित जोडता येईल.</p>
+            <p className="text-base font-bold text-slate-300">{language === 'en' ? 'No advertisements available in this category currently.' : 'या श्रेणीमध्ये सध्या जाहिराती उपलब्ध नाहीत.'}</p>
+            <p className="text-xs text-slate-400 mt-1">{language === 'en' ? 'New ads can be added instantly from Admin panel.' : 'ॲडमिन पॅनेलवरून नवीन जाहिरात त्वरित जोडता येईल.'}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
@@ -137,7 +139,7 @@ export const CommunityAds: React.FC = () => {
                   <div className="absolute top-4 left-4 flex flex-wrap gap-2">
                     <span className="px-3.5 py-1.5 rounded-full bg-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl flex items-center gap-1.5 border border-amber-300">
                       <Sparkles className="w-3.5 h-3.5 fill-slate-950" />
-                      <span>{ad.categoryTag || (ad.type === 'meetup' ? 'वधू-वर मेळावा' : 'प्रायोजित जाहिरात')}</span>
+                      <span>{ad.categoryTag || (ad.type === 'meetup' ? (language === 'en' ? 'Matrimony Meet' : 'वधू-वर मेळावा') : (language === 'en' ? 'Sponsored Ad' : 'प्रायोजित जाहिरात'))}</span>
                     </span>
                     {ad.badgeText && (
                       <span className="px-3 py-1.5 rounded-full bg-rose-600 text-white font-black text-xs shadow-xl border border-rose-300">
@@ -180,7 +182,7 @@ export const CommunityAds: React.FC = () => {
                         </a>
 
                         <a
-                          href={`https://wa.me/${ad.contactPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('नमस्ते, मी वंजारी जोडी पोर्टलवर तुमची जाहिरात पाहिली. अधिक माहिती हवी आहे.')}`}
+                          href={`https://wa.me/${ad.contactPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hello, I saw your ad on VanjariJodi.')}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-3.5 py-2 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 text-xs font-bold flex items-center gap-1.5 border border-emerald-500/40 transition-all"
@@ -192,7 +194,7 @@ export const CommunityAds: React.FC = () => {
                     ) : (
                       <div className="flex items-center gap-1.5 text-xs text-amber-300 font-bold">
                         <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                        <span>वंजारी जोडी प्रमाणित जाहिरात</span>
+                        <span>{language === 'en' ? 'Verified VanjariJodi Ad' : 'वंजारी जोडी प्रमाणित जाहिरात'}</span>
                       </div>
                     )}
 
@@ -200,7 +202,7 @@ export const CommunityAds: React.FC = () => {
                       onClick={() => setActiveAdModal(ad)}
                       className="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold border border-amber-500/40 flex items-center gap-1.5 ml-auto transition-all"
                     >
-                      <span>पूर्ण माहिती</span>
+                      <span>{language === 'en' ? 'Full Details' : 'पूर्ण माहिती'}</span>
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
@@ -234,7 +236,7 @@ export const CommunityAds: React.FC = () => {
               
               <div className="absolute bottom-4 left-4 right-4 flex flex-wrap gap-2">
                 <span className="px-3.5 py-1 rounded-full bg-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider">
-                  {activeAdModal.categoryTag || 'विशेष प्रायोजित जाहिरात'}
+                  {activeAdModal.categoryTag || (language === 'en' ? 'Sponsored Ad' : 'विशेष प्रायोजित जाहिरात')}
                 </span>
                 {activeAdModal.badgeText && (
                   <span className="px-3 py-1 rounded-full bg-rose-600 text-white font-black text-xs">
@@ -252,7 +254,7 @@ export const CommunityAds: React.FC = () => {
               <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 space-y-3">
                 <h4 className="text-xs font-bold text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
                   <Info className="w-4 h-4 text-amber-400" />
-                  <span>जाहिरात सविस्तर तपशील</span>
+                  <span>{language === 'en' ? 'Detailed Ad Information' : 'जाहिरात सविस्तर तपशील'}</span>
                 </h4>
                 <p className="text-sm sm:text-base text-slate-200 leading-relaxed whitespace-pre-line">
                   {activeAdModal.description}
@@ -268,17 +270,17 @@ export const CommunityAds: React.FC = () => {
                       className="w-full sm:w-auto flex-1 py-3 px-5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg transition-all"
                     >
                       <Phone className="w-4 h-4" />
-                      <span>कॉल करा: {activeAdModal.contactPhone}</span>
+                      <span>{language === 'en' ? 'Call Now' : 'कॉल करा'}: {activeAdModal.contactPhone}</span>
                     </a>
 
                     <a
-                      href={`https://wa.me/${activeAdModal.contactPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('नमस्ते, मी वंजारी जोडी मंचावरील तुमची जाहिरात पाहू इच्छितो.')}`}
+                      href={`https://wa.me/${activeAdModal.contactPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hello, I am interested in your ad on VanjariJodi.')}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full sm:w-auto flex-1 py-3 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg transition-all"
                     >
                       <MessageCircle className="w-4 h-4" />
-                      <span>WhatsApp वर चॅट करा</span>
+                      <span>{language === 'en' ? 'Chat on WhatsApp' : 'WhatsApp वर चॅट करा'}</span>
                     </a>
                   </>
                 )}
@@ -290,7 +292,7 @@ export const CommunityAds: React.FC = () => {
                     rel="noopener noreferrer"
                     className="w-full sm:w-auto py-3 px-5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-sm border border-amber-500/40 flex items-center justify-center gap-2 transition-all"
                   >
-                    <span>वेबसाईट / लिंक</span>
+                    <span>{language === 'en' ? 'Website / Link' : 'वेबसाईट / लिंक'}</span>
                     <ExternalLink className="w-4 h-4" />
                   </a>
                 )}

@@ -13,6 +13,7 @@ export const MobileBottomNav: React.FC = () => {
   const {
     currentView,
     setCurrentView,
+    language,
     setIsLeftDrawerOpen,
     setIsRightDrawerOpen,
     currentUser,
@@ -78,7 +79,7 @@ export const MobileBottomNav: React.FC = () => {
             }`}
           >
             <Home className={`w-4 h-4 transition-transform ${currentView === 'home' ? 'scale-105 text-[#F99C00]' : ''}`} />
-            <span className="text-[9px] tracking-tight mt-0.5 font-bold">होम</span>
+            <span className="text-[9px] tracking-tight mt-0.5 font-bold">{language === 'en' ? 'Home' : 'होम'}</span>
             {currentView === 'home' && (
               <span className="absolute bottom-0.5 w-1 h-1 bg-[#F99C00] rounded-full shadow-[0_0_6px_#F99C00]" />
             )}
@@ -91,7 +92,7 @@ export const MobileBottomNav: React.FC = () => {
               className="relative flex flex-col items-center justify-center py-1 px-1 rounded-xl text-amber-100/70 hover:text-amber-200 transition-all duration-200 cursor-pointer active:scale-90"
             >
               <Search className="w-4 h-4 text-amber-200" />
-              <span className="text-[9px] tracking-tight mt-0.5 font-bold">शोध</span>
+              <span className="text-[9px] tracking-tight mt-0.5 font-bold">{language === 'en' ? 'Search' : 'शोध'}</span>
             </button>
           )}
 
@@ -109,7 +110,7 @@ export const MobileBottomNav: React.FC = () => {
                 <Sparkles className={`w-4 h-4 transition-transform ${currentView === 'profiles' ? 'scale-105 text-amber-300' : 'text-[#F99C00] animate-pulse'}`} />
                 <span className="absolute -top-1 -right-1.5 bg-rose-600 text-[7px] font-black px-0.5 rounded-full text-white border border-amber-300 scale-90">AI</span>
               </div>
-              <span className="text-[9px] tracking-tight mt-0.5 font-bold">स्मार्ट मॅच</span>
+              <span className="text-[9px] tracking-tight mt-0.5 font-bold">{language === 'en' ? 'Matches' : 'स्मार्ट मॅच'}</span>
               {currentView === 'profiles' && (
                 <span className="absolute bottom-0.5 w-1 h-1 bg-[#F99C00] rounded-full shadow-[0_0_6px_#F99C00]" />
               )}
@@ -129,7 +130,7 @@ export const MobileBottomNav: React.FC = () => {
                 </span>
               )}
             </div>
-            <span className="text-[9px] tracking-tight mt-0.5 font-bold">संपर्क</span>
+            <span className="text-[9px] tracking-tight mt-0.5 font-bold">{language === 'en' ? 'Support' : 'संपर्क'}</span>
           </button>
 
           {/* 5. Profile (Triggers Left Drawer Menu) */}
@@ -149,7 +150,7 @@ export const MobileBottomNav: React.FC = () => {
                 <User className="w-3 h-3 text-[#800C1E]" />
               )}
             </div>
-            <span className="text-[9px] tracking-tight mt-0.5 font-bold">प्रोफाईल</span>
+            <span className="text-[9px] tracking-tight mt-0.5 font-bold">{language === 'en' ? 'Profile' : 'प्रोफाईल'}</span>
           </button>
 
         </div>

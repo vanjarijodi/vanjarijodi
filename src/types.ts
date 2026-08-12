@@ -276,11 +276,15 @@ export interface PaymentRequest {
   planName: string;
   amount: number;
   utrNumber: string;
+  paymentMethod?: string;
   screenshotUrl?: string;
   userPhotoUrl?: string;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
   approvedAt?: string;
+  isAutoApproved?: boolean;
+  planDurationText?: string;
+  validUntil?: string;
 }
 
 export interface GuestPermissions {
@@ -614,10 +618,16 @@ export interface SiteConfig {
   allowGuestsToViewPhotos?: boolean;
   allowPublicVisitorsToViewPhotos?: boolean;
   allowMembersToViewPhotos?: boolean;
-  nameDisplayModeForFreeUsers?: 'full_name' | 'first_name_only' | 'hidden_star';
+  nameDisplayModeForFreeUsers?: 'full_name' | 'first_name_only' | 'first_and_last' | 'surname_only' | 'hidden_star' | 'blurred_name';
+  hideMiddleNameForFreeUsers?: boolean;
+  hideLastNameForFreeUsers?: boolean;
+  nameBlurPercentage?: number;
+  blurPhotosForFreeUsers?: boolean;
+  photoBlurPercentage?: number;
   showOnlyWelcomePlan?: boolean;
   enablePromoCodes?: boolean;
   enableMutualLikeContactUnlock?: boolean;
+  requireMutualLikeForPhone?: boolean;
   disablePlanContactLimit?: boolean;
   adminOverrideMemberPrivacy?: boolean;
   allowMembersToControlPrivacy?: boolean;

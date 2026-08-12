@@ -386,9 +386,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // 1. Language default to Marathi ('mr')
-  const [language, setLanguage] = useState<Language>(() => {
-    return (localStorage.getItem('vanjari_jodi_lang') as Language) || 'mr';
-  });
+  const [language, setLanguage] = useState<Language>('mr');
 
   // Theme Mode ('crimson-gold' by default)
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
@@ -1153,9 +1151,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [paymentRequests]);
 
   const addPaymentRequest = (reqData: Omit<PaymentRequest, 'id' | 'createdAt' | 'status'>) => {
-    const isAutoUnlock = siteConfig.isAutoModeEnabled && (siteConfig.autoUnlockOnPayment || siteConfig.autoModeType === 'payment_required');
+    // Razorpay or verified gateway payments are 100% verified by bank/gateway
+    const isGatewayVerified =
+      reqData.paymentMethod === 'razorpay' ||
+      (reqData as any).isVerifiedGateway === true ||
+      (reqData as any).razorpayPaymentId;
+
+    // Manual UTR submissions require Admin verification by default to prevent fake UTR fraud,
+    // unless admin explicitly enabled autoApproveManualUtr
+    const isAutoUnlock =
+      isGatewayVerified ||
+      (siteConfig.autoApproveManualUtr === true &&
+        (siteConfig.isAutoModeEnabled !== false || siteConfig.autoApprovePaidRegistrations !== false));
+
     const userProfileObj = profiles.find((p) => p.id === reqData.userId || p.mobile === reqData.userMobile);
+    const matchedPlan = plansList.find((p) => p.id === reqData.planId);
     const nowIso = new Date().toISOString();
+
+    let durationLabel = matchedPlan?.durationText || matchedPlan?.validityText || '६ महिने (180 दिवस)';
+    if (reqData.planId === 'yearly') durationLabel = '१ वर्ष (365 दिवस)';
+    if (reqData.planId === 'lifetime') durationLabel = 'आजीवन (Unlimited)';
+    if (reqData.planId === 'monthly') durationLabel = '६ महिने (180 दिवस)';
+    if (reqData.planId === 'welcome_offer') durationLabel = '३० दिवस (वेलकम ऑफर)';
 
     const newReq: PaymentRequest = {
       ...reqData,
@@ -1163,6 +1180,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       status: isAutoUnlock ? 'approved' : 'pending',
       createdAt: nowIso,
       approvedAt: isAutoUnlock ? nowIso : undefined,
+      isAutoApproved: isAutoUnlock,
+      planDurationText: durationLabel,
       userPhotoUrl: reqData.userPhotoUrl || userProfileObj?.photoUrl,
     };
     setPaymentRequests((prev) => [newReq, ...prev]);
@@ -1180,7 +1199,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         title: 'Payment Auto-Approved',
         titleMr: 'पेमेंट ऑटो-मंजूर आणि प्लॅन सुरु झाला!',
         message: `Your payment for ${reqData.planName} was auto-verified.`,
-        messageMr: `ऑटो मोड प्रणालीद्वारे तुमचे ${reqData.planName} पेमेंट तात्काळ मंजूर होऊन सेवा सक्रिय झाली आहे.`,
+        messageMr: `गेटवे/ऑटो प्रणालीद्वारे तुमचे ${reqData.planName} (${durationLabel}) पेमेंट तात्काळ मंजूर होऊन सेवा सक्रिय झाली आहे.`,
         type: 'approval',
       });
     } else {
@@ -1189,7 +1208,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         title: 'New Payment Verification Request',
         titleMr: 'नवीन पेमेंट पावती प्राप्त झाली!',
         message: `${reqData.userName} submitted payment proof for ${reqData.planName}`,
-        messageMr: `${reqData.userName} यांनी ${reqData.planName} सबस्क्रिप्शनसाठी UTR: ${reqData.utrNumber} पाठवले आहे.`,
+        messageMr: `${reqData.userName} यांनी ${reqData.planName} सबस्क्रिप्शनसाठी UTR: ${reqData.utrNumber} पाठवले आहे. ॲडमिन कडून खात्री करून मंजूर केले जाईल.`,
         type: 'system',
       });
     }
@@ -1556,15 +1575,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const defaultWelcome = MEMBERSHIP_PLANS.find((p) => p.id === 'welcome_offer');
         if (defaultWelcome) parsed = [defaultWelcome, ...parsed];
       }
-      // Migrate welcome offer defaults to ₹199 and 5 contacts if still on legacy values
+      // Update welcome offer defaults
       parsed = parsed.map((p) => {
         if (p.id === 'welcome_offer') {
           return {
             ...p,
             price: p.price === 99 ? 199 : p.price,
-            unlockCount: p.unlockCount === 999 ? 5 : (p.unlockCount || 5),
-            nameMr: p.nameMr.includes('९९') ? 'स्पेशल वेलकम ऑफर - ₹१९९ (५ नंबर अनलॉक)' : p.nameMr,
-            badgeText: p.badgeText.includes('९९') ? '🔥 ५०% सूट - वेलकम ऑफर (रु. १९९/-)' : p.badgeText,
+            unlockCount: 999,
+            nameMr: 'स्पेशल वेलकम ऑफर - ₹१९९ (म्युचुअल लाईकवर नंबर अनलॉक)',
+            durationLabelMr: '६ महिने वैध (दोघांनी लाईक केल्यावर नंबर अनलॉक)',
+            badgeText: '🔥 ५०% सूट - वेलकम ऑफर (रु. १९९/-)',
+            featuresMr: [
+              'दोघांनी एकमेकांना लाईक केल्यावर (Mutual Like) मोबाईल नंबर अनलॉक',
+              '६ महिने (१८० दिवस) संपूर्ण प्रोफाईल व बायोडाटा पाहणे',
+              'अनलिमिटेड मोफत एक्सप्रेस प्रतिसाद (Likes) पाठवा',
+              'थेट व्हॉट्सॲप चॅट व कौटुंबिक संपर्क'
+            ]
           };
         }
         return p;

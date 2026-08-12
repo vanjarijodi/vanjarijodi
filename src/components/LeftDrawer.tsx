@@ -28,6 +28,7 @@ export const LeftDrawer: React.FC = () => {
   const {
     isLeftDrawerOpen,
     setIsLeftDrawerOpen,
+    language,
     currentUser,
     setCurrentUser,
     currentView,
@@ -165,7 +166,7 @@ export const LeftDrawer: React.FC = () => {
             >
               <div className="flex items-center gap-3">
                 <Home className={`w-5 h-5 ${currentView === 'home' ? 'text-[#A71930]' : 'text-slate-500'}`} />
-                <span>मुख्यपृष्ठ (Home)</span>
+                <span>{language === 'en' ? 'Home' : 'मुख्यपृष्ठ (Home)'}</span>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
             </button>
@@ -181,7 +182,7 @@ export const LeftDrawer: React.FC = () => {
               >
                 <div className="flex items-center gap-3">
                   <Handshake className="w-5 h-5 text-[#A71930]" />
-                  <span>लग्न व्यवसाय व नेटवर्किंग</span>
+                  <span>{language === 'en' ? 'Vendors & Wedding Halls' : 'लग्न व्यवसाय व नेटवर्किंग'}</span>
                 </div>
                 <span className="text-[10px] bg-[#A71930] text-amber-100 px-2 py-0.5 rounded-full font-extrabold shadow-sm">
                   5%-10% OFF
@@ -208,7 +209,7 @@ export const LeftDrawer: React.FC = () => {
             >
               <div className="flex items-center gap-3">
                 <User className={`w-5 h-5 ${currentView === 'dashboard' ? 'text-[#A71930]' : 'text-slate-500'}`} />
-                <span>माझी प्रोफाईल व बायोडाटा</span>
+                <span>{language === 'en' ? 'My Profile & BioData' : 'माझी प्रोफाईल व बायोडाटा'}</span>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
             </button>
@@ -225,7 +226,7 @@ export const LeftDrawer: React.FC = () => {
               >
                 <div className="flex items-center gap-3">
                   <Heart className={`w-5 h-5 ${currentView === 'profiles' ? 'text-[#A71930]' : 'text-slate-500'}`} />
-                  <span>सर्व वधू-वर बायोडाटा</span>
+                  <span>{language === 'en' ? 'All Bride/Groom Profiles' : 'सर्व वधू-वर बायोडाटा'}</span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-400" />
               </button>
