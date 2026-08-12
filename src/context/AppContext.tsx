@@ -1154,16 +1154,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addPaymentRequest = (reqData: Omit<PaymentRequest, 'id' | 'createdAt' | 'status'>) => {
     const isAutoUnlock = siteConfig.isAutoModeEnabled && (siteConfig.autoUnlockOnPayment || siteConfig.autoModeType === 'payment_required');
+    const userProfileObj = profiles.find((p) => p.id === reqData.userId || p.mobile === reqData.userMobile);
+    const nowIso = new Date().toISOString();
+
     const newReq: PaymentRequest = {
       ...reqData,
       id: 'pay-req-' + Date.now(),
       status: isAutoUnlock ? 'approved' : 'pending',
-      createdAt: new Date().toISOString(),
+      createdAt: nowIso,
+      approvedAt: isAutoUnlock ? nowIso : undefined,
+      userPhotoUrl: reqData.userPhotoUrl || userProfileObj?.photoUrl,
     };
     setPaymentRequests((prev) => [newReq, ...prev]);
 
     if (isAutoUnlock) {
-      updateMemberTier(reqData.userId, reqData.planId);
+      updateMemberTier(reqData.userId, reqData.planId, undefined, {
+        paidAt: nowIso,
+        paymentApprovedAt: nowIso,
+        paymentAmount: reqData.amount,
+        paymentUtr: reqData.utrNumber,
+        paymentPlanName: reqData.planName,
+      });
       addNotification({
         userId: reqData.userId,
         title: 'Payment Auto-Approved',
@@ -1188,12 +1199,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const target = paymentRequests.find((r) => r.id === id);
     if (!target) return;
 
+    const nowIso = new Date().toISOString();
+
     setPaymentRequests((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: 'approved' } : r))
+      prev.map((r) => (r.id === id ? { ...r, status: 'approved', approvedAt: nowIso } : r))
     );
 
     // Update user membership tier & mark verified
-    updateMemberTier(target.userId, target.planId);
+    updateMemberTier(target.userId, target.planId, undefined, {
+      paidAt: target.createdAt || nowIso,
+      paymentApprovedAt: nowIso,
+      paymentAmount: target.amount,
+      paymentUtr: target.utrNumber,
+      paymentPlanName: target.planName,
+    });
 
     // Add notification
     addNotification({
@@ -1627,14 +1646,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
-  const updateMemberTier = (profileId: string, tier: MembershipTier) => {
-    let bonusUnlocks = 0;
+  const updateMemberTier = (
+    profileId: string,
+    tier: MembershipTier,
+    bonusUnlocksOverride?: number,
+    extraPaymentInfo?: {
+      paidAt?: string;
+      paymentApprovedAt?: string;
+      paymentAmount?: number;
+      paymentUtr?: string;
+      paymentPlanName?: string;
+    }
+  ) => {
+    let bonusUnlocks = bonusUnlocksOverride ?? 0;
     const matchingPlan = plansList.find((pl) => pl.id === tier);
     if (matchingPlan) {
-      if (matchingPlan.unlockCount) {
-        bonusUnlocks = matchingPlan.unlockCount;
-      } else if (tier === 'welcome_offer') {
-        bonusUnlocks = 5;
+      if (!bonusUnlocksOverride) {
+        if (matchingPlan.unlockCount) {
+          bonusUnlocks = matchingPlan.unlockCount;
+        } else if (tier === 'welcome_offer') {
+          bonusUnlocks = 5;
+        }
       }
 
       // Auto increment plan member count and check seat limit
@@ -1659,14 +1691,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       );
     }
 
+    const nowIso = new Date().toISOString();
+    const paidDate = extraPaymentInfo?.paidAt || nowIso;
+    const approvedDate = extraPaymentInfo?.paymentApprovedAt || nowIso;
+
     setProfiles((prev) =>
       prev.map((p) => {
         if (p.id === profileId) {
-          const updated = {
+          const updated: UserProfile = {
             ...p,
             membership: tier,
             isApproved: true,
             isVerified: true,
+            paidAt: p.paidAt || paidDate,
+            paymentApprovedAt: approvedDate,
+            paymentAmount: extraPaymentInfo?.paymentAmount ?? p.paymentAmount ?? matchingPlan?.price,
+            paymentUtr: extraPaymentInfo?.paymentUtr || p.paymentUtr,
+            paymentPlanName: extraPaymentInfo?.paymentPlanName || matchingPlan?.name || tier,
             unlockedContactsCount: (p.unlockedContactsCount || 0) + (bonusUnlocks || (tier === 'welcome_offer' ? 5 : 0)),
           };
           syncDocToFirestore('profiles', updated.id, updated);
@@ -1684,6 +1725,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               membership: tier,
               isApproved: true,
               isVerified: true,
+              paidAt: prev.paidAt || paidDate,
+              paymentApprovedAt: approvedDate,
+              paymentAmount: extraPaymentInfo?.paymentAmount ?? prev.paymentAmount ?? matchingPlan?.price,
+              paymentUtr: extraPaymentInfo?.paymentUtr || prev.paymentUtr,
+              paymentPlanName: extraPaymentInfo?.paymentPlanName || matchingPlan?.name || tier,
               unlockedContactsCount: (prev.unlockedContactsCount || 0) + (bonusUnlocks || (tier === 'welcome_offer' ? 5 : 0)),
             }
           : null

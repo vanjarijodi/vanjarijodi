@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Sparkles, UserCheck, UserPlus, LogIn, Heart, Handshake, Building2, ChevronRight, Store, Scroll, Search, Send } from 'lucide-react';
+import { Sparkles, UserCheck, UserPlus, LogIn, Heart, Handshake, Building2, ChevronRight, Store, Scroll, Search, Send, X } from 'lucide-react';
 import { VanjariJodiLogo } from './VanjariJodiLogo';
 import { MAHARASHTRA_DISTRICTS } from '../data/initialData';
 
@@ -22,6 +22,13 @@ export const Hero: React.FC = () => {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [quickGender, setQuickGender] = useState<'all' | 'bride' | 'groom'>('all');
   const [quickDistrict, setQuickDistrict] = useState<string>('');
+  const [isTelegramDismissed, setIsTelegramDismissed] = useState(() => {
+    try {
+      return sessionStorage.getItem('vanjari_hide_telegram') === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
     if (!heroSlides || heroSlides.length === 0) return;
@@ -141,29 +148,50 @@ export const Hero: React.FC = () => {
               </span>
             </div>
             {/* Telegram Group Join Banner on Index Hero */}
-            {siteConfig?.telegramGroupUrl && siteConfig.telegramGroupUrl.trim() !== '' && (
-              <a
-                href={siteConfig.telegramGroupUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full max-w-lg my-1 py-2 px-3.5 bg-gradient-to-r from-sky-600 via-sky-500 to-sky-600 text-white hover:from-sky-500 hover:to-sky-600 rounded-2xl font-black text-xs sm:text-sm shadow-md border border-sky-300 flex items-center justify-between gap-2 active:scale-98 transition-all cursor-pointer group"
-              >
-                <div className="flex items-center gap-2 overflow-hidden text-left">
-                  <div className="p-1.5 bg-white/20 rounded-xl shrink-0 group-hover:scale-110 transition-transform">
-                    <Send className="w-4 h-4 text-white animate-bounce" />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs sm:text-sm font-extrabold flex items-center gap-1">
-                      📢 अधिकृत टेलिग्राम ग्रुप जॉईन करा
+            {siteConfig?.showTelegramBanner !== false &&
+              siteConfig?.telegramGroupUrl &&
+              siteConfig.telegramGroupUrl.trim() !== '' &&
+              !isTelegramDismissed && (
+                <div className="relative w-full max-w-lg my-1">
+                  <a
+                    href={siteConfig.telegramGroupUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full py-2 pl-3.5 pr-10 bg-gradient-to-r from-sky-600 via-sky-500 to-sky-600 text-white hover:from-sky-500 hover:to-sky-600 rounded-2xl font-black text-xs sm:text-sm shadow-md border border-sky-300 flex items-center justify-between gap-2 active:scale-98 transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2 overflow-hidden text-left">
+                      <div className="p-1.5 bg-white/20 rounded-xl shrink-0 group-hover:scale-110 transition-transform">
+                        <Send className="w-4 h-4 text-white animate-bounce" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs sm:text-sm font-extrabold flex items-center gap-1">
+                          📢 अधिकृत टेलिग्राम ग्रुप जॉईन करा
+                        </span>
+                        <span className="text-[10px] text-sky-100 font-medium">नवीन वधू-वर प्रोफाईल्सच्या जलद अपडेट्ससाठी</span>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-1 bg-white text-sky-800 rounded-xl text-[10px] sm:text-xs font-black shrink-0 shadow-xs group-hover:bg-amber-300 transition-colors">
+                      जॉईन करा 🚀
                     </span>
-                    <span className="text-[10px] text-sky-100 font-medium">नवीन वधू-वर प्रोफाईल्सच्या जलद अपडेट्ससाठी</span>
-                  </div>
+                  </a>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsTelegramDismissed(true);
+                      try {
+                        sessionStorage.setItem('vanjari_hide_telegram', 'true');
+                      } catch (err) {
+                        console.error(err);
+                      }
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full bg-black/20 hover:bg-black/40 text-white transition-colors cursor-pointer z-10"
+                    title="हे बॅनर लपवा (Hide Banner)"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-                <span className="px-2.5 py-1 bg-white text-sky-800 rounded-xl text-[10px] sm:text-xs font-black shrink-0 shadow-xs group-hover:bg-amber-300 transition-colors">
-                  जॉईन करा 🚀
-                </span>
-              </a>
-            )}
+              )}
           </div>
         </div>
 

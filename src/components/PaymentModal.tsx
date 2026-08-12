@@ -356,38 +356,40 @@ export const PaymentModal: React.FC<{
           </div>
 
           {/* Promo Code Input Box */}
-          <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-300 space-y-2">
-            <label className="block text-slate-900 font-extrabold text-xs flex items-center gap-1.5">
-              <Tag className="w-4 h-4 text-[#A71930]" />
-              <span>कूपन कोड किंवा डिस्काउंट प्रोमो कोड टाका (Apply Promo Code):</span>
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                placeholder="उदा. VANJARI20, FLAT200 किंवा VIPFREE"
-                value={promoInput}
-                onChange={(e) => setPromoInput(e.target.value)}
-                className="flex-1 bg-white border border-amber-300 rounded-xl px-3 py-2 text-xs font-mono font-bold uppercase text-slate-900 outline-none focus:border-[#A71930]"
-              />
-              <button
-                type="button"
-                onClick={handleApplyPromo}
-                className="px-4 py-2 bg-[#A71930] hover:bg-[#800C1E] text-amber-100 font-bold text-xs rounded-xl shadow cursor-pointer transition-all"
-              >
-                लागू करा
-              </button>
+          {siteConfig?.enablePromoCodes !== false ? (
+            <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-300 space-y-2">
+              <label className="block text-slate-900 font-extrabold text-xs flex items-center gap-1.5">
+                <Tag className="w-4 h-4 text-[#A71930]" />
+                <span>कूपन कोड किंवा डिस्काउंट प्रोमो कोड टाका (Apply Promo Code):</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="उदा. VANJARI20, FLAT200 किंवा VIPFREE"
+                  value={promoInput}
+                  onChange={(e) => setPromoInput(e.target.value)}
+                  className="flex-1 bg-white border border-amber-300 rounded-xl px-3 py-2 text-xs font-mono font-bold uppercase text-slate-900 outline-none focus:border-[#A71930]"
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyPromo}
+                  className="px-4 py-2 bg-[#A71930] hover:bg-[#800C1E] text-amber-100 font-bold text-xs rounded-xl shadow cursor-pointer transition-all"
+                >
+                  लागू करा
+                </button>
+              </div>
+              {appliedPromoRes && (
+                <p
+                  className={`text-xs font-bold flex items-center gap-1 ${
+                    appliedPromoRes.valid ? 'text-emerald-700' : 'text-rose-600'
+                  }`}
+                >
+                  {appliedPromoRes.valid ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <X className="w-4 h-4 text-rose-600" />}
+                  <span>{appliedPromoRes.message}</span>
+                </p>
+              )}
             </div>
-            {appliedPromoRes && (
-              <p
-                className={`text-xs font-bold flex items-center gap-1 ${
-                  appliedPromoRes.valid ? 'text-emerald-700' : 'text-rose-600'
-                }`}
-              >
-                {appliedPromoRes.valid ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <X className="w-4 h-4 text-rose-600" />}
-                <span>{appliedPromoRes.message}</span>
-              </p>
-            )}
-          </div>
+          ) : null}
 
           {/* Instant Razorpay Payment Gateway Option */}
           {showRazorpay && (

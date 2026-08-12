@@ -327,7 +327,7 @@ export const LeftDrawer: React.FC = () => {
             <hr className="border-slate-100 my-4" />
 
             {/* Telegram Group option */}
-            {siteConfig?.telegramGroupUrl && siteConfig.telegramGroupUrl.trim() !== '' && (
+            {siteConfig?.showTelegramBanner !== false && siteConfig?.telegramGroupUrl && siteConfig.telegramGroupUrl.trim() !== '' && (
               <a
                 href={siteConfig.telegramGroupUrl}
                 target="_blank"

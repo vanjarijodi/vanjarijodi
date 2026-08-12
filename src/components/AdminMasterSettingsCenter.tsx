@@ -27,7 +27,8 @@ import {
   Radio,
   FileText,
   UserCheck,
-  Heart
+  Heart,
+  Tag
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -724,6 +725,38 @@ export const AdminMasterSettingsCenter: React.FC = () => {
               >
                 {siteConfig.enableFullAccessForPaidMembers !== false ? 'सक्रिय (ON)' : 'बंद (OFF)'}
               </button>
+            </div>
+
+            {/* Promo Codes & Discount Engine Control */}
+            <div className="p-4 rounded-2xl bg-amber-50 border-2 border-amber-300 space-y-2 col-span-1 md:col-span-2">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <span className="font-black text-slate-900 block flex items-center gap-1.5 text-xs sm:text-sm">
+                    <Tag className="w-4 h-4 text-[#A71930]" />
+                    <span>सवलत कूपन व प्रोमो कोड सुविधा (Promo Codes & Coupons Engine):</span>
+                  </span>
+                  <span className="text-[11px] text-slate-700 font-medium block mt-0.5">
+                    पेमेंट करताना ग्राहकांना डिस्काउंट कूपन कोड वापरण्याची सवलत बॉक्स. (चालू ठेवल्यास ग्राहक कूपन टाकू शकतात).
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleToggle(
+                      'enablePromoCodes',
+                      siteConfig.enablePromoCodes !== false,
+                      'प्रोमो कोड सुविधा'
+                    )
+                  }
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-black shrink-0 transition-all cursor-pointer ${
+                    siteConfig.enablePromoCodes !== false
+                      ? 'bg-emerald-600 text-white shadow'
+                      : 'bg-rose-600 text-white shadow'
+                  }`}
+                >
+                  {siteConfig.enablePromoCodes !== false ? 'सक्रिय (ON)' : 'बंद (OFF)'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

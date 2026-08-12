@@ -105,6 +105,33 @@ const ALL_SUBADMIN_PERMISSIONS: { id: SubAdminPermission; labelMr: string; icon:
   { id: 'sub_admins', labelMr: 'नवीन सब-ॲडमिन खाती तयार व नियंत्रित करणे (Sub-Admin Management)', icon: '🔑', category: '३. मास्टर ऑटोमेशन (Super Admin Only)' },
 ];
 
+export function getPaymentTimeInfo(dateStr?: string) {
+  if (!dateStr) return { dateFormatted: 'तारीख उपलब्ध नाही', daysText: 'माहिती नाही', diffDays: 0 };
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return { dateFormatted: dateStr, daysText: dateStr, diffDays: 0 };
+
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - d.getTime());
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  const dateFormatted = d.toLocaleDateString('mr-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }) + ' • ' + d.toLocaleTimeString('mr-IN', { hour: '2-digit', minute: '2-digit' });
+
+  let daysText = '';
+  if (diffDays === 0) {
+    daysText = '⚡ आजच पेमेंट (Today)';
+  } else if (diffDays === 1) {
+    daysText = '📅 काल पेमेंट (1 day ago)';
+  } else {
+    daysText = `🗓️ ${diffDays} दिवसांपूर्वी (${diffDays} days ago)`;
+  }
+
+  return { dateFormatted, daysText, diffDays };
+}
+
 const AdminAddVendorModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -1180,6 +1207,11 @@ export const AdminPanel: React.FC<{
   // Image Preview Modal
   const [previewScreenshot, setPreviewScreenshot] = useState<string | null>(null);
 
+  // Payment Requests Filters
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [paymentSearchTerm, setPaymentSearchTerm] = useState('');
+  const [showPaidOnlyMembers, setShowPaidOnlyMembers] = useState(false);
+
   // Payment QR Upload State
   const [isUploadingQrCode, setIsUploadingQrCode] = useState(false);
   const [qrUploadError, setQrUploadError] = useState<string | null>(null);
@@ -1562,13 +1594,20 @@ export const AdminPanel: React.FC<{
   const approvedMembers = profiles.filter((p) => p.isApproved);
   const pendingMembers = profiles.filter((p) => !p.isApproved);
 
-  const filteredApprovedMembers = approvedMembers.filter(
-    (p) =>
+  const filteredApprovedMembers = approvedMembers.filter((p) => {
+    const matchesSearch =
       p.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.mobile.includes(searchTerm) ||
       p.district.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      p.id.toLowerCase().includes(searchTerm.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    if (showPaidOnlyMembers) {
+      return (p.membership && p.membership !== 'free') || Boolean(p.paidAt);
+    }
+    return true;
+  });
 
   // Chat Requests
   const pendingChatRequests = contactRequests.filter((c) => c.status === 'pending');
@@ -2653,6 +2692,20 @@ export const AdminPanel: React.FC<{
 
                 <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
                   <button
+                    type="button"
+                    onClick={() => setShowPaidOnlyMembers(!showPaidOnlyMembers)}
+                    className={`px-3 py-2 rounded-xl text-xs font-black shadow transition-all cursor-pointer flex items-center gap-1.5 border shrink-0 ${
+                      showPaidOnlyMembers
+                        ? 'bg-emerald-600 text-white border-emerald-700 shadow-md ring-2 ring-emerald-300'
+                        : 'bg-white text-slate-800 border-amber-300 hover:bg-amber-100'
+                    }`}
+                    title="पेमेंट केलेल्या सदस्यांची यादी फिल्टर करा"
+                  >
+                    <CreditCard className={`w-3.5 h-3.5 ${showPaidOnlyMembers ? 'text-white' : 'text-emerald-700'}`} />
+                    <span>{showPaidOnlyMembers ? '✓ फक्त पेमेंट केलेले सदस्य' : '💳 फक्त पेमेंट केलेले'}</span>
+                  </button>
+
+                  <button
                     onClick={() => {
                       if (profiles.length === 0) {
                         alert('हटवण्यासाठी एकही प्रोफाईल उपलब्ध नाही.');
@@ -2668,7 +2721,7 @@ export const AdminPanel: React.FC<{
                     title="सर्व प्रोफाईल्स हटवा (Delete All Profiles)"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>सर्व प्रोफाईल्स हटवा (Delete All)</span>
+                    <span>सर्व प्रोफाईल्स हटवा</span>
                   </button>
 
                   <div className="relative flex-1 sm:w-64">
@@ -2730,7 +2783,7 @@ export const AdminPanel: React.FC<{
                         <th className="p-3">सदस्याचे नाव & वय</th>
                         <th className="p-3">संपर्क & व्हॉट्सॲप</th>
                         <th className="p-3">शिक्षण & नोकरी</th>
-                        <th className="p-3">मेम्बरशिप प्लॅन</th>
+                        <th className="p-3">मेम्बरशिप प्लॅन & पेमेंट तारीख</th>
                         <th className="p-3 text-right">कृती (Actions)</th>
                       </tr>
                     </thead>
@@ -2750,7 +2803,9 @@ export const AdminPanel: React.FC<{
                               <img
                                 src={m.photoUrl}
                                 alt={m.fullName}
-                                className="w-10 h-10 rounded-xl object-cover border border-amber-300 shrink-0"
+                                onClick={() => setPreviewScreenshot(m.photoUrl)}
+                                className="w-10 h-10 rounded-xl object-cover border border-amber-300 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                                title="फोटो मोठा करून पाहण्यासाठी क्लिक करा"
                               />
                               <div>
                                 <span className="font-mono text-[10px] text-amber-800 block font-bold">{m.id}</span>
@@ -2776,16 +2831,49 @@ export const AdminPanel: React.FC<{
                           </td>
                           <td className="p-3 font-mono">
                             <p className="text-slate-900">{m.mobileNumber}</p>
-                            <p className="text-[11px] text-emerald-700">WA: {m.whatsappNumber || m.mobileNumber}</p>
+                            <a
+                              href={`https://wa.me/91${(m.whatsappNumber || m.mobileNumber).replace(/[^0-9]/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] text-emerald-700 hover:underline font-bold flex items-center gap-1"
+                            >
+                              WA: {m.whatsappNumber || m.mobileNumber}
+                            </a>
                           </td>
                           <td className="p-3">
                             <p className="text-slate-900">{m.education}</p>
                             <p className="text-[11px] text-slate-500">{m.occupation}</p>
                           </td>
                           <td className="p-3">
-                            <span className="px-2.5 py-1 rounded-full bg-amber-100 text-[#A71930] font-black text-[10px] border border-amber-300">
-                              {m.membershipTier?.toUpperCase() || 'FREE'}
-                            </span>
+                            {(() => {
+                              const isPaid = (m.membership && m.membership !== 'free') || Boolean(m.paidAt);
+                              const timeInfo = getPaymentTimeInfo(m.paidAt || m.createdAt);
+                              return (
+                                <div className="space-y-1">
+                                  <span className={`px-2.5 py-1 rounded-full font-black text-[10px] border inline-block ${
+                                    isPaid
+                                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                                      : 'bg-amber-100 text-[#A71930] border-amber-300'
+                                  }`}>
+                                    {(m.membership || 'FREE').toUpperCase()}
+                                  </span>
+                                  {isPaid ? (
+                                    <div className="text-[10px] text-slate-700 font-semibold space-y-0.5">
+                                      {m.paymentAmount ? (
+                                        <p className="font-extrabold text-emerald-700">रक्कम: ₹{m.paymentAmount}</p>
+                                      ) : null}
+                                      <p className="text-[10px] font-bold text-slate-800">{timeInfo.daysText}</p>
+                                      <p className="text-[9px] text-slate-500 font-medium">{timeInfo.dateFormatted}</p>
+                                      {m.paymentUtr ? (
+                                        <p className="text-[9px] font-mono text-slate-600">UTR: {m.paymentUtr}</p>
+                                      ) : null}
+                                    </div>
+                                  ) : (
+                                    <p className="text-[10px] text-slate-400">मोफत खाते</p>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </td>
                           <td className="p-3 text-right">
                             <div className="flex items-center justify-end gap-1.5 flex-wrap">
@@ -3884,7 +3972,7 @@ export const AdminPanel: React.FC<{
                   <span>सध्याचे सक्रिय सिस्टीम नियम (Final System Workflow Status):</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   
                   {/* Card 1: Photos Status */}
                   {/* Card 1: Photo Visibility */}
@@ -4105,6 +4193,52 @@ export const AdminPanel: React.FC<{
                         className="text-[10px] font-black text-[#A71930] hover:underline cursor-pointer"
                       >
                         बदला
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Card 8: Promo Code & Discount Engine Control */}
+                  <div className="p-3.5 bg-white rounded-2xl border border-amber-300 shadow-xs space-y-2 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-xs font-black text-slate-900 flex items-center gap-1">
+                          🏷️ ८. प्रोमो कोड व कूपन्स
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
+                          siteConfig?.enablePromoCodes !== false
+                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                            : 'bg-rose-100 text-rose-800 border-rose-300'
+                        }`}>
+                          {siteConfig?.enablePromoCodes !== false ? 'सक्रिय (ON) ✓' : 'बंद (OFF)'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 font-medium leading-relaxed mt-1.5">
+                        {siteConfig?.enablePromoCodes !== false
+                          ? `पेमेंट स्क्रीनवर कूपन कोड वापरण्याची सवलत बॉक्स चालू आहे. (${promoCodes.length} कूपन उपलब्ध)`
+                          : 'सध्या ग्राहकांसाठी प्रोमो कोड वापरण्याची सुविधा बंद आहे.'}
+                      </p>
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-500 pt-1 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => updateSiteConfig({ enablePromoCodes: siteConfig?.enablePromoCodes === false ? true : false })}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-black border cursor-pointer transition-all ${
+                          siteConfig?.enablePromoCodes !== false
+                            ? 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100'
+                            : 'bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700 shadow-xs'
+                        }`}
+                      >
+                        {siteConfig?.enablePromoCodes !== false ? '🔒 बंद करा (OFF)' : '🔓 चालू करा (ON)'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveCategory('payments_hub');
+                          setActiveTab('promo_codes');
+                        }}
+                        className="text-[10px] font-black text-[#A71930] hover:underline cursor-pointer bg-amber-50 px-2 py-1 rounded-lg border border-amber-200"
+                      >
+                        🏷️ कूपन व्यवस्थापन ➔
                       </button>
                     </div>
                   </div>
@@ -5823,86 +5957,303 @@ export const AdminPanel: React.FC<{
             </div>
           )}
 
-          {/* TAB: PAYMENT REQUESTS */}
-          {activeTab === 'payment_requests' && (
-            <div className="space-y-4">
-              <div className="p-4 bg-amber-100 rounded-2xl border border-amber-300">
-                <h3 className="text-lg font-black text-[#A71930] flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-[#A71930]" />
-                  <span>ऑनलाइन यूटीआर व क्यूआर पेमेंट मंजुरी (QR Payments Queue)</span>
-                </h3>
-              </div>
+          {/* TAB: PAYMENT REQUESTS & PAYMENT HISTORY */}
+          {activeTab === 'payment_requests' && (() => {
+            const pendingList = paymentRequests.filter((r) => r.status === 'pending');
+            const approvedList = paymentRequests.filter((r) => r.status === 'approved');
+            const rejectedList = paymentRequests.filter((r) => r.status === 'rejected');
+            const totalRevenueCollected = approvedList.reduce((acc, r) => acc + (Number(r.amount) || 0), 0);
 
-              <div className="bg-white rounded-2xl border border-amber-300 shadow-md overflow-hidden">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-amber-100 text-[#800C1E] font-black border-b border-amber-200">
-                    <tr>
-                      <th className="p-3">सदस्याचे नाव & मोबाईल</th>
-                      <th className="p-3">निवडलेला प्लॅन & रक्कम</th>
-                      <th className="p-3">UTR नंबर</th>
-                      <th className="p-3">स्क्रीनशॉट</th>
-                      <th className="p-3 text-right">कृती</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-amber-100 font-semibold">
-                    {paymentRequests.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="p-8 text-center text-slate-500 font-bold">
-                          सध्या कोणतेही प्रलंबित पेमेंट अर्ज नाहीत.
-                        </td>
-                      </tr>
-                    ) : (
-                      paymentRequests.map((pay) => (
-                        <tr key={pay.id} className="hover:bg-amber-50">
-                          <td className="p-3">
-                            <p className="font-extrabold text-slate-900">{pay.userName}</p>
-                            <p className="text-[11px] text-slate-500 font-mono">{pay.userMobile}</p>
-                          </td>
-                          <td className="p-3">
-                            <p className="font-extrabold text-[#A71930]">{pay.planName}</p>
-                            <p className="text-xs font-black text-emerald-800">₹{pay.amount}</p>
-                          </td>
-                          <td className="p-3 font-mono font-black text-slate-800">{pay.utrNumber}</td>
-                          <td className="p-3">
-                            {pay.screenshotUrl ? (
-                              <button
-                                onClick={() => setPreviewScreenshot(pay.screenshotUrl)}
-                                className="text-xs text-[#A71930] underline font-bold cursor-pointer"
-                              >
-                                फोटो पहा
-                              </button>
-                            ) : (
-                              <span className="text-slate-400">उपलब्ध नाही</span>
-                            )}
-                          </td>
-                          <td className="p-3 text-right">
-                            {pay.status === 'pending' ? (
-                              <div className="flex items-center justify-end gap-1.5">
-                                <button
-                                  onClick={() => approvePaymentRequest(pay.id)}
-                                  className="px-3 py-1 bg-emerald-700 text-white font-bold text-xs rounded-lg shadow cursor-pointer"
-                                >
-                                  मंजूर करा
-                                </button>
-                                <button
-                                  onClick={() => rejectPaymentRequest(pay.id)}
-                                  className="px-3 py-1 bg-rose-700 text-white font-bold text-xs rounded-lg shadow cursor-pointer"
-                                >
-                                  अमान्य
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="text-xs font-bold text-emerald-700 uppercase">{pay.status}</span>
-                            )}
-                          </td>
+            let filteredList = paymentRequests;
+            if (paymentFilter === 'pending') filteredList = pendingList;
+            if (paymentFilter === 'approved') filteredList = approvedList;
+            if (paymentFilter === 'rejected') filteredList = rejectedList;
+
+            if (paymentSearchTerm.trim()) {
+              const q = paymentSearchTerm.toLowerCase();
+              filteredList = filteredList.filter(
+                (r) =>
+                  r.userName.toLowerCase().includes(q) ||
+                  r.userMobile.includes(q) ||
+                  r.utrNumber.toLowerCase().includes(q) ||
+                  r.planName.toLowerCase().includes(q)
+              );
+            }
+
+            return (
+              <div className="space-y-4">
+                {/* Header Title */}
+                <div className="p-4 bg-amber-100 rounded-2xl border border-amber-300 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-black text-[#A71930] flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-[#A71930]" />
+                      <span>ऑनलाइन युटीआर व क्यूआर पेमेंट इतिहास आणि मंजुरी (Payment History & Queue)</span>
+                    </h3>
+                    <p className="text-xs text-slate-700 font-medium mt-0.5">
+                      सदस्यांनी भरलेले सर्व पेमेंट्स, तारीख, वेळ, किती दिवस झाले, आणि युटीआर/पावतीची सविस्तर माहिती.
+                    </p>
+                  </div>
+                  <div className="px-3 py-1.5 rounded-xl bg-emerald-700 text-white font-black text-xs shadow shrink-0 flex items-center gap-1.5">
+                    <span>एकूण संकलित रक्कम:</span>
+                    <span className="text-amber-200 text-sm">₹{totalRevenueCollected.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+
+                {/* Quick Stats Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentFilter('all')}
+                    className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
+                      paymentFilter === 'all'
+                        ? 'bg-[#A71930] text-amber-100 border-[#A71930] shadow-md ring-2 ring-amber-300'
+                        : 'bg-white text-slate-800 border-amber-200 hover:bg-amber-50'
+                    }`}
+                  >
+                    <span className="text-[10px] uppercase font-extrabold block opacity-80">एकूण पेमेंट्स (All)</span>
+                    <span className="text-xl font-black font-mono mt-0.5 block">{paymentRequests.length}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentFilter('pending')}
+                    className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
+                      paymentFilter === 'pending'
+                        ? 'bg-amber-500 text-white border-amber-600 shadow-md ring-2 ring-amber-300'
+                        : 'bg-white text-slate-800 border-amber-200 hover:bg-amber-50'
+                    }`}
+                  >
+                    <span className="text-[10px] uppercase font-extrabold block opacity-80">प्रलंबित मंजुरी (Pending)</span>
+                    <span className="text-xl font-black font-mono mt-0.5 block">{pendingList.length}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentFilter('approved')}
+                    className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
+                      paymentFilter === 'approved'
+                        ? 'bg-emerald-700 text-white border-emerald-800 shadow-md ring-2 ring-emerald-300'
+                        : 'bg-white text-slate-800 border-amber-200 hover:bg-amber-50'
+                    }`}
+                  >
+                    <span className="text-[10px] uppercase font-extrabold block opacity-80">मंजूर / यशस्वी (Approved)</span>
+                    <span className="text-xl font-black font-mono mt-0.5 block">{approvedList.length}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentFilter('rejected')}
+                    className={`p-3 rounded-2xl border text-left cursor-pointer transition-all ${
+                      paymentFilter === 'rejected'
+                        ? 'bg-rose-700 text-white border-rose-800 shadow-md ring-2 ring-rose-300'
+                        : 'bg-white text-slate-800 border-amber-200 hover:bg-amber-50'
+                    }`}
+                  >
+                    <span className="text-[10px] uppercase font-extrabold block opacity-80">अमान्य केलेले (Rejected)</span>
+                    <span className="text-xl font-black font-mono mt-0.5 block">{rejectedList.length}</span>
+                  </button>
+                </div>
+
+                {/* Filters & Search Bar */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-amber-50 p-3 rounded-2xl border border-amber-200">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentFilter('all')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                        paymentFilter === 'all'
+                          ? 'bg-[#A71930] text-amber-100 shadow'
+                          : 'bg-white text-slate-700 border border-amber-300 hover:bg-amber-100'
+                      }`}
+                    >
+                      सर्व पेमेंट्स ({paymentRequests.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentFilter('pending')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                        paymentFilter === 'pending'
+                          ? 'bg-amber-600 text-white shadow'
+                          : 'bg-white text-slate-700 border border-amber-300 hover:bg-amber-100'
+                      }`}
+                    >
+                      🟡 प्रलंबित ({pendingList.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentFilter('approved')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                        paymentFilter === 'approved'
+                          ? 'bg-emerald-700 text-white shadow'
+                          : 'bg-white text-slate-700 border border-amber-300 hover:bg-amber-100'
+                      }`}
+                    >
+                      🟢 मंजूर झालेले ({approvedList.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentFilter('rejected')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                        paymentFilter === 'rejected'
+                          ? 'bg-rose-700 text-white shadow'
+                          : 'bg-white text-slate-700 border border-amber-300 hover:bg-amber-100'
+                      }`}
+                    >
+                      🔴 अमान्य ({rejectedList.length})
+                    </button>
+                  </div>
+
+                  <div className="relative flex-1 max-w-md">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      placeholder="सदस्याचे नाव, मोबाईल किंवा UTR शोधा..."
+                      value={paymentSearchTerm}
+                      onChange={(e) => setPaymentSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-3 py-1.5 bg-white border border-amber-300 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-[#A71930]"
+                    />
+                  </div>
+                </div>
+
+                {/* Main Table */}
+                <div className="bg-white rounded-2xl border border-amber-300 shadow-md overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-amber-100 text-[#800C1E] font-black border-b border-amber-200">
+                        <tr>
+                          <th className="p-3">सदस्याचा फोटो, नाव & मोबाईल</th>
+                          <th className="p-3">पेमेंट तारीख & कालावधी</th>
+                          <th className="p-3">निवडलेला प्लॅन & रक्कम</th>
+                          <th className="p-3">UTR नंबर / आयडी</th>
+                          <th className="p-3">पावती स्क्रीनशॉट</th>
+                          <th className="p-3 text-right">स्टेटस & कृती</th>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      </thead>
+                      <tbody className="divide-y divide-amber-100 font-semibold">
+                        {filteredList.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="p-8 text-center text-slate-500 font-bold">
+                              कोणताही पेमेंट व्यवहार आढळला नाही.
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredList.map((pay) => {
+                            const userObj = profiles.find((p) => p.id === pay.userId || p.mobile === pay.userMobile);
+                            const photo = pay.userPhotoUrl || userObj?.photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+                            const timeInfo = getPaymentTimeInfo(pay.createdAt);
+                            const approvedTimeInfo = pay.approvedAt ? getPaymentTimeInfo(pay.approvedAt) : null;
+
+                            return (
+                              <tr key={pay.id} className="hover:bg-amber-50/80 transition-colors">
+                                <td className="p-3">
+                                  <div className="flex items-center gap-2.5">
+                                    <img
+                                      src={photo}
+                                      alt={pay.userName}
+                                      onClick={() => setPreviewScreenshot(photo)}
+                                      className="w-11 h-11 rounded-xl object-cover border border-amber-300 shrink-0 cursor-pointer hover:opacity-80 transition-opacity shadow-sm"
+                                      title="सदस्याचा फोटो पाहण्यासाठी क्लिक करा"
+                                    />
+                                    <div>
+                                      <p className="font-extrabold text-slate-900 text-sm">{pay.userName}</p>
+                                      <p className="text-[11px] text-slate-500 font-mono flex items-center gap-2">
+                                        <span>📱 {pay.userMobile}</span>
+                                        <a
+                                          href={`https://wa.me/91${pay.userMobile.replace(/[^0-9]/g, '')}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-emerald-700 font-bold hover:underline"
+                                        >
+                                          [WhatsApp]
+                                        </a>
+                                      </p>
+                                      {userObj && (
+                                        <span className="text-[10px] text-slate-600 font-medium">
+                                          {userObj.district} • ID: {userObj.id}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </td>
+
+                                <td className="p-3">
+                                  <div className="space-y-0.5">
+                                    <span className="px-2 py-0.5 rounded-md bg-amber-100 text-[#800C1E] font-extrabold text-[10px] inline-block border border-amber-300">
+                                      {timeInfo.daysText}
+                                    </span>
+                                    <p className="text-[11px] font-bold text-slate-800">{timeInfo.dateFormatted}</p>
+                                    {approvedTimeInfo && (
+                                      <p className="text-[9px] text-emerald-800 font-semibold">
+                                        मंजुरी: {approvedTimeInfo.dateFormatted}
+                                      </p>
+                                    )}
+                                  </div>
+                                </td>
+
+                                <td className="p-3">
+                                  <p className="font-extrabold text-[#A71930] text-xs">{pay.planName}</p>
+                                  <p className="text-sm font-black text-emerald-800">₹{pay.amount}</p>
+                                </td>
+
+                                <td className="p-3">
+                                  <span className="font-mono font-black text-slate-900 text-xs px-2 py-1 bg-amber-50 rounded-lg border border-amber-200 inline-block">
+                                    {pay.utrNumber}
+                                  </span>
+                                </td>
+
+                                <td className="p-3">
+                                  {pay.screenshotUrl ? (
+                                    <button
+                                      onClick={() => setPreviewScreenshot(pay.screenshotUrl)}
+                                      className="px-2.5 py-1 bg-amber-100 hover:bg-amber-200 text-[#A71930] font-black text-[11px] rounded-lg border border-amber-300 cursor-pointer shadow-sm flex items-center gap-1"
+                                    >
+                                      <Eye className="w-3.5 h-3.5" />
+                                      <span>पावती पहा</span>
+                                    </button>
+                                  ) : (
+                                    <span className="text-slate-400 text-[11px]">उपलब्ध नाही</span>
+                                  )}
+                                </td>
+
+                                <td className="p-3 text-right">
+                                  {pay.status === 'pending' ? (
+                                    <div className="flex items-center justify-end gap-1.5">
+                                      <button
+                                        onClick={() => approvePaymentRequest(pay.id)}
+                                        className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs rounded-xl shadow cursor-pointer transition-all flex items-center gap-1"
+                                      >
+                                        <Check className="w-3.5 h-3.5" />
+                                        <span>मंजूर करा</span>
+                                      </button>
+                                      <button
+                                        onClick={() => rejectPaymentRequest(pay.id)}
+                                        className="px-2.5 py-1.5 bg-rose-700 hover:bg-rose-800 text-white font-extrabold text-xs rounded-xl shadow cursor-pointer transition-all flex items-center gap-1"
+                                      >
+                                        <X className="w-3.5 h-3.5" />
+                                        <span>अमान्य</span>
+                                      </button>
+                                    </div>
+                                  ) : pay.status === 'approved' ? (
+                                    <span className="px-2.5 py-1 rounded-xl bg-emerald-100 text-emerald-800 border border-emerald-300 font-extrabold text-xs inline-flex items-center gap-1">
+                                      ✓ मंजूर (Approved)
+                                    </span>
+                                  ) : (
+                                    <span className="px-2.5 py-1 rounded-xl bg-rose-100 text-rose-800 border border-rose-300 font-extrabold text-xs inline-flex items-center gap-1">
+                                      ✕ अमान्य (Rejected)
+                                    </span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* TAB: SUPPORT CHAT */}
           {activeTab === 'support_chat' && (() => {
@@ -6853,7 +7204,24 @@ export const AdminPanel: React.FC<{
                       onChange={(e) => updateSiteConfig({ telegramGroupUrl: e.target.value })}
                       className="w-full bg-white border border-amber-300 rounded-xl p-2.5 font-mono text-slate-900"
                     />
-                    <span className="text-[10px] text-[#A71930] font-bold">इथे ग्रुप लिंक टाकल्यास ती ॲप व वेबसाईटवर सर्वात वर इंडेक्सवर दिसेल.</span>
+                    <span className="text-[10px] text-[#A71930] font-bold block mb-1">इथे ग्रुप लिंक टाकल्यास ती ॲप व वेबसाईटवर सर्वात वर इंडेक्सवर दिसेल.</span>
+
+                    {/* Toggle to show/hide Telegram Banner */}
+                    <div className="mt-2 flex items-center justify-between p-2.5 bg-sky-50 rounded-xl border border-sky-200">
+                      <div>
+                        <span className="font-extrabold text-xs text-sky-900 block">📢 टेलिग्राम जॉईन बॅनर दाखवा (Show Banner)</span>
+                        <span className="text-[10px] text-slate-600 font-medium">हे बंद केल्यास मुख्यपृष्ठावरील निळा टेलिग्राम बॅनर लपवला जाईल.</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-2">
+                        <input
+                          type="checkbox"
+                          checked={siteConfig?.showTelegramBanner !== false}
+                          onChange={(e) => updateSiteConfig({ showTelegramBanner: e.target.checked })}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+                      </label>
+                    </div>
                   </div>
 
                   <div>

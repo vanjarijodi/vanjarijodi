@@ -267,7 +267,7 @@ export const Navbar: React.FC<{
                       </button>
                     )}
 
-                    {siteConfig?.telegramGroupUrl && siteConfig.telegramGroupUrl.trim() !== '' && (
+                    {siteConfig?.showTelegramBanner !== false && siteConfig?.telegramGroupUrl && siteConfig.telegramGroupUrl.trim() !== '' && (
                       <a
                         href={siteConfig.telegramGroupUrl}
                         target="_blank"

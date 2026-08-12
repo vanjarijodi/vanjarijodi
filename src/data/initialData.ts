@@ -671,6 +671,7 @@ export const INITIAL_SITE_CONFIG: any = {
   allowPublicVisitorsToViewPhotos: true,
   allowMembersToViewPhotos: true,
   showOnlyWelcomePlan: true,
+  enablePromoCodes: true,
   enableMutualLikeContactUnlock: true,
   disablePlanContactLimit: false,
   adminOverrideMemberPrivacy: false,

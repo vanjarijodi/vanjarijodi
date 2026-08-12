@@ -121,6 +121,12 @@ export interface UserProfile {
   forceShowPhoto?: boolean;
   forceHidePhoto?: boolean;
   professionTags?: string[]; // e.g. ['🩺 डॉक्टर', '🏛️ सरकारी नोकरी', '💻 इंजिनिअर', '👨‍🏫 शिक्षक']
+  paidAt?: string;
+  paymentApprovedAt?: string;
+  paymentAmount?: number;
+  paymentUtr?: string;
+  paymentPlanName?: string;
+  membershipExpiryDate?: string;
 }
 
 export interface ProfileReport {
@@ -271,8 +277,10 @@ export interface PaymentRequest {
   amount: number;
   utrNumber: string;
   screenshotUrl?: string;
+  userPhotoUrl?: string;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
+  approvedAt?: string;
 }
 
 export interface GuestPermissions {
@@ -532,6 +540,7 @@ export interface SiteConfig {
   contactWhatsapp: string;
   contactEmail: string;
   telegramGroupUrl?: string;
+  showTelegramBanner?: boolean;
   contactAddress: string;
   contactHeaderTitle?: string;
   contactHeaderSubtitle?: string;
@@ -607,6 +616,7 @@ export interface SiteConfig {
   allowMembersToViewPhotos?: boolean;
   nameDisplayModeForFreeUsers?: 'full_name' | 'first_name_only' | 'hidden_star';
   showOnlyWelcomePlan?: boolean;
+  enablePromoCodes?: boolean;
   enableMutualLikeContactUnlock?: boolean;
   disablePlanContactLimit?: boolean;
   adminOverrideMemberPrivacy?: boolean;
