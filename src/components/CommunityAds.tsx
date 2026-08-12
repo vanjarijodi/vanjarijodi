@@ -182,7 +182,7 @@ export const CommunityAds: React.FC = () => {
                         </a>
 
                         <a
-                          href={`https://wa.me/${ad.contactPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hello, I saw your ad on VanjariJodi.')}`}
+                          href={`https://wa.me/${(ad.contactPhone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hello, I saw your ad on VanjariJodi.')}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-3.5 py-2 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 text-xs font-bold flex items-center gap-1.5 border border-emerald-500/40 transition-all"
@@ -274,7 +274,7 @@ export const CommunityAds: React.FC = () => {
                     </a>
 
                     <a
-                      href={`https://wa.me/${activeAdModal.contactPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hello, I am interested in your ad on VanjariJodi.')}`}
+                      href={`https://wa.me/${(activeAdModal.contactPhone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hello, I am interested in your ad on VanjariJodi.')}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full sm:w-auto flex-1 py-3 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg transition-all"

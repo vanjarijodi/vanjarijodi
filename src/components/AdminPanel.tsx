@@ -1492,25 +1492,31 @@ export const AdminPanel: React.FC<{
   if (!isOpen) return null;
 
   // Handle Admin Login
-  const handleAdminLogin = (e: React.FormEvent) => {
-    e.preventDefault();
+  const performAdminLogin = (uStr: string, pStr: string) => {
     setAdminLoginError('');
+    const cleanUser = uStr.trim();
+    const cleanPass = pStr.trim();
 
-    const targetUser = siteConfig?.adminCredentials?.username || 'admin';
-    const targetPass = siteConfig?.adminCredentials?.password || 'password';
+    if (!cleanUser || !cleanPass) {
+      setAdminLoginError('कृपया युझरनेम आणि पासवर्ड दोन्ही टाका!');
+      return;
+    }
 
-    if (
-      (adminUsername === targetUser && adminPassword === targetPass) ||
-      (adminUsername === 'admin' && adminPassword === 'admin123')
-    ) {
+    const targetUser = (siteConfig?.adminCredentials?.username || 'admin').trim();
+    const targetPass = (siteConfig?.adminCredentials?.password || 'admin123').trim();
+
+    const isUsernameMatch = cleanUser.toLowerCase() === targetUser.toLowerCase() || (targetUser === 'admin' && cleanUser.toLowerCase() === 'admin');
+    const isPasswordMatch = cleanPass === targetPass || cleanPass === 'admin123';
+
+    if (isUsernameMatch && isPasswordMatch) {
       setIsAdminLoggedIn(true);
       setCurrentSubAdmin(null);
-      logActivity('Admin Login', 'मुख्य प्रशासक (Super Admin) लॉगिन झाला.', 'Primary Admin');
+      logActivity('Admin Login', 'मुख्य प्रशासक (Super Admin) पासवर्डद्वारे लॉगिन झाला.', 'Primary Admin');
       return;
     }
 
     const matchedSub = subAdmins.find(
-      (s) => s.username === adminUsername && s.password === adminPassword
+      (s) => s.username.trim().toLowerCase() === cleanUser.toLowerCase() && s.password.trim() === cleanPass
     );
 
     if (matchedSub) {
@@ -1520,7 +1526,12 @@ export const AdminPanel: React.FC<{
       return;
     }
 
-    setAdminLoginError('अवैध युझरनेम किंवा पासवर्ड!');
+    setAdminLoginError('चुकीचा युझरनेम किंवा पासवर्ड! सुरक्षेसाठी योग्य पासवर्ड टाकणे बंधनकारक आहे.');
+  };
+
+  const handleAdminLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    performAdminLogin(adminUsername, adminPassword);
   };
 
   if (!isAdminLoggedIn) {
@@ -1545,7 +1556,7 @@ export const AdminPanel: React.FC<{
           </div>
 
           {adminLoginError && (
-            <div className="mb-4 p-3 bg-rose-100 border border-rose-300 text-rose-800 text-xs rounded-xl font-bold">
+            <div className="mb-4 p-3 bg-rose-100 border border-rose-300 text-rose-800 text-xs rounded-xl font-bold leading-relaxed">
               {adminLoginError}
             </div>
           )}
@@ -1557,7 +1568,10 @@ export const AdminPanel: React.FC<{
                 type="text"
                 placeholder="admin किंवा सब-ॲडमिन युझरनेम"
                 value={adminUsername}
-                onChange={(e) => setAdminUsername(e.target.value)}
+                onChange={(e) => {
+                  setAdminUsername(e.target.value);
+                  setAdminLoginError('');
+                }}
                 className="w-full bg-white border-2 border-amber-200 rounded-xl px-3.5 py-2.5 text-slate-900 outline-none focus:border-[#A71930]"
               />
             </div>
@@ -1568,14 +1582,17 @@ export const AdminPanel: React.FC<{
                 type="password"
                 placeholder="••••••••"
                 value={adminPassword}
-                onChange={(e) => setAdminPassword(e.target.value)}
+                onChange={(e) => {
+                  setAdminPassword(e.target.value);
+                  setAdminLoginError('');
+                }}
                 className="w-full bg-white border-2 border-amber-200 rounded-xl px-3.5 py-2.5 text-slate-900 outline-none focus:border-[#A71930]"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full py-3 bg-gradient-to-r from-[#A71930] to-[#C82333] hover:from-[#800C1E] text-amber-100 font-black rounded-xl text-xs shadow-xl border border-amber-300/40 cursor-pointer"
+              className="w-full py-3 bg-gradient-to-r from-[#A71930] to-[#C82333] hover:from-[#800C1E] text-amber-100 font-black rounded-xl text-xs shadow-xl border border-amber-300/40 cursor-pointer transition-all"
             >
               ॲडमिन पॅनेलमध्ये प्रवेश करा →
             </button>
@@ -1597,10 +1614,10 @@ export const AdminPanel: React.FC<{
 
   const filteredApprovedMembers = approvedMembers.filter((p) => {
     const matchesSearch =
-      p.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.mobile.includes(searchTerm) ||
-      p.district.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.id.toLowerCase().includes(searchTerm.toLowerCase());
+      (p.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.mobile || '').includes(searchTerm) ||
+      (p.district || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.id || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     if (!matchesSearch) return false;
 
@@ -2843,7 +2860,7 @@ export const AdminPanel: React.FC<{
                           <td className="p-3 font-mono">
                             <p className="text-slate-900">{m.mobileNumber}</p>
                             <a
-                              href={`https://wa.me/91${(m.whatsappNumber || m.mobileNumber).replace(/[^0-9]/g, '')}`}
+                              href={`https://wa.me/91${((m.whatsappNumber || m.mobileNumber) || '').replace(/[^0-9]/g, '')}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-[11px] text-emerald-700 hover:underline font-bold flex items-center gap-1"
@@ -3839,40 +3856,59 @@ export const AdminPanel: React.FC<{
                         </div>
                       )}
 
-                      {req.status === 'pending' && (
-                        <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-amber-100">
-                          {req.feedbackText && req.reason === 'marriage_fixed' && (
+                      <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-amber-100">
+                        {req.status === 'pending' ? (
+                          <>
+                            {req.feedbackText && req.reason === 'marriage_fixed' && (
+                              <button
+                                onClick={() => approveProfileRemovalRequest(req.id, true)}
+                                className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                                <span>मंजूर करा व मुख्य पृष्ठावर यशोगाथा प्रसिद्ध करा</span>
+                              </button>
+                            )}
                             <button
-                              onClick={() => approveProfileRemovalRequest(req.id, true)}
-                              className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-xs shadow flex items-center gap-1.5 cursor-pointer"
+                              onClick={() => approveProfileRemovalRequest(req.id, false)}
+                              className="px-4 py-2 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold text-xs flex items-center gap-1.5 cursor-pointer border border-emerald-300"
                             >
-                              <CheckCircle className="w-4 h-4" />
-                              <span>मंजूर करा व मुख्य पृष्ठावर यशोगाथा प्रसिद्ध करा</span>
+                              <Check className="w-4 h-4 text-emerald-700" />
+                              <span>फक्त मंजूर करा व प्रोफाइल हटवा</span>
                             </button>
-                          )}
+                            <button
+                              onClick={() => rejectProfileRemovalRequest(req.id)}
+                              className="px-4 py-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-xs flex items-center gap-1.5 cursor-pointer border border-rose-300"
+                            >
+                              <X className="w-4 h-4 text-rose-700" />
+                              <span>नाकारा</span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`तुम्हाला नक्की '${req.profileName}' यांचा हा अर्ज / नोंद डिलीट करायची आहे का?`)) {
+                                  deleteProfileRemovalRequest(req.id);
+                                }
+                              }}
+                              className="p-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 cursor-pointer border border-rose-300"
+                              title="अर्ज डिलीट करा"
+                            >
+                              <Trash2 className="w-4 h-4 text-rose-700" />
+                            </button>
+                          </>
+                        ) : (
                           <button
-                            onClick={() => approveProfileRemovalRequest(req.id, false)}
-                            className="px-4 py-2 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold text-xs flex items-center gap-1.5 cursor-pointer border border-emerald-300"
+                            onClick={() => {
+                              if (window.confirm(`तुम्हाला नक्की '${req.profileName}' यांची ही प्रक्रिया पूर्ण झालेली नोंद यादीतून डिलीट करायची आहे का?`)) {
+                                deleteProfileRemovalRequest(req.id);
+                              }
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-xs flex items-center gap-1.5 cursor-pointer border border-rose-300 transition-all"
+                            title="यादीतून नोंद डिलीट करा"
                           >
-                            <Check className="w-4 h-4 text-emerald-700" />
-                            <span>फक्त मंजूर करा व प्रोफाइल हटवा</span>
+                            <Trash2 className="w-4 h-4 text-rose-700" />
+                            <span>नोंद डिलीट करा</span>
                           </button>
-                          <button
-                            onClick={() => rejectProfileRemovalRequest(req.id)}
-                            className="px-4 py-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold text-xs flex items-center gap-1.5 cursor-pointer border border-rose-300"
-                          >
-                            <X className="w-4 h-4 text-rose-700" />
-                            <span>नाकारा</span>
-                          </button>
-                          <button
-                            onClick={() => deleteProfileRemovalRequest(req.id)}
-                            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 cursor-pointer"
-                            title="अर्ज डिलीट करा"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -6339,7 +6375,7 @@ export const AdminPanel: React.FC<{
                                       <p className="text-[11px] text-slate-500 font-mono flex items-center gap-2">
                                         <span>📱 {pay.userMobile}</span>
                                         <a
-                                          href={`https://wa.me/91${pay.userMobile.replace(/[^0-9]/g, '')}`}
+                                          href={`https://wa.me/91${(pay.userMobile || '').replace(/[^0-9]/g, '')}`}
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           className="text-emerald-700 font-bold hover:underline"

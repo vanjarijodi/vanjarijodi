@@ -194,7 +194,7 @@ export const BioDataMakerModal: React.FC<{
 
       const image = canvas.toDataURL('image/jpeg', 0.95);
       const link = document.createElement('a');
-      const filename = `Biodata_${formData.fullName.replace(/\s+/g, '_') || 'VanjariJodi'}.jpg`;
+      const filename = `Biodata_${(formData.fullName || 'VanjariJodi').replace(/\s+/g, '_')}.jpg`;
       link.href = image;
       link.download = filename;
       document.body.appendChild(link);
@@ -231,7 +231,7 @@ export const BioDataMakerModal: React.FC<{
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
       pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-      const filename = `Biodata_${formData.fullName.replace(/\s+/g, '_') || 'VanjariJodi'}.pdf`;
+      const filename = `Biodata_${(formData.fullName || 'VanjariJodi').replace(/\s+/g, '_')}.pdf`;
       pdf.save(filename);
     } catch (err) {
       console.error('Error generating PDF:', err);

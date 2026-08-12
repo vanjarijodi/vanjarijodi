@@ -39,7 +39,7 @@ export const PrintBiodataModal: React.FC<{
       const image = canvas.toDataURL('image/jpeg', 0.95);
       const link = document.createElement('a');
       link.href = image;
-      link.download = `VanjariJodi_Biodata_${profile.fullName.replace(/\s+/g, '_')}.jpg`;
+      link.download = `VanjariJodi_Biodata_${(profile?.fullName || 'Profile').replace(/\s+/g, '_')}.jpg`;
       link.click();
     } catch (err) {
       console.error('Error generating JPG biodata:', err);
@@ -74,7 +74,7 @@ export const PrintBiodataModal: React.FC<{
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
       pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, Math.min(imgHeight, pageHeight));
-      pdf.save(`VanjariJodi_Biodata_${profile.fullName.replace(/\s+/g, '_')}.pdf`);
+      pdf.save(`VanjariJodi_Biodata_${(profile?.fullName || 'Profile').replace(/\s+/g, '_')}.pdf`);
     } catch (err) {
       console.error('Error generating PDF biodata:', err);
       alert('बायोडाटा PDF डाउनलोड करताना त्रुटी आली. कृपया प्रिंट पर्याय वापरा.');

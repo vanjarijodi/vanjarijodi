@@ -73,13 +73,13 @@ export const BusinessVendorDirectoryModal: React.FC<{
       selectedCategory === 'all' || vendor.category === selectedCategory;
     const matchesDistrict =
       selectedDistrict === 'all' ||
-      vendor.district.toLowerCase().includes(selectedDistrict.toLowerCase());
+      (vendor.district || '').toLowerCase().includes(selectedDistrict.toLowerCase());
     const matchesSearch =
       !searchQuery.trim() ||
-      vendor.businessName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vendor.ownerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vendor.district.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      vendor.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (vendor.businessName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (vendor.ownerName || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (vendor.district || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (vendor.category || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
       (vendor.address && vendor.address.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const isBookedOnSelectedDate =
@@ -94,7 +94,7 @@ export const BusinessVendorDirectoryModal: React.FC<{
 
   const handleBookingViaAdmin = (vendor: BusinessVendor) => {
     const adminPhone = siteConfig.contactWhatsapp || siteConfig.contactPhone || '910000000000';
-    const cleanPhone = adminPhone.replace(/[^0-9]/g, '');
+    const cleanPhone = (adminPhone || '').replace(/[^0-9]/g, '');
     const msg = encodeURIComponent(
       `नमस्कार वंजारी जोडी ॲडमिन, मला "${vendor.businessName}" (${vendor.category}, ${vendor.district}) बद्दल माहिती आणि बुकींग करायचे आहे. ${selectedWeddingDate ? `माझ्या लग्नाची तारीख: ${selectedWeddingDate}` : ''}`
     );
@@ -102,7 +102,7 @@ export const BusinessVendorDirectoryModal: React.FC<{
   };
 
   const handleDirectWhatsapp = (vendor: BusinessVendor) => {
-    const phone = (vendor.whatsapp || vendor.mobile).replace(/[^0-9]/g, '');
+    const phone = ((vendor.whatsapp || vendor.mobile) || '').replace(/[^0-9]/g, '');
     const cleanPhone = phone.length === 10 ? '91' + phone : phone;
     const msg = encodeURIComponent(
       `नमस्कार ${vendor.ownerName} जी, मी वंजारी जोडी पोर्टलवरून आपल्या "${vendor.businessName}" व्यवसायाबद्दल माहिती पाहिला आहे. मला लग्नकार्यासाठी बुकींग / चौकशी करायची आहे. ${selectedWeddingDate ? `तारीख: ${selectedWeddingDate}` : ''}`

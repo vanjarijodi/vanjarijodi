@@ -57,14 +57,14 @@ export const BusinessVendorPortalModal: React.FC<{
     e.preventDefault();
     setLoginError('');
 
-    const cleanMobile = mobileInput.trim().replace(/[^0-9]/g, '');
+    const cleanMobile = (mobileInput || '').trim().replace(/[^0-9]/g, '');
     if (!cleanMobile) {
       setLoginError('कृपया तुमचा नोंदणीकृत मोबाईल नंबर टाका.');
       return;
     }
 
     const foundVendor = businessVendors.find(
-      (v) => v.mobile.replace(/[^0-9]/g, '') === cleanMobile
+      (v) => (v.mobile || '').replace(/[^0-9]/g, '') === cleanMobile
     );
 
     if (!foundVendor) {
@@ -73,7 +73,7 @@ export const BusinessVendorPortalModal: React.FC<{
     }
 
     // Default pin is last 4 digits of mobile if pinPassword not explicitly set
-    const expectedPin = foundVendor.pinPassword || foundVendor.mobile.slice(-4) || '1234';
+    const expectedPin = foundVendor.pinPassword || (foundVendor.mobile ? foundVendor.mobile.slice(-4) : '') || '1234';
     if (pinInput && pinInput.trim() !== expectedPin && pinInput.trim() !== '1234') {
       setLoginError('चुकीचा पिन पासवर्ड! डीफॉल्ट पिन तुमच्या मोबाईलचे शेवटचे ४ अंक असतात.');
       return;

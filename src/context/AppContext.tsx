@@ -569,8 +569,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (siteConfig?.filterShowGender !== false && searchFilters.gender !== 'all' && p.gender !== searchFilters.gender) return false;
     if (siteConfig?.filterShowAge !== false && (p.age < searchFilters.minAge || p.age > searchFilters.maxAge)) return false;
-    if (siteConfig?.filterShowDistrict !== false && searchFilters.district && !p.district.toLowerCase().includes(searchFilters.district.toLowerCase())) return false;
-    if (siteConfig?.filterShowEducation !== false && searchFilters.education && !p.education.toLowerCase().includes(searchFilters.education.toLowerCase())) return false;
+    if (siteConfig?.filterShowDistrict !== false && searchFilters.district && !(p.district || '').toLowerCase().includes(searchFilters.district.toLowerCase())) return false;
+    if (siteConfig?.filterShowEducation !== false && searchFilters.education && !(p.education || '').toLowerCase().includes(searchFilters.education.toLowerCase())) return false;
     if (searchFilters.occupation) {
       const occLower = searchFilters.occupation.toLowerCase();
       const pOcc = (p.occupation || '').toLowerCase();
@@ -1639,7 +1639,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // 15. Admin State
-  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [isAdminLoggedIn, setIsAdminLoggedInState] = useState<boolean>(() => {
+    return localStorage.getItem('vanjari_jodi_is_admin_logged_in') === 'true';
+  });
+
+  const setIsAdminLoggedIn = (val: boolean) => {
+    setIsAdminLoggedInState(val);
+    if (val) {
+      localStorage.setItem('vanjari_jodi_is_admin_logged_in', 'true');
+    } else {
+      localStorage.removeItem('vanjari_jodi_is_admin_logged_in');
+    }
+  };
 
   const approveProfile = (profileId: string) => {
     setProfiles((prev) =>
