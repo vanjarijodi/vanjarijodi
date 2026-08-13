@@ -127,6 +127,7 @@ export interface UserProfile {
   paymentUtr?: string;
   paymentPlanName?: string;
   membershipExpiryDate?: string;
+  isPlanExpired?: boolean;
 }
 
 export interface ProfileReport {
@@ -532,6 +533,8 @@ export interface SiteConfig {
   paymentNote?: string;
   paymentMode?: 'both' | 'razorpay_only' | 'upi_qr_only';
   enableRazorpay?: boolean;
+  enableInstamojo?: boolean;
+  instamojoUrl?: string;
   enableUpiQr?: boolean;
   enableFullAccessForPaidMembers?: boolean;
   upgradeRecommendedPlanId?: string;

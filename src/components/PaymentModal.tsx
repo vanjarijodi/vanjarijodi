@@ -20,7 +20,8 @@ export const PaymentModal: React.FC<{
     validatePromoCode,
     addNotification,
     logActivity,
-    updateMemberTier
+    updateMemberTier,
+    isCurrentUserPlanExpired,
   } = useApp();
 
   const [utrNumber, setUtrNumber] = useState('');
@@ -44,10 +45,12 @@ export const PaymentModal: React.FC<{
   const [isUploadingScreenshot, setIsUploadingScreenshot] = useState(false);
   const [screenshotError, setScreenshotError] = useState<string | null>(null);
 
-  const showOnlyWelcome = siteConfig?.showOnlyWelcomePlan !== false;
+  const isExpired = isCurrentUserPlanExpired || currentUser?.isPlanExpired;
+  const showOnlyWelcome = siteConfig?.showOnlyWelcomePlan !== false && (!currentUser || (currentUser.membership === 'free' && !isExpired));
+  const activePlansList = plansList.filter((p) => p.isActive !== false);
   const filteredPlans = showOnlyWelcome
     ? plansList.filter((p) => p.id === 'welcome_offer' && p.isActive !== false)
-    : plansList.filter((p) => p.isActive !== false);
+    : activePlansList.length > 0 ? activePlansList : plansList;
 
   const activePlan =
     plan ||
@@ -101,7 +104,7 @@ export const PaymentModal: React.FC<{
       return;
     }
 
-    let keyId = (siteConfig?.razorpayKeyId || 'rzp_test_TMw4t7bxOl8SsV').trim();
+    let keyId = (siteConfig?.razorpayKeyId || 'rzp_test_TOvwKXgcmRUEUD').trim();
     if (!keyId.startsWith('rzp_test_') && !keyId.startsWith('rzp_live_')) {
       keyId = `rzp_test_${keyId}`;
     }
@@ -282,6 +285,17 @@ export const PaymentModal: React.FC<{
 
         <div className="p-5 sm:p-6 space-y-5 overflow-y-auto">
 
+          {/* Expired Plan Banner Alert */}
+          {isExpired && (
+            <div className="p-3.5 bg-amber-100 border-2 border-amber-400 rounded-2xl flex items-start gap-3 shadow-sm">
+              <Zap className="w-5 h-5 text-amber-800 shrink-0 mt-0.5 animate-bounce" />
+              <div className="text-xs text-amber-950 font-medium">
+                <span className="font-black text-[#A71930] block text-sm">⏳ तुमचा मागील सबस्क्रिप्शन प्लॅन संपला आहे!</span>
+                तुमच्या सर्व पेड सुविधा व डायरेक्ट मोबाईल नंबर संपर्क अनलॉक करणे तात्पुरते थांबवले आहे. प्रशासनाने चालू ठेवलेल्या खालील सक्रिय ऑफर प्लॅनपैकी एक निवडून आजच प्लॅन नूतनीकरण करा.
+              </div>
+            </div>
+          )}
+
           {/* Plan Selector Switcher Pills */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -423,6 +437,36 @@ export const PaymentModal: React.FC<{
               </button>
               <div className="flex items-center justify-center gap-2 pt-1">
                 <span className="text-[10px] text-blue-200/80 font-bold">UPI / GPay / PhonePe / Card / NetBanking</span>
+              </div>
+            </div>
+          )}
+
+          {/* Instamojo Payment Gateway Option */}
+          {!isVipFreeAccess && siteConfig?.enableInstamojo !== false && siteConfig?.instamojoUrl && (
+            <div className="bg-gradient-to-r from-emerald-900 via-teal-900 to-emerald-950 text-white rounded-2xl p-4 shadow-lg border border-emerald-400/40 relative overflow-hidden space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-emerald-300" />
+                  <span className="font-extrabold text-sm text-emerald-200">Instamojo ऑनलाईन पेमेंट</span>
+                </div>
+                <span className="text-[10px] bg-emerald-500/30 text-emerald-200 px-2 py-0.5 rounded-full border border-emerald-300/30 font-extrabold uppercase">
+                  इन्स्टंट गेटवे
+                </span>
+              </div>
+              <p className="text-xs text-emerald-100 font-medium">
+                Instamojo गेटवे द्वारे UPI, PhonePe, GPay, Cards किंवा NetBanking ने ऑनलाईन पेमेंट करा.
+              </p>
+              <a
+                href={siteConfig.instamojoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 hover:from-emerald-300 hover:to-teal-300 text-slate-950 font-black rounded-xl text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 transition-transform active:scale-95 cursor-pointer no-underline"
+              >
+                <CreditCard className="w-4 h-4 text-slate-950" />
+                <span>Instamojo द्वारे ₹{currentPrice} पे करा (Pay via Instamojo)</span>
+              </a>
+              <div className="flex items-center justify-center gap-2 pt-1">
+                <span className="text-[10px] text-emerald-200/80 font-bold">UPI / GPay / PhonePe / Cards / Paytm / NetBanking</span>
               </div>
             </div>
           )}

@@ -54,7 +54,8 @@ export const MemberDashboard: React.FC = () => {
     setIsFaceAuthModalOpen,
     setIsProfileRemovalModalOpen,
     uploadAadhaarCard,
-    updateProfileDirect
+    updateProfileDirect,
+    isCurrentUserPlanExpired
   } = useApp();
 
   const [tab, setTab] = useState<'overview' | 'interests' | 'shortlist' | 'notifications' | 'membership' | 'privacy'>('overview');
@@ -279,13 +280,40 @@ export const MemberDashboard: React.FC = () => {
                 आयडी: {currentUser.id} | {currentUser.district} | {currentUser.subCaste}
               </p>
               <div className="flex items-center gap-2 mt-2 text-xs">
-                <span className="px-3 py-0.5 rounded-full bg-amber-100 text-[#A71930] font-bold border border-amber-300">
-                  {currentUser.membership === 'free' ? 'मोफत सदस्य' : `${currentUser.membership.toUpperCase()} प्लॅन`}
+                <span className={`px-3 py-0.5 rounded-full font-bold border ${isCurrentUserPlanExpired ? 'bg-rose-100 text-rose-900 border-rose-300 animate-pulse' : 'bg-amber-100 text-[#A71930] border-amber-300'}`}>
+                  {currentUser.membership === 'free'
+                    ? 'मोफत सदस्य'
+                    : isCurrentUserPlanExpired
+                    ? '⏳ मुदत संपली (Expired Plan)'
+                    : `${currentUser.membership.toUpperCase()} प्लॅन`}
                 </span>
                 <span className="text-slate-500 font-medium">शेवटचे सक्रीय: {currentUser.lastActive}</span>
               </div>
             </div>
           </div>
+
+          {/* Expired Plan Warning Banner */}
+          {isCurrentUserPlanExpired && (
+            <div className="p-4 bg-gradient-to-r from-amber-100 via-rose-50 to-amber-100 border-2 border-amber-400 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+              <div className="flex items-center gap-2.5">
+                <AlertCircle className="w-6 h-6 text-rose-700 animate-pulse shrink-0" />
+                <div>
+                  <h4 className="font-black text-rose-900 text-sm">⏳ तुमचा सबस्क्रिप्शन प्लॅन संपला आहे (Plan Expired)!</h4>
+                  <p className="text-xs text-slate-700 font-semibold mt-0.5">
+                    डायरेक्ट मोबाईल नंबर संपर्क दाखवणे व सर्व पेड सुविधा तात्पुरत्या बंद झाल्या आहेत. सर्व वधू-वरांचे संपर्क अनलॉक करण्यासाठी प्रशासनाचा नवीन ऑफर प्लॅन नूतनीकरण करा.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPaymentOpen(true)}
+                className="px-4 py-2 bg-[#A71930] hover:bg-[#800C1E] text-amber-100 font-black text-xs rounded-xl shadow border border-amber-300 flex items-center gap-1.5 shrink-0 cursor-pointer transition-all"
+              >
+                <Crown className="w-4 h-4 text-amber-300" />
+                <span>⚡ प्लॅन नूतनीकरण करा</span>
+              </button>
+            </div>
+          )}
 
           <div className="flex flex-wrap items-center gap-2">
             <button

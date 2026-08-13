@@ -1,10 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Heart, Phone, Mail, MapPin, Download, ShieldCheck, Sparkles, ShieldAlert, MessageCircle, Send } from 'lucide-react';
+import { Heart, Phone, Mail, MapPin, Download, ShieldCheck, Sparkles, ShieldAlert, MessageCircle, Send, FileText, Lock, RefreshCw, CreditCard } from 'lucide-react';
 import { VanjariJodiLogo } from './VanjariJodiLogo';
+import { LegalPoliciesModal, PolicyTabType } from './LegalPoliciesModal';
 
 export const Footer: React.FC = () => {
   const { t, language, siteConfig, setIsAdminOpen } = useApp();
+  const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
+  const [legalTab, setLegalTab] = useState<PolicyTabType>('terms');
+
+  const openPolicy = (tab: PolicyTabType) => {
+    setLegalTab(tab);
+    setIsLegalModalOpen(true);
+  };
 
   const scrollToSection = (id: string) => {
     const el = document.getElementById(id);
@@ -142,6 +150,51 @@ export const Footer: React.FC = () => {
 
       </div>
 
+      {/* MANDATORY RAZORPAY COMPLIANCE LEGAL POLICY LINKS BAR */}
+      <div className="bg-[#5C0815] border-t border-b border-amber-400/30 py-3 px-4">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-bold text-amber-200">
+          <button
+            onClick={() => openPolicy('terms')}
+            className="hover:text-amber-100 underline decoration-amber-400 underline-offset-4 flex items-center gap-1 cursor-pointer transition-all"
+          >
+            <FileText className="w-3.5 h-3.5 text-amber-400" />
+            <span>{language === 'en' ? 'Terms & Conditions' : 'अटी व शर्ती (Terms)'}</span>
+          </button>
+
+          <button
+            onClick={() => openPolicy('privacy')}
+            className="hover:text-amber-100 underline decoration-amber-400 underline-offset-4 flex items-center gap-1 cursor-pointer transition-all"
+          >
+            <Lock className="w-3.5 h-3.5 text-amber-400" />
+            <span>{language === 'en' ? 'Privacy Policy' : 'गोपनीयता धोरण (Privacy)'}</span>
+          </button>
+
+          <button
+            onClick={() => openPolicy('refund')}
+            className="hover:text-amber-100 underline decoration-amber-400 underline-offset-4 flex items-center gap-1 cursor-pointer transition-all"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-amber-400" />
+            <span>{language === 'en' ? 'Refund & Cancellation' : 'परतावा व रद्द धोरण (Refund)'}</span>
+          </button>
+
+          <button
+            onClick={() => openPolicy('contact')}
+            className="hover:text-amber-100 underline decoration-amber-400 underline-offset-4 flex items-center gap-1 cursor-pointer transition-all"
+          >
+            <Phone className="w-3.5 h-3.5 text-amber-400" />
+            <span>{language === 'en' ? 'Contact Us' : 'संपर्क साधा (Contact Us)'}</span>
+          </button>
+
+          <button
+            onClick={() => openPolicy('about_pricing')}
+            className="hover:text-amber-100 underline decoration-amber-400 underline-offset-4 flex items-center gap-1 cursor-pointer transition-all"
+          >
+            <CreditCard className="w-3.5 h-3.5 text-amber-400" />
+            <span>{language === 'en' ? 'About & Pricing Plans' : 'आमच्याबद्दल व वर्गणी (Pricing)'}</span>
+          </button>
+        </div>
+      </div>
+
       {/* Copyright Bar */}
       <div className="border-t border-amber-400/20 py-4 px-4 text-center text-xs text-amber-200/70 font-medium flex flex-wrap items-center justify-between max-w-7xl mx-auto">
         <p>© 2026 {language === 'en' ? 'VanjariJodi Matrimony' : 'वंजारी जोडी मॅट्रिमोनी'} ({siteConfig?.logoTitle || 'VanjariJodi'}). {language === 'en' ? 'All rights reserved.' : 'सर्व हक्क सुरक्षित.'}</p>
@@ -154,6 +207,13 @@ export const Footer: React.FC = () => {
           <span>{language === 'en' ? 'Admin Panel Login' : 'प्रशासक प्रवेश (Admin Panel)'}</span>
         </button>
       </div>
+
+      {/* Policy Modal */}
+      <LegalPoliciesModal
+        isOpen={isLegalModalOpen}
+        initialTab={legalTab}
+        onClose={() => setIsLegalModalOpen(false)}
+      />
     </footer>
   );
 };

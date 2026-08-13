@@ -783,33 +783,53 @@ export const AdminMasterSettingsCenter: React.FC = () => {
             </div>
 
             {/* Enable Razorpay Toggle */}
-            <div className="p-3.5 rounded-2xl bg-blue-50/80 border border-blue-200 flex items-center justify-between gap-3">
-              <div>
-                <span className="font-black text-blue-900 block flex items-center gap-1.5">
-                  <CreditCard className="w-4 h-4 text-blue-700" />
-                  <span>Razorpay ऑनलाईन पेमेंट गेटवे (Enable Razorpay):</span>
-                </span>
-                <span className="text-[11px] text-blue-800 font-medium block mt-0.5">
-                  कार्ड, नेटबँकिंग व ऑनलाईन ऑटो-पेमेंट सक्रिय करा.
-                </span>
+            <div className="p-3.5 rounded-2xl bg-blue-50/80 border border-blue-200 space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <span className="font-black text-blue-900 block flex items-center gap-1.5">
+                    <CreditCard className="w-4 h-4 text-blue-700" />
+                    <span>Razorpay ऑनलाईन पेमेंट गेटवे (Enable Razorpay):</span>
+                  </span>
+                  <span className="text-[11px] text-blue-800 font-medium block mt-0.5">
+                    कार्ड, नेटबँकिंग व ऑनलाईन ऑटो-पेमेंट सक्रिय करा.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleToggle(
+                      'enableRazorpay',
+                      siteConfig.enableRazorpay !== false,
+                      'Razorpay पेमेंट ऑनलाईन'
+                    )
+                  }
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-black shrink-0 transition-all cursor-pointer ${
+                    siteConfig.enableRazorpay !== false
+                      ? 'bg-blue-600 text-white shadow'
+                      : 'bg-slate-300 text-slate-700'
+                  }`}
+                >
+                  {siteConfig.enableRazorpay !== false ? 'सक्रिय (ON)' : 'बंद (OFF)'}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() =>
-                  handleToggle(
-                    'enableRazorpay',
-                    siteConfig.enableRazorpay !== false,
-                    'Razorpay पेमेंट ऑनलाईन'
-                  )
-                }
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-black shrink-0 transition-all cursor-pointer ${
-                  siteConfig.enableRazorpay !== false
-                    ? 'bg-blue-600 text-white shadow'
-                    : 'bg-slate-300 text-slate-700'
-                }`}
-              >
-                {siteConfig.enableRazorpay !== false ? 'सक्रिय (ON)' : 'बंद (OFF)'}
-              </button>
+
+              {siteConfig.enableRazorpay !== false && (
+                <div className="pt-2 border-t border-blue-200 space-y-1">
+                  <label className="block text-slate-800 text-[11px] font-bold">
+                    Razorpay Key ID (Merchant: Usha Shivdas Hange - MID: TOvwKXgcmRUEUD):
+                  </label>
+                  <input
+                    type="text"
+                    value={siteConfig.razorpayKeyId || 'rzp_test_TOvwKXgcmRUEUD'}
+                    onChange={(e) => updateSiteConfig({ razorpayKeyId: e.target.value })}
+                    placeholder="rzp_test_TOvwKXgcmRUEUD किंवा rzp_live_..."
+                    className="w-full px-3 py-2 font-mono text-xs rounded-xl border border-blue-300 focus:outline-none focus:ring-2 focus:ring-[#A71930] bg-white font-bold text-blue-900"
+                  />
+                  <p className="text-[10px] text-slate-600 font-medium">
+                    ⚡ Razorpay Dashboard मधील Key ID किंवा MID द्वारे टेस्ट मोड ऑटोमेटिक ऑन केले आहे.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Enable Full Access for Paid Members */}

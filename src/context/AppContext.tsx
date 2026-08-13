@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import {
   Language,
   ThemeMode,
@@ -264,6 +264,10 @@ interface AppContextType {
   approveFaceVerification: (logId: string) => void;
   rejectFaceVerification: (logId: string) => void;
 
+  // Plan Expiry & Auto Paid Revocation
+  isProfilePlanExpired: (p: UserProfile | null) => boolean;
+  isCurrentUserPlanExpired: boolean;
+
   // APK Uploader & Download Link
   updateApkSettings: (settings: Partial<ApkSettings>) => void;
   incrementApkDownloadCount: () => void;
@@ -518,7 +522,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           heroHeading: parsed.heroHeading && !parsed.heroHeading.includes('सुसंस्कृत') ? parsed.heroHeading : 'वंजारी समाजातील वधू-वर शोधा',
           heroSubheading: 'संत भगवान बाबा यांच्या आशीर्वादाने स्थापित - पवित्र नात्यांची सुंदर सुरुवात',
           heroDescription: 'हजारो विश्वासू वंजारी कुटुंब जोडणारा महाराष्ट्रातील नंबर १ विवाह मंच',
-          logoSubtitle: parsed.logoSubtitle || 'वर-वधू शोध'
+          logoSubtitle: parsed.logoSubtitle || 'वर-वधू शोध',
+          contactEmail: parsed.contactEmail || 'gitevijay123@gmail.com'
         };
       } catch (e) {
         return {
@@ -721,6 +726,98 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
   };
 
+  // 13. Pre-Plans Management
+  const [plansList, setPlansList] = useState<Plan[]>(() => {
+    const saved = localStorage.getItem('vanjari_jodi_plans');
+    if (!saved) return MEMBERSHIP_PLANS;
+    try {
+      let parsed: Plan[] = JSON.parse(saved);
+      const hasWelcomeOffer = parsed.some((p) => p.id === 'welcome_offer');
+      if (!hasWelcomeOffer) {
+        const defaultWelcome = MEMBERSHIP_PLANS.find((p) => p.id === 'welcome_offer');
+        if (defaultWelcome) parsed = [defaultWelcome, ...parsed];
+      }
+      // Update welcome offer defaults
+      parsed = parsed.map((p) => {
+        if (p.id === 'welcome_offer') {
+          return {
+            ...p,
+            price: p.price === 99 ? 199 : p.price,
+            unlockCount: 999,
+            nameMr: 'स्पेशल वेलकम ऑफर - ₹१९९ (म्युचुअल लाईकवर नंबर अनलॉक)',
+            durationLabelMr: '६ महिने वैध (दोघांनी लाईक केल्यावर नंबर अनलॉक)',
+            badgeText: '🔥 ५०% सूट - वेलकम ऑफर (रु. १९९/-)',
+            featuresMr: [
+              'दोघांनी एकमेकांना लाईक केल्यावर (Mutual Like) मोबाईल नंबर अनलॉक',
+              '६ महिने (१८० दिवस) संपूर्ण प्रोफाईल व बायोडाटा पाहणे',
+              'अनलिमिटेड मोफत एक्सप्रेस प्रतिसाद (Likes) पाठवा',
+              'थेट व्हॉट्सॲप चॅट व कौटुंबिक संपर्क'
+            ]
+          };
+        }
+        return p;
+      });
+      return parsed;
+    } catch {
+      return MEMBERSHIP_PLANS;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('vanjari_jodi_plans', JSON.stringify(plansList));
+  }, [plansList]);
+
+  const updatePlan = (updatedPlan: Plan) => {
+    setPlansList((prev) => prev.map((p) => (p.id === updatedPlan.id ? updatedPlan : p)));
+  };
+
+  // Helper to check if a profile's subscription/plan has expired
+  const isProfilePlanExpired = (p: UserProfile | null): boolean => {
+    if (!p) return false;
+    if (p.isPlanExpired === true) return true;
+    if (!p.membership || p.membership === 'free' || p.membership === 'admin' || p.membership === 'lifetime') {
+      return false;
+    }
+
+    // 1. Explicit expiry date check
+    if (p.membershipExpiryDate) {
+      const expDate = new Date(p.membershipExpiryDate);
+      if (!isNaN(expDate.getTime())) {
+        return expDate.getTime() < Date.now();
+      }
+    } else {
+      // 2. Computed expiry check from approval date or paid date
+      const payDateStr = p.paymentApprovedAt || p.paidAt;
+      if (payDateStr) {
+        const pDate = new Date(payDateStr);
+        if (!isNaN(pDate.getTime())) {
+          let durationMonths = 1;
+          const matchingPlan = plansList.find((plan) => plan.id === p.membership);
+          if (matchingPlan?.durationMonths && matchingPlan.durationMonths > 0) {
+            durationMonths = matchingPlan.durationMonths;
+          } else if (p.membership === 'yearly') {
+            durationMonths = 12;
+          } else if (p.membership === 'gold' || p.membership === 'diamond') {
+            durationMonths = 6;
+          } else if (p.membership === 'silver') {
+            durationMonths = 3;
+          } else if (p.membership === 'monthly' || p.membership === 'welcome_offer') {
+            durationMonths = 1;
+          }
+
+          const expTime = pDate.getTime() + durationMonths * 30 * 24 * 60 * 60 * 1000;
+          return expTime < Date.now();
+        }
+      }
+    }
+
+    return false;
+  };
+
+  const isCurrentUserPlanExpired = useMemo(() => {
+    return isProfilePlanExpired(currentUser);
+  }, [currentUser, plansList]);
+
   // 7. Unlocked Contacts
   const [unlockedContacts, setUnlockedContacts] = useState<string[]>([]);
 
@@ -734,14 +831,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return; // Already unlocked
     }
 
-    // Free user without active membership
-    if (isPaidPlansEnabled && (!currentUser.membership || currentUser.membership === 'free')) {
-      const welcomePlan = plansList.find((p) => p.id === 'welcome_offer' && p.isActive !== false) ||
-                          plansList.find((p) => p.isActive !== false) ||
-                          MEMBERSHIP_PLANS[0];
-      setSelectedPlanForPayment(welcomePlan);
-      setIsPaymentOpen(true);
-      return;
+    // Check if current user's plan is expired -> block paid benefits & offer current admin active plan
+    if (isPaidPlansEnabled) {
+      const isExpired = isProfilePlanExpired(currentUser);
+      if (isExpired) {
+        const activeOfferPlan =
+          plansList.find((p) => p.isActive !== false && p.id !== 'free') ||
+          plansList[0];
+
+        setSelectedPlanForPayment(activeOfferPlan);
+        setIsPaymentOpen(true);
+
+        alert(
+          `⚠️ तुमचा सबस्क्रिप्शन प्लॅन संपलेला (Expired) आहे!\n\nसर्व मोबाईल नंबर अनलॉक करणे व पेड सुविधा तात्पुरत्या बंद झाल्या आहेत. नवीन संपर्क नंबर अनलॉक करण्यासाठी प्रशासनाने उपलब्ध करून दिलेला नवीन प्लॅन निवडून आजच नूतनीकरण करा.`
+        );
+        return;
+      }
+
+      // Free user without active membership
+      if (!currentUser.membership || currentUser.membership === 'free') {
+        const welcomePlan = plansList.find((p) => p.id === 'welcome_offer' && p.isActive !== false) ||
+                            plansList.find((p) => p.isActive !== false) ||
+                            MEMBERSHIP_PLANS[0];
+        setSelectedPlanForPayment(welcomePlan);
+        setIsPaymentOpen(true);
+        return;
+      }
     }
 
     // Determine current user's membership plan and limit
@@ -1507,7 +1622,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     // Check full access for active paid members (Monthly, Yearly, Lifetime, Gold, Diamond, VIP, etc.)
-    if (isMember && siteConfig?.enableFullAccessForPaidMembers !== false) {
+    const isUserPlanExpired = isProfilePlanExpired(currentUser);
+    if (isMember && siteConfig?.enableFullAccessForPaidMembers !== false && !isUserPlanExpired) {
       if (currentUser.membership && currentUser.membership !== 'free') {
         const userPlan = plansList.find((p) => p.id === currentUser.membership);
         const isLimitedPlan = (currentUser.membership === 'welcome_offer') || (userPlan?.unlockCount && userPlan.unlockCount < 99);
@@ -1562,51 +1678,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return p;
       })
     );
-  };
-
-  // 13. Pre-Plans Management
-  const [plansList, setPlansList] = useState<Plan[]>(() => {
-    const saved = localStorage.getItem('vanjari_jodi_plans');
-    if (!saved) return MEMBERSHIP_PLANS;
-    try {
-      let parsed: Plan[] = JSON.parse(saved);
-      const hasWelcomeOffer = parsed.some((p) => p.id === 'welcome_offer');
-      if (!hasWelcomeOffer) {
-        const defaultWelcome = MEMBERSHIP_PLANS.find((p) => p.id === 'welcome_offer');
-        if (defaultWelcome) parsed = [defaultWelcome, ...parsed];
-      }
-      // Update welcome offer defaults
-      parsed = parsed.map((p) => {
-        if (p.id === 'welcome_offer') {
-          return {
-            ...p,
-            price: p.price === 99 ? 199 : p.price,
-            unlockCount: 999,
-            nameMr: 'स्पेशल वेलकम ऑफर - ₹१९९ (म्युचुअल लाईकवर नंबर अनलॉक)',
-            durationLabelMr: '६ महिने वैध (दोघांनी लाईक केल्यावर नंबर अनलॉक)',
-            badgeText: '🔥 ५०% सूट - वेलकम ऑफर (रु. १९९/-)',
-            featuresMr: [
-              'दोघांनी एकमेकांना लाईक केल्यावर (Mutual Like) मोबाईल नंबर अनलॉक',
-              '६ महिने (१८० दिवस) संपूर्ण प्रोफाईल व बायोडाटा पाहणे',
-              'अनलिमिटेड मोफत एक्सप्रेस प्रतिसाद (Likes) पाठवा',
-              'थेट व्हॉट्सॲप चॅट व कौटुंबिक संपर्क'
-            ]
-          };
-        }
-        return p;
-      });
-      return parsed;
-    } catch {
-      return MEMBERSHIP_PLANS;
-    }
-  });
-
-  useEffect(() => {
-    localStorage.setItem('vanjari_jodi_plans', JSON.stringify(plansList));
-  }, [plansList]);
-
-  const updatePlan = (updatedPlan: Plan) => {
-    setPlansList((prev) => prev.map((p) => (p.id === updatedPlan.id ? updatedPlan : p)));
   };
 
   // 14. Community Ads & Sponsorships Engine
@@ -1732,6 +1803,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const paidDate = extraPaymentInfo?.paidAt || nowIso;
     const approvedDate = extraPaymentInfo?.paymentApprovedAt || nowIso;
 
+    let calcExpiryIso: string | undefined = undefined;
+    if (matchingPlan?.durationMonths && matchingPlan.durationMonths > 0) {
+      const d = new Date(approvedDate);
+      d.setMonth(d.getMonth() + matchingPlan.durationMonths);
+      calcExpiryIso = d.toISOString();
+    } else if (tier === 'welcome_offer') {
+      const d = new Date(approvedDate);
+      d.setDate(d.getDate() + 30);
+      calcExpiryIso = d.toISOString();
+    } else if (tier === 'monthly' || tier === 'silver') {
+      const d = new Date(approvedDate);
+      d.setDate(d.getDate() + 90);
+      calcExpiryIso = d.toISOString();
+    } else if (tier === 'gold' || tier === 'diamond') {
+      const d = new Date(approvedDate);
+      d.setDate(d.getDate() + 180);
+      calcExpiryIso = d.toISOString();
+    } else if (tier === 'yearly') {
+      const d = new Date(approvedDate);
+      d.setFullYear(d.getFullYear() + 1);
+      calcExpiryIso = d.toISOString();
+    }
+
     setProfiles((prev) =>
       prev.map((p) => {
         if (p.id === profileId) {
@@ -1745,6 +1839,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             paymentAmount: extraPaymentInfo?.paymentAmount ?? p.paymentAmount ?? matchingPlan?.price,
             paymentUtr: extraPaymentInfo?.paymentUtr || p.paymentUtr,
             paymentPlanName: extraPaymentInfo?.paymentPlanName || matchingPlan?.name || tier,
+            membershipExpiryDate: calcExpiryIso || p.membershipExpiryDate,
+            isPlanExpired: false,
             unlockedContactsCount: (p.unlockedContactsCount || 0) + (bonusUnlocks || (tier === 'welcome_offer' ? 5 : 0)),
           };
           syncDocToFirestore('profiles', updated.id, updated);
@@ -1767,6 +1863,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               paymentAmount: extraPaymentInfo?.paymentAmount ?? prev.paymentAmount ?? matchingPlan?.price,
               paymentUtr: extraPaymentInfo?.paymentUtr || prev.paymentUtr,
               paymentPlanName: extraPaymentInfo?.paymentPlanName || matchingPlan?.name || tier,
+              membershipExpiryDate: calcExpiryIso || prev.membershipExpiryDate,
+              isPlanExpired: false,
               unlockedContactsCount: (prev.unlockedContactsCount || 0) + (bonusUnlocks || (tier === 'welcome_offer' ? 5 : 0)),
             }
           : null
@@ -3466,6 +3564,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         submitFaceVerification,
         approveFaceVerification,
         rejectFaceVerification,
+        isProfilePlanExpired,
+        isCurrentUserPlanExpired,
         updateApkSettings,
         incrementApkDownloadCount,
         updateSocialLinks,

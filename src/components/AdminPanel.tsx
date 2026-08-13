@@ -1151,7 +1151,12 @@ export const AdminPanel: React.FC<{
     | 'privacy_controls'
     | 'business_vendors'
     | 'master_settings'
+    | 'expired_plans'
   >('members');
+
+  // Expired Paid Members Search & Selection State
+  const [expiredSearchTerm, setExpiredSearchTerm] = useState('');
+  const [selectedExpiredMemberIds, setSelectedExpiredMemberIds] = useState<string[]>([]);
 
   // Push Notification Form State
   const [pushTargetMode, setPushTargetMode] = useState<'all' | 'individual'>('all');
@@ -1612,6 +1617,120 @@ export const AdminPanel: React.FC<{
   const approvedMembers = profiles.filter((p) => p.isApproved);
   const pendingMembers = profiles.filter((p) => !p.isApproved);
 
+  // Expired Paid Members (मुदत संपलेले सबस्क्रिप्शन सदस्य)
+  const expiredPaidMembers = profiles.filter((m) => {
+    if (m.isPlanExpired) return true;
+
+    if (m.membershipExpiryDate) {
+      const d = new Date(m.membershipExpiryDate);
+      if (!isNaN(d.getTime()) && d.getTime() < Date.now()) {
+        return true;
+      }
+      return false;
+    }
+
+    const hasPaidHistory = Boolean(
+      m.paidAt || m.paymentApprovedAt || m.paymentAmount || (m.membership && m.membership !== 'free')
+    );
+
+    if (!hasPaidHistory) return false;
+
+    if (m.membership === 'free' && (m.paidAt || m.paymentApprovedAt || m.paymentAmount)) {
+      return true;
+    }
+
+    if (m.membership === 'lifetime') return false;
+
+    const payDateStr = m.paymentApprovedAt || m.paidAt;
+    if (payDateStr) {
+      const pDate = new Date(payDateStr);
+      if (!isNaN(pDate.getTime())) {
+        let validityDays = 30;
+        if (m.membership === 'yearly') validityDays = 365;
+        else if (m.membership === 'gold' || m.membership === 'diamond') validityDays = 180;
+        else if (m.membership === 'silver') validityDays = 90;
+
+        const expTime = pDate.getTime() + validityDays * 24 * 60 * 60 * 1000;
+        if (expTime < Date.now()) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  });
+
+  const filteredExpiredMembers = expiredPaidMembers.filter((m) => {
+    if (!expiredSearchTerm.trim()) return true;
+    const q = expiredSearchTerm.toLowerCase();
+    return (
+      (m.fullName || '').toLowerCase().includes(q) ||
+      (m.mobile || '').includes(q) ||
+      (m.district || '').toLowerCase().includes(q) ||
+      (m.id || '').toLowerCase().includes(q) ||
+      (m.paymentPlanName || '').toLowerCase().includes(q) ||
+      (m.membership || '').toLowerCase().includes(q)
+    );
+  });
+
+  const handleRenewPlan = (profileId: string, days = 30, planTitle = 'मंथली प्लॅन (१ महिना)') => {
+    const target = profiles.find((p) => p.id === profileId);
+    if (!target) return;
+
+    const now = new Date();
+    const expDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+
+    let tier: MembershipTier = 'monthly';
+    if (days >= 365) tier = 'yearly';
+    else if (days >= 180) tier = 'gold';
+    else if (days >= 90) tier = 'silver';
+
+    updateProfileDirect(profileId, {
+      membership: tier,
+      isPlanExpired: false,
+      paidAt: now.toISOString(),
+      paymentApprovedAt: now.toISOString(),
+      membershipExpiryDate: expDate.toISOString(),
+      paymentPlanName: planTitle,
+      unlockedContactsCount: (target.unlockedContactsCount || 0) + 15,
+    });
+
+    sendPushNotification(
+      profileId,
+      'सबस्क्रिप्शन प्लॅन नूतनीकरण!',
+      `तुमचा ${planTitle} यशस्वीरित्या ${days} दिवसांसाठी नूतनीकरण करण्यात आला आहे.`
+    );
+    alert(`✅ ${target.fullName} यांचा प्लॅन ${days} दिवसांसाठी यशस्वीरित्या नूतनीकरण करण्यात आला आहे!`);
+  };
+
+  const handleBulkRenewExpired = (days = 30) => {
+    if (selectedExpiredMemberIds.length === 0) {
+      alert('कृपया किमान एक सदस्य निवडा.');
+      return;
+    }
+    if (confirm(`तुम्हाला निवडलेल्या ${selectedExpiredMemberIds.length} संपलेल्या सदस्यांचा प्लॅन ${days} दिवसांनी नूतनीकरण करायचा आहे का?`)) {
+      selectedExpiredMemberIds.forEach((id) => {
+        handleRenewPlan(id, days, `${days} दिवस नूतनीकरण`);
+      });
+      setSelectedExpiredMemberIds([]);
+      alert('निवडलेल्या सदस्यांचा प्लॅन यशस्वीरीत्या नूतनीकरण झाला!');
+    }
+  };
+
+  const handleSelectAllExpiredMembers = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedExpiredMemberIds(filteredExpiredMembers.map((m) => m.id));
+    } else {
+      setSelectedExpiredMemberIds([]);
+    }
+  };
+
+  const handleToggleSelectExpiredMember = (id: string) => {
+    setSelectedExpiredMemberIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
   const filteredApprovedMembers = approvedMembers.filter((p) => {
     const matchesSearch =
       (p.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1995,6 +2114,15 @@ export const AdminPanel: React.FC<{
                       <span>({pendingProfileEdits.filter(e => e.status === 'pending').length})</span>
                     </button>
                     <button
+                      onClick={() => setActiveTab('expired_plans')}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'expired_plans' ? 'text-[#A71930] bg-amber-200/90 font-black' : 'text-amber-900/80 hover:text-amber-950'}`}
+                    >
+                      <span>⏳ मुदत संपलेले सदस्य</span>
+                      <span className="px-1.5 py-0.2 rounded-full bg-amber-700 text-white text-[9px] font-black">
+                        {expiredPaidMembers.length}
+                      </span>
+                    </button>
+                    <button
                       onClick={() => setActiveTab('add_profile')}
                       className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center gap-1 ${activeTab === 'add_profile' ? 'text-emerald-700 bg-emerald-50' : 'text-slate-600 hover:text-[#A71930]'}`}
                     >
@@ -2107,6 +2235,12 @@ export const AdminPanel: React.FC<{
                       className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'promo_codes' ? 'text-[#A71930] bg-amber-100/80' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                       <span>सवलत कूपन</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('expired_plans')}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'expired_plans' ? 'text-[#A71930] bg-amber-200/90 font-black' : 'text-amber-900/80 hover:text-amber-950'}`}
+                    >
+                      <span>⏳ मुदत संपलेले ({expiredPaidMembers.length})</span>
                     </button>
                   </div>
                 )}
@@ -2222,7 +2356,7 @@ export const AdminPanel: React.FC<{
             <button
               onClick={() => {
                 setActiveCategory('members_hub');
-                if (!['members', 'pending', 'profile_edits', 'profile_removal', 'add_profile'].includes(activeTab)) {
+                if (!['members', 'pending', 'profile_edits', 'profile_removal', 'add_profile', 'expired_plans'].includes(activeTab)) {
                   setActiveTab('members');
                 }
               }}
@@ -2266,7 +2400,7 @@ export const AdminPanel: React.FC<{
             <button
               onClick={() => {
                 setActiveCategory('payments_hub');
-                if (!['payment_requests', 'pay_per_contact', 'plans_setup', 'promo_codes'].includes(activeTab)) {
+                if (!['payment_requests', 'pay_per_contact', 'plans_setup', 'promo_codes', 'expired_plans'].includes(activeTab)) {
                   setActiveTab('payment_requests');
                 }
               }}
@@ -2388,6 +2522,16 @@ export const AdminPanel: React.FC<{
                   <UserPlus className="w-3.5 h-3.5 text-emerald-600" />
                   <span>➕ नवीन बायोडाटा जोडा</span>
                 </button>
+
+                <button
+                  onClick={() => setActiveTab('expired_plans')}
+                  className={`px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all ${
+                    activeTab === 'expired_plans' ? 'bg-[#A71930] text-amber-100 font-black shadow' : 'bg-amber-100 border border-amber-300 text-amber-950 hover:bg-amber-200'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5 text-amber-700" />
+                  <span>⏳ मुदत संपलेले ({expiredPaidMembers.length})</span>
+                </button>
               </>
             )}
 
@@ -2485,6 +2629,16 @@ export const AdminPanel: React.FC<{
                 >
                   <Tag className="w-3.5 h-3.5" />
                   <span>🏷️ प्रोमो कोड्स ({promoCodes.length})</span>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('expired_plans')}
+                  className={`px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all ${
+                    activeTab === 'expired_plans' ? 'bg-[#A71930] text-amber-100 font-black shadow' : 'bg-amber-100 border border-amber-300 text-amber-950 hover:bg-amber-200'
+                  }`}
+                >
+                  <Clock className="w-3.5 h-3.5 text-amber-700" />
+                  <span>⏳ मुदत संपलेले ({expiredPaidMembers.length})</span>
                 </button>
               </>
             )}
@@ -2704,6 +2858,246 @@ export const AdminPanel: React.FC<{
             </div>
           </div>
 
+          {/* TAB: EXPIRED PAID MEMBERS (मुदत संपलेले सबस्क्रिप्शन सदस्य) */}
+          {activeTab === 'expired_plans' && (
+            <div className="space-y-4">
+              {/* Top Banner */}
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 bg-gradient-to-r from-amber-100 via-orange-50 to-amber-100 rounded-2xl border-2 border-amber-300 shadow-sm">
+                <div>
+                  <h3 className="text-lg font-black text-[#A71930] flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-amber-700 animate-pulse" />
+                    <span>मुदत संपलेले सदस्य व्यवस्थापन (Expired Paid Members - {expiredPaidMembers.length})</span>
+                  </h3>
+                  <p className="text-xs text-slate-700 font-medium mt-1">
+                    ज्या सदस्यांचे पेड सबस्क्रिप्शन किंवा प्लॅनची मुदत संपली आहे त्यांची ही स्वतंत्र यादी आहे. येथून तुम्ही एका क्लिकवर त्यांचा प्लॅन रिन्यू (Renew) करू शकता किंवा व्हॉट्सॲपवर आठवण मेसेज पाठवू शकता.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap shrink-0">
+                  <button
+                    onClick={() => handleBulkRenewExpired(30)}
+                    disabled={selectedExpiredMemberIds.length === 0}
+                    className={`px-3 py-2 rounded-xl text-xs font-black shadow transition-all flex items-center gap-1.5 border ${
+                      selectedExpiredMemberIds.length > 0
+                        ? 'bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700 cursor-pointer'
+                        : 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed'
+                    }`}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>⚡ १ महिना घाऊक नूतनीकरण ({selectedExpiredMemberIds.length})</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      if (expiredPaidMembers.length === 0) {
+                        alert('मुदत संपलेला एकही सदस्य नाही.');
+                        return;
+                      }
+                      const msg = encodeURIComponent("नमस्कार, वंजारी जोडी मॅट्रिमनीवर तुमचा पेड प्लॅन संपला आहे. नवीन स्थळे व संपर्क क्रमांक अनलॉक करण्यासाठी आजच तुमचा प्लॅन नूतनीकरण करा. धन्यवाद!");
+                      window.open(`https://wa.me/?text=${msg}`, '_blank');
+                    }}
+                    className="px-3 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs shadow border border-emerald-800 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 text-emerald-200" />
+                    <span>📲 व्हॉट्सॲप रिमायंडर</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Search & Bulk Select Bar */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-amber-200 shadow-sm">
+                <div className="relative w-full sm:w-80">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    value={expiredSearchTerm}
+                    onChange={(e) => setExpiredSearchTerm(e.target.value)}
+                    placeholder="नाव, नाव-आयडी, जिल्हा किंवा फोनने शोधा..."
+                    className="w-full pl-9 pr-3 py-2 rounded-xl border border-amber-200 text-xs font-bold focus:ring-2 focus:ring-[#A71930] outline-none"
+                  />
+                  {expiredSearchTerm && (
+                    <button
+                      onClick={() => setExpiredSearchTerm('')}
+                      className="absolute right-3 top-2.5 text-xs text-slate-400 hover:text-slate-600"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3 text-xs font-bold text-slate-700 w-full sm:w-auto justify-between sm:justify-end">
+                  <label className="flex items-center gap-1.5 cursor-pointer bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200 hover:bg-amber-100">
+                    <input
+                      type="checkbox"
+                      checked={filteredExpiredMembers.length > 0 && selectedExpiredMemberIds.length === filteredExpiredMembers.length}
+                      onChange={handleSelectAllExpiredMembers}
+                      className="rounded border-amber-300 text-[#A71930] focus:ring-[#A71930]"
+                    />
+                    <span>सर्व निवडा ({filteredExpiredMembers.length})</span>
+                  </label>
+
+                  <span className="text-amber-800 font-extrabold bg-amber-100 px-2.5 py-1 rounded-lg border border-amber-300">
+                    एकूण संपलेले: {filteredExpiredMembers.length}
+                  </span>
+                </div>
+              </div>
+
+              {/* Members Table / List */}
+              {filteredExpiredMembers.length === 0 ? (
+                <div className="p-12 text-center bg-white rounded-3xl border border-dashed border-amber-300 space-y-3">
+                  <Clock className="w-12 h-12 text-amber-400 mx-auto animate-bounce" />
+                  <h4 className="text-base font-black text-slate-800">
+                    {expiredSearchTerm ? 'या शोध संदर्भात कोणताही मुदत संपलेला सदस्य आढळला नाही.' : 'सध्या मुदत संपलेला एकही पेड सदस्य नाही!'}
+                  </h4>
+                  <p className="text-xs text-slate-500 font-medium max-w-md mx-auto">
+                    ज्या सदस्यांच्या प्लॅनची मुदत संपेल, त्यांची माहिती या स्वतंत्र सब-टॅबमध्ये आपोआप दिसेल.
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl border border-amber-200 shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse min-w-[750px]">
+                      <thead>
+                        <tr className="bg-amber-100/80 text-amber-950 text-[11px] font-black uppercase tracking-wider border-b border-amber-200">
+                          <th className="p-3 w-10 text-center">#</th>
+                          <th className="p-3">फोटो व सदस्य माहिती</th>
+                          <th className="p-3">जिल्हा व मोबाईल</th>
+                          <th className="p-3">मागील प्लॅन व रक्कम</th>
+                          <th className="p-3">मुदत तारीख (Expiry Status)</th>
+                          <th className="p-3 text-center">ॲक्शन (नूतनीकरण करा)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-amber-100 text-xs">
+                        {filteredExpiredMembers.map((m, idx) => {
+                          const isSelected = selectedExpiredMemberIds.includes(m.id);
+                          const expDateStr = m.membershipExpiryDate
+                            ? new Date(m.membershipExpiryDate).toLocaleDateString('mr-IN', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                              })
+                            : 'मुदत संपली';
+
+                          return (
+                            <tr
+                              key={m.id}
+                              className={`transition-colors hover:bg-amber-50/70 ${
+                                isSelected ? 'bg-amber-100/60' : idx % 2 === 0 ? 'bg-white' : 'bg-amber-50/30'
+                              }`}
+                            >
+                              <td className="p-3 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handleToggleSelectExpiredMember(m.id)}
+                                  className="rounded border-amber-300 text-[#A71930] focus:ring-[#A71930] cursor-pointer"
+                                />
+                              </td>
+
+                              <td className="p-3">
+                                <div className="flex items-center gap-3">
+                                  <img
+                                    src={m.photoUrl || (m.gender === 'female' ? 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150' : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150')}
+                                    alt={m.fullName}
+                                    className="w-10 h-10 rounded-full object-cover border-2 border-amber-300 shrink-0"
+                                  />
+                                  <div>
+                                    <div className="font-black text-slate-900 text-sm flex items-center gap-1.5">
+                                      <span>{m.fullName}</span>
+                                      <span className={`px-1.5 py-0.2 rounded text-[9px] font-extrabold ${m.gender === 'female' ? 'bg-pink-100 text-pink-800' : 'bg-blue-100 text-blue-800'}`}>
+                                        {m.gender === 'female' ? 'वधू' : 'वर'}
+                                      </span>
+                                    </div>
+                                    <div className="text-[10px] text-slate-500 font-bold flex items-center gap-2">
+                                      <span>ID: {m.id}</span>
+                                      <span>•</span>
+                                      <span>{m.age} वर्षे</span>
+                                      <span>•</span>
+                                      <span className="text-rose-700 font-extrabold bg-rose-50 px-1 rounded">मुदत संपली</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td className="p-3 font-semibold text-slate-700">
+                                <div>{m.district || 'जिल्हा नमूद नाही'}</div>
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  <span className="font-mono text-slate-900 font-bold">{m.mobile}</span>
+                                  {m.mobile && (
+                                    <a
+                                      href={`https://wa.me/91${m.mobile.replace(/\D/g, '')}?text=${encodeURIComponent(`नमस्कार ${m.fullName}, वंजारी जोडी मॅट्रिमनीवर तुमचा प्लॅन संपला आहे. पुन्हा नूतनीकरण करण्यासाठी संपर्क करा.`)}`}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-emerald-600 hover:text-emerald-700 p-0.5 bg-emerald-50 rounded"
+                                      title="व्हॉट्सॲपवर संदेश पाठवा"
+                                    >
+                                      <MessageCircle className="w-3.5 h-3.5" />
+                                    </a>
+                                  )}
+                                </div>
+                              </td>
+
+                              <td className="p-3">
+                                <div className="font-black text-[#800C1E]">
+                                  {m.paymentPlanName || m.membership || 'मागील पेड प्लॅन'}
+                                </div>
+                                <div className="text-[11px] text-slate-600 font-extrabold">
+                                  रक्कम: ₹{m.paymentAmount || 499}
+                                </div>
+                              </td>
+
+                              <td className="p-3">
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-rose-100 text-rose-900 font-extrabold text-[11px] border border-rose-300">
+                                  <Clock className="w-3.5 h-3.5 text-rose-700" />
+                                  <span>{expDateStr}</span>
+                                </div>
+                              </td>
+
+                              <td className="p-3 text-center">
+                                <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                                  <button
+                                    onClick={() => handleRenewPlan(m.id, 30, 'मंथली प्लॅन (१ महिना)')}
+                                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[10px] shadow flex items-center gap-1 cursor-pointer transition-all"
+                                    title="३० दिवसांसाठी प्लॅन नूतनीकरण करा"
+                                  >
+                                    <RefreshCw className="w-3 h-3" />
+                                    <span>१ महिना नूतनीकरण</span>
+                                  </button>
+
+                                  <button
+                                    onClick={() => handleRenewPlan(m.id, 90, 'सिल्व्हर प्लॅन (३ महिने)')}
+                                    className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-[10px] shadow flex items-center gap-1 cursor-pointer transition-all"
+                                    title="९० दिवसांसाठी प्लॅन नूतनीकरण करा"
+                                  >
+                                    <RefreshCw className="w-3 h-3" />
+                                    <span>३ महिने</span>
+                                  </button>
+
+                                  <button
+                                    onClick={() => {
+                                      const daysStr = prompt('किती दिवसांनी नूतनीकरण करायचे आहे? (उदा. 30, 60, 90, 365)', '30');
+                                      if (daysStr && !isNaN(Number(daysStr))) {
+                                        handleRenewPlan(m.id, Number(daysStr), `${daysStr} दिवस नूतनीकरण`);
+                                      }
+                                    }}
+                                    className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-[10px] border border-slate-300 cursor-pointer"
+                                    title="कस्टम दिवस टाका"
+                                  >
+                                    ✏️ सानुकूल
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* TAB 1: APPROVED MEMBERS TABLE WITH BULK EMAIL & BULK DELETE */}
           {activeTab === 'members' && (
             <div className="space-y-4">
@@ -2731,6 +3125,16 @@ export const AdminPanel: React.FC<{
                   >
                     <CreditCard className={`w-3.5 h-3.5 ${showPaidOnlyMembers ? 'text-white' : 'text-emerald-700'}`} />
                     <span>{showPaidOnlyMembers ? '✓ फक्त पेमेंट केलेले सदस्य' : '💳 फक्त पेमेंट केलेले'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('expired_plans')}
+                    className="px-3 py-2 rounded-xl text-xs font-black shadow transition-all cursor-pointer flex items-center gap-1.5 border shrink-0 bg-amber-200 hover:bg-amber-300 text-amber-950 border-amber-400"
+                    title="मुदत संपलेल्या सदस्यांची स्वतंत्र यादी पहा"
+                  >
+                    <Clock className="w-3.5 h-3.5 text-amber-800" />
+                    <span>⏳ मुदत संपलेले ({expiredPaidMembers.length})</span>
                   </button>
 
                   <button
@@ -5550,15 +5954,57 @@ export const AdminPanel: React.FC<{
                         </div>
 
                         {siteConfig.enableRazorpay !== false && (
-                          <div>
-                            <label className="block text-slate-700 text-[11px] font-bold mb-1">Razorpay Key ID (उदा. rzp_live_xxxxxxxx):</label>
+                          <div className="space-y-1">
+                            <label className="block text-slate-700 text-[11px] font-bold">
+                              Razorpay Key ID (Merchant MID: TOvwKXgcmRUEUD - Usha Shivdas Hange):
+                            </label>
                             <input
                               type="text"
-                              value={siteConfig.razorpayKeyId || ''}
+                              value={siteConfig.razorpayKeyId || 'rzp_test_TOvwKXgcmRUEUD'}
                               onChange={(e) => updateSiteConfig({ razorpayKeyId: e.target.value })}
-                              placeholder="rzp_test_5173VanjariJodi किंवा rzp_live_..."
+                              placeholder="rzp_test_TOvwKXgcmRUEUD किंवा rzp_live_..."
+                              className="w-full px-3 py-2 font-mono text-xs rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-[#A71930] bg-white font-bold text-blue-900"
+                            />
+                            <p className="text-[10px] text-slate-500 font-medium">
+                              ✅ मर्चंट आयडी (MID: TOvwKXgcmRUEUD) च्या टेस्ट मोडसाठी Key ID सक्रिय आहे.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Instamojo Gateway Admin Config */}
+                      <div className="pt-2 border-t border-amber-200 space-y-2">
+                        <div className="flex items-center justify-between bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
+                          <div>
+                            <span className="font-extrabold text-xs text-emerald-900 block">Instamojo ऑनलाईन पेमेंट लिंक (Instamojo Payment Gateway):</span>
+                            <span className="text-[11px] text-emerald-700 font-medium">Instamojo वरील पेमेंट लिंक द्वारे भरणा सुरू करा</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => updateSiteConfig({ enableInstamojo: siteConfig.enableInstamojo === false })}
+                            className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                              siteConfig.enableInstamojo !== false
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-slate-200 text-slate-700'
+                            }`}
+                          >
+                            {siteConfig.enableInstamojo !== false ? 'सक्रिय (ON)' : 'बंद (OFF)'}
+                          </button>
+                        </div>
+
+                        {siteConfig.enableInstamojo !== false && (
+                          <div>
+                            <label className="block text-slate-700 text-[11px] font-bold mb-1">Instamojo Payment Link URL (उदा. https://imjo.in/xxxx किंवा https://instamojo.com/@username):</label>
+                            <input
+                              type="text"
+                              value={siteConfig.instamojoUrl || ''}
+                              onChange={(e) => updateSiteConfig({ instamojoUrl: e.target.value })}
+                              placeholder="https://imjo.in/xxxx किंवा https://www.instamojo.com/@gitevijay123"
                               className="w-full px-3 py-2 font-mono text-xs rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-[#A71930]"
                             />
+                            <p className="text-[10px] text-slate-500 font-bold mt-1">
+                              💡 Instamojo Dashboard → Payment Links वरून तयार केलेली लिंक इथे पेस्ट करा. युझरला ही लिंक पेमेंट पॉपअपमध्ये थेट उपलब्ध होईल.
+                            </p>
                           </div>
                         )}
                       </div>
