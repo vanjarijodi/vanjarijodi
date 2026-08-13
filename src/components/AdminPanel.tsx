@@ -3249,7 +3249,15 @@ export const AdminPanel: React.FC<{
                           </td>
                           <td className="p-3">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <p className="font-extrabold text-slate-900">{m.fullName}</p>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedProfileForQuickSettings(m)}
+                                className="font-extrabold text-[#A71930] hover:text-amber-900 hover:underline cursor-pointer text-left flex items-center gap-1 group"
+                                title="सदस्याच्या नावावर क्लिक करा - या सदस्यासाठीचे प्रायव्हसी व अक्सेस सेटींग्ज उघडा"
+                              >
+                                <span>{m.fullName}</span>
+                                <span className="text-[10px] font-bold bg-amber-100 text-[#A71930] px-1.5 py-0.2 rounded border border-amber-300 opacity-80 group-hover:opacity-100">⚙️ सेटिंग्ज</span>
+                              </button>
                               {(m.registrationType === 'admin_direct' || m.isRegisteredByAdmin) && (
                                 <span className="px-2 py-0.5 rounded-full bg-amber-200 text-[#800C1E] border border-amber-400 font-extrabold text-[10px] flex items-center gap-1 shadow-sm" title="ॲडमिनद्वारे थेट नोंदणी केलेली प्रोफाइल">
                                   <Crown className="w-3 h-3 text-amber-700" />
@@ -3531,7 +3539,14 @@ export const AdminPanel: React.FC<{
                                   className="w-12 h-12 rounded-xl object-cover border-2 border-amber-300 shadow-xs"
                                 />
                                 <div>
-                                  <span className="font-black text-slate-900 text-xs block">{m.fullName}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedProfileForQuickSettings(m)}
+                                    className="font-black text-[#A71930] hover:underline text-xs block text-left cursor-pointer"
+                                    title="सदस्याच्या नावावर क्लिक करा - सेटींग्ज पहा/बदला"
+                                  >
+                                    {m.fullName} ⚙️
+                                  </button>
                                   <span className="text-[10px] text-slate-500 font-mono">ID: {m.id} • {m.createdAt}</span>
                                 </div>
                               </div>

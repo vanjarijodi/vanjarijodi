@@ -637,6 +637,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
 
+    // Check if Like option is restricted to Paid Members only
+    const isRequirePaidForLikes = siteConfig?.requirePaidForLikes !== false;
+    const isUserPaidForLikes =
+      currentUser.membership &&
+      currentUser.membership !== 'free' &&
+      !isProfilePlanExpired(currentUser);
+
+    if (isRequirePaidForLikes && !isUserPaidForLikes && !isAdminLoggedIn) {
+      const activeOfferPlan =
+        plansList.find((p) => p.isActive !== false && p.id !== 'free') || plansList[0];
+      setSelectedPlanForPayment(activeOfferPlan);
+      setIsPaymentOpen(true);
+      alert(
+        `❤️ प्रोफाईल लाईक करणे व संपर्क एक्सचेंज (Mutual Like Contact Exchange) करण्याची सुविधा फक्त चालू सबस्क्रिप्शन (Paid) प्लॅन असलेल्या सदस्यांसाठी आहे!\n\nकृपया खालीलपैकी कोणताही ऑफर प्लॅन निवडून आजच प्लॅन नूतनीकरण किंवा सुरू करा.`
+      );
+      return;
+    }
+
     if (currentUser.id === toUserId) {
       alert('तुम्ही स्वतःच्या प्रोफाईलला लाईक करू शकत नाही.');
       return;
@@ -691,19 +709,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       (targetUser?.shortlistedByUsers || []).includes(currentUser.id);
 
     const isMutualUnlockEnabled = siteConfig?.enableMutualLikeContactUnlock !== false;
+    const isUserPaid = currentUser.membership && currentUser.membership !== 'free' && !isProfilePlanExpired(currentUser);
 
     if (targetUser && autoApprove) {
       if (targetLikesMe && isMutualUnlockEnabled) {
-        setUnlockedContacts((prev) => (prev.includes(toUserId) ? prev : [...prev, toUserId]));
-        addNotification({
-          userId: toUserId,
-          title: '🎉 Mutual Like Match! Contact Unlocked',
-          titleMr: '🎉 म्युचुअल मॅच! मोबाईल नंबर अनलॉक झाला!',
-          message: `You and ${currentUser.fullName} liked each other! Contact number is now unlocked.`,
-          messageMr: `तुम्ही व ${currentUser.fullName} यांनी एकमेकांना लाईक केले आहे! दोघांचे मोबाईल नंबर आता अनलॉक झाले आहेत.`,
-          type: 'interest',
-        });
-        alert(`🎉 म्युचुअल मॅच (Mutual Match)! ${targetUser.fullName || 'सदस्याने'} सुद्धा तुम्हाला आधीच लाईक केले होते. एकमेकांनी लाईक केल्यामुळे तुम्हा दोघांचे मोबाईल नंबर आता अनलॉक झाले आहेत!`);
+        if (isUserPaid) {
+          setUnlockedContacts((prev) => (prev.includes(toUserId) ? prev : [...prev, toUserId]));
+          addNotification({
+            userId: toUserId,
+            title: '🎉 Mutual Like Match! Contact Unlocked',
+            titleMr: '🎉 म्युचुअल मॅच! मोबाईल नंबर अनलॉक झाला!',
+            message: `You and ${currentUser.fullName} liked each other! Contact number is now unlocked.`,
+            messageMr: `तुम्ही व ${currentUser.fullName} यांनी एकमेकांना लाईक केले आहे! दोघांचे मोबाईल नंबर आता अनलॉक झाले आहेत.`,
+            type: 'interest',
+          });
+          alert(`🎉 म्युचुअल मॅच (Mutual Match)! ${targetUser.fullName || 'सदस्याने'} सुद्धा तुम्हाला आधीच लाईक केले होते. एकमेकांनी लाईक केल्यामुळे तुम्हा दोघांचे मोबाईल नंबर आता अनलॉक झाले आहेत!`);
+        } else {
+          addNotification({
+            userId: toUserId,
+            title: '🎉 Mutual Like Match!',
+            titleMr: '🎉 म्युचुअल मॅच! एकमेकांना लाईक प्राप्त!',
+            message: `You and ${currentUser.fullName} liked each other! Upgrade plan to view contact number.`,
+            messageMr: `तुम्ही व ${currentUser.fullName} यांनी एकमेकांना लाईक केले आहे! नंबर अनलॉक करण्यासाठी प्लॅन खरेदी करा.`,
+            type: 'interest',
+          });
+          const activeOfferPlan = plansList.find((p) => p.isActive !== false && p.id !== 'free') || plansList[0];
+          setSelectedPlanForPayment(activeOfferPlan);
+          setIsPaymentOpen(true);
+          alert(`🎉 म्युचुअल मॅच (Mutual Match)! ${targetUser.fullName || 'सदस्याने'} सुद्धा तुम्हाला आधीच लाईक केले होते!\n\n🔒 परंतु संपर्क क्रमांक अनलॉक करून पाहण्यासाठी व थेट संपर्क साधण्यासाठी कृपया ऑनलाईन पेमेंट / प्लॅन खरेदी करा.`);
+        }
       } else {
         addNotification({
           userId: toUserId,
@@ -946,18 +980,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           (targetUser?.shortlistedByUsers || []).includes(currentUser.id);
 
         const isMutualUnlockEnabled = siteConfig?.enableMutualLikeContactUnlock !== false;
+        const isUserPaid = currentUser.membership && currentUser.membership !== 'free' && !isProfilePlanExpired(currentUser);
 
         if (targetLikesMe && isMutualUnlockEnabled) {
-          setUnlockedContacts((prev) => (prev.includes(profileId) ? prev : [...prev, profileId]));
-          addNotification({
-            userId: profileId,
-            title: '🎉 Mutual Like Match! Contact Unlocked',
-            titleMr: '🎉 म्युचुअल मॅच! मोबाईल नंबर अनलॉक झाला!',
-            message: `You and ${currentUser.fullName} liked each other! Contact number is now unlocked.`,
-            messageMr: `तुम्ही व ${currentUser.fullName} यांनी एकमेकांना लाईक केले आहे! दोघांचे मोबाईल नंबर आता अनलॉक झाले आहेत.`,
-            type: 'interest',
-          });
-          alert(`🎉 म्युचुअल मॅच (Mutual Match)! ${targetUser.fullName || 'सदस्याने'} सुद्धा तुम्हाला आधीच लाईक केले होते. एकमेकांनी लाईक केल्यामुळे तुम्हा दोघांचे मोबाईल नंबर आता अनलॉक झाले आहेत!`);
+          if (isUserPaid) {
+            setUnlockedContacts((prev) => (prev.includes(profileId) ? prev : [...prev, profileId]));
+            addNotification({
+              userId: profileId,
+              title: '🎉 Mutual Like Match! Contact Unlocked',
+              titleMr: '🎉 म्युचुअल मॅच! मोबाईल नंबर अनलॉक झाला!',
+              message: `You and ${currentUser.fullName} liked each other! Contact number is now unlocked.`,
+              messageMr: `तुम्ही व ${currentUser.fullName} यांनी एकमेकांना लाईक केले आहे! दोघांचे मोबाईल नंबर आता अनलॉक झाले आहेत.`,
+              type: 'interest',
+            });
+            alert(`🎉 म्युचुअल मॅच (Mutual Match)! ${targetUser.fullName || 'सदस्याने'} सुद्धा तुम्हाला आधीच लाईक केले होते. एकमेकांनी लाईक केल्यामुळे तुम्हा दोघांचे मोबाईल नंबर आता अनलॉक झाले आहेत!`);
+          } else {
+            addNotification({
+              userId: profileId,
+              title: '🎉 Mutual Like Match!',
+              titleMr: '🎉 म्युचुअल मॅच! एकमेकांना लाईक प्राप्त!',
+              message: `You and ${currentUser.fullName} liked each other! Upgrade plan to view contact number.`,
+              messageMr: `तुम्ही व ${currentUser.fullName} यांनी एकमेकांना लाईक केले आहे! नंबर अनलॉक करण्यासाठी प्लॅन खरेदी करा.`,
+              type: 'interest',
+            });
+            const activeOfferPlan = plansList.find((p) => p.isActive !== false && p.id !== 'free') || plansList[0];
+            setSelectedPlanForPayment(activeOfferPlan);
+            setIsPaymentOpen(true);
+            alert(`🎉 म्युचुअल मॅच (Mutual Match)! ${targetUser.fullName || 'सदस्याने'} सुद्धा तुम्हाला आधीच लाईक केले होते!\n\n🔒 परंतु संपर्क क्रमांक अनलॉक करून पाहण्यासाठी व थेट संपर्क साधण्यासाठी कृपया ऑनलाईन पेमेंट / प्लॅन खरेदी करा.`);
+          }
         } else {
           addNotification({
             userId: profileId,
@@ -1573,7 +1623,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return true;
     }
 
-    // Check Mutual Like Contact Unlock (जर ॲडमिनने म्युचुअल लाईक संपर्क अनलॉक पर्याय सुरू ठेवला असेल)
+    const isUserPaid = Boolean(
+      currentUser &&
+      !currentUser.id.startsWith('guest') &&
+      ((currentUser.membership && currentUser.membership !== 'free') || currentUser.isCustomAccessGranted) &&
+      !isProfilePlanExpired(currentUser)
+    );
+
+    // Check Mutual Like Contact Unlock (जर म्युचुअल लाईक संपर्क अनलॉक पर्याय सुरू असेल)
     if (currentUser && siteConfig?.enableMutualLikeContactUnlock !== false) {
       const iLikeTarget =
         likedProfileIds.includes(targetProfileId) ||
@@ -1594,7 +1651,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         (targetProfile?.shortlistedByUsers || []).includes(currentUser.id);
 
       if (iLikeTarget && targetLikesMe) {
-        return true;
+        // Mutual match exists! Require payment if user is free
+        if (isUserPaid || unlockedContacts.includes(targetProfileId)) {
+          return true;
+        }
+        return false;
+      }
+
+      // If mode is strictly mutual like only, require mutual match
+      if (siteConfig?.contactUnlockMode === 'mutual_like_only') {
+        return false;
       }
     }
 

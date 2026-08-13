@@ -631,6 +631,8 @@ export interface SiteConfig {
   enablePromoCodes?: boolean;
   enableMutualLikeContactUnlock?: boolean;
   requireMutualLikeForPhone?: boolean;
+  requirePaidForLikes?: boolean;
+  contactUnlockMode?: 'mutual_like_only' | 'all_paid_members' | 'both_allowed';
   disablePlanContactLimit?: boolean;
   adminOverrideMemberPrivacy?: boolean;
   allowMembersToControlPrivacy?: boolean;

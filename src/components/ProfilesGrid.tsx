@@ -430,6 +430,14 @@ export const ProfilesGrid: React.FC<{
                     </div>
                   </div>
 
+                  {/* Mutual Like Match Badge */}
+                  {isMutualMatch && (
+                    <div className="mx-4 my-1.5 px-3 py-1.5 bg-gradient-to-r from-emerald-700 to-teal-800 text-white rounded-xl text-[11px] font-black flex items-center justify-between shadow border border-emerald-300 animate-pulse">
+                      <span className="flex items-center gap-1">🎉 म्युचुअल मॅच! (नंबर अनलॉक)</span>
+                      <span className="text-amber-300 font-mono font-extrabold">{profile.mobile}</span>
+                    </div>
+                  )}
+
                   {/* Action Buttons */}
                   <div className="p-4 bg-slate-50 border-t border-slate-100 rounded-b-3xl space-y-2">
                     

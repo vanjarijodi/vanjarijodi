@@ -132,6 +132,46 @@ export const AdminMemberQuickSettingsModal: React.FC<AdminMemberQuickSettingsMod
             </div>
           )}
 
+          {/* Member Profile Summary Card */}
+          <div className="p-3.5 bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100/60 rounded-2xl border-2 border-amber-300 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <img
+                src={profile.photoUrl || profile.photos?.[0] || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200'}
+                alt={profile.fullName}
+                className="w-14 h-14 rounded-2xl object-cover border-2 border-amber-400 shadow-xs shrink-0"
+              />
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="font-extrabold text-slate-900 text-sm sm:text-base">{profile.fullName}</h4>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-200 text-[#800C1E] border border-amber-400">
+                    ID: {profile.id}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-700 font-bold">
+                  📱 {profile.mobile} • {profile.district} • {profile.education || 'शिक्षण माहिती नाही'}
+                </p>
+                <div className="flex items-center gap-2 pt-1 flex-wrap text-[10px]">
+                  <span className={`px-2 py-0.5 rounded-md font-black border ${
+                    (profile.membership && profile.membership !== 'free')
+                      ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                      : 'bg-amber-100 text-[#A71930] border-amber-300'
+                  }`}>
+                    प्लॅन: {(profile.membership || 'FREE').toUpperCase()}
+                  </span>
+                  {profile.isApproved ? (
+                    <span className="text-emerald-700 font-extrabold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                      ✓ अकाउंट मंजूर
+                    </span>
+                  ) : (
+                    <span className="text-amber-800 font-extrabold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-300">
+                      ⏳ मंजुरी प्रलंबित
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* 1. Member Privacy Controls */}
           <div className="bg-amber-50/80 p-4 rounded-2xl border-2 border-amber-200 space-y-3">
             <h4 className="font-black text-[#A71930] flex items-center gap-2 text-xs sm:text-sm border-b border-amber-200 pb-2">

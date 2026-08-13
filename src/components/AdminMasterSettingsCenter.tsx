@@ -186,6 +186,129 @@ export const AdminMasterSettingsCenter: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-xs">
+            {/* REQUIRE PAID FOR LIKES TOGGLE */}
+            <div className="p-4 rounded-2xl bg-rose-50/90 border-2 border-rose-300 space-y-2 col-span-1 md:col-span-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <span className="font-black text-rose-950 text-sm flex items-center gap-2">
+                    <Heart className="w-5 h-5 text-[#A71930] fill-[#A71930]" />
+                    <span>फक्त पेमेंट केलेल्या सदस्यांनाच लाईक पर्याय (Require Paid Subscription for Likes):</span>
+                  </span>
+                  <span className="text-xs text-slate-700 font-bold block mt-1">
+                    ℹ️ काय काम करते: ही सेटिंग चालू ठेवल्यास फक्त एक्टिव्ह सबस्क्रिप्शन (पेमेंट) असलेल्या सदस्यांनाच वधू/वरांच्या प्रोफाईलला 'लाईक' (Express Interest) करता येते.
+                  </span>
+                  <span className="text-[11px] text-[#800C1E] font-semibold block mt-0.5">
+                    👉 परिणाम: फ्री/विना-पेमेंट सदस्याने लाईकवर क्लीक केल्यास त्यांना थेट पेमेंटचा प्लॅन उघडून दिला जातो.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleToggle(
+                      'requirePaidForLikes',
+                      siteConfig.requirePaidForLikes !== false,
+                      'फक्त पेमेंट सदस्यांना लाईक'
+                    )
+                  }
+                  className={`px-4 py-2 rounded-xl text-xs font-black shrink-0 transition-all cursor-pointer ${
+                    siteConfig.requirePaidForLikes !== false
+                      ? 'bg-[#A71930] text-amber-100 shadow-md border border-amber-300'
+                      : 'bg-slate-300 text-slate-700'
+                  }`}
+                >
+                  {siteConfig.requirePaidForLikes !== false ? 'सक्रिय (Paid Only ON)' : 'सर्वांना खुला (OFF)'}
+                </button>
+              </div>
+            </div>
+
+            {/* MUTUAL LIKE CONTACT UNLOCK TOGGLE */}
+            <div className="p-4 rounded-2xl bg-amber-50/90 border-2 border-amber-300 space-y-2 col-span-1 md:col-span-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <span className="font-black text-amber-950 text-sm flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-amber-700" />
+                    <span>एकमेकांना लाईक केल्यावर मोबाईल नंबर ऑटो-अनलॉक (Mutual Like Contact Unlock):</span>
+                  </span>
+                  <span className="text-xs text-slate-700 font-bold block mt-1">
+                    ℹ️ काय काम करते: जेव्हा दोन सदस्यांनी एकमेकांना 'लाईक' (Mutual Match) केले असेल, तेव्हा दोघांचे संपर्क क्रमांक स्वयंचलितपणे (Auto Unlock) होऊन एकमेकांना दिसतात.
+                  </span>
+                  <span className="text-[11px] text-amber-900 font-semibold block mt-0.5">
+                    👉 परिणाम: "🎉 म्युचुअल मॅच! दोघांनी एकमेकांना लाईक केल्यामुळे नंबर अनलॉक झाला" असा मेसेज व मोबाईल नंबर दिसू लागतो.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleToggle(
+                      'enableMutualLikeContactUnlock',
+                      siteConfig.enableMutualLikeContactUnlock !== false,
+                      'म्युचुअल लाईक संपर्क अनलॉक'
+                    )
+                  }
+                  className={`px-4 py-2 rounded-xl text-xs font-black shrink-0 transition-all cursor-pointer ${
+                    siteConfig.enableMutualLikeContactUnlock !== false
+                      ? 'bg-emerald-600 text-white shadow-md border border-emerald-300'
+                      : 'bg-slate-300 text-slate-700'
+                  }`}
+                >
+                  {siteConfig.enableMutualLikeContactUnlock !== false ? 'ऑटो अनलॉक चालू (ON)' : 'बंद (OFF)'}
+                </button>
+              </div>
+
+              {/* CONTACT UNLOCK ACCESS MODE SELECTOR */}
+              <div className="pt-3 border-t border-amber-200/80 space-y-2">
+                <label className="block text-slate-900 text-xs font-black">
+                  🎛️ वेबसाईटवरील संपर्क क्रमांक व्हिजिबिलिटी मोड (Contact Unlock Rules):
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleModeChange('contactUnlockMode', 'both_allowed', 'संपर्क अनलॉक मोड: दोन्ही पद्धती')}
+                    className={`p-2.5 rounded-xl text-left text-xs font-bold border transition cursor-pointer flex flex-col justify-between ${
+                      (siteConfig.contactUnlockMode || 'both_allowed') === 'both_allowed'
+                        ? 'bg-amber-500 text-amber-950 border-amber-600 font-black shadow'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>१. दोन्ही पद्धती चालू</span>
+                    <span className="text-[10px] font-medium opacity-90 mt-1">
+                      (सर्व पेमेंट सदस्यांना डायरेक्ट नंबर व म्युचुअल लाईकने सुद्धा ऑटो नंबर अनलॉक)
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleModeChange('contactUnlockMode', 'mutual_like_only', 'संपर्क अनलॉक मोड: फक्त म्युचुअल लाईक')}
+                    className={`p-2.5 rounded-xl text-left text-xs font-bold border transition cursor-pointer flex flex-col justify-between ${
+                      siteConfig.contactUnlockMode === 'mutual_like_only'
+                        ? 'bg-amber-500 text-amber-950 border-amber-600 font-black shadow'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>२. फक्त म्युचुअल लाईक</span>
+                    <span className="text-[10px] font-medium opacity-90 mt-1">
+                      (दोघांनी एकमेकांना लाईक केल्यावरच मोबाईल नंबर अनलॉक होऊन दिसेल)
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleModeChange('contactUnlockMode', 'all_paid_members', 'संपर्क अनलॉक मोड: सर्व पेमेंट सदस्यांना')}
+                    className={`p-2.5 rounded-xl text-left text-xs font-bold border transition cursor-pointer flex flex-col justify-between ${
+                      siteConfig.contactUnlockMode === 'all_paid_members'
+                        ? 'bg-amber-500 text-amber-950 border-amber-600 font-black shadow'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>३. सर्व पेमेंट सदस्यांना</span>
+                    <span className="text-[10px] font-medium opacity-90 mt-1">
+                      (चालू पेमेंट प्लॅन असणाऱ्या सर्व सदस्यांना सर्व नंबर थेट दिसतील)
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* Allow Members to Control Privacy Toggle */}
             <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-300 flex items-center justify-between gap-3">
               <div>

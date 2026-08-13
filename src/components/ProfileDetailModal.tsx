@@ -185,6 +185,26 @@ export const ProfileDetailModal: React.FC<{
           {/* Modal Body Scrollable */}
           <div className="p-6 overflow-y-auto space-y-6 flex-1 pr-4">
 
+            {/* MUTUAL MATCH UNLOCK BANNER */}
+            {isMutualMatch && (
+              <div className="p-4 bg-gradient-to-r from-emerald-700 via-teal-800 to-emerald-900 text-white rounded-3xl shadow-xl border-2 border-emerald-300 flex items-center gap-3.5 animate-fadeIn">
+                <div className="p-3 bg-amber-400 text-amber-950 rounded-2xl font-black text-2xl shrink-0 shadow-md">
+                  🎉
+                </div>
+                <div className="space-y-0.5">
+                  <h4 className="font-black text-amber-200 text-sm sm:text-base flex items-center gap-2">
+                    <span>म्युचुअल मॅच! (Mutual Like Match) - नंबर अनलॉक झाला</span>
+                  </h4>
+                  <p className="text-xs text-emerald-100 font-bold">
+                    तुम्ही व {profile.fullName} यांनी एकमेकांना 'लाईक' केल्यामुळे दोघांचे डायरेक्ट मोबाईल नंबर अनलॉक झाले आहेत!
+                  </p>
+                  <p className="text-xs text-amber-300 font-extrabold pt-1">
+                    📞 मोबाईल नंबर: {profile.mobile}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* ⚙️ ADMIN ACTION PANEL */}
             {isAdminLoggedIn && (
               <div className="bg-red-50/90 border-2 border-red-300 p-5 rounded-3xl shadow-lg space-y-4 animate-fadeIn text-xs sm:text-sm font-bold">
