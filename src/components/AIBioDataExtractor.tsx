@@ -161,11 +161,27 @@ export const AIBioDataExtractor: React.FC<AIBioDataExtractorProps> = ({
     const mobileMatch = cleanText.match(/(?:मोबाईल|मोबाइल|संपर्क|Phone|Mobile|Contact)[\s:\-–=]*([6-9]\d{9})/i) || cleanText.match(/([6-9]\d{9})/);
     const mobile = mobileMatch ? mobileMatch[1] : '';
 
-    let fullName = findValue(['नाव', 'मुलाचे नाव', 'मुलीचे नाव', 'पूर्ण नाव', 'Name', 'Full Name']);
+    let fullName = findValue([
+      'नाव', 'नांव', 'मुलाचे नाव', 'मुलीचे नाव', 'मुलाचे नांव', 'मुलीचे नांव',
+      'उमेदवाराचे नाव', 'उमेदवाराचे नांव', 'उमेदवाराचे पूर्ण नाव', 'पूर्ण नाव', 'पूर्ण नांव',
+      'Name', 'Full Name', 'Candidate Name', 'Name of Candidate'
+    ]);
+
+    if (!fullName && cleanText.length > 0) {
+      const matchHonorific = cleanText.match(/(?:चि\.|चिरंजीव|कु\.|कुमारी|सौ\.का\.|Chi\.|Kum\.|Mr\.|Ms\.)\s*([^\n,;]+)/i);
+      if (matchHonorific && matchHonorific[1]?.trim()) {
+        fullName = matchHonorific[1].trim();
+      }
+    }
+
     if (!fullName && cleanText.length > 0) {
       const lines = cleanText.split('\n').map((l) => l.trim()).filter(Boolean);
-      if (lines.length > 0 && lines[0].length < 40 && !lines[0].includes(':')) {
-        fullName = lines[0];
+      for (const line of lines) {
+        if (/^(बायोडाटा|बायो-डाटा|biodata|bio-data|matrimonial|kundali|पत्रिका)$/i.test(line)) continue;
+        if (line.length > 3 && line.length < 50 && !line.includes(':')) {
+          fullName = line;
+          break;
+        }
       }
     }
 
@@ -198,7 +214,7 @@ export const AIBioDataExtractor: React.FC<AIBioDataExtractorProps> = ({
     const nativeAddress = findValue(['मूळ गाव', 'मूळ पत्ता', 'Native']);
 
     return {
-      fullName: fullName || 'उमेदवार (बायोडाटा)',
+      fullName: fullName || '',
       gender,
       candidatePhotoUrl: photoUrl,
       hasCandidatePhoto: !!photoUrl,
@@ -274,8 +290,17 @@ export const AIBioDataExtractor: React.FC<AIBioDataExtractorProps> = ({
       }
 
       if (parsedData) {
+        let nameCandidate = parsedData.fullName;
+        if (!nameCandidate || nameCandidate.trim() === '' || nameCandidate.trim() === 'null' || nameCandidate.trim() === '—') {
+          const localParsed = parseBioDataLocally(parsedData.rawSummary || textContent || rawTextPrompt || '', finalCandidatePhoto);
+          if (localParsed.fullName) {
+            nameCandidate = localParsed.fullName;
+          }
+        }
+
         const result: ExtractedBioData = {
           ...parsedData,
+          fullName: nameCandidate || '',
           candidatePhotoUrl: finalCandidatePhoto,
           hasCandidatePhoto: !!finalCandidatePhoto,
           candidatePhotoDescription: finalCandidatePhoto
@@ -587,9 +612,20 @@ export const AIBioDataExtractor: React.FC<AIBioDataExtractorProps> = ({
               </div>
             )}
 
-            <div>
-              <span className="text-slate-500 text-[10px] block">नाव (Full Name)</span>
-              <span className="font-bold text-white">{extractedResult.fullName || '—'}</span>
+            <div className="col-span-2 sm:col-span-4 bg-amber-950/60 p-3 rounded-2xl border-2 border-amber-500/50 space-y-1">
+              <label className="text-amber-300 text-xs font-black flex items-center justify-between">
+                <span>✏️ उमेदवाराचे पूर्ण नाव (Full Name):</span>
+                <span className="text-[10px] text-amber-200/90 font-normal">बदलू शकता</span>
+              </label>
+              <input
+                type="text"
+                value={extractedResult.fullName || ''}
+                onChange={(e) =>
+                  setExtractedResult((prev) => (prev ? { ...prev, fullName: e.target.value } : null))
+                }
+                placeholder="उदा. अमित तुकाराम सानप / पूजा बाळकृष्ण मुंडे"
+                className="w-full bg-slate-900 border border-amber-500/50 rounded-xl px-3.5 py-2 text-sm text-white font-black outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/50"
+              />
             </div>
 
             <div>
