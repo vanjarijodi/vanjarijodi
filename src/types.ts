@@ -531,8 +531,13 @@ export interface SiteConfig {
   paymentQrUrl?: string;
   paymentUpiId?: string;
   paymentNote?: string;
-  paymentMode?: 'both' | 'razorpay_only' | 'upi_qr_only';
+  paymentMode?: 'both' | 'razorpay_only' | 'ccavenue_only' | 'online_gateways_only' | 'upi_qr_only';
   enableRazorpay?: boolean;
+  enableCcavenue?: boolean;
+  ccavenueMerchantId?: string;
+  ccavenueAccessCode?: string;
+  ccavenueWorkingKey?: string;
+  ccavenueRedirectUrl?: string;
   enableInstamojo?: boolean;
   instamojoUrl?: string;
   enableUpiQr?: boolean;

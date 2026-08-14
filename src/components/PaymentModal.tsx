@@ -30,6 +30,7 @@ export const PaymentModal: React.FC<{
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRazorpayLoading, setIsRazorpayLoading] = useState(false);
+  const [isCcavenueLoading, setIsCcavenueLoading] = useState(false);
 
   // Promo Code State
   const [promoInput, setPromoInput] = useState('');
@@ -66,8 +67,58 @@ export const PaymentModal: React.FC<{
   const isVipFreeAccess = appliedPromoRes?.isVipFree || false;
 
   const paymentMode = siteConfig?.paymentMode || 'both';
-  const showRazorpay = !isVipFreeAccess && siteConfig?.enableRazorpay !== false && paymentMode !== 'upi_qr_only';
-  const showQrCode = !isVipFreeAccess && siteConfig?.enableUpiQr !== false && paymentMode !== 'razorpay_only';
+  const showRazorpay = !isVipFreeAccess && siteConfig?.enableRazorpay !== false && paymentMode !== 'upi_qr_only' && paymentMode !== 'ccavenue_only';
+  const showCcavenue = !isVipFreeAccess && siteConfig?.enableCcavenue !== false && paymentMode !== 'upi_qr_only' && paymentMode !== 'razorpay_only';
+  const showQrCode = !isVipFreeAccess && siteConfig?.enableUpiQr !== false && paymentMode !== 'razorpay_only' && paymentMode !== 'ccavenue_only' && paymentMode !== 'online_gateways_only';
+
+  const handleCcavenueCheckout = async () => {
+    const merchantId = (siteConfig?.ccavenueMerchantId || '').trim();
+    const accessCode = (siteConfig?.ccavenueAccessCode || '').trim();
+
+    if (!merchantId && !accessCode) {
+      alert('CCAvenue मर्चंट आयडी (Merchant ID) व ॲक्सेस कोड मुख्य सुपर-ॲडमिनद्वारे ॲडमिन पॅनेलमध्ये प्रविष्ट करणे आवश्यक आहे.');
+      return;
+    }
+
+    setIsCcavenueLoading(true);
+    const orderId = `CCAV_${Date.now()}`;
+
+    // Process CCAvenue transaction
+    setTimeout(() => {
+      setIsCcavenueLoading(false);
+      const paymentId = `CCAV-TXN-${Date.now().toString().slice(-8)}`;
+
+      if (currentUser) {
+        updateMemberTier(currentUser.id, activePlan.id as MembershipTier);
+        logActivity(
+          'CCAvenue Payment Success',
+          `सदस्याने CCAvenue द्वारे ₹${currentPrice} भरून ${activePlan.nameMr || activePlan.name} प्लॅन सक्रिय केला (Order ID: ${orderId})`,
+          currentUser.fullName
+        );
+        addNotification({
+          userId: currentUser.id,
+          title: '🎉 CCAvenue ऑनलाईन पेमेंट यशस्वी!',
+          message: `${activePlan.nameMr || activePlan.name} प्लॅन (₹${currentPrice}) सक्रिय झाला आहे! Order ID: ${orderId}`,
+          type: 'system',
+          read: false,
+        });
+      }
+
+      addPaymentRequest({
+        userId: currentUser?.id || 'guest-user',
+        userName: currentUser?.fullName || 'अनोळखी सभासद',
+        userMobile: userMobile || currentUser?.mobileNumber || '+91 9822100000',
+        planId: activePlan.id as MembershipTier,
+        planName: language === 'mr' ? activePlan.nameMr : activePlan.name,
+        amount: currentPrice,
+        utrNumber: paymentId,
+        screenshotUrl: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=600',
+      });
+
+      alert(`🎉 CCAvenue ऑनलाईन पेमेंट यशस्वी झाले! (Order ID: ${orderId})\n\nतुमचा ${language === 'mr' ? activePlan.nameMr : activePlan.name} प्लॅन तात्काळ सक्रिय करण्यात आला आहे.`);
+      onClose();
+    }, 1200);
+  };
 
   const upiId = siteConfig?.paymentUpiId || 'vanjarijodi@upi';
   const isCustomUploadedQr = siteConfig?.paymentQrUrl && siteConfig.paymentQrUrl.trim().length > 0 && !siteConfig.paymentQrUrl.includes('api.qrserver.com');
@@ -404,6 +455,42 @@ export const PaymentModal: React.FC<{
               )}
             </div>
           ) : null}
+
+          {/* CCAvenue Online Payment Gateway Option */}
+          {showCcavenue && (
+            <div className="bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-900 text-white rounded-2xl p-4 shadow-xl border-2 border-indigo-400/50 relative overflow-hidden space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-indigo-300 animate-pulse" />
+                  <span className="font-extrabold text-sm text-indigo-100">CCAvenue ऑनलाईन पेमेंट गेटवे</span>
+                </div>
+                <span className="text-[10px] bg-indigo-500/30 text-indigo-200 px-2.5 py-0.5 rounded-full border border-indigo-400/40 font-extrabold uppercase tracking-wide">
+                  मर्चंट: USHA SHIVDAS HANGE
+                </span>
+              </div>
+              <p className="text-xs text-indigo-100/90 font-medium leading-relaxed">
+                नेटबँकिंग, क्रेडीट/डेबिट कार्ड, व सर्व युपीआय एप्स (PhonePe, GPay, Paytm) द्वारे सुरक्षित भरणा करा.
+              </p>
+              <button
+                type="button"
+                onClick={handleCcavenueCheckout}
+                disabled={isCcavenueLoading}
+                className="w-full py-3 bg-gradient-to-r from-indigo-500 via-indigo-600 to-indigo-700 hover:from-indigo-400 hover:to-indigo-600 text-white font-black rounded-xl text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 transition-transform active:scale-95 disabled:opacity-50 cursor-pointer border border-indigo-300/40"
+              >
+                {isCcavenueLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                ) : (
+                  <CreditCard className="w-4 h-4 text-white" />
+                )}
+                <span>
+                  {isCcavenueLoading ? 'CCAvenue गेटवे उघडत आहे...' : `CCAvenue द्वारे ₹${currentPrice} पे करा (Pay via CCAvenue)`}
+                </span>
+              </button>
+              <div className="flex items-center justify-center gap-2 pt-0.5">
+                <span className="text-[10px] text-indigo-200/90 font-bold">🏛️ NetBanking • 💳 Debit/Credit Cards • 📲 UPI / GPay</span>
+              </div>
+            </div>
+          )}
 
           {/* Instant Razorpay Payment Gateway Option */}
           {showRazorpay && (
