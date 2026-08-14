@@ -231,7 +231,9 @@ export const AIBioDataExtractor: React.FC<AIBioDataExtractorProps> = ({
     setIsExtracting(true);
     setErrorMsg(null);
 
-    const finalCandidatePhoto = candidateProfilePhotoUrl || uploadedCloudinaryUrl || imagePreview || undefined;
+    // Candidate photo is ONLY set if candidateProfilePhotoUrl was uploaded separately.
+    // BioData document paper image is NEVER set as candidate profile photo!
+    const finalCandidatePhoto = candidateProfilePhotoUrl || undefined;
 
     try {
       const payload: any = {};
@@ -362,44 +364,103 @@ export const AIBioDataExtractor: React.FC<AIBioDataExtractorProps> = ({
       {/* TAB 1: IMAGE UPLOAD */}
       {activeInputTab === 'image' && (
         <div className="space-y-4">
-          <div className="relative border-2 border-dashed border-amber-500/40 rounded-3xl p-6 bg-slate-950 hover:border-amber-400 transition-all text-center">
-            {imagePreview ? (
-              <div className="space-y-3">
-                <img
-                  src={imagePreview}
-                  alt="BioData Document"
-                  className="max-h-56 mx-auto rounded-2xl border border-amber-500/30 object-contain shadow-lg"
-                />
-                <p className="text-xs text-emerald-400 font-bold flex items-center justify-center gap-1">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{selectedFile?.name || 'बायोडाटा इमेज तयार आहे'}</span>
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-3 py-4">
-                <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30 shadow-inner">
-                  <Upload className="w-7 h-7" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-white">
-                    बायोडाटा किंवा पत्रिकेचा फोटो इथे अपलोड करा
-                  </h4>
-                  <p className="text-xs text-slate-400 mt-1">
-                    गॅलरी मधून फोटो निवडा (JPG, PNG, WebP)
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-amber-400" />
+              <span>१. बायोडाटा कागदपत्र किंवा पत्रिकेचा फोटो (माहिती वाचण्यासाठी):</span>
+            </label>
+            <div className="relative border-2 border-dashed border-amber-500/40 rounded-3xl p-5 bg-slate-950 hover:border-amber-400 transition-all text-center">
+              {imagePreview ? (
+                <div className="space-y-2">
+                  <img
+                    src={imagePreview}
+                    alt="BioData Document"
+                    className="max-h-48 mx-auto rounded-2xl border border-amber-500/30 object-contain shadow-lg"
+                  />
+                  <p className="text-xs text-emerald-400 font-bold flex items-center justify-center gap-1">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{selectedFile?.name || 'बायोडाटा कागदपत्र तयार आहे'}</span>
                   </p>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="space-y-2 py-3">
+                  <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30 shadow-inner">
+                    <Upload className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs sm:text-sm font-bold text-white">
+                      बायोडाटा किंवा पत्रिकेचा फोटो इथे निवडा
+                    </h4>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      (या फोटोमधील मजकूर AI द्वारे वाचला जाईल)
+                    </p>
+                  </div>
+                </div>
+              )}
 
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-            />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+              />
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* OPTIONAL CANDIDATE FACE PHOTO UPLOAD */}
+          <div className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <Camera className="w-3.5 h-3.5 text-emerald-400" />
+                <span>२. वधू किंवा वराचा वैयक्तिक पासपोर्ट फोटो (ऐच्छिक):</span>
+              </label>
+              {candidateProfilePhotoUrl && (
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                  ✓ फोटो निवडला
+                </span>
+              )}
+            </div>
+            
+            <p className="text-[11px] text-slate-400 leading-tight">
+              (बायोडाटाच्या कागदपत्राचा फोटो प्रोफाइलवर लावला जात नाही. जर उमेदवाराचा स्वतःचा चेहरा असलेला फोटो जोडायचा असेल तरच इथे निवडा)
+            </p>
+
+            <div className="flex items-center gap-3 pt-1">
+              {candidateProfilePhotoUrl ? (
+                <div className="flex items-center gap-2">
+                  <img
+                    src={candidateProfilePhotoUrl}
+                    alt="Candidate Face"
+                    className="w-12 h-12 rounded-xl object-cover border-2 border-amber-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCandidateProfilePhotoUrl(null)}
+                    className="text-[11px] text-rose-400 hover:underline font-semibold"
+                  >
+                    फोटो काढा
+                  </button>
+                </div>
+              ) : (
+                <label className="cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 transition-colors">
+                  {isUploadingCandidatePhoto ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                  ) : (
+                    <Upload className="w-4 h-4 text-emerald-400" />
+                  )}
+                  <span>उमेदवाराचा पासपोर्ट फोटो निवडा</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCandidatePhotoChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
             <button
               type="button"
               disabled={!imagePreview || isExtracting}
@@ -418,7 +479,7 @@ export const AIBioDataExtractor: React.FC<AIBioDataExtractorProps> = ({
               ) : (
                 <>
                   <Sparkles className="w-5 h-5 fill-white" />
-                  <span>फोटोवरून माहिती शोधा (Extract via AI)</span>
+                  <span>फोटोवरून माहिती शोधा (Extract via Gemini AI)</span>
                 </>
               )}
             </button>
