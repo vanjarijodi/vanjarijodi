@@ -899,10 +899,8 @@ export const AdminMasterSettingsCenter: React.FC = () => {
                 }
                 className="w-full px-3.5 py-2.5 text-xs font-bold rounded-xl border border-amber-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#A71930] cursor-pointer shadow-sm"
               >
-                <option value="both">⚡ सर्व ऑनलाईन पर्याय (CCAvenue + Razorpay + UPI QR कोड)</option>
+                <option value="both">⚡ सर्व ऑनलाईन पर्याय (CCAvenue गेटवे + UPI QR कोड)</option>
                 <option value="ccavenue_only">🏛️ फक्त CCAvenue ऑनलाईन पेमेंट (CCAvenue Gateway Only)</option>
-                <option value="razorpay_only">💳 फक्त Razorpay ऑनलाईन पेमेंट (Razorpay Gateway Only)</option>
-                <option value="online_gateways_only">💳 सर्व ऑनलाईन गेटवे (CCAvenue + Razorpay)</option>
                 <option value="upi_qr_only">📲 फक्त UPI QR कोड व UTR नंबर दाखवा (UPI QR Code Only)</option>
               </select>
             </div>
@@ -916,7 +914,7 @@ export const AdminMasterSettingsCenter: React.FC = () => {
                     <span>CCAvenue ऑनलाईन पेमेंट गेटवे (CCAvenue Payment Credentials):</span>
                   </span>
                   <span className="text-[11px] text-indigo-900 font-medium block mt-0.5">
-                    मर्चंट अकाऊंट: <strong className="text-indigo-950">USHA SHIVDAS HANGE (VanjariJodi)</strong> - CCAvenue द्वारे पेमेंट घेण्यासाठी API क्रेडेंशियल्स प्रविष्ट करा.
+                    मर्चंट अकाऊंट: <strong className="text-indigo-950">वंजारीजोडी (VanjariJodi)</strong> - CCAvenue द्वारे पेमेंट घेण्यासाठी API क्रेडेंशियल्स प्रविष्ट करा.
                   </span>
                 </div>
                 <button
@@ -987,63 +985,7 @@ export const AdminMasterSettingsCenter: React.FC = () => {
                     </div>
                     <p className="text-[10px] text-slate-600 font-bold flex items-center gap-1 pt-1">
                       <Zap className="w-3.5 h-3.5 text-indigo-600" />
-                      <span>CCAvenue मर्चंट पोर्टल (USHA SHIVDAS HANGE) मधील API & Integration Settings मधील हे तीन कोड प्रविष्ट करून सेव्ह करा.</span>
-                    </p>
-                  </div>
-                )
-              )}
-            </div>
-
-            {/* Enable Razorpay Toggle */}
-            <div className="p-3.5 rounded-2xl bg-blue-50/80 border border-blue-200 space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <span className="font-black text-blue-900 block flex items-center gap-1.5">
-                    <CreditCard className="w-4 h-4 text-blue-700" />
-                    <span>Razorpay ऑनलाईन पेमेंट गेटवे (Enable Razorpay):</span>
-                  </span>
-                  <span className="text-[11px] text-blue-800 font-medium block mt-0.5">
-                    कार्ड, नेटबँकिंग व ऑनलाईन ऑटो-पेमेंट सक्रिय करा.
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleToggle(
-                      'enableRazorpay',
-                      siteConfig.enableRazorpay !== false,
-                      'Razorpay पेमेंट ऑनलाईन'
-                    )
-                  }
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-black shrink-0 transition-all cursor-pointer ${
-                    siteConfig.enableRazorpay !== false
-                      ? 'bg-blue-600 text-white shadow'
-                      : 'bg-slate-300 text-slate-700'
-                  }`}
-                >
-                  {siteConfig.enableRazorpay !== false ? 'सक्रिय (ON)' : 'बंद (OFF)'}
-                </button>
-              </div>
-
-              {currentSubAdmin ? (
-                <p className="text-[10px] text-amber-800 font-bold pt-1">
-                  🔒 Razorpay Key ID बदलण्याची परवानगी फक्त मुख्य सुपर-ॲडमिनला आहे.
-                </p>
-              ) : (
-                siteConfig.enableRazorpay !== false && (
-                  <div className="pt-2 border-t border-blue-200 space-y-1">
-                    <label className="block text-slate-800 text-[11px] font-bold">
-                      Razorpay Key ID (Merchant: Usha Shivdas Hange - MID: TOvwKXgcmRUEUD):
-                    </label>
-                    <input
-                      type="text"
-                      value={siteConfig.razorpayKeyId || 'rzp_test_TOvwKXgcmRUEUD'}
-                      onChange={(e) => updateSiteConfig({ razorpayKeyId: e.target.value })}
-                      placeholder="rzp_test_TOvwKXgcmRUEUD किंवा rzp_live_..."
-                      className="w-full px-3 py-2 font-mono text-xs rounded-xl border border-blue-300 focus:outline-none focus:ring-2 focus:ring-[#A71930] bg-white font-bold text-blue-900"
-                    />
-                    <p className="text-[10px] text-slate-600 font-medium">
-                      ⚡ Razorpay Dashboard मधील Key ID किंवा MID द्वारे टेस्ट मोड ऑन केले आहे.
+                      <span>CCAvenue मर्चंट पोर्टल (वंजारीजोडी - VanjariJodi) मधील API & Integration Settings मधील हे तीन कोड प्रविष्ट करून सेव्ह करा.</span>
                     </p>
                   </div>
                 )

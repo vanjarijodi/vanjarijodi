@@ -150,7 +150,7 @@ export const Footer: React.FC = () => {
 
       </div>
 
-      {/* MANDATORY RAZORPAY COMPLIANCE LEGAL POLICY LINKS BAR */}
+      {/* LEGAL POLICY LINKS BAR */}
       <div className="bg-[#5C0815] border-t border-b border-amber-400/30 py-3 px-4">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-bold text-amber-200">
           <button

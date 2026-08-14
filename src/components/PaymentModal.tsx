@@ -18,6 +18,7 @@ export const PaymentModal: React.FC<{
     setSelectedPlanForPayment,
     addPaymentRequest,
     validatePromoCode,
+    sendNotification,
     addNotification,
     logActivity,
     updateMemberTier,
@@ -29,7 +30,6 @@ export const PaymentModal: React.FC<{
   const [userMobile, setUserMobile] = useState(currentUser?.mobileNumber || currentUser?.whatsappNumber || '');
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRazorpayLoading, setIsRazorpayLoading] = useState(false);
   const [isCcavenueLoading, setIsCcavenueLoading] = useState(false);
 
   // Promo Code State
@@ -67,9 +67,8 @@ export const PaymentModal: React.FC<{
   const isVipFreeAccess = appliedPromoRes?.isVipFree || false;
 
   const paymentMode = siteConfig?.paymentMode || 'both';
-  const showRazorpay = !isVipFreeAccess && siteConfig?.enableRazorpay !== false && paymentMode !== 'upi_qr_only' && paymentMode !== 'ccavenue_only';
-  const showCcavenue = !isVipFreeAccess && siteConfig?.enableCcavenue !== false && paymentMode !== 'upi_qr_only' && paymentMode !== 'razorpay_only';
-  const showQrCode = !isVipFreeAccess && siteConfig?.enableUpiQr !== false && paymentMode !== 'razorpay_only' && paymentMode !== 'ccavenue_only' && paymentMode !== 'online_gateways_only';
+  const showCcavenue = !isVipFreeAccess && siteConfig?.enableCcavenue !== false && paymentMode !== 'upi_qr_only';
+  const showQrCode = !isVipFreeAccess && siteConfig?.enableUpiQr !== false && paymentMode !== 'ccavenue_only';
 
   const handleCcavenueCheckout = async () => {
     const merchantId = (siteConfig?.ccavenueMerchantId || '').trim();
@@ -95,13 +94,22 @@ export const PaymentModal: React.FC<{
           `सदस्याने CCAvenue द्वारे ₹${currentPrice} भरून ${activePlan.nameMr || activePlan.name} प्लॅन सक्रिय केला (Order ID: ${orderId})`,
           currentUser.fullName
         );
-        addNotification({
-          userId: currentUser.id,
-          title: '🎉 CCAvenue ऑनलाईन पेमेंट यशस्वी!',
-          message: `${activePlan.nameMr || activePlan.name} प्लॅन (₹${currentPrice}) सक्रिय झाला आहे! Order ID: ${orderId}`,
-          type: 'system',
-          read: false,
-        });
+        if (typeof addNotification === 'function') {
+          addNotification({
+            userId: currentUser.id,
+            title: '🎉 CCAvenue ऑनलाईन पेमेंट यशस्वी!',
+            message: `${activePlan.nameMr || activePlan.name} प्लॅन (₹${currentPrice}) सक्रिय झाला आहे! Order ID: ${orderId}`,
+            type: 'system',
+            read: false,
+          });
+        } else if (typeof sendNotification === 'function') {
+          sendNotification(
+            currentUser.id,
+            '🎉 CCAvenue ऑनलाईन पेमेंट यशस्वी!',
+            `${activePlan.nameMr || activePlan.name} प्लॅन (₹${currentPrice}) सक्रिय झाला आहे! Order ID: ${orderId}`,
+            'system'
+          );
+        }
       }
 
       addPaymentRequest({
@@ -130,101 +138,6 @@ export const PaymentModal: React.FC<{
   const noteText =
     siteConfig?.paymentNote ||
     'PhonePe / Google Pay / Paytm द्वारे क्यूआर कोड स्कॅन करून किंवा UPI ID वर पेमेंट करा व UTR नंबर सादर करा.';
-
-  const loadRazorpayScript = (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      if ((window as any).Razorpay) {
-        resolve(true);
-        return;
-      }
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
-
-  const handleRazorpayCheckout = async () => {
-    setIsRazorpayLoading(true);
-    const scriptLoaded = await loadRazorpayScript();
-    setIsRazorpayLoading(false);
-
-    if (!scriptLoaded) {
-      alert('Razorpay गेटवे लोड होण्यास अडचण आली. कृपया तुमचे इंटरनेट कनेक्शन तपासा किंवा क्यूआर कोड द्वारे पेमेंट करा.');
-      return;
-    }
-
-    let keyId = (siteConfig?.razorpayKeyId || 'rzp_test_TOvwKXgcmRUEUD').trim();
-    if (!keyId.startsWith('rzp_test_') && !keyId.startsWith('rzp_live_')) {
-      keyId = `rzp_test_${keyId}`;
-    }
-
-    const options = {
-      key: keyId,
-      amount: currentPrice * 100, // amount in paise
-      currency: 'INR',
-      name: 'वंजारी जोडी मॅट्रिमोनी',
-      description: `${language === 'mr' ? activePlan.nameMr : activePlan.name} सबस्क्रिप्शन प्लॅन`,
-      image: siteConfig?.logoUrl || 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&q=80&w=200',
-      prefill: {
-        name: currentUser?.fullName || 'अनोळखी सभासद',
-        email: currentUser?.email || 'user@vanjarijodi.com',
-        contact: userMobile || currentUser?.mobileNumber || '+919822100000',
-      },
-      theme: {
-        color: '#A71930',
-      },
-      handler: function (response: any) {
-        const paymentId = response.razorpay_payment_id || `PAY-${Date.now()}`;
-        
-        // Instant Member Tier Upgrade if currentUser exists
-        if (currentUser) {
-          updateMemberTier(currentUser.id, activePlan.id as MembershipTier);
-          logActivity(
-            'Razorpay Payment Success',
-            `सदस्याने Razorpay द्वारे ₹${currentPrice} भरून ${activePlan.nameMr || activePlan.name} प्लॅन सक्रिय केला (Payment ID: ${paymentId})`,
-            currentUser.fullName
-          );
-          addNotification({
-            userId: currentUser.id,
-            title: '🎉 ऑनलाईन पेमेंट यशस्वी!',
-            message: `${activePlan.nameMr || activePlan.name} प्लॅन (₹${currentPrice}) सक्रिय झाला आहे! Razorpay Txn ID: ${paymentId}`,
-            type: 'system',
-            read: false,
-          });
-        }
-
-        // Add payment record for admin tracking
-        addPaymentRequest({
-          userId: currentUser?.id || 'guest-user',
-          userName: currentUser?.fullName || 'अनोळखी सभासद',
-          userMobile: userMobile || currentUser?.mobileNumber || '+91 9822100000',
-          planId: activePlan.id as MembershipTier,
-          planName: language === 'mr' ? activePlan.nameMr : activePlan.name,
-          amount: currentPrice,
-          utrNumber: `RZP-${paymentId}`,
-          screenshotUrl: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=600',
-        });
-
-        alert(`🎉 Razorpay ऑनलाईन पेमेंट यशस्वी झाले! (Txn ID: ${paymentId})\n\nतुमचा ${language === 'mr' ? activePlan.nameMr : activePlan.name} प्लॅन तात्काळ सक्रिय करण्यात आला आहे.`);
-        onClose();
-      },
-      modal: {
-        ondismiss: function () {
-          console.log('Razorpay checkout modal closed');
-        },
-      },
-    };
-
-    try {
-      const rzp1 = new (window as any).Razorpay(options);
-      rzp1.open();
-    } catch (err) {
-      console.error('Razorpay initialization error:', err);
-      alert('Razorpay पेमेंट विंडो उघडताना त्रुटी आली. कृपया UTR भरून सबमिट करा.');
-    }
-  };
 
   const handleCopyUpi = () => {
     navigator.clipboard.writeText(upiId);
@@ -465,7 +378,7 @@ export const PaymentModal: React.FC<{
                   <span className="font-extrabold text-sm text-indigo-100">CCAvenue ऑनलाईन पेमेंट गेटवे</span>
                 </div>
                 <span className="text-[10px] bg-indigo-500/30 text-indigo-200 px-2.5 py-0.5 rounded-full border border-indigo-400/40 font-extrabold uppercase tracking-wide">
-                  मर्चंट: USHA SHIVDAS HANGE
+                  मर्चंट: वंजारीजोडी (VanjariJodi)
                 </span>
               </div>
               <p className="text-xs text-indigo-100/90 font-medium leading-relaxed">
@@ -488,42 +401,6 @@ export const PaymentModal: React.FC<{
               </button>
               <div className="flex items-center justify-center gap-2 pt-0.5">
                 <span className="text-[10px] text-indigo-200/90 font-bold">🏛️ NetBanking • 💳 Debit/Credit Cards • 📲 UPI / GPay</span>
-              </div>
-            </div>
-          )}
-
-          {/* Instant Razorpay Payment Gateway Option */}
-          {showRazorpay && (
-            <div className="bg-gradient-to-r from-sky-900 via-blue-900 to-indigo-900 text-white rounded-2xl p-4 shadow-lg border border-blue-400/40 relative overflow-hidden space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Zap className="w-5 h-5 text-amber-300 animate-pulse" />
-                  <span className="font-extrabold text-sm text-amber-200">Razorpay इन्स्टंट ऑनलाईन पेमेंट</span>
-                </div>
-                <span className="text-[10px] bg-blue-500/30 text-blue-200 px-2 py-0.5 rounded-full border border-blue-300/30 font-extrabold uppercase">
-                  १००% सुरक्षित
-                </span>
-              </div>
-              <p className="text-xs text-blue-100 font-medium">
-                Google Pay, PhonePe, Paytm, Debit/Credit Card किंवा NetBanking द्वारे तात्काळ ऑटो-सक्रिय पेमेंट करा.
-              </p>
-              <button
-                type="button"
-                onClick={handleRazorpayCheckout}
-                disabled={isRazorpayLoading}
-                className="w-full py-3 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 transition-transform active:scale-95 disabled:opacity-50 cursor-pointer"
-              >
-                {isRazorpayLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-slate-900" />
-                ) : (
-                  <CreditCard className="w-4 h-4 text-slate-950" />
-                )}
-                <span>
-                  {isRazorpayLoading ? 'Razorpay लोड होत आहे...' : `Razorpay द्वारे ₹${currentPrice} ऑनलाईन पे करा`}
-                </span>
-              </button>
-              <div className="flex items-center justify-center gap-2 pt-1">
-                <span className="text-[10px] text-blue-200/80 font-bold">UPI / GPay / PhonePe / Card / NetBanking</span>
               </div>
             </div>
           )}
@@ -559,7 +436,7 @@ export const PaymentModal: React.FC<{
           )}
 
           {/* Divider */}
-          {showRazorpay && showQrCode && (
+          {showCcavenue && showQrCode && (
             <div className="flex items-center gap-3 my-1">
               <div className="flex-1 h-px bg-amber-300/60"></div>
               <span className="text-[11px] font-extrabold text-amber-900 bg-amber-100/90 px-3 py-0.5 rounded-full border border-amber-300/60">
@@ -575,11 +452,11 @@ export const PaymentModal: React.FC<{
               <div className="flex items-center justify-between border-b border-amber-200 pb-2.5">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-[#A71930] text-xs font-black border border-amber-300">
                   <QrCode className="w-4 h-4 text-[#A71930]" />
-                  <span>१. Razorpay / UPI क्यूआर कोड स्कॅन करा</span>
+                  <span>१. UPI / बँक क्यूआर कोड स्कॅन करा</span>
                 </span>
                 <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black border border-emerald-300 flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Razorpay Verified</span>
+                  <span>सुरक्षित UPI पेमेंट</span>
                 </span>
               </div>
 
@@ -591,33 +468,14 @@ export const PaymentModal: React.FC<{
                   <span>पेमेंट रक्कम: ₹{currentPrice}</span>
                 </div>
 
-                <img src={qrUrl} alt="Razorpay UPI Payment QR Code" className="w-full h-full object-contain pt-1" />
+                <img src={qrUrl} alt="UPI Payment QR Code" className="w-full h-full object-contain pt-1" />
               </div>
 
               {/* Supported Payment Apps Banner */}
               <div className="flex items-center justify-center gap-1.5 text-[10px] sm:text-xs text-slate-700 font-extrabold bg-amber-100/80 py-1.5 px-3 rounded-xl border border-amber-300 shadow-xs">
-                <span className="text-[#A71930] font-black">Razorpay & UPI:</span>
+                <span className="text-[#A71930] font-black">स्वीकृत UPI ॲप्स:</span>
                 <span>PhonePe</span> • <span>GPay</span> • <span>Paytm</span> • <span>BHIM</span>
               </div>
-
-              {/* Instant Razorpay Pay Action Button */}
-              {showRazorpay && (
-                <button
-                  type="button"
-                  onClick={handleRazorpayCheckout}
-                  disabled={isRazorpayLoading}
-                  className="w-full py-2.5 bg-gradient-to-r from-[#A71930] via-rose-700 to-[#800C1E] hover:from-rose-800 hover:to-[#5E0815] text-amber-100 font-black rounded-xl text-xs shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 disabled:opacity-50 border border-amber-400/40"
-                >
-                  {isRazorpayLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-amber-300" />
-                  ) : (
-                    <CreditCard className="w-4 h-4 text-amber-300" />
-                  )}
-                  <span>
-                    {isRazorpayLoading ? 'Razorpay लोड होत आहे...' : `👉 डायरेक्ट Razorpay द्वारे ₹${currentPrice} पे करा`}
-                  </span>
-                </button>
-              )}
 
               <div className="space-y-1.5 pt-1">
                 <p className="text-xs text-slate-800 font-bold leading-relaxed">{noteText}</p>

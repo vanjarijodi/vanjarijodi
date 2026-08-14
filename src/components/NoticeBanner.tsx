@@ -3,10 +3,10 @@ import { useApp } from '../context/AppContext';
 import { Megaphone, ArrowRight, X } from 'lucide-react';
 
 export const NoticeBanner: React.FC = () => {
-  const { siteConfig, setIsRegisterOpen, language } = useApp();
+  const { siteConfig, setIsRegisterOpen, language, currentUser } = useApp();
   const [dismissed, setDismissed] = useState(false);
 
-  if (!siteConfig?.isNoticeBannerEnabled || !siteConfig?.noticeBannerText || dismissed) {
+  if (!siteConfig?.isNoticeBannerEnabled || !siteConfig?.noticeBannerText || dismissed || currentUser) {
     return null;
   }
 

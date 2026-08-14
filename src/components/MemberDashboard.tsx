@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { UserProfile } from '../types';
 import { VerifiedBadge } from './VerifiedBadge';
@@ -63,6 +63,14 @@ export const MemberDashboard: React.FC = () => {
   const [isUploadingDoc, setIsUploadingDoc] = useState(false);
   const [docUploadError, setDocUploadError] = useState<string | null>(null);
   const [docSuccessMsg, setDocSuccessMsg] = useState<string | null>(null);
+
+  // Filter notifications specifically for this member (exclude admin and other users' notifications)
+  const memberNotifications = useMemo(() => {
+    if (!currentUser) return [];
+    return notifications.filter(
+      (n) => n.userId !== 'admin' && (n.userId === 'all' || n.userId === currentUser.id)
+    );
+  }, [notifications, currentUser]);
 
   const handleDashboardAadhaarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setDocUploadError(null);
@@ -452,7 +460,7 @@ export const MemberDashboard: React.FC = () => {
             }`}
           >
             <Bell className="w-4 h-4" />
-            <span>{t('notifications')} ({notifications.filter((n) => !n.isRead).length})</span>
+            <span>{t('notifications')} ({memberNotifications.filter((n) => !n.isRead).length})</span>
           </button>
 
           <button
@@ -780,19 +788,26 @@ export const MemberDashboard: React.FC = () => {
         {tab === 'notifications' && (
           <div className="bg-white border-2 border-amber-200 rounded-3xl p-6 space-y-3 shadow-sm">
             <h3 className="text-lg font-black text-[#A71930] mb-4">सूचना केंद्र (Notifications)</h3>
-            {notifications.map((n) => (
-              <div
-                key={n.id}
-                onClick={() => markNotificationRead(n.id)}
-                className={`p-4 rounded-2xl border transition-all cursor-pointer ${
-                  n.isRead ? 'bg-[#FFFDF5] border-amber-200 text-slate-600' : 'bg-amber-100/70 border-amber-300 text-slate-900 font-semibold'
-                }`}
-              >
-                <p className="font-bold text-[#A71930] text-sm">{language === 'mr' ? n.titleMr : n.title}</p>
-                <p className="text-xs text-slate-700 mt-1">{language === 'mr' ? n.messageMr : n.message}</p>
-                <span className="text-[10px] text-slate-500 mt-2 block">{n.createdAt.split('T')[0]}</span>
+            {memberNotifications.length === 0 ? (
+              <div className="text-center py-10 px-4 text-slate-500 font-bold bg-[#FFFDF5] rounded-2xl border border-amber-200 space-y-2">
+                <Bell className="w-8 h-8 text-amber-400 mx-auto opacity-60" />
+                <p className="text-sm">तुमच्यासाठी सध्या कोणतीही नवीन सूचना उपलब्ध नाही.</p>
               </div>
-            ))}
+            ) : (
+              memberNotifications.map((n) => (
+                <div
+                  key={n.id}
+                  onClick={() => markNotificationRead(n.id)}
+                  className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                    n.isRead ? 'bg-[#FFFDF5] border-amber-200 text-slate-600' : 'bg-amber-100/70 border-amber-300 text-slate-900 font-semibold'
+                  }`}
+                >
+                  <p className="font-bold text-[#A71930] text-sm">{language === 'mr' ? n.titleMr : n.title}</p>
+                  <p className="text-xs text-slate-700 mt-1">{language === 'mr' ? n.messageMr : n.message}</p>
+                  <span className="text-[10px] text-slate-500 mt-2 block">{n.createdAt ? n.createdAt.split('T')[0] : ''}</span>
+                </div>
+              ))
+            )}
           </div>
         )}
 

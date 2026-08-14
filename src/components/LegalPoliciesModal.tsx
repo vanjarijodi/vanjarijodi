@@ -230,7 +230,7 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                   <div>
-                    <strong className="text-slate-900">तांत्रिक त्रुटी आणि दुप्पट पेमेंट (Double Payment / Technical Failure):</strong> जर तांत्रिक चुकीमुळे एकाच प्लॅनसाठी तुमच्या खात्यातून दोनदा रक्कम कपात झाली असेल, तर अतिरिक्त कपात झालेली रक्कम ५ ते ७ कार्यालयीन दिवसांत (5-7 Working Days) तुमच्या मूळ पेमेंट स्त्रोतामध्ये (Original Payment Source - Razorpay/Bank) आपोआप परतावा (Refund) केली जाईल.
+                    <strong className="text-slate-900">तांत्रिक त्रुटी आणि दुप्पट पेमेंट (Double Payment / Technical Failure):</strong> जर तांत्रिक चुकीमुळे एकाच प्लॅनसाठी तुमच्या खात्यातून दोनदा रक्कम कपात झाली असेल, तर अतिरिक्त कपात झालेली रक्कम ५ ते ७ कार्यालयीन दिवसांत (5-7 Working Days) तुमच्या मूळ पेमेंट स्त्रोतामध्ये (Original Payment Source - Payment Gateway/Bank) आपोआप परतावा (Refund) केली जाईल.
                   </div>
                 </div>
 
