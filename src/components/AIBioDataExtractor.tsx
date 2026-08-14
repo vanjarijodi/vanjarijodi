@@ -185,8 +185,8 @@ export const AIBioDataExtractor: React.FC<AIBioDataExtractorProps> = ({
       }
 
       if (data.success && data.extractedData) {
-        // Do NOT set full paper document image as profile photo
-        const finalCandidatePhoto = candidateProfilePhotoUrl || undefined;
+        // Attach candidate photo from separate upload, Cloudinary URL, or local image preview
+        const finalCandidatePhoto = candidateProfilePhotoUrl || uploadedCloudinaryUrl || imagePreview || undefined;
 
         const result: ExtractedBioData = {
           ...data.extractedData,

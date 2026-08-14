@@ -161,7 +161,7 @@ Extract into this exact JSON structure:
         return res.status(400).json({ error: 'Either imageBase64 or textPrompt is required' });
       }
 
-      const candidateModels = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
+      const candidateModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
       let responseText = '';
       let lastError: any = null;
 
