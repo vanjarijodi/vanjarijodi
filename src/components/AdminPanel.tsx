@@ -8,6 +8,7 @@ import { AdminMemberQuickSettingsModal } from './AdminMemberQuickSettingsModal';
 import { AdminMasterSettingsCenter } from './AdminMasterSettingsCenter';
 import { VanjariJodiLogo } from './VanjariJodiLogo';
 import { MAHARASHTRA_DISTRICTS } from '../data/initialData';
+import { getProfessionBadges, getTagStyleClass } from '../utils/professionUtils';
 import { uploadToCloudinary, validateFileSize } from '../utils/cloudinary';
 import {
   X,
@@ -43,6 +44,8 @@ import {
   Edit3,
   ExternalLink,
   CreditCard,
+  Copy,
+  Link as LinkIcon,
   Send,
   MessageSquare,
   FileText,
@@ -3268,6 +3271,22 @@ export const AdminPanel: React.FC<{
                             <p className="text-[11px] text-slate-500">
                               {m.age} वर्षे • {m.district}, {m.taluka || ''}
                             </p>
+                            {(() => {
+                              const mBadges = getProfessionBadges(m);
+                              if (mBadges.length === 0) return null;
+                              return (
+                                <div className="flex flex-wrap gap-1 pt-1">
+                                  {mBadges.map((tag, tIdx) => (
+                                    <span
+                                      key={tIdx}
+                                      className={`px-1.5 py-0.2 rounded text-[10px] font-black border ${getTagStyleClass(tag)}`}
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              );
+                            })()}
                           </td>
                           <td className="p-3 font-mono">
                             <p className="text-slate-900">{m.mobileNumber}</p>
@@ -5832,14 +5851,48 @@ export const AdminPanel: React.FC<{
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-bold">
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-slate-700 mb-1">UPI ID (e.g., PhonePe/GooglePay/Paytm):</label>
+                      <label className="block text-slate-700 mb-1 flex items-center justify-between">
+                        <span>Paytm / UPI ID (e.g., PhonePe/GPay/Paytm):</span>
+                        <span className="text-[10px] text-[#A71930] bg-amber-100 px-2 py-0.5 rounded border border-amber-300">ऑटो-व्हॅरीफाय इंजिन</span>
+                      </label>
                       <input
                         type="text"
-                        value={siteConfig.paymentUpiId || '9822100000@ybl'}
+                        value={siteConfig.paymentUpiId || 'vanjarijodi@paytm'}
                         onChange={(e) => updateSiteConfig({ paymentUpiId: e.target.value })}
-                        placeholder="vanjarijodi@upi"
-                        className="w-full px-3 py-2 rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-[#A71930]"
+                        placeholder="vanjarijodi@paytm"
+                        className="w-full px-3 py-2 font-mono text-xs font-bold rounded-xl border border-amber-300 focus:outline-none focus:ring-2 focus:ring-[#A71930]"
                       />
+                    </div>
+
+                    {/* Paytm Webhook URL Box */}
+                    <div className="p-3 bg-[#FFFDF5] border border-amber-300 rounded-xl space-y-1.5">
+                      <label className="block text-slate-800 text-[11px] font-black flex items-center gap-1 text-[#A71930]">
+                        <LinkIcon className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Paytm Webhook Auto-Verification URL (Render/Server Link):</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          readOnly
+                          value={typeof window !== 'undefined' ? `${window.location.origin}/api/paytm-webhook` : 'https://your-domain.com/api/paytm-webhook'}
+                          className="w-full px-2.5 py-1.5 font-mono text-[11px] font-bold rounded-lg border border-amber-300 bg-amber-50 text-slate-800 select-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const link = typeof window !== 'undefined' ? `${window.location.origin}/api/paytm-webhook` : 'https://your-domain.com/api/paytm-webhook';
+                            navigator.clipboard.writeText(link);
+                            alert('Paytm Webhook URL क्लिपबोर्डवर कॉपी झाला:\n' + link);
+                          }}
+                          className="shrink-0 px-2.5 py-1.5 bg-[#A71930] hover:bg-[#800C1E] text-amber-100 font-bold text-[11px] rounded-lg shadow flex items-center gap-1 cursor-pointer"
+                        >
+                          <Copy className="w-3 h-3 text-amber-300" />
+                          <span>कॉपी</span>
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-slate-600 font-medium">
+                        हा URL तुमच्या Render किंवा Paytm मर्चंट डॅशबोर्डवरील Webhook / Notification URL मध्ये पेस्ट करा.
+                      </p>
                     </div>
 
                     <div>

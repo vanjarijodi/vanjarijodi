@@ -15,10 +15,15 @@ import {
   Sparkles,
   UserCheck,
   Ban,
-  MessageSquare
+  MessageSquare,
+  Tag,
+  Plus,
+  Trash2,
+  Check
 } from 'lucide-react';
 import { UserProfile, MembershipTier } from '../types';
 import { useApp } from '../context/AppContext';
+import { PROFILE_TAG_PRESETS, TAG_CATEGORIES, getTagStyleClass } from '../utils/professionUtils';
 
 interface AdminMemberQuickSettingsModalProps {
   profile: UserProfile | null;
@@ -53,8 +58,29 @@ export const AdminMemberQuickSettingsModal: React.FC<AdminMemberQuickSettingsMod
   const [isBlocked, setIsBlocked] = useState<boolean>(profile.isBlocked ?? false);
   const [isHiddenByAdmin, setIsHiddenByAdmin] = useState<boolean>(profile.isHiddenByAdmin ?? false);
   const [badge, setBadge] = useState<string>(profile.badge || profile.customBadge || '');
+  const [professionTags, setProfessionTags] = useState<string[]>(profile.professionTags || []);
+  const [customTagInput, setCustomTagInput] = useState<string>('');
 
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  const handleToggleTag = (tagLabel: string) => {
+    setProfessionTags(prev =>
+      prev.includes(tagLabel) ? prev.filter(t => t !== tagLabel) : [...prev, tagLabel]
+    );
+  };
+
+  const handleAddCustomTag = () => {
+    const trimmed = customTagInput.trim();
+    if (!trimmed) return;
+    if (!professionTags.includes(trimmed)) {
+      setProfessionTags(prev => [...prev, trimmed]);
+    }
+    setCustomTagInput('');
+  };
+
+  const handleRemoveTag = (tagLabel: string) => {
+    setProfessionTags(prev => prev.filter(t => t !== tagLabel));
+  };
 
   const handleSave = () => {
     const forceShowContact = contactMode === 'force_show';
@@ -78,6 +104,7 @@ export const AdminMemberQuickSettingsModal: React.FC<AdminMemberQuickSettingsMod
       isHiddenByAdmin,
       badge: badge.trim() || undefined,
       customBadge: badge.trim() || undefined,
+      professionTags,
       // update inner privacy if requested
       privacy: {
         ...profile.privacy,
@@ -347,6 +374,101 @@ export const AdminMemberQuickSettingsModal: React.FC<AdminMemberQuickSettingsMod
               >
                 {isCustomAccessGranted ? 'सक्रिय (VIP Allowed)' : 'बंद (Normal)'}
               </button>
+            </div>
+          </div>
+
+          {/* 3. Special Profile Tags & Badges */}
+          <div className="bg-amber-50/90 p-4 rounded-2xl border-2 border-amber-300 space-y-3">
+            <div className="flex items-center justify-between border-b border-amber-200 pb-2">
+              <h4 className="font-black text-[#A71930] flex items-center gap-2 text-xs sm:text-sm">
+                <Tag className="w-4 h-4 text-[#A71930]" />
+                <span>३. प्रोफाइल विशेष टॅग्ज व बॅजेस (Profile Badges & Tags):</span>
+              </h4>
+              <span className="text-[10px] bg-amber-200 text-amber-950 font-bold px-2 py-0.5 rounded-full border border-amber-300">
+                {professionTags.length} टॅग्ज निवडले
+              </span>
+            </div>
+
+            {/* Currently Selected Tags */}
+            {professionTags.length > 0 && (
+              <div className="bg-white p-3 rounded-xl border border-amber-300 space-y-1.5">
+                <span className="text-[11px] font-black text-slate-700 block">निवडलेले विशेष टॅग्ज:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {professionTags.map((tag, idx) => (
+                    <span
+                      key={idx}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-black border flex items-center gap-1.5 ${getTagStyleClass(tag)}`}
+                    >
+                      <span>{tag}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTag(tag)}
+                        className="hover:text-rose-600 transition cursor-pointer"
+                        title="टॅग काढा"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add Custom Tag Input */}
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="उदा. 🌟 विशेष शिफारस, 🏛️ MPSC अधिकारी, 🌾 ५० एकर शेती..."
+                value={customTagInput}
+                onChange={(e) => setCustomTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddCustomTag();
+                  }
+                }}
+                className="w-full px-3 py-2 text-xs font-bold rounded-xl border border-amber-300 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#A71930]"
+              />
+              <button
+                type="button"
+                onClick={handleAddCustomTag}
+                className="shrink-0 px-3.5 py-2 bg-[#A71930] hover:bg-[#800C1E] text-amber-100 font-extrabold text-xs rounded-xl shadow transition cursor-pointer flex items-center gap-1"
+              >
+                <Plus className="w-4 h-4 text-amber-300" />
+                <span>जोडा</span>
+              </button>
+            </div>
+
+            {/* Preset Tag Selector Categories */}
+            <div className="space-y-2.5 pt-1">
+              {TAG_CATEGORIES.map(cat => {
+                const categoryPresets = PROFILE_TAG_PRESETS.filter(p => p.category === cat.id);
+                return (
+                  <div key={cat.id} className="space-y-1">
+                    <span className="text-[11px] font-black text-[#800C1E] block">{cat.name}:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {categoryPresets.map(preset => {
+                        const isSelected = professionTags.includes(preset.label);
+                        return (
+                          <button
+                            type="button"
+                            key={preset.id}
+                            onClick={() => handleToggleTag(preset.label)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition cursor-pointer flex items-center gap-1 ${
+                              isSelected
+                                ? 'bg-[#800C1E] text-amber-100 border-[#800C1E] shadow-xs'
+                                : 'bg-white text-slate-800 border-amber-200 hover:bg-amber-100/70'
+                            }`}
+                          >
+                            <span>{preset.label}</span>
+                            {isSelected && <Check className="w-3 h-3 text-amber-300" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

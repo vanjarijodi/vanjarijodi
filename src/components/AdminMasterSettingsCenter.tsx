@@ -21,6 +21,9 @@ import {
   XCircle,
   Search,
   Check,
+  Copy,
+  Smartphone,
+  Link as LinkIcon,
   AlertTriangle,
   Sliders,
   Globe,
@@ -37,6 +40,17 @@ export const AdminMasterSettingsCenter: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [saveToast, setSaveToast] = useState<string | null>(null);
+  const [copiedWebhook, setCopiedWebhook] = useState(false);
+
+  const webhookUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/api/paytm-webhook`
+    : 'https://your-domain.com/api/paytm-webhook';
+
+  const handleCopyWebhookUrl = () => {
+    navigator.clipboard.writeText(webhookUrl);
+    setCopiedWebhook(true);
+    setTimeout(() => setCopiedWebhook(false), 2500);
+  };
 
   const notifyChange = (msg: string) => {
     setSaveToast(msg);
@@ -990,6 +1004,76 @@ export const AdminMasterSettingsCenter: React.FC = () => {
                   </div>
                 )
               )}
+            </div>
+
+            {/* Paytm UPI ID & Webhook Integration Center */}
+            <div className="p-4 rounded-2xl bg-[#FFFDF5] border-2 border-amber-400 space-y-4 col-span-1 md:col-span-2 shadow-sm">
+              <div className="flex items-center justify-between border-b border-amber-200 pb-2">
+                <span className="font-black text-[#A71930] block flex items-center gap-2 text-xs sm:text-sm">
+                  <Smartphone className="w-5 h-5 text-[#A71930]" />
+                  <span>Paytm UPI ID आणि ऑटो-व्हॅरीफिकेशन वेबहूक लिंक (Paytm Integration)</span>
+                </span>
+                <span className="text-[10px] font-extrabold bg-amber-100 text-[#A71930] px-2.5 py-0.5 rounded-full border border-amber-300">
+                  ऑटो-व्हॅरीफाय इंजिन ⚡
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 1. Paytm UPI ID Input */}
+                <div className="space-y-1.5">
+                  <label className="block text-slate-800 text-xs font-black">
+                    १. Paytm / UPI ID (पेमेंट स्वीकारण्यासाठी UPI ID):
+                  </label>
+                  <input
+                    type="text"
+                    value={siteConfig.paymentUpiId || 'vanjarijodi@paytm'}
+                    onChange={(e) => updateSiteConfig({ paymentUpiId: e.target.value })}
+                    placeholder="उदा. vanjarijodi@paytm किंवा 9822100000@ybl"
+                    className="w-full px-3.5 py-2.5 font-mono text-xs font-bold rounded-xl border border-amber-400 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#A71930]"
+                  />
+                  <p className="text-[11px] text-slate-600 font-medium">
+                    हा UPI ID PhonePe/GPay/Paytm direct intent आणि dynamic QR कोड तयार करण्यासाठी वापरला जाईल.
+                  </p>
+                </div>
+
+                {/* 2. Webhook URL Display & Copy */}
+                <div className="space-y-1.5">
+                  <label className="block text-slate-800 text-xs font-black flex items-center gap-1.5">
+                    <LinkIcon className="w-4 h-4 text-emerald-700" />
+                    <span>२. Render / सर्वर Webhook Auto-Verification URL:</span>
+                  </label>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={webhookUrl}
+                      className="w-full px-3 py-2 font-mono text-xs font-bold rounded-xl border border-amber-400 bg-amber-50/70 text-slate-800 select-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCopyWebhookUrl}
+                      className="shrink-0 px-3.5 py-2 bg-[#A71930] hover:bg-[#800C1E] text-white font-black text-xs rounded-xl shadow transition-transform active:scale-95 flex items-center gap-1.5 cursor-pointer border border-amber-300"
+                    >
+                      {copiedWebhook ? (
+                        <>
+                          <Check className="w-4 h-4 text-amber-200" />
+                          <span>कॉपी झाले!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4 text-amber-200" />
+                          <span>लिंक कॉपी करा</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <p className="text-[11px] text-slate-600 font-medium leading-normal pt-0.5">
+                    💡 ही लिंक तुमच्या Paytm Merchant Dashboard (API & Webhook Notifications) किंवा Render सर्वरमध्ये Webhook URL म्हणून जोडा. Paytm कडून स्टेटस 'TXN_SUCCESS' येताच युझरचे प्रीमियम मेंबरशिप ऑटो-व्हॅरीफाय होऊन सुरू होईल.
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Enable Full Access for Paid Members */}

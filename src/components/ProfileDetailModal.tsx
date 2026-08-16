@@ -4,7 +4,7 @@ import { UserProfile } from '../types';
 import { PrintBiodataModal } from './PrintBiodataModal';
 import { ReportProfileModal } from './ReportProfileModal';
 import { VerifiedBadge } from './VerifiedBadge';
-import { getProfessionBadges } from '../utils/professionUtils';
+import { getProfessionBadges, getTagStyleClass } from '../utils/professionUtils';
 import { formatProfileDisplayName } from '../utils/nameFormatter';
 import { transliterateMarathiToEnglish } from '../utils/transliterate';
 import { uploadToCloudinary, compressAndResizeImage } from '../utils/cloudinary';
@@ -764,23 +764,11 @@ export const ProfileDetailModal: React.FC<{
                       if (badges.length === 0) return null;
                       return (
                         <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                          <span className="text-[10px] font-black text-slate-600">नोकरी/व्यवसाय श्रेणी:</span>
+                          <span className="text-[10px] font-black text-slate-600">प्रोफाईल विशेष टॅग्ज:</span>
                           {badges.map((tag, idx) => (
                             <span
                               key={idx}
-                              className={`px-2.5 py-1 rounded-lg text-xs font-black border shadow-2xs ${
-                                tag.includes('डॉक्टर')
-                                  ? 'bg-emerald-100 text-emerald-950 border-emerald-300'
-                                  : tag.includes('सरकारी')
-                                  ? 'bg-amber-100 text-amber-950 border-amber-300'
-                                  : tag.includes('इंजिनिअर')
-                                  ? 'bg-blue-100 text-blue-950 border-blue-300'
-                                  : tag.includes('शिक्षक')
-                                  ? 'bg-indigo-100 text-indigo-950 border-indigo-300'
-                                  : tag.includes('व्यावसायिक') || tag.includes('व्यवसाय')
-                                  ? 'bg-purple-100 text-purple-950 border-purple-300'
-                                  : 'bg-slate-100 text-slate-800 border-slate-300'
-                              }`}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-black border shadow-2xs ${getTagStyleClass(tag)}`}
                             >
                               {tag}
                             </span>

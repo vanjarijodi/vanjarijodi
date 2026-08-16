@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, Save, Trash2, Camera, Award, Shield, AlertCircle, Loader2, 
-  FileText, CheckCircle2, Eye, ExternalLink, Sparkles, UserCheck, Check, ShieldCheck, Download
+  FileText, CheckCircle2, Eye, ExternalLink, Sparkles, UserCheck, Check, ShieldCheck, Download,
+  Tag, Plus
 } from 'lucide-react';
 import { UserProfile, Gender, MaritalStatus, MembershipTier } from '../types';
 import { uploadToCloudinary, compressAndResizeImage } from '../utils/cloudinary';
-import { PROFESSION_PRESETS } from '../utils/professionUtils';
+import { PROFESSION_PRESETS, PROFILE_TAG_PRESETS, TAG_CATEGORIES, getTagStyleClass } from '../utils/professionUtils';
 import { useApp } from '../context/AppContext';
 
 interface AdminEditProfileModalProps {
@@ -87,6 +88,20 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
   const [companyName, setCompanyName] = useState('');
   const [income, setIncome] = useState('');
   const [professionTags, setProfessionTags] = useState<string[]>([]);
+  const [customTagInput, setCustomTagInput] = useState<string>('');
+
+  const handleAddCustomTagModal = () => {
+    const trimmed = customTagInput.trim();
+    if (!trimmed) return;
+    if (!professionTags.includes(trimmed)) {
+      setProfessionTags(prev => [...prev, trimmed]);
+    }
+    setCustomTagInput('');
+  };
+
+  const handleRemoveTagModal = (tagLabel: string) => {
+    setProfessionTags(prev => prev.filter(t => t !== tagLabel));
+  };
 
   // 5. Family Details
   const [fatherName, setFatherName] = useState('');
@@ -895,42 +910,106 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
                 />
               </div>
 
-              {/* Multi-Profession Tagging */}
-              <div className="col-span-full pt-3 border-t border-amber-200">
-                <label className="block text-slate-800 font-extrabold text-xs mb-1.5 flex flex-wrap items-center justify-between gap-1">
-                  <span>५. प्रोफेशन / नोकरी बॅजेस (Profession Badges & Multi-Tag Selection):</span>
+              {/* Multi-Tagging Section */}
+              <div className="col-span-full pt-3 border-t border-amber-200 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-1">
+                  <label className="text-slate-800 font-extrabold text-xs flex items-center gap-1.5">
+                    <Tag className="w-4 h-4 text-[#A71930]" />
+                    <span>५. प्रोफाइल विशेष टॅग्ज व बॅजेस (Special Tags & Badges Selection):</span>
+                  </label>
                   <span className="text-[10px] text-amber-900 bg-amber-100 px-2 py-0.5 rounded-full font-bold border border-amber-300">
-                    एकपेक्षा जास्त निवडा (उदा. डॉक्टर + सरकारी नोकरी)
+                    {professionTags.length} टॅग्ज निवडले
                   </span>
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {PROFESSION_PRESETS.map((preset) => {
-                    const isSelected = professionTags.includes(preset.label);
+                </div>
+
+                {/* Selected Tags Display */}
+                {professionTags.length > 0 && (
+                  <div className="bg-amber-50 p-3 rounded-xl border border-amber-300 space-y-1">
+                    <span className="text-[10px] font-black text-slate-700 block">निवडलेले टॅग्ज:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {professionTags.map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-black border flex items-center gap-1.5 ${getTagStyleClass(tag)}`}
+                        >
+                          <span>{tag}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTagModal(tag)}
+                            className="hover:text-rose-600 transition cursor-pointer"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Add Custom Tag Input */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="उदा. 🌟 विशेष शिफारस, 🏛️ MPSC अधिकारी, 🌾 ५० एकर शेती..."
+                    value={customTagInput}
+                    onChange={(e) => setCustomTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomTagModal();
+                      }
+                    }}
+                    className="w-full px-3.5 py-2 rounded-xl border border-amber-300 font-bold text-xs bg-white focus:border-[#A71930]"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomTagModal}
+                    className="shrink-0 px-4 py-2 bg-[#A71930] hover:bg-[#800C1E] text-amber-100 font-black text-xs rounded-xl shadow transition cursor-pointer flex items-center gap-1"
+                  >
+                    <Plus className="w-4 h-4 text-amber-300" />
+                    <span>टॅग जोडा</span>
+                  </button>
+                </div>
+
+                {/* Tag Categories */}
+                <div className="space-y-3 pt-1">
+                  {TAG_CATEGORIES.map((cat) => {
+                    const presets = PROFILE_TAG_PRESETS.filter((p) => p.category === cat.id);
                     return (
-                      <button
-                        type="button"
-                        key={preset.id}
-                        onClick={() => {
-                          setProfessionTags((prev) =>
-                            prev.includes(preset.label)
-                              ? prev.filter((t) => t !== preset.label)
-                              : [...prev, preset.label]
-                          );
-                        }}
-                        className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
-                          isSelected
-                            ? 'bg-[#800C1E] text-amber-100 border-[#800C1E] shadow-sm'
-                            : 'bg-white text-slate-700 border-amber-200 hover:bg-amber-50'
-                        }`}
-                      >
-                        <span className="font-extrabold text-xs flex items-center justify-between">
-                          <span>{preset.label}</span>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-amber-300 shrink-0" />}
-                        </span>
-                        <span className={`text-[10px] mt-1 ${isSelected ? 'text-amber-200/80' : 'text-slate-500'}`}>
-                          {preset.description}
-                        </span>
-                      </button>
+                      <div key={cat.id} className="space-y-1.5">
+                        <span className="text-xs font-black text-[#800C1E] block">{cat.name}:</span>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                          {presets.map((preset) => {
+                            const isSelected = professionTags.includes(preset.label);
+                            return (
+                              <button
+                                type="button"
+                                key={preset.id}
+                                onClick={() => {
+                                  setProfessionTags((prev) =>
+                                    prev.includes(preset.label)
+                                      ? prev.filter((t) => t !== preset.label)
+                                      : [...prev, preset.label]
+                                  );
+                                }}
+                                className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-[#800C1E] text-amber-100 border-[#800C1E] shadow-xs'
+                                    : 'bg-white text-slate-700 border-amber-200 hover:bg-amber-50'
+                                }`}
+                              >
+                                <span className="font-extrabold text-xs flex items-center justify-between">
+                                  <span>{preset.label}</span>
+                                  {isSelected && <Check className="w-3.5 h-3.5 text-amber-300 shrink-0" />}
+                                </span>
+                                <span className={`text-[10px] mt-1 ${isSelected ? 'text-amber-200/80' : 'text-slate-500'}`}>
+                                  {preset.description}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>

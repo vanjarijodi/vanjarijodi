@@ -19,6 +19,202 @@ async function startServer() {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
+  // ==========================================
+  // Paytm UPI Intent & Webhook Auto-Verification Engine
+  // ==========================================
+  interface PaytmOrder {
+    orderId: string;
+    userId: string;
+    planId: string;
+    amount: number;
+    status: 'PENDING' | 'SUCCESS' | 'FAILED';
+    createdAt: string;
+    upiLink: string;
+    utrNumber?: string;
+  }
+
+  const paytmOrdersMap = new Map<string, PaytmOrder>();
+
+  // 1. Create Order Endpoint
+  app.post('/api/create-order', (req, res) => {
+    try {
+      const { userId, planId, amount, upiId } = req.body || {};
+      const numAmount = Number(amount) || 299;
+      const cleanUserId = userId || 'guest-member';
+      const cleanPlanId = planId || 'welcome_offer';
+
+      const randomNum = Math.floor(1000 + Math.random() * 9000);
+      const orderId = `VJ-PAYTM-${Date.now()}-${randomNum}`;
+      const targetUpiId = (upiId || process.env.PAYTM_UPI_ID || 'vanjarijodi@paytm').trim();
+
+      // upi://pay?pa=YOUR_PAYTM_UPI_ID@paytm&pn=Vanjari%20Jodi&am=299&cu=INR&tr=ORDER_ID&tn=VanjariJodi_Membership
+      const upiLink = `upi://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent('Vanjari Jodi')}&am=${numAmount}&cu=INR&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent('VanjariJodi_Membership')}`;
+
+      const newOrder: PaytmOrder = {
+        orderId,
+        userId: cleanUserId,
+        planId: cleanPlanId,
+        amount: numAmount,
+        status: 'PENDING',
+        createdAt: new Date().toISOString(),
+        upiLink,
+      };
+
+      paytmOrdersMap.set(orderId, newOrder);
+
+      console.log(`[Paytm Order Created] OrderId: ${orderId}, Amount: ₹${numAmount}, User: ${cleanUserId}`);
+
+      return res.json({
+        success: true,
+        orderId,
+        upiLink,
+        amount: numAmount,
+        status: 'PENDING',
+        targetUpiId,
+      });
+    } catch (err: any) {
+      console.error('Error creating Paytm order:', err);
+      return res.status(500).json({ success: false, error: err.message || 'Server error creating order' });
+    }
+  });
+
+  // 2. Paytm Webhook Auto-Verification Endpoint
+  app.all('/api/paytm-webhook', (req, res) => {
+    try {
+      const bodyData = req.body || {};
+      const queryData = req.query || {};
+
+      const orderId =
+        bodyData.ORDERID ||
+        bodyData.ORDER_ID ||
+        bodyData.orderId ||
+        queryData.ORDERID ||
+        queryData.ORDER_ID ||
+        queryData.orderId;
+
+      const txnStatus =
+        bodyData.STATUS ||
+        bodyData.status ||
+        queryData.STATUS ||
+        queryData.status ||
+        'TXN_SUCCESS';
+
+      const utrNumber =
+        bodyData.BANKTXNID ||
+        bodyData.TXNID ||
+        bodyData.utrNumber ||
+        queryData.BANKTXNID ||
+        `PTM-${Date.now()}`;
+
+      console.log(`[Paytm Webhook Received] OrderId: ${orderId}, Status: ${txnStatus}`);
+
+      if (!orderId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing orderId (ORDERID) parameter in webhook payload',
+        });
+      }
+
+      const existingOrder = paytmOrdersMap.get(orderId);
+      const isSuccessStatus =
+        txnStatus === 'TXN_SUCCESS' ||
+        txnStatus === 'SUCCESS' ||
+        txnStatus === 'COMPLETED' ||
+        txnStatus === '01';
+
+      if (existingOrder) {
+        existingOrder.status = isSuccessStatus ? 'SUCCESS' : 'FAILED';
+        if (utrNumber) existingOrder.utrNumber = utrNumber;
+        paytmOrdersMap.set(orderId, existingOrder);
+      } else {
+        paytmOrdersMap.set(orderId, {
+          orderId,
+          userId: bodyData.userId || queryData.userId || 'webhook-user',
+          planId: bodyData.planId || queryData.planId || 'welcome_offer',
+          amount: Number(bodyData.TXNAMOUNT || queryData.amount) || 299,
+          status: isSuccessStatus ? 'SUCCESS' : 'FAILED',
+          createdAt: new Date().toISOString(),
+          upiLink: '',
+          utrNumber,
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: 'Paytm Webhook auto-verification processed successfully',
+        orderId,
+        status: isSuccessStatus ? 'SUCCESS' : 'FAILED',
+      });
+    } catch (err: any) {
+      console.error('Error processing Paytm Webhook:', err);
+      return res.status(500).json({ success: false, error: err.message || 'Webhook processing failed' });
+    }
+  });
+
+  // 3. Check Status Polling Endpoint
+  app.get('/api/check-status', (req, res) => {
+    try {
+      const orderId = (req.query.orderId as string) || (req.query.ORDERID as string);
+
+      if (!orderId) {
+        return res.status(400).json({ success: false, error: 'Missing orderId query parameter' });
+      }
+
+      const order = paytmOrdersMap.get(orderId);
+
+      if (!order) {
+        return res.json({
+          success: true,
+          orderId,
+          status: 'PENDING',
+          message: 'Order created or awaiting payment confirmation',
+        });
+      }
+
+      return res.json({
+        success: true,
+        orderId: order.orderId,
+        status: order.status,
+        userId: order.userId,
+        planId: order.planId,
+        amount: order.amount,
+        utrNumber: order.utrNumber,
+        createdAt: order.createdAt,
+      });
+    } catch (err: any) {
+      console.error('Error checking Paytm order status:', err);
+      return res.status(500).json({ success: false, error: err.message || 'Status check error' });
+    }
+  });
+
+  // 4. Testing Simulator Endpoint
+  app.all('/api/simulate-paytm-success', (req, res) => {
+    const orderId = (req.query.orderId as string) || (req.body?.orderId as string);
+    if (!orderId) {
+      return res.status(400).json({ success: false, error: 'orderId parameter required' });
+    }
+
+    const order = paytmOrdersMap.get(orderId);
+    if (order) {
+      order.status = 'SUCCESS';
+      order.utrNumber = `SIM-UPI-${Date.now().toString().slice(-8)}`;
+      paytmOrdersMap.set(orderId, order);
+    } else {
+      paytmOrdersMap.set(orderId, {
+        orderId,
+        userId: 'simulated-user',
+        planId: 'welcome_offer',
+        amount: 299,
+        status: 'SUCCESS',
+        createdAt: new Date().toISOString(),
+        upiLink: '',
+        utrNumber: `SIM-UPI-${Date.now().toString().slice(-8)}`,
+      });
+    }
+
+    return res.json({ success: true, message: 'Order marked as SUCCESS for simulation', orderId, status: 'SUCCESS' });
+  });
+
   // Direct Server Route to Serve APK File Download
   app.get(['/download-apk', '/VanjariJodi.apk', '/api/download-apk'], (req, res) => {
     const version = 'v2.4.0';

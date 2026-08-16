@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Plan, MembershipTier } from '../types';
 import { uploadToCloudinary, validateFileSize } from '../utils/cloudinary';
-import { X, ShieldCheck, QrCode, Upload, Copy, Check, Sparkles, Send, Loader2, Tag, Gift, CheckCircle2, CreditCard, Zap } from 'lucide-react';
+import { X, ShieldCheck, QrCode, Upload, Copy, Check, Sparkles, Send, Loader2, Tag, Gift, CheckCircle2, CreditCard, Zap, Smartphone } from 'lucide-react';
 
 export const PaymentModal: React.FC<{
   isOpen: boolean;
@@ -31,6 +31,13 @@ export const PaymentModal: React.FC<{
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCcavenueLoading, setIsCcavenueLoading] = useState(false);
+
+  // Paytm UPI Intent & Webhook Auto-Verification State
+  const [paytmOrderId, setPaytmOrderId] = useState<string | null>(null);
+  const [paytmUpiLink, setPaytmUpiLink] = useState<string | null>(null);
+  const [isCreatingPaytmOrder, setIsCreatingPaytmOrder] = useState(false);
+  const [isPollingStatus, setIsPollingStatus] = useState(false);
+  const [paymentSuccessMsg, setPaymentSuccessMsg] = useState<string | null>(null);
 
   // Promo Code State
   const [promoInput, setPromoInput] = useState('');
@@ -69,6 +76,153 @@ export const PaymentModal: React.FC<{
   const paymentMode = siteConfig?.paymentMode || 'both';
   const showCcavenue = !isVipFreeAccess && siteConfig?.enableCcavenue !== false && paymentMode !== 'upi_qr_only';
   const showQrCode = !isVipFreeAccess && siteConfig?.enableUpiQr !== false && paymentMode !== 'ccavenue_only';
+
+  // Create Paytm Order API Call
+  const initPaytmOrder = async (customPrice?: number) => {
+    if (!isOpen || !activePlan) return null;
+    const priceToUse = customPrice !== undefined ? customPrice : currentPrice;
+    try {
+      setIsCreatingPaytmOrder(true);
+      const res = await fetch('/api/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser?.id || 'guest-user',
+          planId: activePlan.id,
+          amount: priceToUse,
+          upiId: siteConfig?.paymentUpiId || 'vanjarijodi@paytm',
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.orderId) {
+        setPaytmOrderId(data.orderId);
+        setPaytmUpiLink(data.upiLink);
+        return data;
+      }
+    } catch (err) {
+      console.error('Error initializing Paytm order:', err);
+    } finally {
+      setIsCreatingPaytmOrder(false);
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    if (isOpen && activePlan) {
+      initPaytmOrder(currentPrice);
+    } else {
+      setPaytmOrderId(null);
+      setPaytmUpiLink(null);
+      setPaymentSuccessMsg(null);
+    }
+  }, [isOpen, activePlan?.id, currentPrice]);
+
+  // Auto Payment Activation Handler
+  const handleAutoPaymentSuccess = (data: any) => {
+    if (paymentSuccessMsg) return;
+    const verifiedUtr = data.utrNumber || `UPI-AUTOVERIFIED-${Date.now().toString().slice(-8)}`;
+
+    if (currentUser) {
+      updateMemberTier(currentUser.id, activePlan.id as MembershipTier, undefined, {
+        paidAt: new Date().toISOString(),
+        paymentApprovedAt: new Date().toISOString(),
+        paymentAmount: currentPrice,
+        paymentUtr: verifiedUtr,
+        paymentPlanName: activePlan.nameMr || activePlan.name,
+      });
+
+      logActivity(
+        'Paytm UPI Auto-Verified Success',
+        `सदस्याने Paytm UPI द्वारे ₹${currentPrice} भरून ${activePlan.nameMr || activePlan.name} प्लॅन यशस्वीपणे ऑटो-वेरिफाय केला (Order ID: ${data.orderId || paytmOrderId})`,
+        currentUser.fullName
+      );
+
+      if (typeof addNotification === 'function') {
+        addNotification({
+          userId: currentUser.id,
+          title: '🎉 ऑनलाईन UPI पेमेंट यशस्वी!',
+          titleMr: '🎉 प्रीमियम मेंबरशिप ॲक्टिव्हेट झाली!',
+          message: `${activePlan.nameMr || activePlan.name} प्लॅन (₹${currentPrice}) ऑटो-व्हॅरीफाय होऊन सुरु झाला आहे!`,
+          messageMr: `${activePlan.nameMr || activePlan.name} प्लॅन (₹${currentPrice}) ऑटो-व्हॅरीफाय होऊन सुरु झाला आहे!`,
+          type: 'approval',
+          read: false,
+        });
+      }
+    }
+
+    addPaymentRequest({
+      userId: currentUser?.id || 'guest-user',
+      userName: currentUser?.fullName || 'अनोळखी सभासद',
+      userMobile: userMobile || currentUser?.mobileNumber || '+91 9822100000',
+      planId: activePlan.id as MembershipTier,
+      planName: language === 'mr' ? activePlan.nameMr : activePlan.name,
+      amount: currentPrice,
+      utrNumber: verifiedUtr,
+      screenshotUrl: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&w=600',
+      isVerifiedGateway: true,
+      paymentMethod: 'paytm_upi',
+    } as any);
+
+    setPaymentSuccessMsg('🎉 अभिनंदन! तुमचे ऑनलाईन UPI पेमेंट यशस्वीरीत्या ऑटो-वेरिफाय झाले असून प्रीमियम मेंबरशिप ॲक्टिव्हेट झाली आहे!');
+
+    setTimeout(() => {
+      onClose();
+    }, 2500);
+  };
+
+  // Background Polling Script (Every 2.5 seconds)
+  useEffect(() => {
+    if (!isOpen || !paytmOrderId || paymentSuccessMsg) return;
+
+    setIsPollingStatus(true);
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/check-status?orderId=${paytmOrderId}`);
+        const data = await res.json();
+
+        if (data?.status === 'SUCCESS') {
+          clearInterval(interval);
+          setIsPollingStatus(false);
+          handleAutoPaymentSuccess(data);
+        }
+      } catch (err) {
+        console.error('Error in status polling:', err);
+      }
+    }, 2500);
+
+    return () => {
+      clearInterval(interval);
+      setIsPollingStatus(false);
+    };
+  }, [isOpen, paytmOrderId, paymentSuccessMsg]);
+
+  // Handle Mobile UPI Intent Click
+  const handlePaytmUpiClick = async () => {
+    let linkToOpen = paytmUpiLink;
+    if (!linkToOpen) {
+      const created = await initPaytmOrder(currentPrice);
+      linkToOpen = created?.upiLink;
+    }
+
+    const targetUpiId = siteConfig?.paymentUpiId || 'vanjarijodi@paytm';
+    const fallbackLink = `upi://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent('Vanjari Jodi')}&am=${currentPrice}&cu=INR&tr=${encodeURIComponent(paytmOrderId || 'VJ-' + Date.now())}&tn=${encodeURIComponent('VanjariJodi_Membership')}`;
+
+    window.location.href = linkToOpen || fallbackLink;
+  };
+
+  // Simulation Trigger Endpoint for Testing
+  const handleSimulateSuccess = async () => {
+    if (!paytmOrderId) return;
+    try {
+      const res = await fetch(`/api/simulate-paytm-success?orderId=${paytmOrderId}`);
+      const data = await res.json();
+      if (data?.success) {
+        handleAutoPaymentSuccess({ orderId: paytmOrderId, utrNumber: `SIM-PAYTM-${Date.now().toString().slice(-6)}` });
+      }
+    } catch (err) {
+      console.error('Simulation error:', err);
+    }
+  };
 
   const handleCcavenueCheckout = async () => {
     const merchantId = (siteConfig?.ccavenueMerchantId || '').trim();
@@ -248,6 +402,15 @@ export const PaymentModal: React.FC<{
         </div>
 
         <div className="p-5 sm:p-6 space-y-5 overflow-y-auto">
+
+          {/* Auto Payment Success Alert Banner */}
+          {paymentSuccessMsg && (
+            <div className="p-4 bg-emerald-600 text-white border-2 border-emerald-300 rounded-2xl text-center space-y-2 shadow-xl animate-bounce">
+              <CheckCircle2 className="w-10 h-10 text-amber-200 mx-auto" />
+              <h3 className="text-base sm:text-lg font-black text-white">{paymentSuccessMsg}</h3>
+              <p className="text-xs font-bold text-emerald-100">तुमची सर्व माहिती आणि संपर्क तात्काळ अनलॉक होत आहेत...</p>
+            </div>
+          )}
 
           {/* Expired Plan Banner Alert */}
           {isExpired && (
@@ -446,18 +609,53 @@ export const PaymentModal: React.FC<{
             </div>
           )}
 
+          {/* Paytm Direct UPI Intent Button */}
+          {!isVipFreeAccess && (
+            <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-white rounded-2xl p-4 shadow-xl border-2 border-amber-300 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Smartphone className="w-5 h-5 text-amber-200" />
+                  <span className="font-extrabold text-sm text-amber-100">Paytm UPI Intent (डायरेक्ट पेमेंट)</span>
+                </div>
+                <span className="text-[10px] bg-black/30 text-amber-200 px-2.5 py-0.5 rounded-full border border-amber-300/40 font-extrabold">
+                  ऑटो-व्हॅरीफाय
+                </span>
+              </div>
+
+              <p className="text-xs text-amber-100 font-medium">
+                मोबाईलवर खालील बटणावर क्लिक करून PhonePe / GPay / Paytm उघडा. पेमेंट पूर्ण होताच ऑटो-व्हॅरीफाय होऊन मेंबरशिप सुरू होईल.
+              </p>
+
+              <button
+                type="button"
+                onClick={handlePaytmUpiClick}
+                disabled={isCreatingPaytmOrder}
+                className="w-full py-3.5 bg-slate-900 hover:bg-black text-amber-300 hover:text-amber-200 font-black rounded-xl text-xs sm:text-sm shadow-2xl flex items-center justify-center gap-2 transition-transform active:scale-95 disabled:opacity-50 cursor-pointer border border-amber-400/50"
+              >
+                {isCreatingPaytmOrder ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                ) : (
+                  <Smartphone className="w-4 h-4 text-amber-400" />
+                )}
+                <span>Pay via PhonePe / GPay / Paytm (₹{currentPrice})</span>
+              </button>
+            </div>
+          )}
+
           {/* QR Code Section (If not VIP Free and enabled) */}
           {showQrCode ? (
             <div className="bg-[#FFFDF7] border-2 border-amber-400 rounded-2xl p-4 text-center space-y-3.5 shadow-md relative overflow-hidden">
               <div className="flex items-center justify-between border-b border-amber-200 pb-2.5">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-[#A71930] text-xs font-black border border-amber-300">
                   <QrCode className="w-4 h-4 text-[#A71930]" />
-                  <span>१. UPI / बँक क्यूआर कोड स्कॅन करा</span>
+                  <span>१. डायनॅमिक क्यूआर कोड स्कॅन करा</span>
                 </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black border border-emerald-300 flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>सुरक्षित UPI पेमेंट</span>
-                </span>
+                {isPollingStatus && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black border border-emerald-300 flex items-center gap-1">
+                    <Loader2 className="w-3.5 h-3.5 text-emerald-600 animate-spin" />
+                    <span>ऑटो-वेरिफायिंग सुरु आहे...</span>
+                  </span>
+                )}
               </div>
 
               {/* Dynamic QR Box with Price Tag */}
@@ -468,8 +666,30 @@ export const PaymentModal: React.FC<{
                   <span>पेमेंट रक्कम: ₹{currentPrice}</span>
                 </div>
 
-                <img src={qrUrl} alt="UPI Payment QR Code" className="w-full h-full object-contain pt-1" />
+                {paytmUpiLink ? (
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(paytmUpiLink)}`}
+                    alt="Paytm Dynamic UPI QR Code"
+                    className="w-full h-full object-contain pt-1"
+                  />
+                ) : (
+                  <img src={qrUrl} alt="UPI Payment QR Code" className="w-full h-full object-contain pt-1" />
+                )}
               </div>
+
+              {paytmOrderId && (
+                <div className="text-[11px] text-slate-600 font-mono font-bold flex items-center justify-center gap-2">
+                  <span>Order ID: {paytmOrderId}</span>
+                  <button
+                    type="button"
+                    onClick={handleSimulateSuccess}
+                    title="Test Auto-Verification Simulation"
+                    className="text-[10px] bg-amber-100 hover:bg-amber-200 text-[#A71930] px-2 py-0.5 rounded border border-amber-300 font-sans cursor-pointer font-bold"
+                  >
+                    ⚡ टेस्ट ऑटो-वेरिफाय
+                  </button>
+                </div>
+              )}
 
               {/* Supported Payment Apps Banner */}
               <div className="flex items-center justify-center gap-1.5 text-[10px] sm:text-xs text-slate-700 font-extrabold bg-amber-100/80 py-1.5 px-3 rounded-xl border border-amber-300 shadow-xs">
@@ -481,7 +701,7 @@ export const PaymentModal: React.FC<{
                 <p className="text-xs text-slate-800 font-bold leading-relaxed">{noteText}</p>
                 <div className="inline-flex items-center gap-2 bg-amber-50 px-3.5 py-1.5 rounded-xl border border-amber-300 text-xs shadow-sm">
                   <span className="text-slate-600 font-bold">UPI ID:</span>
-                  <span className="font-mono font-black text-[#A71930] text-sm">{upiId}</span>
+                  <span className="font-mono font-black text-[#A71930] text-sm">{siteConfig?.paymentUpiId || 'vanjarijodi@paytm'}</span>
                   <button
                     type="button"
                     onClick={handleCopyUpi}

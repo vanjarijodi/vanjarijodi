@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { UserProfile, Gender } from '../types';
 import { VerifiedBadge } from './VerifiedBadge';
-import { getProfessionBadges } from '../utils/professionUtils';
+import { getProfessionBadges, getTagStyleClass } from '../utils/professionUtils';
 import { formatProfileDisplayName } from '../utils/nameFormatter';
 import { transliterateMarathiToEnglish } from '../utils/transliterate';
 import {
@@ -375,19 +375,7 @@ export const ProfilesGrid: React.FC<{
                             {badges.map((tag, idx) => (
                               <span
                                 key={idx}
-                                className={`px-2 py-0.5 rounded-md text-[10px] font-black border tracking-wide ${
-                                  tag.includes('डॉक्टर')
-                                    ? 'bg-emerald-100 text-emerald-950 border-emerald-300'
-                                    : tag.includes('सरकारी')
-                                    ? 'bg-amber-100 text-amber-950 border-amber-300'
-                                    : tag.includes('इंजिनिअर')
-                                    ? 'bg-blue-100 text-blue-950 border-blue-300'
-                                    : tag.includes('शिक्षक')
-                                    ? 'bg-indigo-100 text-indigo-950 border-indigo-300'
-                                    : tag.includes('व्यावसायिक') || tag.includes('व्यवसाय')
-                                    ? 'bg-purple-100 text-purple-950 border-purple-300'
-                                    : 'bg-slate-100 text-slate-800 border-slate-300'
-                                }`}
+                                className={`px-2 py-0.5 rounded-md text-[10px] font-black border tracking-wide ${getTagStyleClass(tag)}`}
                               >
                                 {language === 'en' ? transliterateMarathiToEnglish(tag) : tag}
                               </span>
