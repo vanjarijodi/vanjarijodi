@@ -31,9 +31,11 @@ import {
   FileText,
   UserCheck,
   Heart,
-  Tag
+  Tag,
+  Crown
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { uploadToCloudinary } from '../utils/cloudinary';
 
 export const AdminMasterSettingsCenter: React.FC = () => {
   const { siteConfig, updateSiteConfig, currentSubAdmin } = useApp();
@@ -87,10 +89,10 @@ export const AdminMasterSettingsCenter: React.FC = () => {
             </div>
             <div>
               <h2 className="text-xl sm:text-2xl font-black text-amber-100 flex items-center gap-2">
-                <span>🎛️ सेन्ट्रल मास्टर सेटिंग्ज डॅशबोर्ड (Master Control Center)</span>
+                <span>🎛️ सेन्ट्रल मास्टर सेटिंग्ज कंट्रोल सेंटर (Master Settings)</span>
               </h2>
               <p className="text-xs text-amber-200/90 font-medium">
-                वेबसाईटच्या सर्व सेटिंग्ज, प्रायव्हसी, पेमेंट गेटवे, ऑटो मोड व फीचर्स एकाच नियंत्रणाखाली.
+                वेबसाईटच्या सर्व सेटिंग्ज, प्रायव्हसी, पेमेंट गेटवे, ऑटो मोड व फीचर्सचे संपूर्ण नियंत्रण.
               </p>
             </div>
           </div>
@@ -181,6 +183,339 @@ export const AdminMasterSettingsCenter: React.FC = () => {
               }`}
             >
               ✨ फीचर्स
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 📊 LIVE SYSTEM CONFIGURATION SUMMARY & PRESETS DASHBOARD */}
+      <div className="bg-gradient-to-b from-amber-50 to-orange-50/50 rounded-3xl p-5 border-2 border-amber-300/80 shadow-md space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 border-b border-amber-200 pb-3">
+          <div>
+            <h3 className="font-black text-[#800C1E] text-base flex items-center gap-2">
+              <Zap className="w-5 h-5 text-amber-600 fill-amber-500" />
+              <span>१. प्रणालीची सध्याची लाईव्ह सेटिंग स्थिती (Active System Status Overview)</span>
+            </h3>
+            <p className="text-xs text-slate-600 font-medium mt-0.5">
+              वेबसाईटवर कोणती सेटिंग चालू आहे व कोणती बंद आहे हे खालील कार्ड्सवरून एकाच नजरेत स्पष्ट कळेल.
+            </p>
+          </div>
+          <span className="text-xs font-black bg-amber-200 text-[#800C1E] px-3 py-1 rounded-full border border-amber-400 self-start md:self-auto">
+            🟢 थेट थेट (Real-time Live)
+          </span>
+        </div>
+
+        {/* 8 Core Status Cards Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          {/* Card 1: Automation */}
+          <div className="bg-white p-3 rounded-2xl border border-amber-200 shadow-2xs flex flex-col justify-between space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black text-slate-800 flex items-center gap-1">
+                <Zap className="w-3.5 h-3.5 text-amber-600" />
+                <span>ऑटो-पायलट:</span>
+              </span>
+            </div>
+            <span
+              className={`px-2 py-1 rounded-lg text-xs font-black border text-center ${
+                siteConfig.isAutoModeEnabled
+                  ? 'bg-emerald-100 text-emerald-950 border-emerald-300'
+                  : 'bg-slate-100 text-slate-700 border-slate-300'
+              }`}
+            >
+              {siteConfig.isAutoModeEnabled ? '🟢 चालू (Auto)' : '🔴 मॅन्युअल (Manual)'}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('registration')}
+              className="text-[10px] font-extrabold text-[#A71930] hover:underline text-center cursor-pointer"
+            >
+              बदला ➔
+            </button>
+          </div>
+
+          {/* Card 2: Registrations */}
+          <div className="bg-white p-3 rounded-2xl border border-amber-200 shadow-2xs flex flex-col justify-between space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black text-slate-800 flex items-center gap-1">
+                <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+                <span>नवीन नोंदणी:</span>
+              </span>
+            </div>
+            <span
+              className={`px-2 py-1 rounded-lg text-xs font-black border text-center ${
+                siteConfig.autoApproveNewRegistrations
+                  ? 'bg-emerald-100 text-emerald-950 border-emerald-300'
+                  : 'bg-amber-100 text-amber-950 border-amber-300'
+              }`}
+            >
+              {siteConfig.autoApproveNewRegistrations ? '⚡ स्वयंचलित अप्रूव्ह' : '🛡️ ॲडमिन मंजुरी'}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('registration')}
+              className="text-[10px] font-extrabold text-[#A71930] hover:underline text-center cursor-pointer"
+            >
+              बदला ➔
+            </button>
+          </div>
+
+          {/* Card 3: Likes */}
+          <div className="bg-white p-3 rounded-2xl border border-amber-200 shadow-2xs flex flex-col justify-between space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black text-slate-800 flex items-center gap-1">
+                <Heart className="w-3.5 h-3.5 text-rose-600" />
+                <span>प्रोफाईल लाईक्स:</span>
+              </span>
+            </div>
+            <span
+              className={`px-2 py-1 rounded-lg text-xs font-black border text-center ${
+                siteConfig.requirePaidForLikes !== false
+                  ? 'bg-rose-100 text-rose-950 border-rose-300'
+                  : 'bg-sky-100 text-sky-950 border-sky-300'
+              }`}
+            >
+              {siteConfig.requirePaidForLikes !== false ? '💎 फक्त पेड मेंबर्स' : '🌐 सर्वांना खुला'}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('privacy')}
+              className="text-[10px] font-extrabold text-[#A71930] hover:underline text-center cursor-pointer"
+            >
+              बदला ➔
+            </button>
+          </div>
+
+          {/* Card 4: Contact Unlock */}
+          <div className="bg-white p-3 rounded-2xl border border-amber-200 shadow-2xs flex flex-col justify-between space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black text-slate-800 flex items-center gap-1">
+                <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                <span>मोबाईल नंबर:</span>
+              </span>
+            </div>
+            <span className="px-2 py-1 rounded-lg text-xs font-black border text-center bg-amber-100 text-amber-950 border-amber-300">
+              {siteConfig.contactUnlockMode === 'mutual_like_only'
+                ? '🤝 फक्त म्युचुअल'
+                : siteConfig.contactUnlockMode === 'all_paid_members'
+                ? '💳 सर्व पेड मेंबर्स'
+                : '🔄 दोन्ही मार्ग चालू'}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('privacy')}
+              className="text-[10px] font-extrabold text-[#A71930] hover:underline text-center cursor-pointer"
+            >
+              बदला ➔
+            </button>
+          </div>
+
+          {/* Card 5: Payment Gateways */}
+          <div className="bg-white p-3 rounded-2xl border border-amber-200 shadow-2xs flex flex-col justify-between space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black text-slate-800 flex items-center gap-1">
+                <CreditCard className="w-3.5 h-3.5 text-purple-600" />
+                <span>पेमेंट गेटवे:</span>
+              </span>
+            </div>
+            <span
+              className={`px-2 py-1 rounded-lg text-xs font-black border text-center ${
+                siteConfig.enableRazorpay || siteConfig.enableUpiQr
+                  ? 'bg-purple-100 text-purple-950 border-purple-300'
+                  : 'bg-rose-100 text-rose-950 border-rose-300'
+              }`}
+            >
+              {siteConfig.enableRazorpay ? 'Razorpay ' : ''}
+              {siteConfig.enableUpiQr ? 'UPI-QR' : ''}
+              {!siteConfig.enableRazorpay && !siteConfig.enableUpiQr ? '🔴 बंद' : ''}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('payments')}
+              className="text-[10px] font-extrabold text-[#A71930] hover:underline text-center cursor-pointer"
+            >
+              बदला ➔
+            </button>
+          </div>
+
+          {/* Card 6: Chat */}
+          <div className="bg-white p-3 rounded-2xl border border-amber-200 shadow-2xs flex flex-col justify-between space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black text-slate-800 flex items-center gap-1">
+                <MessageSquare className="w-3.5 h-3.5 text-indigo-600" />
+                <span>चॅट व मेसेज:</span>
+              </span>
+            </div>
+            <span
+              className={`px-2 py-1 rounded-lg text-xs font-black border text-center ${
+                siteConfig.enableChatGlobal !== false
+                  ? 'bg-indigo-100 text-indigo-950 border-indigo-300'
+                  : 'bg-slate-100 text-slate-700 border-slate-300'
+              }`}
+            >
+              {siteConfig.enableChatGlobal !== false ? '💬 चॅट चालू (ON)' : '🔴 बंद (OFF)'}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('features')}
+              className="text-[10px] font-extrabold text-[#A71930] hover:underline text-center cursor-pointer"
+            >
+              बदला ➔
+            </button>
+          </div>
+
+          {/* Card 7: Screenshot Protection */}
+          <div className="bg-white p-3 rounded-2xl border border-amber-200 shadow-2xs flex flex-col justify-between space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black text-slate-800 flex items-center gap-1">
+                <Lock className="w-3.5 h-3.5 text-amber-700" />
+                <span>सुरक्षा लॉक:</span>
+              </span>
+            </div>
+            <span
+              className={`px-2 py-1 rounded-lg text-xs font-black border text-center ${
+                siteConfig.disablePhotoDownloadAndScreenshot
+                  ? 'bg-emerald-100 text-emerald-950 border-emerald-300'
+                  : 'bg-slate-100 text-slate-700 border-slate-300'
+              }`}
+            >
+              {siteConfig.disablePhotoDownloadAndScreenshot ? '🛡️ स्क्रीनशॉट लॉक' : '🔓 सामान्य पर्याय'}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('privacy')}
+              className="text-[10px] font-extrabold text-[#A71930] hover:underline text-center cursor-pointer"
+            >
+              बदला ➔
+            </button>
+          </div>
+
+          {/* Card 8: Guest Access */}
+          <div className="bg-white p-3 rounded-2xl border border-amber-200 shadow-2xs flex flex-col justify-between space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black text-slate-800 flex items-center gap-1">
+                <Globe className="w-3.5 h-3.5 text-blue-700" />
+                <span>गेस्ट विझिटर्स:</span>
+              </span>
+            </div>
+            <span
+              className={`px-2 py-1 rounded-lg text-xs font-black border text-center ${
+                siteConfig.allowGuestsToViewContacts
+                  ? 'bg-emerald-100 text-emerald-950 border-emerald-300'
+                  : 'bg-slate-100 text-slate-700 border-slate-300'
+              }`}
+            >
+              {siteConfig.allowGuestsToViewContacts ? '🌐 नंबर खुला' : '🔒 नंबर बंद'}
+            </span>
+            <button
+              type="button"
+              onClick={() => setSelectedCategory('privacy')}
+              className="text-[10px] font-extrabold text-[#A71930] hover:underline text-center cursor-pointer"
+            >
+              बदला ➔
+            </button>
+          </div>
+        </div>
+
+        {/* 🚀 ONE-CLICK READYMADE SYSTEM PRESETS */}
+        <div className="bg-white p-4 rounded-2xl border border-amber-300 space-y-3">
+          <div className="flex items-center justify-between border-b border-amber-200 pb-2">
+            <h4 className="font-black text-[#800C1E] text-xs sm:text-sm flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-amber-600" />
+              <span>२. एका क्लीकवर प्रीसेट सिस्टीम मोड निवडा (1-Click System Presets):</span>
+            </h4>
+            <span className="text-[10px] font-bold text-slate-500">
+              वेळ वाचवण्यासाठी खालीलपैकी कोणताही एक मोड निवडा
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Preset 1: Full Auto */}
+            <button
+              type="button"
+              onClick={() => {
+                updateSiteConfig({
+                  isAutoModeEnabled: true,
+                  autoApproveNewRegistrations: true,
+                  enableFullAccessForPaidMembers: true,
+                  autoUnlockOnPayment: true,
+                  enableMutualLikeContactUnlock: true,
+                  requirePaidForLikes: true,
+                  enableRazorpay: true,
+                  enableUpiQr: true,
+                  enableChatGlobal: true,
+                  enableSearchFilters: true
+                });
+                notifyChange('🚀 पूर्ण ऑटो-पायलट मोड (Full Automation Mode) सक्रिय केला!');
+              }}
+              className="p-3 rounded-xl border-2 border-amber-300 bg-amber-50/70 hover:bg-amber-100/80 text-left transition cursor-pointer space-y-1.5"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-black text-amber-950 text-xs flex items-center gap-1">
+                  <Zap className="w-4 h-4 text-amber-600" />
+                  <span>१. पूर्ण ऑटो-पायलट (Full Auto)</span>
+                </span>
+                <span className="text-[9px] bg-amber-200 text-amber-900 font-bold px-1.5 py-0.5 rounded">
+                  शिफारस 👍
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-700 font-medium">
+                सर्व प्रक्रिया स्वयंचलित. नवीन प्रोफाइल ऑटो अप्रूव्ह, ऑटो पेमेंट अनलॉक व मेसेजिंग चालू.
+              </p>
+            </button>
+
+            {/* Preset 2: High Security */}
+            <button
+              type="button"
+              onClick={() => {
+                updateSiteConfig({
+                  isAutoModeEnabled: false,
+                  autoApproveNewRegistrations: false,
+                  autoUnlockOnPayment: false,
+                  enableMutualLikeContactUnlock: false,
+                  hidePhoneNumbersGlobal: true,
+                  disablePhotoDownloadAndScreenshot: true,
+                  allowGuestsToViewContacts: false
+                });
+                notifyChange('🛡️ उच्च सुरक्षा व ॲडमिन मंजुरी मोड सक्रिय केला!');
+              }}
+              className="p-3 rounded-xl border-2 border-rose-300 bg-rose-50/70 hover:bg-rose-100/80 text-left transition cursor-pointer space-y-1.5"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-black text-rose-950 text-xs flex items-center gap-1">
+                  <ShieldCheck className="w-4 h-4 text-rose-600" />
+                  <span>२. उच्च सुरक्षा व ॲडमिन मंजुरी</span>
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-700 font-medium">
+                प्रत्येक नवीन प्रोफाइल व मोबाईल अनलॉक ॲडमिनने तपासल्याशिवाय वेबसाईटवर दिसणार नाही.
+              </p>
+            </button>
+
+            {/* Preset 3: Paid Members Only */}
+            <button
+              type="button"
+              onClick={() => {
+                updateSiteConfig({
+                  requirePaidForLikes: true,
+                  enableFullAccessForPaidMembers: true,
+                  contactUnlockMode: 'all_paid_members',
+                  allowGuestsToViewContacts: false,
+                  enableRazorpay: true,
+                  enableUpiQr: true
+                });
+                notifyChange('💎 व्हीआयपी व पेड मेम्बर्स ऑनली मोड सक्रिय केला!');
+              }}
+              className="p-3 rounded-xl border-2 border-purple-300 bg-purple-50/70 hover:bg-purple-100/80 text-left transition cursor-pointer space-y-1.5"
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-black text-purple-950 text-xs flex items-center gap-1">
+                  <Crown className="w-4 h-4 text-purple-600" />
+                  <span>३. व्हीआयपी व पेड मेम्बर्स मोड</span>
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-700 font-medium">
+                केवळ सबस्क्रिप्शन घेतलेल्या सदस्यांनाच संपर्क व सर्व फीचर्स मिळतील. फ्री युझर्सना मर्यादित.
+              </p>
             </button>
           </div>
         </div>
@@ -1033,6 +1368,47 @@ export const AdminMasterSettingsCenter: React.FC = () => {
                   />
                   <p className="text-[11px] text-slate-600 font-medium">
                     हा UPI ID PhonePe/GPay/Paytm direct intent आणि dynamic QR कोड तयार करण्यासाठी वापरला जाईल.
+                  </p>
+                </div>
+
+                {/* Custom QR Code Image Upload / URL Input */}
+                <div className="space-y-1.5">
+                  <label className="block text-slate-800 text-xs font-black flex items-center gap-1.5">
+                    <QrCode className="w-4 h-4 text-[#A71930]" />
+                    <span>कस्टम बँक क्यूआर कोड प्रतिमा (Custom Bank QR Code Image):</span>
+                  </label>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      value={siteConfig.paymentQrCodeUrl || ''}
+                      onChange={(e) => updateSiteConfig({ paymentQrCodeUrl: e.target.value })}
+                      placeholder="क्यूआर इमेज URL (उदा. Cloudinary / Image URL)"
+                      className="flex-1 px-3.5 py-2.5 font-mono text-xs font-bold rounded-xl border border-amber-400 bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#A71930]"
+                    />
+                    <label className="shrink-0 px-3 py-2.5 bg-[#A71930] hover:bg-[#800C1E] text-amber-100 font-extrabold text-xs rounded-xl cursor-pointer transition shadow flex items-center gap-1">
+                      <span>फोटो अपलोड</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          try {
+                            const uploadedUrl = await uploadToCloudinary(file);
+                            if (uploadedUrl) {
+                              updateSiteConfig({ paymentQrCodeUrl: uploadedUrl });
+                              notifyChange('कस्टम क्यूआर कोड फोटो यशस्वीरीत्या बदलला!');
+                            }
+                          } catch (err) {
+                            alert('फोटो अपलोड करताना त्रुटी आली.');
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+                  <p className="text-[11px] text-slate-600 font-medium">
+                    इथे स्वतःचा कस्टम PhonePe / Google Pay क्यूआर कोड फोटो अपलोड करा किंवा ऑटो-जनरेटेड डायनॅमिक क्यूआर कोड वापरा.
                   </p>
                 </div>
 
