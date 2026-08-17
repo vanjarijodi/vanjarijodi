@@ -270,16 +270,21 @@ Analyze the provided BioData image, photo, or document text and extract all deta
 
 CRITICAL INSTRUCTION FOR CANDIDATE FULL NAME ("fullName"):
 - You MUST locate the candidate's full name. Look at the top of the bio-data, document header, or lines containing "नाव", "नांव", "मुलाचे नाव", "मुलीचे नाव", "मुलाचे नांव", "मुलीचे नांव", "उमेदवाराचे नाव", "उमेदवाराचे नांव", "पूर्ण नाव", "Name", "Full Name", "Bio-Data of", or honorific prefixes like "चि.", "चिरंजीव", "कु.", "कुमारी", "सौ.का.".
-- Clean the candidate's full name (e.g. remove honorific prefixes if needed or keep full readable name like "अमित तुकाराम सानप").
+- Clean the candidate's full name (e.g. keep full readable name like "अमित तुकाराम सानप" or "पूजा मारुती मुंडे").
 - NEVER return null, empty, or generic placeholder for "fullName" if a candidate name is written on the bio-data.
+
+CRITICAL INSTRUCTION FOR GENDER ("gender"):
+- You MUST correctly identify whether the profile is for a BRIDE (वधू/मुलगी) or GROOM (वर/मुलगा).
+- If the document contains keywords like "मुलीचे नाव", "मुलीचे नांव", "मुलीची माहिती", "वधू", "वधूचे नाव", "कु.", "कुमारी", "सौ.का.", "कन्या", "Bride", "Girl", "Female", "Daughter" -> Set "gender": "bride".
+- If the document contains keywords like "मुलाचे नाव", "मुलाचे नांव", "मुलाची माहिती", "वर", "वरचे नाव", "चि.", "चिरंजीव", "कुमार", "Groom", "Boy", "Male", "Son" -> Set "gender": "groom".
+- Infer from candidate first name if labels are ambiguous (e.g. Pooja, Priya, Snehal, Aarti, Ankita, Archana -> bride; Amit, Rahul, Sachin, Tuakram, Ganesh, Mahesh -> groom).
 
 Rules:
 1. Extract Marathi or English text seamlessly.
-2. If gender is not explicitly mentioned, infer from context (e.g. "वर / मुलगा / चि. / चिरंजीव" -> groom, "वधू / मुलगी / कु. / कुमारी / सौ.का." -> bride). Default to "groom" or "bride".
-3. Extract names, dates (formatted as YYYY-MM-DD if possible or readable format), time of birth, places, caste (subcaste: वंजारी / NT-D), gotra, rashi, nakshatra, height, education, occupation, income, father/mother name & occupation, brothers/sisters, relative surnames (e.g. Mundhe, Sanap, Nagre, Kakad, Ghuge, etc.), mama name & place, contact numbers, email, addresses.
-4. Photo Detection Rule: Check if the provided image contains a personal photo/portrait of the candidate (girl/bride or boy/groom). Set "hasCandidatePhoto": true if a person's photo is present/visible in the document image, otherwise false. Provide a brief Marathi description in "candidatePhotoDescription" (e.g. "वधूचा (मुलीचा) फोटो सापडला" or "वराचा (मुलाचा) फोटो सापडला").
-5. If a field is missing, return empty string or null or appropriate default.
-6. Provide clean Marathi or English strings for fields as requested.
+2. Extract names, dates (formatted as YYYY-MM-DD if possible or readable format), time of birth, places, caste (subcaste: वंजारी / NT-D), gotra, rashi, nakshatra, height, education, occupation, income, father/mother name & occupation, brothers/sisters, relative surnames (e.g. Mundhe, Sanap, Nagre, Kakad, Ghuge, etc.), mama name & place, contact numbers, email, addresses.
+3. Photo Detection Rule: Check if the provided image contains a personal photo/portrait of the candidate. Set "hasCandidatePhoto": true if a person's photo is present, otherwise false. Provide a brief Marathi description in "candidatePhotoDescription".
+4. If a field is missing, return empty string or null.
+5. Provide clean Marathi or English strings for fields as requested.
 
 Extract into this exact JSON structure:
 {
@@ -362,7 +367,7 @@ Extract into this exact JSON structure:
         return res.status(400).json({ error: 'Either imageBase64 or textPrompt is required' });
       }
 
-      const candidateModels = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
+      const candidateModels = ['gemini-3.7-flash', 'gemini-3.1-pro-preview', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
       let responseText = '';
       let lastError: any = null;
 

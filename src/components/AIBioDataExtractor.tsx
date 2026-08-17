@@ -168,7 +168,7 @@ export const AIBioDataExtractor: React.FC<AIBioDataExtractorProps> = ({
     ]);
 
     if (!fullName && cleanText.length > 0) {
-      const matchHonorific = cleanText.match(/(?:चि\.|चिरंजीव|कु\.|कुमारी|सौ\.का\.|Chi\.|Kum\.|Mr\.|Ms\.)\s*([^\n,;]+)/i);
+      const matchHonorific = cleanText.match(/(?:चि\.|चिरंजीव|कु\.|कुमारी|सौ\.का\.|सौ\.|श्री\.|Chi\.|Kum\.|Mr\.|Ms\.)\s*([^\n,;]+)/i);
       if (matchHonorific && matchHonorific[1]?.trim()) {
         fullName = matchHonorific[1].trim();
       }
@@ -177,8 +177,8 @@ export const AIBioDataExtractor: React.FC<AIBioDataExtractorProps> = ({
     if (!fullName && cleanText.length > 0) {
       const lines = cleanText.split('\n').map((l) => l.trim()).filter(Boolean);
       for (const line of lines) {
-        if (/^(बायोडाटा|बायो-डाटा|biodata|bio-data|matrimonial|kundali|पत्रिका)$/i.test(line)) continue;
-        if (line.length > 3 && line.length < 50 && !line.includes(':')) {
+        if (/^(बायोडाटा|बायो-डाटा|biodata|bio-data|matrimonial|kundali|पत्रिका|श्री गणेशाय नमः|शुभ विवाह)$/i.test(line)) continue;
+        if (line.length > 3 && line.length < 50 && !line.includes(':') && !line.includes('=')) {
           fullName = line;
           break;
         }
@@ -186,10 +186,18 @@ export const AIBioDataExtractor: React.FC<AIBioDataExtractorProps> = ({
     }
 
     let gender: 'bride' | 'groom' = 'groom';
-    if (/मुलीचे|वधू|कन्या|Bride|Girl|Female/i.test(cleanText)) {
+    if (/(?:मुलीचे|वधू|कन्या|कु\.|कुमारी|सौ\.का\.|Bride|Girl|Female|Daughter|मुलीची)/i.test(cleanText)) {
       gender = 'bride';
-    } else if (/मुलाचे|वर|कुमार|Groom|Boy|Male/i.test(cleanText)) {
+    } else if (/(?:मुलाचे|वर|कुमार|चि\.|चिरंजीव|Groom|Boy|Male|Son|मुलाची)/i.test(cleanText)) {
       gender = 'groom';
+    }
+
+    if (fullName) {
+      if (/(?:कु\.|कुमारी|सौ\.का\.)/i.test(fullName)) {
+        gender = 'bride';
+      } else if (/(?:चि\.|चिरंजीव)/i.test(fullName)) {
+        gender = 'groom';
+      }
     }
 
     const dob =
@@ -251,6 +259,8 @@ export const AIBioDataExtractor: React.FC<AIBioDataExtractorProps> = ({
     // BioData document paper image is NEVER set as candidate profile photo!
     const finalCandidatePhoto = candidateProfilePhotoUrl || undefined;
 
+    let finalResult: ExtractedBioData | null = null;
+
     try {
       const payload: any = {};
       if (base64Data || imagePreview) {
@@ -298,29 +308,36 @@ export const AIBioDataExtractor: React.FC<AIBioDataExtractorProps> = ({
           }
         }
 
-        const result: ExtractedBioData = {
+        let detectedGender: 'bride' | 'groom' = parsedData.gender === 'bride' ? 'bride' : 'groom';
+        if (!parsedData.gender || parsedData.gender === 'null') {
+          const localParsed = parseBioDataLocally(parsedData.rawSummary || textContent || rawTextPrompt || '', finalCandidatePhoto);
+          detectedGender = localParsed.gender;
+        }
+
+        finalResult = {
           ...parsedData,
           fullName: nameCandidate || '',
+          gender: detectedGender,
           candidatePhotoUrl: finalCandidatePhoto,
           hasCandidatePhoto: !!finalCandidatePhoto,
           candidatePhotoDescription: finalCandidatePhoto
-            ? parsedData.gender === 'bride'
+            ? detectedGender === 'bride'
               ? 'वधूचा (मुलीचा) फोटो यशस्वीपणे जोडला गेला आहे.'
               : 'वराचा (मुलाचा) फोटो यशस्वीपणे जोडला गेला आहे.'
             : undefined,
         };
-        setExtractedResult(result);
       } else {
-        const fallbackResult = parseBioDataLocally(textContent || rawTextPrompt || '', finalCandidatePhoto);
-        setExtractedResult(fallbackResult);
+        finalResult = parseBioDataLocally(textContent || rawTextPrompt || '', finalCandidatePhoto);
       }
     } catch (err: any) {
       console.warn('OCR Extraction Error:', err);
-      const fallbackResult = parseBioDataLocally(textContent || rawTextPrompt || '', finalCandidatePhoto);
-      setExtractedResult(fallbackResult);
+      finalResult = parseBioDataLocally(textContent || rawTextPrompt || '', finalCandidatePhoto);
       setErrorMsg(null);
     } finally {
       setIsExtracting(false);
+      if (finalResult) {
+        setExtractedResult(finalResult);
+      }
     }
   };
 
@@ -628,9 +645,36 @@ export const AIBioDataExtractor: React.FC<AIBioDataExtractorProps> = ({
               />
             </div>
 
-            <div>
-              <span className="text-slate-500 text-[10px] block">लिंग / प्रकार</span>
-              <span className="font-bold text-amber-300">{extractedResult.gender === 'bride' ? '👰 वधू' : '🤵 वर'}</span>
+            <div className="col-span-1">
+              <span className="text-amber-300 text-[10px] font-bold block mb-1">लिंग / प्रकार (निवडा):</span>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setExtractedResult((prev) => (prev ? { ...prev, gender: 'groom' } : null))
+                  }
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    extractedResult.gender === 'groom'
+                      ? 'bg-amber-400 text-slate-950 font-black shadow border border-amber-300'
+                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  🤵 वर (मुलाचे)
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setExtractedResult((prev) => (prev ? { ...prev, gender: 'bride' } : null))
+                  }
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    extractedResult.gender === 'bride'
+                      ? 'bg-rose-500 text-white font-black shadow border border-rose-400'
+                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                  }`}
+                >
+                  👰 वधू (मुलीचे)
+                </button>
+              </div>
             </div>
 
             <div>
