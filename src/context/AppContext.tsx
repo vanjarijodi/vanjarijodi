@@ -297,6 +297,7 @@ interface AppContextType {
   addPayPerContactRequest: (req: Omit<PayPerContactRequest, 'id' | 'createdAt' | 'status'>) => void;
   approvePayPerContactRequest: (id: string) => void;
   rejectPayPerContactRequest: (id: string) => void;
+  deletePayPerContactRequest: (id: string) => void;
   selectedProfileForUnlock: UserProfile | null;
   setSelectedProfileForUnlock: (profile: UserProfile | null) => void;
   isContactUnlockModalOpen: boolean;
@@ -1335,18 +1336,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [paymentRequests]);
 
   const addPaymentRequest = (reqData: Omit<PaymentRequest, 'id' | 'createdAt' | 'status'>) => {
-    // Razorpay or verified gateway payments are 100% verified by bank/gateway
+    // Razorpay or verified gateway payments are 100% verified by bank/gateway with transaction signatures
     const isGatewayVerified =
       reqData.paymentMethod === 'razorpay' ||
       (reqData as any).isVerifiedGateway === true ||
-      (reqData as any).razorpayPaymentId;
+      Boolean((reqData as any).razorpayPaymentId);
 
-    // Manual UTR submissions require Admin verification by default to prevent fake UTR fraud,
-    // unless admin explicitly enabled autoApproveManualUtr
+    // Cross-check for duplicate UTR across existing plan requests, contact unlocks, and profile history
+    const cleanUtr = (reqData.utrNumber || '').trim().replace(/[^0-9a-zA-Z]/g, '');
+    const isDuplicateUtr = cleanUtr
+      ? paymentRequests.some((r) => r.utrNumber === cleanUtr) ||
+        payPerContactRequests.some((r) => r.utrNumber === cleanUtr) ||
+        profiles.some((p) => p.paymentUtr === cleanUtr)
+      : false;
+
+    // Cross-check for duplicate screenshot
+    const isDuplicateScreenshot =
+      reqData.screenshotUrl && reqData.screenshotUrl.trim() !== ''
+        ? paymentRequests.some((r) => r.screenshotUrl === reqData.screenshotUrl && r.userId !== reqData.userId) ||
+          payPerContactRequests.some((r) => r.screenshotUrl === reqData.screenshotUrl && r.userId !== reqData.userId)
+        : false;
+
+    // Manual UTR submissions require Admin verification by default to prevent fake UTR fraud.
+    // If it is a duplicate UTR, it must NEVER be auto-unlocked under any circumstance.
     const isAutoUnlock =
-      isGatewayVerified ||
-      (siteConfig.autoApproveManualUtr === true &&
-        (siteConfig.isAutoModeEnabled !== false || siteConfig.autoApprovePaidRegistrations !== false));
+      isGatewayVerified && !isDuplicateUtr;
 
     const userProfileObj = profiles.find((p) => p.id === reqData.userId || p.mobile === reqData.userMobile);
     const matchedPlan = plansList.find((p) => p.id === reqData.planId);
@@ -1360,11 +1374,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const newReq: PaymentRequest = {
       ...reqData,
+      utrNumber: cleanUtr,
       id: 'pay-req-' + Date.now(),
       status: isAutoUnlock ? 'approved' : 'pending',
       createdAt: nowIso,
       approvedAt: isAutoUnlock ? nowIso : undefined,
       isAutoApproved: isAutoUnlock,
+      isDuplicateUtr,
+      isDuplicateScreenshot,
       planDurationText: durationLabel,
       userPhotoUrl: reqData.userPhotoUrl || userProfileObj?.photoUrl,
     };
@@ -1383,16 +1400,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         title: 'Payment Auto-Approved',
         titleMr: 'पेमेंट ऑटो-मंजूर आणि प्लॅन सुरु झाला!',
         message: `Your payment for ${reqData.planName} was auto-verified.`,
-        messageMr: `गेटवे/ऑटो प्रणालीद्वारे तुमचे ${reqData.planName} (${durationLabel}) पेमेंट तात्काळ मंजूर होऊन सेवा सक्रिय झाली आहे.`,
+        messageMr: `गेटवे प्रणालीद्वारे तुमचे ${reqData.planName} (${durationLabel}) पेमेंट तात्काळ मंजूर होऊन सेवा सक्रिय झाली आहे.`,
         type: 'approval',
       });
     } else {
       addNotification({
         userId: 'admin',
         title: 'New Payment Verification Request',
-        titleMr: 'नवीन पेमेंट पावती प्राप्त झाली!',
+        titleMr: isDuplicateUtr ? '⚠️ संशयास्पद / डुप्लिकेट UTR पेमेंट पावती प्राप्त!' : 'नवीन पेमेंट पावती प्राप्त झाली!',
         message: `${reqData.userName} submitted payment proof for ${reqData.planName}`,
-        messageMr: `${reqData.userName} यांनी ${reqData.planName} सबस्क्रिप्शनसाठी UTR: ${reqData.utrNumber} पाठवले आहे. ॲडमिन कडून खात्री करून मंजूर केले जाईल.`,
+        messageMr: `${reqData.userName} यांनी ${reqData.planName} सबस्क्रिप्शनसाठी UTR: ${cleanUtr} पाठवले आहे.${isDuplicateUtr ? ' (सूचना: हा UTR आधीच वापरलेला आढळला आहे)' : ' ॲडमिन कडून खात्री करून मंजूर केले जाईल.'}`,
         type: 'system',
       });
     }
@@ -3058,15 +3075,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isContactUnlockModalOpen, setIsContactUnlockModalOpen] = useState(false);
 
   const addPayPerContactRequest = (reqData: Omit<PayPerContactRequest, 'id' | 'createdAt' | 'status'>) => {
+    const cleanUtr = (reqData.utrNumber || '').trim().replace(/[^0-9a-zA-Z]/g, '');
+
+    // Check duplicate UTR across plan requests, contact unlocks, and profiles
+    const isDuplicateUtr = cleanUtr
+      ? payPerContactRequests.some(r => r.utrNumber === cleanUtr) ||
+        paymentRequests.some(r => r.utrNumber === cleanUtr) ||
+        profiles.some(p => p.paymentUtr === cleanUtr)
+      : false;
+
+    const isDuplicateScreenshot =
+      reqData.screenshotUrl && reqData.screenshotUrl.trim() !== ''
+        ? payPerContactRequests.some(r => r.screenshotUrl === reqData.screenshotUrl && r.userId !== reqData.userId) ||
+          paymentRequests.some(r => r.screenshotUrl === reqData.screenshotUrl && r.userId !== reqData.userId)
+        : false;
+
     const newReq: PayPerContactRequest = {
       ...reqData,
+      utrNumber: cleanUtr,
       id: `ppc-${Date.now()}`,
       status: 'pending',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      isDuplicateUtr,
+      isDuplicateScreenshot,
     };
     setPayPerContactRequests(prev => [newReq, ...prev]);
-    logActivity('Pay-Per-Contact Request', `युझरने संपर्क अनलॉक UTR सादर केला: ${reqData.targetProfileName} (UTR: ${reqData.utrNumber})`, reqData.userName);
-    addBroadcastNotification(`नवीन संपर्क अनलॉक विनंती प्राप्त झाली (UTR: ${reqData.utrNumber})`, 'Pay-Per-Contact Request');
+    logActivity('Pay-Per-Contact Request', `युझरने संपर्क अनलॉक UTR सादर केला: ${reqData.targetProfileName} (UTR: ${cleanUtr})`, reqData.userName);
+    addBroadcastNotification(
+      isDuplicateUtr
+        ? `⚠️ नवीन संपर्क अनलॉक विनंती प्राप्त (UTR: ${cleanUtr} - डुप्लिकेट इशारा)`
+        : `नवीन संपर्क अनलॉक विनंती प्राप्त झाली (UTR: ${cleanUtr})`,
+      'Pay-Per-Contact Request'
+    );
+  };
+
+  const deletePayPerContactRequest = (id: string) => {
+    setPayPerContactRequests(prev => prev.filter(r => r.id !== id));
   };
 
   const approvePayPerContactRequest = (id: string) => {
@@ -3885,6 +3929,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addPayPerContactRequest,
         approvePayPerContactRequest,
         rejectPayPerContactRequest,
+        deletePayPerContactRequest,
         selectedProfileForUnlock,
         setSelectedProfileForUnlock,
         isContactUnlockModalOpen,

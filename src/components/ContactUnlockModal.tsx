@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { uploadToCloudinary, validateFileSize } from '../utils/cloudinary';
 import {
   X,
   QrCode,
@@ -14,7 +15,9 @@ import {
   Lock,
   ArrowRight,
   Smartphone,
-  Sparkles
+  Sparkles,
+  Loader2,
+  AlertTriangle
 } from 'lucide-react';
 
 export const ContactUnlockModal: React.FC = () => {
@@ -27,15 +30,22 @@ export const ContactUnlockModal: React.FC = () => {
     currentUser,
     unlockContact,
     addPayPerContactRequest,
-    payPerContactRequests
+    payPerContactRequests,
+    paymentRequests,
+    profiles,
   } = useApp();
 
   const [utrNumber, setUtrNumber] = useState('');
   const [screenshotUrl, setScreenshotUrl] = useState('');
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [launchingApp, setLaunchingApp] = useState<string | null>(null);
+  const [isUtrChecking, setIsUtrChecking] = useState(false);
+  const [isUtrDuplicate, setIsUtrDuplicate] = useState(false);
 
   if (!isContactUnlockModalOpen || !selectedProfileForUnlock) return null;
 
@@ -80,25 +90,94 @@ export const ContactUnlockModal: React.FC = () => {
     setTimeout(() => setIsCopied(false), 2000);
   };
 
-  const handleScreenshotUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setScreenshotUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  // Strict 12-Digit Numeric UTR Input Handler & Live Validation
+  const handleUtrChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const numericVal = e.target.value.replace(/[^0-9]/g, '').slice(0, 12);
+    setUtrNumber(numericVal);
+    setIsUtrDuplicate(false);
+    setErrorMsg('');
+
+    if (numericVal.length === 12) {
+      // Live check in local context first
+      const existsInContext =
+        payPerContactRequests.some(r => r.utrNumber === numericVal) ||
+        paymentRequests.some(r => r.utrNumber === numericVal) ||
+        profiles.some(p => p.paymentUtr === numericVal);
+
+      if (existsInContext) {
+        setIsUtrDuplicate(true);
+        setErrorMsg('⚠️ हा UTR क्रमांक आधीच वापरला गेला आहे (Duplicate UTR). कृपया नवीन खरी पावती सबमिट करा.');
+        return;
+      }
+
+      // Check backend endpoint
+      try {
+        setIsUtrChecking(true);
+        const res = await fetch(`/api/payment/check-utr/${numericVal}`);
+        const data = await res.json();
+        if (data.success && data.is_duplicate) {
+          setIsUtrDuplicate(true);
+          setErrorMsg('⚠️ हा UTR क्रमांक सर्व्हरवर आधीच नोंदवला गेला आहे (Duplicate UTR).');
+        }
+      } catch (err) {
+        console.warn('Backend UTR check skipped:', err);
+      } finally {
+        setIsUtrChecking(false);
+      }
     }
   };
 
-  const handleSubmitUtr = (e: React.FormEvent) => {
+  const handleScreenshotUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const sizeCheck = validateFileSize(file);
+      if (!sizeCheck.valid) {
+        setErrorMsg(sizeCheck.errorMsg || 'फाइल साइज खूप मोठी आहे.');
+        return;
+      }
+
+      setScreenshotFile(file);
+      const localPreview = URL.createObjectURL(file);
+      setScreenshotPreview(localPreview);
+      setErrorMsg('');
+
+      try {
+        setIsUploading(true);
+        const res = await uploadToCloudinary(file);
+        if (res?.url) {
+          setScreenshotUrl(res.url);
+        }
+      } catch (err) {
+        console.warn('Cloudinary upload fallback to local preview:', err);
+      } finally {
+        setIsUploading(false);
+      }
+    }
+  };
+
+  const handleSubmitUtr = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
     const cleanUtr = utrNumber.trim().replace(/[^0-9]/g, '');
-    if (!cleanUtr || cleanUtr.length < 12) {
-      setErrorMsg('कृपया वैध १२ अंकी UTR / ट्रांझॅक्शन आयडी प्रविष्ट करा.');
+    if (!cleanUtr || cleanUtr.length !== 12 || !/^\d{12}$/.test(cleanUtr)) {
+      setErrorMsg('कृपया बँक पावतीतील बरोबर १२-अंकी numeric UTR / Transaction ID नंबर टाकावा.');
       return;
+    }
+
+    if (isUtrDuplicate) {
+      setErrorMsg('हा UTR क्रमांक आधीच वापरलेला आहे. कृपया नवीन खरी पावती किंवा योग्य UTR सबमिट करा.');
+      return;
+    }
+
+    let finalScreenshot = screenshotUrl;
+    if (screenshotFile && !finalScreenshot) {
+      try {
+        const uploadRes = await uploadToCloudinary(screenshotFile);
+        if (uploadRes?.url) finalScreenshot = uploadRes.url;
+      } catch (e) {
+        finalScreenshot = screenshotPreview || '';
+      }
     }
 
     addPayPerContactRequest({
@@ -110,7 +189,7 @@ export const ContactUnlockModal: React.FC = () => {
       targetProfileMobile: selectedProfileForUnlock.mobile,
       amount: unlockFee,
       utrNumber: cleanUtr,
-      screenshotUrl: screenshotUrl || undefined
+      screenshotUrl: finalScreenshot || screenshotPreview || undefined
     });
 
     setSubmitted(true);
@@ -121,8 +200,11 @@ export const ContactUnlockModal: React.FC = () => {
     setSelectedProfileForUnlock(null);
     setUtrNumber('');
     setScreenshotUrl('');
+    setScreenshotPreview(null);
+    setScreenshotFile(null);
     setSubmitted(false);
     setErrorMsg('');
+    setIsUtrDuplicate(false);
   };
 
   return (
@@ -361,28 +443,65 @@ export const ContactUnlockModal: React.FC = () => {
                     )}
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        12-Digit UTR / Transaction ID <span className="text-rose-600">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={utrNumber}
-                        onChange={e => setUtrNumber(e.target.value)}
-                        placeholder="उदा. 402918274011"
-                        maxLength={18}
-                        required
-                        className="w-full px-3 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-[#A71930] focus:border-[#A71930] font-mono text-sm"
-                      />
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-xs font-bold text-slate-700">
+                          १२-अंकी UTR / Transaction ID <span className="text-rose-600">*</span>
+                        </label>
+                        <span className="text-[10px] font-mono font-bold text-slate-500">
+                          {utrNumber.length}/12 अंक
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={utrNumber}
+                          onChange={handleUtrChange}
+                          placeholder="उदा. 402918274011"
+                          maxLength={12}
+                          required
+                          className={`w-full px-3 py-2.5 border rounded-xl font-mono text-sm tracking-wider focus:outline-none transition ${
+                            isUtrDuplicate
+                              ? 'border-rose-500 bg-rose-50/50 text-rose-900 focus:ring-2 focus:ring-rose-400'
+                              : utrNumber.length === 12
+                              ? 'border-emerald-500 bg-emerald-50/30 text-emerald-900 focus:ring-2 focus:ring-emerald-400'
+                              : 'border-slate-300 focus:ring-2 focus:ring-[#A71930] focus:border-[#A71930]'
+                          }`}
+                        />
+                        {isUtrChecking && (
+                          <div className="absolute right-3 top-2.5">
+                            <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />
+                          </div>
+                        )}
+                        {utrNumber.length === 12 && !isUtrDuplicate && !isUtrChecking && (
+                          <div className="absolute right-3 top-2.5 text-emerald-600">
+                            <Check className="w-4 h-4" />
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
-                        पेमेंट स्क्रीनशॉट (पर्यायी)
+                        पेमेंट पावती स्क्रीनशॉट (Screenshot Upload)
                       </label>
-                      <div className="flex items-center gap-2">
-                        <label className="flex-1 px-3 py-2 border border-dashed border-slate-300 rounded-xl hover:bg-slate-50 cursor-pointer flex items-center justify-center gap-2 text-xs font-bold text-slate-600 transition">
-                          <Upload className="w-4 h-4 text-amber-600" />
-                          <span>{screenshotUrl ? 'स्क्रीनशॉट निवडला' : 'स्क्रीनशॉट अपलोड करा'}</span>
+                      <div className="space-y-2">
+                        <label className="w-full px-3 py-2.5 border-2 border-dashed border-amber-300 rounded-xl hover:bg-amber-50/50 cursor-pointer flex items-center justify-center gap-2 text-xs font-bold text-slate-700 transition">
+                          {isUploading ? (
+                            <>
+                              <Loader2 className="w-4 h-4 text-amber-600 animate-spin" />
+                              <span>अपलोड होत आहे...</span>
+                            </>
+                          ) : screenshotPreview ? (
+                            <>
+                              <Check className="w-4 h-4 text-emerald-600" />
+                              <span className="text-emerald-700">स्क्रीनशॉट जोडला गेला आहे</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-4 h-4 text-amber-600" />
+                              <span>स्क्रीनशॉट निवडा (Upload Receipt)</span>
+                            </>
+                          )}
                           <input
                             type="file"
                             accept="image/*"
@@ -390,13 +509,23 @@ export const ContactUnlockModal: React.FC = () => {
                             className="hidden"
                           />
                         </label>
+                        {screenshotPreview && (
+                          <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-amber-300 shadow-sm mx-auto">
+                            <img
+                              src={screenshotPreview}
+                              alt="Receipt preview"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full py-3 bg-[#A71930] hover:bg-[#800C1E] text-amber-100 font-extrabold rounded-xl shadow-lg border border-amber-300 flex items-center justify-center gap-2 transition cursor-pointer text-sm"
+                    disabled={isUtrChecking || isUtrDuplicate || utrNumber.length !== 12 || isUploading}
+                    className="w-full py-3 bg-gradient-to-r from-[#A71930] to-[#800C1E] disabled:opacity-50 text-amber-100 font-extrabold rounded-xl shadow-lg border border-amber-300 flex items-center justify-center gap-2 transition cursor-pointer text-sm"
                   >
                     <span>₹{unlockFee} UTR सबमिट करा</span>
                     <ArrowRight className="w-4 h-4 text-amber-300" />

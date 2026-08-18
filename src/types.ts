@@ -346,6 +346,8 @@ export interface PaymentRequest {
   updatedAt?: string;
   approvedAt?: string;
   isAutoApproved?: boolean;
+  isDuplicateUtr?: boolean;
+  isDuplicateScreenshot?: boolean;
   planDurationText?: string;
   validUntil?: string;
   membershipId?: string;
@@ -373,6 +375,10 @@ export interface PayPerContactRequest {
   screenshotUrl?: string;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
+  adminNote?: string;
+  approvedAt?: string;
+  isDuplicateUtr?: boolean;
+  isDuplicateScreenshot?: boolean;
 }
 
 export interface GuestSessionLog {

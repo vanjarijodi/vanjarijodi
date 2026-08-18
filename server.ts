@@ -85,12 +85,14 @@ async function startServer() {
   const membershipsMap = new Map<string, UserMembership>();
   const paymentRequestsMap = new Map<string, PaymentRequestRecord>();
   const usedUtrSet = new Set<string>();
+  const usedScreenshotSet = new Set<string>();
 
   // Seed sample demo data for instant admin testability if empty
   const sampleUtr1 = '984728491823';
   const sampleUtr2 = '563829104821';
   usedUtrSet.add(sampleUtr1);
   usedUtrSet.add(sampleUtr2);
+  usedScreenshotSet.add('https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80');
 
   paymentRequestsMap.set('PAY-REQ-101', {
     id: 'PAY-REQ-101',
