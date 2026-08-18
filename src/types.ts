@@ -160,6 +160,8 @@ export interface UserProfile {
   paymentPlanName?: string;
   membershipExpiryDate?: string;
   isPlanExpired?: boolean;
+  authProvider?: 'google' | 'email' | 'mobile' | 'guest';
+  isGoogleUser?: boolean;
 }
 
 export interface ProfileReport {
@@ -590,7 +592,10 @@ export interface SiteConfig {
   logoWidth?: number;
   hideLogoText?: boolean;
   paymentQrUrl?: string;
+  paymentQrCodeUrl?: string;
   paymentUpiId?: string;
+  paymentPayeeName?: string;
+  enableDirectUpiAppButtons?: boolean;
   paymentNote?: string;
   paymentMode?: 'both' | 'razorpay_only' | 'ccavenue_only' | 'online_gateways_only' | 'upi_qr_only';
   enableRazorpay?: boolean;
@@ -782,6 +787,73 @@ export interface SiteConfig {
   activeThemePreset?: ThemePreset;
   activeGestureMode?: GestureMode;
   activeActionDock?: ActionDockType;
+}
+
+export interface SecurityLogEvent {
+  id: string;
+  userId: string;
+  userName?: string;
+  userEmail?: string;
+  userMobile?: string;
+  eventType:
+    | 'LOGIN_SUCCESS'
+    | 'LOGIN_FAILED'
+    | 'LOGOUT'
+    | 'PASSWORD_RESET_REQUEST'
+    | 'PASSWORD_RESET_SUCCESS'
+    | 'SESSION_REVOKED'
+    | 'SUSPICIOUS_LOGIN_ATTEMPT'
+    | 'ACCOUNT_LOCKED'
+    | 'ACCOUNT_UNLOCKED'
+    | 'TWO_FACTOR_TRIGGERED'
+    | 'GOOGLE_AUTH_LINKED'
+    | 'UNAUTHORIZED_ACCESS_ATTEMPT'
+    | 'IP_BLOCKED';
+  ip: string;
+  userAgent: string;
+  browser?: string;
+  os?: string;
+  deviceType?: 'desktop' | 'mobile' | 'tablet' | 'unknown';
+  city?: string;
+  region?: string;
+  country?: string;
+  riskScore: number;
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  riskReasons?: string[];
+  status: 'success' | 'failed' | 'blocked' | 'flagged';
+  timestamp: string;
+  metadata?: Record<string, any>;
+}
+
+export interface UserSession {
+  sessionId: string;
+  userId: string;
+  device: string;
+  browser: string;
+  os: string;
+  ip: string;
+  location?: string;
+  loginTime: string;
+  lastActiveTime: string;
+  isCurrentSession: boolean;
+  isRevoked: boolean;
+}
+
+export interface AdminAuditLogRecord {
+  id: string;
+  adminId: string;
+  adminName: string;
+  adminEmail?: string;
+  adminRole: string;
+  action: string;
+  category: 'USER_MANAGEMENT' | 'SECURITY' | 'PAYMENT' | 'SETTINGS' | 'SYSTEM' | 'CONTENT';
+  targetEntityId?: string;
+  targetEntityType?: string;
+  targetEntityName?: string;
+  details: string;
+  ip: string;
+  timestamp: string;
+  changes?: { field: string; oldValue: any; newValue: any }[];
 }
 
 export interface TrashedProfile {

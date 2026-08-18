@@ -12,7 +12,9 @@ import {
   AlertCircle,
   IndianRupee,
   Lock,
-  ArrowRight
+  ArrowRight,
+  Smartphone,
+  Sparkles
 } from 'lucide-react';
 
 export const ContactUnlockModal: React.FC = () => {
@@ -33,14 +35,37 @@ export const ContactUnlockModal: React.FC = () => {
   const [isCopied, setIsCopied] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [launchingApp, setLaunchingApp] = useState<string | null>(null);
 
   if (!isContactUnlockModalOpen || !selectedProfileForUnlock) return null;
 
   const unlockFee = siteConfig.unlockContactFee || 50;
-  const upiId = siteConfig.paymentUpiId || '9822100000@ybl';
+  const upiId = siteConfig.paymentUpiId || 'vanjarijodi@paytm';
+  const businessName = siteConfig.paymentPayeeName || 'Vanjari Jodi Matrimony';
+  const note = `Unlock_${selectedProfileForUnlock.id.slice(-6)}`;
+
+  // Construct Direct App Intents
+  const universalUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(businessName)}&am=${unlockFee}&cu=INR&tn=${encodeURIComponent(note)}`;
+  const phonepeUri = `phonepe://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(businessName)}&am=${unlockFee}&cu=INR&tn=${encodeURIComponent(note)}`;
+  const gpayUri = `tez://upi/pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(businessName)}&am=${unlockFee}&cu=INR&tn=${encodeURIComponent(note)}`;
+  const paytmUri = `paytmmp://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(businessName)}&am=${unlockFee}&cu=INR&tn=${encodeURIComponent(note)}`;
+  const bhimUri = `bhim://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(businessName)}&am=${unlockFee}&cu=INR&tn=${encodeURIComponent(note)}`;
+  const credUri = `cred://upi/pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(businessName)}&am=${unlockFee}&cu=INR&tn=${encodeURIComponent(note)}`;
+  const amazonpayUri = `amazonpay://upi/pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(businessName)}&am=${unlockFee}&cu=INR&tn=${encodeURIComponent(note)}`;
+
   const qrCodeUrl =
+    siteConfig.paymentQrCodeUrl ||
     siteConfig.paymentQrUrl ||
-    'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&q=80&w=400';
+    `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(universalUri)}`;
+
+  const handleLaunchApp = (uri: string, appName: string) => {
+    try {
+      navigator.clipboard.writeText(upiId);
+    } catch (e) {}
+    setLaunchingApp(appName);
+    setTimeout(() => setLaunchingApp(null), 3000);
+    window.location.href = uri;
+  };
 
   // Check if there is an existing request for this target profile
   const existingReq = payPerContactRequests.find(
@@ -70,8 +95,8 @@ export const ContactUnlockModal: React.FC = () => {
     e.preventDefault();
     setErrorMsg('');
 
-    const cleanUtr = utrNumber.trim();
-    if (!cleanUtr || cleanUtr.length < 8) {
+    const cleanUtr = utrNumber.trim().replace(/[^0-9]/g, '');
+    if (!cleanUtr || cleanUtr.length < 12) {
       setErrorMsg('कृपया वैध १२ अंकी UTR / ट्रांझॅक्शन आयडी प्रविष्ट करा.');
       return;
     }
@@ -207,31 +232,90 @@ export const ContactUnlockModal: React.FC = () => {
               <div className="space-y-3">
                 <div className="bg-white p-4 rounded-xl border border-amber-200 shadow-sm space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-[#A71930] uppercase tracking-wide">
-                      पायरी १: UPI किंवा QR स्कॅन करा
+                    <span className="text-xs font-bold text-[#A71930] uppercase tracking-wide flex items-center gap-1">
+                      <Smartphone className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>पायरी १: मोबाईल ॲप्स किंवा QR कोडने पे करा</span>
                     </span>
                     <span className="text-xs font-black bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
                       ₹{unlockFee} ऑनलाईन पे
                     </span>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row items-center gap-4 pt-1">
+                  {/* 1-Click Direct UPI App Launchers */}
+                  <div className="space-y-2 pt-1">
+                    {launchingApp && (
+                      <div className="text-center text-xs font-bold text-emerald-700 bg-emerald-50 py-1 rounded-lg animate-pulse">
+                        🚀 {launchingApp} ॲप थेट उघडत आहे...
+                      </div>
+                    )}
+
+                    {/* Universal Pay Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleLaunchApp(universalUri, 'सर्व UPI ॲप्स')}
+                      className="w-full py-2.5 px-3 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow transition cursor-pointer"
+                    >
+                      <Smartphone className="w-4 h-4 text-amber-300 animate-bounce" />
+                      <span>📱 कोणत्याही UPI ॲपद्वारे भरा (Pay ₹{unlockFee})</span>
+                    </button>
+
+                    {/* App Icons Grid */}
+                    <div className="grid grid-cols-3 gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => handleLaunchApp(phonepeUri, 'PhonePe')}
+                        className="p-2 bg-purple-50/70 hover:bg-purple-100 border border-purple-200 hover:border-purple-500 rounded-xl flex flex-col items-center justify-center gap-0.5 shadow-sm transition active:scale-95 cursor-pointer"
+                      >
+                        <div className="w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-[10px]">
+                          पे
+                        </div>
+                        <span className="text-xs font-bold text-purple-900">PhonePe</span>
+                        <span className="text-[9px] text-purple-600">फोन पे</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleLaunchApp(gpayUri, 'Google Pay')}
+                        className="p-2 bg-blue-50/70 hover:bg-blue-100 border border-blue-200 hover:border-blue-500 rounded-xl flex flex-col items-center justify-center gap-0.5 shadow-sm transition active:scale-95 cursor-pointer"
+                      >
+                        <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[10px]">
+                          G
+                        </div>
+                        <span className="text-xs font-bold text-blue-900">Google Pay</span>
+                        <span className="text-[9px] text-blue-600">गुगल पे</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleLaunchApp(paytmUri, 'Paytm')}
+                        className="p-2 bg-sky-50/70 hover:bg-sky-100 border border-sky-200 hover:border-sky-500 rounded-xl flex flex-col items-center justify-center gap-0.5 shadow-sm transition active:scale-95 cursor-pointer"
+                      >
+                        <div className="w-6 h-6 rounded-full bg-sky-500 text-white flex items-center justify-center font-bold text-[10px]">
+                          ₹
+                        </div>
+                        <span className="text-xs font-bold text-sky-900">Paytm</span>
+                        <span className="text-[9px] text-sky-600">पेटीएम</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-3 pt-2 border-t border-slate-100">
                     {/* QR Code Container */}
-                    <div className="p-2 bg-white rounded-xl border-2 border-amber-300 shadow-md text-center">
+                    <div className="p-2 bg-white rounded-xl border-2 border-amber-300 shadow-md text-center flex-shrink-0">
                       <img
                         src={qrCodeUrl}
                         alt="UPI Payment QR Code"
-                        className="w-32 h-32 object-contain mx-auto"
+                        className="w-28 h-28 object-contain mx-auto"
                       />
-                      <span className="text-[10px] font-bold text-slate-500 mt-1 block">
-                        GPay / PhonePe / Paytm स्कॅन
+                      <span className="text-[9px] font-bold text-slate-500 mt-0.5 block">
+                        QR कोड स्कॅन करा
                       </span>
                     </div>
 
                     {/* UPI ID Copy */}
                     <div className="flex-1 space-y-2 w-full">
                       <p className="text-xs font-medium text-slate-600">
-                        किंवा खालील UPI ID वर ₹{unlockFee} पाठवा:
+                        किंवा थेट UPI ID वर ₹{unlockFee} पाठवा:
                       </p>
                       <div className="flex items-center gap-1.5 bg-slate-50 p-2 rounded-lg border border-slate-300">
                         <span className="font-mono text-xs font-bold text-slate-800 break-all flex-1">
@@ -256,7 +340,7 @@ export const ContactUnlockModal: React.FC = () => {
                         </button>
                       </div>
                       <p className="text-[11px] text-amber-800 font-medium">
-                        💡 पेमेंट केल्यानंतर १२ अंकी UTR / Ref Number खाली एंटर करा.
+                        💡 पेमेंट केल्यानंतर १२ अंकी UTR क्रमांक खाली टाकून सबमिट करा.
                       </p>
                     </div>
                   </div>

@@ -181,23 +181,28 @@ async function startServer() {
   // 2. Generate Dynamic UPI Intent & QR Payload
   app.post('/api/payment/create-intent', (req, res) => {
     try {
-      const { user_id, plan_id, plan_name, amount } = req.body || {};
+      const { user_id, plan_id, plan_name, amount, upi_id: customUpiId, business_name: customBusinessName, note } = req.body || {};
       const numAmount = Number(amount) || 299;
       const cleanUserId = sanitizeString(user_id) || 'guest-user';
       const cleanPlanId = sanitizeString(plan_id) || 'welcome_offer';
       const cleanPlanName = sanitizeString(plan_name) || 'VanjariJodi Plan';
 
       const orderId = `VJ-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
-      const targetUpiId = globalSettings.upi_id || 'vanjarijodi@paytm';
-      const businessName = globalSettings.business_name || 'Vanjari Jodi';
+      const targetUpiId = (customUpiId ? sanitizeString(customUpiId) : '') || globalSettings.upi_id || 'vanjarijodi@paytm';
+      const businessName = (customBusinessName ? sanitizeString(customBusinessName) : '') || globalSettings.business_name || 'Vanjari Jodi Matrimony';
+      const transactionNote = note ? sanitizeString(note) : `VanjariJodi_${cleanPlanId}`;
 
-      // Standard Universal UPI Deep Link (RFC Spec)
-      const upiIntentUri = `upi://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=${globalSettings.currency || 'INR'}&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent(`VanjariJodi_${cleanPlanId}`)}`;
+      // Standard Universal UPI Deep Link (RFC / NPCI Spec)
+      const upiIntentUri = `upi://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=${globalSettings.currency || 'INR'}&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent(transactionNote)}`;
 
-      // Brand-specific UPI intents for seamless mobile app launcher
-      const gpayUri = `gpay://upi/pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent('VanjariJodi_Membership')}`;
-      const phonepeUri = `phonepe://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent('VanjariJodi_Membership')}`;
-      const paytmUri = `paytmmp://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent('VanjariJodi_Membership')}`;
+      // Brand-specific UPI direct intents for 1-click mobile app launcher
+      const phonepeUri = `phonepe://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent(transactionNote)}`;
+      const gpayUri = `tez://upi/pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent(transactionNote)}`;
+      const gpayAltUri = `gpay://upi/pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent(transactionNote)}`;
+      const paytmUri = `paytmmp://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent(transactionNote)}`;
+      const bhimUri = `bhim://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent(transactionNote)}`;
+      const credUri = `cred://upi/pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent(transactionNote)}`;
+      const amazonpayUri = `amazonpay://upi/pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent(transactionNote)}`;
 
       // Dynamic QR Code SVG / API Generator
       const qrDataString = upiIntentUri;
@@ -207,9 +212,13 @@ async function startServer() {
         success: true,
         orderId,
         upiIntentUri,
-        gpayUri,
         phonepeUri,
+        gpayUri,
+        gpayAltUri,
         paytmUri,
+        bhimUri,
+        credUri,
+        amazonpayUri,
         dynamicQrUrl,
         qrDataString,
         targetUpiId,
@@ -979,6 +988,611 @@ Host: ${baseUrl}
       });
     } catch (err: any) {
       console.error('Error in indexnow-ping:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // =========================================================================
+  // SERVER-SIDE SECURITY LOGGING, RISK ENGINE & AUDIT SYSTEM (Part 4, 13, 14, 19)
+  // =========================================================================
+
+  interface ServerSecurityLog {
+    id: string;
+    userId: string;
+    userName?: string;
+    userEmail?: string;
+    userMobile?: string;
+    eventType: string;
+    ip: string;
+    userAgent: string;
+    browser: string;
+    os: string;
+    deviceType: 'desktop' | 'mobile' | 'tablet' | 'unknown';
+    city?: string;
+    region?: string;
+    country?: string;
+    riskScore: number;
+    riskLevel: 'low' | 'medium' | 'high' | 'critical';
+    riskReasons: string[];
+    status: 'success' | 'failed' | 'blocked' | 'flagged';
+    timestamp: string;
+    metadata?: Record<string, any>;
+  }
+
+  interface ServerUserSession {
+    sessionId: string;
+    userId: string;
+    device: string;
+    browser: string;
+    os: string;
+    ip: string;
+    location?: string;
+    loginTime: string;
+    lastActiveTime: string;
+    isCurrentSession: boolean;
+    isRevoked: boolean;
+  }
+
+  interface ServerAdminAuditLog {
+    id: string;
+    adminId: string;
+    adminName: string;
+    adminEmail?: string;
+    adminRole: string;
+    action: string;
+    category: string;
+    targetEntityId?: string;
+    targetEntityType?: string;
+    targetEntityName?: string;
+    details: string;
+    ip: string;
+    timestamp: string;
+    changes?: { field: string; oldValue: any; newValue: any }[];
+  }
+
+  const securityLogsList: ServerSecurityLog[] = [];
+  const activeSessionsMap = new Map<string, ServerUserSession[]>(); // userId -> sessions
+  const adminAuditLogsList: ServerAdminAuditLog[] = [];
+  const blockedIpsSet = new Set<string>();
+  const failedAttemptsTracker = new Map<string, { count: number; firstAttempt: number; lastAttempt: number }>();
+
+  // Seed initial realistic security logs for demonstration & immediate observability
+  const initialLogTime = Date.now();
+  securityLogsList.push({
+    id: 'SEC-LOG-1001',
+    userId: 'usr-rahul-sanap',
+    userName: 'राहुल तुकाराम सानप',
+    userMobile: '9822334455',
+    userEmail: 'rahul.sanap@example.com',
+    eventType: 'LOGIN_SUCCESS',
+    ip: '103.21.124.55',
+    userAgent: 'Mozilla/5.0 (Linux; Android 14; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+    browser: 'Chrome Mobile 124',
+    os: 'Android 14',
+    deviceType: 'mobile',
+    city: 'Pune',
+    region: 'Maharashtra',
+    country: 'IN',
+    riskScore: 10,
+    riskLevel: 'low',
+    riskReasons: ['Known Indian IP range', 'Standard mobile browser'],
+    status: 'success',
+    timestamp: new Date(initialLogTime - 1000 * 60 * 45).toISOString(),
+    metadata: { authProvider: 'google.com' }
+  });
+
+  securityLogsList.push({
+    id: 'SEC-LOG-1002',
+    userId: 'usr-pooja-munde',
+    userName: 'पूजा मारुती मुंडे',
+    userMobile: '9766554433',
+    userEmail: 'pooja.munde@example.com',
+    eventType: 'LOGIN_SUCCESS',
+    ip: '49.36.18.92',
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+    browser: 'Chrome 125',
+    os: 'Windows 11',
+    deviceType: 'desktop',
+    city: 'Nashik',
+    region: 'Maharashtra',
+    country: 'IN',
+    riskScore: 15,
+    riskLevel: 'low',
+    riskReasons: ['Consistent desktop login location'],
+    status: 'success',
+    timestamp: new Date(initialLogTime - 1000 * 60 * 120).toISOString(),
+    metadata: { authProvider: 'mobile_otp' }
+  });
+
+  securityLogsList.push({
+    id: 'SEC-LOG-1003',
+    userId: 'unknown-target',
+    userMobile: '9890001122',
+    eventType: 'LOGIN_FAILED',
+    ip: '185.220.101.5',
+    userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/119.0.0.0 Safari/537.36',
+    browser: 'HeadlessChrome 119',
+    os: 'Linux',
+    deviceType: 'desktop',
+    city: 'Frankfurt',
+    region: 'Hesse',
+    country: 'DE',
+    riskScore: 88,
+    riskLevel: 'critical',
+    riskReasons: ['Headless automated browser detected', 'International IP outside service area', 'Rapid credential probe'],
+    status: 'flagged',
+    timestamp: new Date(initialLogTime - 1000 * 60 * 15).toISOString(),
+    metadata: { reason: 'Invalid OTP / Password attempt' }
+  });
+
+  // Seed sample admin audit log
+  adminAuditLogsList.push({
+    id: 'AUDIT-LOG-101',
+    adminId: 'admin-primary',
+    adminName: 'Gite Vijay (मुख्य प्रशासक)',
+    adminEmail: 'gitevijay123@gmail.com',
+    adminRole: 'Primary Super Admin',
+    action: 'SYSTEM_SETTINGS_UPDATE',
+    category: 'SETTINGS',
+    targetEntityId: 'mainConfig',
+    targetEntityType: 'SiteConfig',
+    details: 'IT नियम २००० व तक्रार निवारण अधिकारी माहिती अद्ययावत केली.',
+    ip: '103.24.88.12',
+    timestamp: new Date(initialLogTime - 1000 * 60 * 360).toISOString(),
+  });
+
+  // Helper to extract client IP safely
+  function getClientIp(req: express.Request): string {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (typeof forwarded === 'string') {
+      const firstIp = forwarded.split(',')[0].trim();
+      if (firstIp) return firstIp;
+    }
+    return req.socket.remoteAddress || '127.0.0.1';
+  }
+
+  // Helper to parse User-Agent
+  function parseUserAgent(uaString: string = '') {
+    let browser = 'Unknown Browser';
+    let os = 'Unknown OS';
+    let deviceType: 'desktop' | 'mobile' | 'tablet' | 'unknown' = 'desktop';
+
+    if (/android/i.test(uaString)) {
+      os = 'Android';
+      deviceType = 'mobile';
+      if (/tablet|sm-t/i.test(uaString)) deviceType = 'tablet';
+    } else if (/iphone/i.test(uaString)) {
+      os = 'iOS';
+      deviceType = 'mobile';
+    } else if (/ipad/i.test(uaString)) {
+      os = 'iPadOS';
+      deviceType = 'tablet';
+    } else if (/windows/i.test(uaString)) {
+      os = 'Windows';
+      deviceType = 'desktop';
+    } else if (/macintosh|mac os/i.test(uaString)) {
+      os = 'macOS';
+      deviceType = 'desktop';
+    } else if (/linux/i.test(uaString)) {
+      os = 'Linux';
+      deviceType = 'desktop';
+    }
+
+    if (/chrome|crios/i.test(uaString) && !/edg|opr/i.test(uaString)) {
+      browser = /mobile/i.test(uaString) ? 'Chrome Mobile' : 'Chrome';
+    } else if (/safari/i.test(uaString) && !/chrome|crios/i.test(uaString)) {
+      browser = 'Safari';
+    } else if (/firefox|fxios/i.test(uaString)) {
+      browser = 'Firefox';
+    } else if (/edg/i.test(uaString)) {
+      browser = 'Microsoft Edge';
+    } else if (/headless/i.test(uaString)) {
+      browser = 'Headless Bot';
+    }
+
+    return { browser, os, deviceType };
+  }
+
+  // 1. Log Security Event Endpoint (Server-Side Auth & Risk Analyzer)
+  app.post('/api/security/log-event', (req, res) => {
+    try {
+      const clientIp = getClientIp(req);
+      const userAgent = req.headers['user-agent'] || req.body.userAgent || 'Unknown UA';
+      const {
+        userId = 'anonymous',
+        userName = '',
+        userEmail = '',
+        userMobile = '',
+        eventType = 'LOGIN_SUCCESS',
+        metadata = {}
+      } = req.body || {};
+
+      // Check if IP is blocked
+      if (blockedIpsSet.has(clientIp)) {
+        return res.status(403).json({
+          success: false,
+          error: 'Access Denied: Your IP has been temporarily restricted due to multiple suspicious activities.',
+          isBlocked: true,
+        });
+      }
+
+      const { browser, os, deviceType } = parseUserAgent(userAgent);
+
+      // Dynamic Risk Assessment Engine
+      let riskScore = 10;
+      const riskReasons: string[] = [];
+
+      // Check failed attempts rate
+      const now = Date.now();
+      const ipTracker = failedAttemptsTracker.get(clientIp) || { count: 0, firstAttempt: now, lastAttempt: now };
+
+      if (eventType === 'LOGIN_FAILED' || eventType === 'UNAUTHORIZED_ACCESS_ATTEMPT') {
+        ipTracker.count += 1;
+        ipTracker.lastAttempt = now;
+        failedAttemptsTracker.set(clientIp, ipTracker);
+
+        if (ipTracker.count >= 5) {
+          riskScore = 95;
+          riskReasons.push(`Excessive failed login attempts (${ipTracker.count}) from same IP`);
+          if (ipTracker.count >= 8) {
+            blockedIpsSet.add(clientIp);
+            riskReasons.push('IP automatically quarantined by anti-bruteforce shield');
+          }
+        } else if (ipTracker.count >= 3) {
+          riskScore = 70;
+          riskReasons.push(`Multiple consecutive failed attempts (${ipTracker.count})`);
+        } else {
+          riskScore = 40;
+          riskReasons.push('Single failed credential attempt');
+        }
+      } else if (eventType === 'LOGIN_SUCCESS') {
+        // Reset or decrement failed counter on verified success
+        if (ipTracker.count > 0) {
+          ipTracker.count = Math.max(0, ipTracker.count - 2);
+          failedAttemptsTracker.set(clientIp, ipTracker);
+        }
+      }
+
+      if (/headless|phantom|bot|crawler|python|curl|wget/i.test(userAgent)) {
+        riskScore = Math.max(riskScore, 90);
+        riskReasons.push('Automated or headless client fingerprint detected');
+      }
+
+      if (eventType === 'SUSPICIOUS_LOGIN_ATTEMPT') {
+        riskScore = Math.max(riskScore, 80);
+        riskReasons.push('Flagged by client-side heuristic or geo-anomaly');
+      }
+
+      let riskLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';
+      if (riskScore >= 80) riskLevel = 'critical';
+      else if (riskScore >= 60) riskLevel = 'high';
+      else if (riskScore >= 35) riskLevel = 'medium';
+
+      if (riskReasons.length === 0) {
+        riskReasons.push('Standard authentic authentication token');
+      }
+
+      const logId = `SEC-LOG-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+      const logRecord: ServerSecurityLog = {
+        id: logId,
+        userId: sanitizeString(userId),
+        userName: sanitizeString(userName),
+        userEmail: sanitizeString(userEmail),
+        userMobile: sanitizeString(userMobile),
+        eventType: sanitizeString(eventType),
+        ip: clientIp,
+        userAgent: sanitizeString(userAgent),
+        browser,
+        os,
+        deviceType,
+        city: 'Maharashtra, IN',
+        region: 'MH',
+        country: 'IN',
+        riskScore,
+        riskLevel,
+        riskReasons,
+        status: riskLevel === 'critical' ? 'flagged' : (eventType === 'LOGIN_FAILED' ? 'failed' : 'success'),
+        timestamp: new Date().toISOString(),
+        metadata,
+      };
+
+      securityLogsList.unshift(logRecord);
+      if (securityLogsList.length > 500) {
+        securityLogsList.pop();
+      }
+
+      // Update active session tracking if it was a successful login
+      if (eventType === 'LOGIN_SUCCESS' && userId && userId !== 'anonymous') {
+        const userSessions = activeSessionsMap.get(userId) || [];
+        const sessionId = `SESS-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+        
+        // Add new active session
+        const newSession: ServerUserSession = {
+          sessionId,
+          userId,
+          device: `${os} (${deviceType})`,
+          browser,
+          os,
+          ip: clientIp,
+          location: 'Maharashtra, India',
+          loginTime: new Date().toISOString(),
+          lastActiveTime: new Date().toISOString(),
+          isCurrentSession: true,
+          isRevoked: false,
+        };
+
+        // Mark older sessions as not current
+        const updatedSessions = userSessions.map(s => ({ ...s, isCurrentSession: false }));
+        updatedSessions.unshift(newSession);
+        activeSessionsMap.set(userId, updatedSessions.slice(0, 5)); // keep last 5 sessions max
+      }
+
+      console.log(`🛡️ [Security Log] ${eventType} | User: ${userName || userId} | IP: ${clientIp} | Risk: ${riskLevel} (${riskScore}%)`);
+
+      return res.json({
+        success: true,
+        log: logRecord,
+        riskScore,
+        riskLevel,
+        clientIp,
+      });
+    } catch (err: any) {
+      console.error('Error logging security event:', err);
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 2. Fetch Security Logs (with Filtering & Search)
+  app.get('/api/security/logs', (req, res) => {
+    try {
+      const { userId, eventType, riskLevel, search, limit = '50' } = req.query;
+      let logs = [...securityLogsList];
+
+      if (userId && typeof userId === 'string') {
+        logs = logs.filter(l => l.userId === userId);
+      }
+      if (eventType && typeof eventType === 'string' && eventType !== 'all') {
+        logs = logs.filter(l => l.eventType === eventType);
+      }
+      if (riskLevel && typeof riskLevel === 'string' && riskLevel !== 'all') {
+        logs = logs.filter(l => l.riskLevel === riskLevel);
+      }
+      if (search && typeof search === 'string') {
+        const q = search.toLowerCase();
+        logs = logs.filter(l =>
+          (l.userName && l.userName.toLowerCase().includes(q)) ||
+          (l.userMobile && l.userMobile.includes(q)) ||
+          (l.userEmail && l.userEmail.toLowerCase().includes(q)) ||
+          (l.ip && l.ip.includes(q)) ||
+          (l.browser && l.browser.toLowerCase().includes(q)) ||
+          (l.eventType && l.eventType.toLowerCase().includes(q))
+        );
+      }
+
+      const numLimit = Math.min(200, parseInt(limit as string, 10) || 50);
+      const paged = logs.slice(0, numLimit);
+
+      const stats = {
+        totalEvents: securityLogsList.length,
+        successfulLogins: securityLogsList.filter(l => l.eventType === 'LOGIN_SUCCESS').length,
+        failedLogins: securityLogsList.filter(l => l.eventType === 'LOGIN_FAILED').length,
+        suspiciousEvents: securityLogsList.filter(l => l.riskLevel === 'high' || l.riskLevel === 'critical').length,
+        blockedIpsCount: blockedIpsSet.size,
+      };
+
+      return res.json({
+        success: true,
+        stats,
+        logs: paged,
+        blockedIps: Array.from(blockedIpsSet),
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 3. User Active Sessions Endpoint (User Security Portal)
+  app.get('/api/security/user-sessions/:userId', (req, res) => {
+    try {
+      const { userId } = req.params;
+      const currentIp = getClientIp(req);
+      const sessions = activeSessionsMap.get(userId) || [];
+
+      // If user has no registered sessions yet, construct current active session
+      if (sessions.length === 0) {
+        const { browser, os, deviceType } = parseUserAgent(req.headers['user-agent'] || '');
+        const autoSession: ServerUserSession = {
+          sessionId: `SESS-${Date.now()}`,
+          userId,
+          device: `${os} (${deviceType})`,
+          browser,
+          os,
+          ip: currentIp,
+          location: 'Maharashtra, India',
+          loginTime: new Date().toISOString(),
+          lastActiveTime: new Date().toISOString(),
+          isCurrentSession: true,
+          isRevoked: false,
+        };
+        activeSessionsMap.set(userId, [autoSession]);
+        return res.json({ success: true, sessions: [autoSession], currentIp });
+      }
+
+      return res.json({
+        success: true,
+        sessions,
+        currentIp,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 4. Revoke Session(s) Endpoint
+  app.post('/api/security/revoke-session', (req, res) => {
+    try {
+      const { userId, sessionId, revokeAllOther = false } = req.body || {};
+      if (!userId) {
+        return res.status(400).json({ success: false, error: 'User ID is required' });
+      }
+
+      const sessions = activeSessionsMap.get(userId) || [];
+
+      if (revokeAllOther) {
+        // Keep only current active session, revoke all others
+        const updated = sessions.map(s => {
+          if (!s.isCurrentSession) {
+            return { ...s, isRevoked: true };
+          }
+          return s;
+        });
+        activeSessionsMap.set(userId, updated.filter(s => !s.isRevoked));
+
+        // Log security action
+        securityLogsList.unshift({
+          id: `SEC-LOG-${Date.now()}`,
+          userId,
+          eventType: 'SESSION_REVOKED',
+          ip: getClientIp(req),
+          userAgent: req.headers['user-agent'] || 'Unknown',
+          browser: 'System',
+          os: 'System',
+          deviceType: 'desktop',
+          riskScore: 10,
+          riskLevel: 'low',
+          riskReasons: ['User manually logged out all other active devices'],
+          status: 'success',
+          timestamp: new Date().toISOString(),
+          metadata: { action: 'revoke_all_other_sessions' }
+        });
+
+        return res.json({
+          success: true,
+          message: 'इतर सर्व उपकरणांवरील (Devices) सत्रे यशस्वीरीत्या बंद करण्यात आली.',
+          remainingSessions: activeSessionsMap.get(userId) || [],
+        });
+      } else if (sessionId) {
+        // Revoke specific session
+        const updated = sessions.filter(s => s.sessionId !== sessionId);
+        activeSessionsMap.set(userId, updated);
+
+        return res.json({
+          success: true,
+          message: 'निवडलेले उपकरण सत्र बंद करण्यात आले.',
+          remainingSessions: updated,
+        });
+      }
+
+      return res.status(400).json({ success: false, error: 'Invalid revoke parameters' });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 5. Admin Audit Logs (GET / POST)
+  app.get('/api/security/admin-audit-logs', (req, res) => {
+    try {
+      const { category, search, limit = '50' } = req.query;
+      let logs = [...adminAuditLogsList];
+
+      if (category && typeof category === 'string' && category !== 'all') {
+        logs = logs.filter(l => l.category === category);
+      }
+      if (search && typeof search === 'string') {
+        const q = search.toLowerCase();
+        logs = logs.filter(l =>
+          l.adminName.toLowerCase().includes(q) ||
+          l.action.toLowerCase().includes(q) ||
+          l.details.toLowerCase().includes(q) ||
+          (l.targetEntityName && l.targetEntityName.toLowerCase().includes(q))
+        );
+      }
+
+      const numLimit = Math.min(200, parseInt(limit as string, 10) || 50);
+      return res.json({
+        success: true,
+        auditLogs: logs.slice(0, numLimit),
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/security/admin-audit-logs', (req, res) => {
+    try {
+      const {
+        adminId = 'admin-primary',
+        adminName = 'प्रशासक (Admin)',
+        adminEmail = 'gitevijay123@gmail.com',
+        adminRole = 'Primary Admin',
+        action,
+        category = 'SYSTEM',
+        targetEntityId = '',
+        targetEntityType = '',
+        targetEntityName = '',
+        details = '',
+        changes = []
+      } = req.body || {};
+
+      if (!action) {
+        return res.status(400).json({ success: false, error: 'Action is required' });
+      }
+
+      const newAudit: ServerAdminAuditLog = {
+        id: `AUDIT-LOG-${Date.now()}`,
+        adminId: sanitizeString(adminId),
+        adminName: sanitizeString(adminName),
+        adminEmail: sanitizeString(adminEmail),
+        adminRole: sanitizeString(adminRole),
+        action: sanitizeString(action),
+        category: sanitizeString(category),
+        targetEntityId: sanitizeString(targetEntityId),
+        targetEntityType: sanitizeString(targetEntityType),
+        targetEntityName: sanitizeString(targetEntityName),
+        details: sanitizeString(details),
+        ip: getClientIp(req),
+        timestamp: new Date().toISOString(),
+        changes,
+      };
+
+      adminAuditLogsList.unshift(newAudit);
+      if (adminAuditLogsList.length > 500) {
+        adminAuditLogsList.pop();
+      }
+
+      return res.json({
+        success: true,
+        auditLog: newAudit,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // 6. IP Quarantine / Block Management
+  app.post('/api/security/toggle-ip-block', (req, res) => {
+    try {
+      const { ip, block = true, reason = '' } = req.body || {};
+      if (!ip) {
+        return res.status(400).json({ success: false, error: 'IP parameter is required' });
+      }
+
+      if (block) {
+        blockedIpsSet.add(ip);
+        console.log(`🚫 [IP Blocked] ${ip} | Reason: ${reason}`);
+      } else {
+        blockedIpsSet.delete(ip);
+        failedAttemptsTracker.delete(ip);
+        console.log(`✅ [IP Unblocked] ${ip}`);
+      }
+
+      return res.json({
+        success: true,
+        ip,
+        isBlocked: blockedIpsSet.has(ip),
+        blockedIps: Array.from(blockedIpsSet),
+      });
+    } catch (err: any) {
       return res.status(500).json({ success: false, error: err.message });
     }
   });

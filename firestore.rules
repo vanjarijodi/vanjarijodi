@@ -1,8 +1,112 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.admin == true ||
+        request.auth.token.role == 'admin' ||
+        request.auth.token.email == 'gitevijay123@gmail.com'
+      );
+    }
+
+    // Profiles collection: Public readable if approved, strictly owner editable, admin manageable
+    match /profiles/{profileId} {
+      allow read: if resource.data.isApproved == true || isOwner(profileId) || isAdmin();
+      allow create: if (isAuthenticated() && request.auth.uid == profileId && request.resource.data.id == profileId) || isAdmin();
+      allow update: if (isOwner(profileId) && 
+                       (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isApproved', 'isVerified']))) || 
+                    isAdmin();
+      allow delete: if isOwner(profileId) || isAdmin();
+    }
+
+    // Security Logs: Read by owner or admin, immutable (no update/delete)
+    match /securityLogs/{logId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
+    // Admin Audit Logs: Strictly Admin only, immutable
+    match /adminAuditLogs/{auditId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // Site Configuration: Read by all, modified only by Admin
+    match /siteConfig/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Chat Messages: Read and write restricted to participant sender/receiver
+    match /chatMessages/{messageId} {
+      allow read: if isAuthenticated() && (
+        resource.data.senderId == request.auth.uid || 
+        resource.data.receiverId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && (resource.data.senderId == request.auth.uid || isAdmin());
+    }
+
+    // Admin Support Messages
+    match /adminSupportMessages/{messageId} {
+      allow read: if isAuthenticated() && (
+        resource.data.senderId == request.auth.uid || 
+        isAdmin()
+      );
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.senderId == request.auth.uid);
+    }
+
+    // Payment Requests: Users can create and view their own, Admins can manage and approve
+    match /paymentRequests/{requestId} {
+      allow read: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Success Stories
+    match /successStories/{storyId} {
+      allow read: if resource.data.isApproved == true || isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    // Community Ads & Business Vendors
+    match /communityAds/{adId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /businessVendors/{vendorId} {
+      allow read: if resource.data.status == 'approved' || isAdmin();
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    // Promo Codes: Read by authenticated, managed by Admin
+    match /promoCodes/{codeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Notifications
+    match /notifications/{notifId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || resource.data.userId == 'all' || isAdmin());
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
     }
   }
 }

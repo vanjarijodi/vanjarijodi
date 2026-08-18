@@ -83,6 +83,7 @@ import {
   RefreshCw,
   ToggleLeft,
   ToggleRight,
+  Scale,
 } from 'lucide-react';
 
 const ALL_SUBADMIN_PERMISSIONS: { id: SubAdminPermission; labelMr: string; icon: string; category: string }[] = [
@@ -8061,7 +8062,7 @@ export const AdminPanel: React.FC<{
                       </div>
 
                       <div>
-                        <label className="block text-slate-700 mb-1">फोन नंबर (Phone):</label>
+                        <label className="block text-slate-700 mb-1">व्हॉट्सॲप / फोन नंबर (WhatsApp No - तक्रारीसाठी WhatsApp प्राधान्य):</label>
                         <input
                           type="text"
                           value={siteConfig?.grievanceOfficerPhone || ''}

@@ -38,6 +38,8 @@ import { BioDataMakerModal } from './components/BioDataMakerModal';
 import { DynamicActionDock } from './components/DynamicActionDock';
 import { DynamicSeoHead } from './components/DynamicSeoHead';
 import { ProgrammaticSeoModal } from './components/ProgrammaticSeoModal';
+import { UserSecurityPortalModal } from './components/UserSecurityPortalModal';
+import { AdminSecurityCenterModal } from './components/AdminSecurityCenterModal';
 
 const MainAppContent: React.FC = () => {
   const {
@@ -74,6 +76,10 @@ const MainAppContent: React.FC = () => {
     setIsSeoHubOpen,
     seoTargetCommunity,
     seoTargetCity,
+    isUserSecurityOpen,
+    setIsUserSecurityOpen,
+    isAdminSecurityOpen,
+    setIsAdminSecurityOpen,
   } = useApp();
 
   const [showSplash, setShowSplash] = React.useState(true);
@@ -239,6 +245,18 @@ const MainAppContent: React.FC = () => {
         onClose={() => setIsSeoHubOpen(false)}
         initialCommunitySlug={seoTargetCommunity}
         initialCitySlug={seoTargetCity}
+      />
+
+      {/* User Security & Active Device Sessions Portal */}
+      <UserSecurityPortalModal
+        isOpen={isUserSecurityOpen}
+        onClose={() => setIsUserSecurityOpen(false)}
+      />
+
+      {/* Administrator Security & Threat Monitoring Center */}
+      <AdminSecurityCenterModal
+        isOpen={isAdminSecurityOpen}
+        onClose={() => setIsAdminSecurityOpen(false)}
       />
 
     </div>

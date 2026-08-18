@@ -66,10 +66,14 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
   const [gpayUri, setGpayUri] = useState<string>('');
   const [phonepeUri, setPhonepeUri] = useState<string>('');
   const [paytmUri, setPaytmUri] = useState<string>('');
+  const [bhimUri, setBhimUri] = useState<string>('');
+  const [credUri, setCredUri] = useState<string>('');
+  const [amazonpayUri, setAmazonpayUri] = useState<string>('');
   const [dynamicQrUrl, setDynamicQrUrl] = useState<string>('');
   const [upiId, setUpiId] = useState<string>(siteConfig?.paymentUpiId || 'vanjarijodi@paytm');
-  const [businessName, setBusinessName] = useState<string>('Vanjari Jodi Matrimony');
+  const [businessName, setBusinessName] = useState<string>(siteConfig?.paymentPayeeName || 'Vanjari Jodi Matrimony');
   const [isLoadingIntent, setIsLoadingIntent] = useState<boolean>(false);
+  const [activeAppLaunching, setActiveAppLaunching] = useState<string | null>(null);
 
   // Countdown Timer State (10:00 = 600 seconds) with real-world timestamp drift compensation
   const [timeLeft, setTimeLeft] = useState<number>(600);
@@ -146,6 +150,30 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
   // Fetch Dynamic UPI Intent & QR from Backend
   const fetchPaymentIntent = async () => {
     if (!activePlan) return;
+    const targetUpi = siteConfig?.paymentUpiId || 'vanjarijodi@paytm';
+    const targetBusiness = siteConfig?.paymentPayeeName || 'Vanjari Jodi Matrimony';
+    const transactionNote = `VanjariJodi_${activePlan.id}`;
+
+    // Instant client-side fallback generation
+    const fallbackUniversal = `upi://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${activePlan.price}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
+    const fallbackPhonePe = `phonepe://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${activePlan.price}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
+    const fallbackGPay = `tez://upi/pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${activePlan.price}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
+    const fallbackPaytm = `paytmmp://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${activePlan.price}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
+    const fallbackBhim = `bhim://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${activePlan.price}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
+    const fallbackCred = `cred://upi/pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${activePlan.price}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
+    const fallbackAmazonPay = `amazonpay://upi/pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${activePlan.price}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
+
+    setUpiIntentUri(fallbackUniversal);
+    setPhonepeUri(fallbackPhonePe);
+    setGpayUri(fallbackGPay);
+    setPaytmUri(fallbackPaytm);
+    setBhimUri(fallbackBhim);
+    setCredUri(fallbackCred);
+    setAmazonpayUri(fallbackAmazonPay);
+    setUpiId(targetUpi);
+    setBusinessName(targetBusiness);
+    setDynamicQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(fallbackUniversal)}`);
+
     try {
       setIsLoadingIntent(true);
       const res = await fetch('/api/payment/create-intent', {
@@ -156,29 +184,46 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
           plan_id: activePlan.id,
           plan_name: activePlan.nameMr || activePlan.name,
           amount: activePlan.price,
+          upi_id: targetUpi,
+          business_name: targetBusiness,
+          note: transactionNote,
         }),
       });
       const data = await res.json();
       if (data.success) {
         setOrderId(data.orderId);
-        setUpiIntentUri(data.upiIntentUri);
-        setGpayUri(data.gpayUri);
-        setPhonepeUri(data.phonepeUri);
-        setPaytmUri(data.paytmUri);
-        setDynamicQrUrl(data.dynamicQrUrl);
-        setUpiId(data.targetUpiId || siteConfig?.paymentUpiId || 'vanjarijodi@paytm');
-        setBusinessName(data.businessName || 'Vanjari Jodi Matrimony');
+        setUpiIntentUri(data.upiIntentUri || fallbackUniversal);
+        setPhonepeUri(data.phonepeUri || fallbackPhonePe);
+        setGpayUri(data.gpayUri || fallbackGPay);
+        setPaytmUri(data.paytmUri || fallbackPaytm);
+        setBhimUri(data.bhimUri || fallbackBhim);
+        setCredUri(data.credUri || fallbackCred);
+        setAmazonpayUri(data.amazonpayUri || fallbackAmazonPay);
+        setDynamicQrUrl(data.dynamicQrUrl || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(data.upiIntentUri || fallbackUniversal)}`);
+        setUpiId(data.targetUpiId || targetUpi);
+        setBusinessName(data.businessName || targetBusiness);
       }
     } catch (err) {
       console.error('Error fetching payment intent:', err);
-      // Fallback universal URI
-      const fallbackUpi = siteConfig?.paymentUpiId || 'vanjarijodi@paytm';
-      const fallbackUri = `upi://pay?pa=${encodeURIComponent(fallbackUpi)}&pn=${encodeURIComponent('Vanjari Jodi')}&am=${activePlan.price}&cu=INR&tn=VanjariJodi_Membership`;
-      setUpiIntentUri(fallbackUri);
-      setDynamicQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(fallbackUri)}`);
     } finally {
       setIsLoadingIntent(false);
     }
+  };
+
+  // Launch Specific UPI App with auto-copy and visual feedback
+  const handleLaunchUpiApp = (uri: string, appName: string) => {
+    if (!uri) return;
+    try {
+      // Auto-copy UPI ID to clipboard as a helpful fallback
+      navigator.clipboard.writeText(upiId);
+    } catch (e) {
+      // ignore
+    }
+    setActiveAppLaunching(appName);
+    setTimeout(() => setActiveAppLaunching(null), 3000);
+
+    // Direct Intent Trigger
+    window.location.href = uri;
   };
 
   // Copy UPI ID with Toast
@@ -553,11 +598,11 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                   {isLoadingIntent ? (
                     <div className="w-48 h-48 flex flex-col items-center justify-center space-y-2">
                       <Loader2 className="w-8 h-8 text-[#800C1E] animate-spin" />
-                      <span className="text-xs text-gray-500">QR कोड जनरेट होत आहे...</span>
+                      <span className="text-xs text-gray-500 font-medium">QR कोड जनरेट होत आहे...</span>
                     </div>
-                  ) : dynamicQrUrl ? (
+                  ) : (siteConfig?.paymentQrCodeUrl || siteConfig?.paymentQrUrl || dynamicQrUrl) ? (
                     <img
-                      src={dynamicQrUrl}
+                      src={siteConfig?.paymentQrCodeUrl || siteConfig?.paymentQrUrl || dynamicQrUrl}
                       alt="UPI Payment QR Code"
                       className="w-44 h-44 sm:w-48 sm:h-48 object-contain rounded-lg"
                       referrerPolicy="no-referrer"
@@ -571,7 +616,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                   {/* Trust Badge inside QR */}
                   <div className="mt-1.5 flex items-center justify-center space-x-1 text-[11px] text-gray-500 font-medium">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>NPCL / 100% Verified UPI</span>
+                    <span>NPCI / 100% Verified UPI</span>
                   </div>
                 </div>
 
@@ -606,67 +651,144 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
               </div>
 
               {/* Right Column: Direct Mobile UPI Intent Buttons */}
-              <div className="space-y-3.5">
-                <div className="flex items-center space-x-1.5 text-xs font-bold text-slate-700">
-                  <Smartphone className="w-4 h-4 text-emerald-600" />
-                  <span>मोबाईलवरून १-क्लिक पेमेंट (Direct UPI Apps):</span>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-1.5 text-xs font-bold text-slate-800">
+                    <Smartphone className="w-4 h-4 text-emerald-600" />
+                    <span>मोबाईल ॲप्स थेट ओपन करा (१-क्लिक पेमेंट):</span>
+                  </div>
+                  {activeAppLaunching && (
+                    <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full animate-pulse">
+                      {activeAppLaunching} उघडत आहे...
+                    </span>
+                  )}
                 </div>
 
                 {/* Universal Deep Link Button */}
-                <a
-                  href={upiIntentUri || '#'}
-                  className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl font-bold text-sm flex items-center justify-center space-x-2 shadow-md hover:shadow-lg transition transform active:scale-98"
+                <button
+                  type="button"
+                  onClick={() => handleLaunchUpiApp(upiIntentUri, 'सर्व UPI ॲप्स')}
+                  className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl font-bold text-sm flex items-center justify-center space-x-2 shadow-md hover:shadow-lg transition transform active:scale-98"
                 >
-                  <Smartphone className="w-5 h-5 text-amber-300" />
-                  <span>📱 १-क्लिक UPI द्वारे भरा (Pay ₹{activePlan.price})</span>
-                </a>
+                  <Smartphone className="w-5 h-5 text-amber-300 animate-bounce" />
+                  <span>📱 कोणत्याही UPI ॲपद्वारे भरा (Pay ₹{activePlan.price})</span>
+                </button>
 
-                {/* Individual Brand Buttons */}
+                {/* Granular Individual App Launch Buttons */}
                 <div className="grid grid-cols-3 gap-2">
-                  {/* Google Pay */}
-                  <a
-                    href={gpayUri || upiIntentUri || '#'}
-                    className="p-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-sm transition hover:border-blue-400 group"
-                  >
-                    <span className="text-sm font-black text-blue-600 group-hover:scale-105 transition">
-                      GPay
-                    </span>
-                    <span className="text-[10px] text-gray-500 font-medium">Google Pay</span>
-                  </a>
-
                   {/* PhonePe */}
-                  <a
-                    href={phonepeUri || upiIntentUri || '#'}
-                    className="p-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-sm transition hover:border-purple-400 group"
+                  <button
+                    type="button"
+                    onClick={() => handleLaunchUpiApp(phonepeUri || upiIntentUri, 'PhonePe')}
+                    className="p-2.5 bg-white hover:bg-purple-50/80 border border-purple-200 hover:border-purple-500 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-sm transition active:scale-95 group text-center"
                   >
-                    <span className="text-sm font-black text-purple-600 group-hover:scale-105 transition">
+                    <div className="w-7 h-7 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-xs shadow group-hover:scale-105 transition">
+                      पे
+                    </div>
+                    <span className="text-xs font-bold text-purple-900 group-hover:text-purple-700">
                       PhonePe
                     </span>
-                    <span className="text-[10px] text-gray-500 font-medium">फोन पे</span>
-                  </a>
+                    <span className="text-[9px] text-purple-600 font-semibold bg-purple-50 px-1.5 py-0.2 rounded-full">
+                      फोन पे
+                    </span>
+                  </button>
+
+                  {/* Google Pay */}
+                  <button
+                    type="button"
+                    onClick={() => handleLaunchUpiApp(gpayUri || upiIntentUri, 'Google Pay')}
+                    className="p-2.5 bg-white hover:bg-blue-50/80 border border-blue-200 hover:border-blue-500 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-sm transition active:scale-95 group text-center"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow group-hover:scale-105 transition">
+                      G
+                    </div>
+                    <span className="text-xs font-bold text-blue-900 group-hover:text-blue-700">
+                      Google Pay
+                    </span>
+                    <span className="text-[9px] text-blue-600 font-semibold bg-blue-50 px-1.5 py-0.2 rounded-full">
+                      गुगल पे
+                    </span>
+                  </button>
 
                   {/* Paytm */}
-                  <a
-                    href={paytmUri || upiIntentUri || '#'}
-                    className="p-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-sm transition hover:border-sky-400 group"
+                  <button
+                    type="button"
+                    onClick={() => handleLaunchUpiApp(paytmUri || upiIntentUri, 'Paytm')}
+                    className="p-2.5 bg-white hover:bg-sky-50/80 border border-sky-200 hover:border-sky-500 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-sm transition active:scale-95 group text-center"
                   >
-                    <span className="text-sm font-black text-sky-600 group-hover:scale-105 transition">
+                    <div className="w-7 h-7 rounded-full bg-sky-500 text-white flex items-center justify-center font-bold text-xs shadow group-hover:scale-105 transition">
+                      ₹
+                    </div>
+                    <span className="text-xs font-bold text-sky-900 group-hover:text-sky-700">
                       Paytm
                     </span>
-                    <span className="text-[10px] text-gray-500 font-medium">पेटीएम</span>
-                  </a>
+                    <span className="text-[9px] text-sky-600 font-semibold bg-sky-50 px-1.5 py-0.2 rounded-full">
+                      पेटीएम
+                    </span>
+                  </button>
+
+                  {/* BHIM UPI */}
+                  <button
+                    type="button"
+                    onClick={() => handleLaunchUpiApp(bhimUri || upiIntentUri, 'BHIM UPI')}
+                    className="p-2.5 bg-white hover:bg-emerald-50/80 border border-emerald-200 hover:border-emerald-500 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-sm transition active:scale-95 group text-center"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow group-hover:scale-105 transition">
+                      भी
+                    </div>
+                    <span className="text-xs font-bold text-emerald-900 group-hover:text-emerald-700">
+                      BHIM UPI
+                    </span>
+                    <span className="text-[9px] text-emerald-600 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded-full">
+                      भीम
+                    </span>
+                  </button>
+
+                  {/* CRED */}
+                  <button
+                    type="button"
+                    onClick={() => handleLaunchUpiApp(credUri || upiIntentUri, 'CRED')}
+                    className="p-2.5 bg-white hover:bg-slate-100 border border-slate-300 hover:border-slate-800 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-sm transition active:scale-95 group text-center"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow group-hover:scale-105 transition">
+                      C
+                    </div>
+                    <span className="text-xs font-bold text-slate-900 group-hover:text-slate-700">
+                      CRED
+                    </span>
+                    <span className="text-[9px] text-slate-600 font-semibold bg-slate-100 px-1.5 py-0.2 rounded-full">
+                      क्रेड
+                    </span>
+                  </button>
+
+                  {/* Amazon Pay */}
+                  <button
+                    type="button"
+                    onClick={() => handleLaunchUpiApp(amazonpayUri || upiIntentUri, 'Amazon Pay')}
+                    className="p-2.5 bg-white hover:bg-amber-50/80 border border-amber-200 hover:border-amber-500 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-sm transition active:scale-95 group text-center"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-amber-600 text-white flex items-center justify-center font-bold text-xs shadow group-hover:scale-105 transition">
+                      a
+                    </div>
+                    <span className="text-xs font-bold text-amber-900 group-hover:text-amber-700">
+                      Amazon Pay
+                    </span>
+                    <span className="text-[9px] text-amber-700 font-semibold bg-amber-50 px-1.5 py-0.2 rounded-full">
+                      ॲमेझॉन
+                    </span>
+                  </button>
                 </div>
 
                 {/* 3 Step Instructions */}
-                <div className="bg-amber-50/60 rounded-xl p-3 border border-amber-200 text-xs text-amber-900 space-y-1.5">
-                  <p className="font-bold flex items-center space-x-1">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                    <span>सोप्या पायऱ्या:</span>
+                <div className="bg-amber-50/70 rounded-xl p-3 border border-amber-200 text-xs text-amber-950 space-y-1.5">
+                  <p className="font-bold flex items-center space-x-1 text-amber-900">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                    <span>३ सोप्या पायऱ्यांत पेमेंट पूर्ण करा:</span>
                   </p>
-                  <ol className="list-decimal list-inside space-y-0.5 text-[11px] text-gray-700">
-                    <li>वरील बटणावर क्लिक करा किंवा QR स्कॅन करून ₹{activePlan.price} भरा.</li>
-                    <li>पेमेंट झाल्यावर बँक मेसेज / पावतीतील १२-अंकी UTR नंबर खाली टाका.</li>
-                    <li>पडताळणी विनंती पाठवताच तुमची मेंबरशिप तात्काळ सुरू होईल.</li>
+                  <ol className="list-decimal list-inside space-y-0.5 text-[11px] text-slate-700 leading-relaxed">
+                    <li>तुमच्या मोबाईलमधील ॲपचे बटण दाबा (थेट ॲप ओपन होईल आणि रक्कम दिसेल).</li>
+                    <li>UPI पिन टाकून ₹{activePlan.price} पेमेंट करा.</li>
+                    <li>पेमेंट झाल्यावर बँक मेसेज / ॲपमधील १२-अंकी UTR नंबर खाली टाकून सबमिट करा.</li>
                   </ol>
                 </div>
               </div>

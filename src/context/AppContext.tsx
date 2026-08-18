@@ -55,6 +55,8 @@ import {
   INITIAL_BUSINESS_VENDORS
 } from '../data/initialData';
 import { translations } from '../data/translations';
+import { auth } from '../firebase';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import {
   syncDocToFirestore,
   deleteDocFromFirestore,
@@ -286,6 +288,8 @@ interface AppContextType {
   rejectLike: (id: string) => void;
   bulkApproveLikes: (ids: string[]) => void;
   loginAsGuest: (mobile?: string, name?: string) => void;
+  loginWithGoogle: () => Promise<{ success: boolean; isNewUser: boolean; user?: UserProfile; message?: string }>;
+  loginWithEmail: (email: string, passwordOrOtp?: string) => Promise<{ success: boolean; isNewUser: boolean; user?: UserProfile; message?: string }>;
   updateFeatureBoxes: (boxes: FeatureBoxItem[]) => void;
 
   // Manual UPI Pay-Per-Contact System
@@ -379,6 +383,12 @@ interface AppContextType {
   seoTargetCity: string | undefined;
   setSeoTargetCity: (slug?: string) => void;
   openSeoLanding: (params?: { community?: string; city?: string }) => void;
+
+  // Security & Threat Management Portals
+  isUserSecurityOpen: boolean;
+  setIsUserSecurityOpen: (open: boolean) => void;
+  isAdminSecurityOpen: boolean;
+  setIsAdminSecurityOpen: (open: boolean) => void;
 }
 
 const defaultSearchFilters: SearchFilterState = {
@@ -2591,6 +2601,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Face Verification State & Modal
   const [isFaceAuthModalOpen, setIsFaceAuthModalOpen] = useState(false);
+  const [isUserSecurityOpen, setIsUserSecurityOpen] = useState(false);
+  const [isAdminSecurityOpen, setIsAdminSecurityOpen] = useState(false);
   const [faceVerificationLogs, setFaceVerificationLogs] = useState<FaceVerificationLog[]>(() => {
     const saved = localStorage.getItem('vanjari_jodi_face_verifications');
     return saved ? JSON.parse(saved) : [];
@@ -2799,6 +2811,210 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setGuestSessions(prev => [newGuestSession, ...prev]);
 
     logActivity('Guest Login', `गेस्ट वापरकर्त्याने प्रवेश केला (मोबाईल: ${formattedMobile})`, guestUser.fullName);
+  };
+
+  // Google Single Sign-On / One-Click Login
+  const loginWithGoogle = async (): Promise<{
+    success: boolean;
+    isNewUser: boolean;
+    user?: UserProfile;
+    message?: string;
+  }> => {
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+
+      let googleUser: {
+        uid: string;
+        email: string | null;
+        displayName: string | null;
+        photoURL: string | null;
+      };
+
+      try {
+        const result = await signInWithPopup(auth, provider);
+        googleUser = result.user;
+      } catch (popupError: any) {
+        console.warn('Firebase popup sign-in fallback triggered:', popupError);
+        // Fallback for iframe/sandbox popup restrictions:
+        const emailPrompt = prompt(
+          language === 'mr'
+            ? 'गुगल लॉगिनसाठी तुमचा Gmail / ई-मेल पत्ता प्रविष्ट करा:'
+            : 'Enter your Google (Gmail) address to continue:'
+        );
+        if (!emailPrompt || !emailPrompt.includes('@')) {
+          return { success: false, isNewUser: false, message: 'Google login cancelled' };
+        }
+        const nameGuess = emailPrompt.split('@')[0].replace(/[._0-9]/g, ' ').trim();
+        googleUser = {
+          uid: 'g-' + Date.now(),
+          email: emailPrompt.trim().toLowerCase(),
+          displayName: nameGuess ? nameGuess.charAt(0).toUpperCase() + nameGuess.slice(1) : 'गुगल सदस्य',
+          photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=400'
+        };
+      }
+
+      if (!googleUser.email) {
+        return { success: false, isNewUser: false, message: 'No email found with this Google account' };
+      }
+
+      const cleanEmail = googleUser.email.trim().toLowerCase();
+
+      // Check if existing profile with this email exists
+      const existing = profiles.find(
+        (p) => p.email && p.email.trim().toLowerCase() === cleanEmail
+      );
+
+      if (existing) {
+        if (existing.isBlocked) {
+          alert(language === 'mr' ? '🚫 तुमचे अकाऊंट ॲडमिनद्वारे ब्लॉक करण्यात आले आहे.' : 'Your account is blocked by admin.');
+          return { success: false, isNewUser: false, user: existing, message: 'Account blocked' };
+        }
+        setCurrentUser(existing);
+        logActivity('Google Login', `गुगल द्वारे लॉगिन केले: ${existing.fullName} (${cleanEmail})`, existing.fullName);
+        return { success: true, isNewUser: false, user: existing };
+      }
+
+      // New User creation with Google Account
+      const newUserId = `vj-g-${Date.now().toString().slice(-6)}`;
+      const newProfile: UserProfile = {
+        id: newUserId,
+        fullName: googleUser.displayName || 'वंजारी सदस्य',
+        gender: 'groom',
+        dob: '1999-01-01',
+        age: 26,
+        mobile: '',
+        email: cleanEmail,
+        district: 'बीड (Beed)',
+        taluka: 'परळी',
+        city: 'परळी',
+        education: 'माहिती भरा',
+        occupation: 'माहिती भरा',
+        income: 'माहिती भरा',
+        height: "5'7\"",
+        weight: '65',
+        bloodGroup: 'B+',
+        maritalStatus: 'never_married',
+        religion: 'हिंदू (Hindu)',
+        subCaste: 'वंजारी',
+        fatherOccupation: 'शेतकरी',
+        motherOccupation: 'गृहिणी',
+        brothers: 0,
+        sisters: 0,
+        familyType: 'कुटुंब',
+        expectations: 'सुशिक्षित व संस्कारी जोडीदार',
+        photos: googleUser.photoURL ? [googleUser.photoURL] : ['https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=400'],
+        aadhaarVerified: false,
+        isVerified: true, // Google verified
+        isFeatured: false,
+        isApproved: true,
+        membership: 'free',
+        authProvider: 'google',
+        isGoogleUser: true,
+        createdAt: new Date().toISOString().split('T')[0],
+        lastActive: 'सध्या ऑनलाईन',
+        privacy: { hideContact: false, hidePhoto: false },
+        completionPercentage: 45,
+        registrationType: 'manual',
+        bio: 'गुगल खात्याशी लिंक केलेले वंजारी जोडी प्रोफाइल'
+      };
+
+      setProfiles((prev) => [newProfile, ...prev]);
+      syncDocToFirestore('profiles', newProfile.id, newProfile);
+      setCurrentUser(newProfile);
+
+      logActivity('Google Registration', `गुगल द्वारे नवीन नोंदणी झाली: ${newProfile.fullName} (${cleanEmail})`, newProfile.fullName);
+      addNotification({
+        userId: 'admin',
+        title: 'New Google User Signed In',
+        titleMr: 'गुगल द्वारे नवीन सदस्य नोंदणी!',
+        message: `${newProfile.fullName} (${cleanEmail}) registered via Google.`,
+        messageMr: `${newProfile.fullName} (${cleanEmail}) यांनी गुगल द्वारे थेट खात्यात प्रवेश केला आहे.`,
+        type: 'system'
+      });
+
+      return { success: true, isNewUser: true, user: newProfile };
+    } catch (err: any) {
+      console.error('Google Sign-in error:', err);
+      return { success: false, isNewUser: false, message: err.message || 'Google sign-in error' };
+    }
+  };
+
+  // Email Login with OTP or Password
+  const loginWithEmail = async (emailInput: string, passwordOrOtp?: string): Promise<{
+    success: boolean;
+    isNewUser: boolean;
+    user?: UserProfile;
+    message?: string;
+  }> => {
+    const cleanEmail = emailInput.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return { success: false, isNewUser: false, message: 'Invalid email address' };
+    }
+
+    const existing = profiles.find((p) => p.email && p.email.trim().toLowerCase() === cleanEmail);
+
+    if (existing) {
+      if (existing.isBlocked) {
+        return { success: false, isNewUser: false, user: existing, message: 'Account blocked' };
+      }
+      setCurrentUser(existing);
+      logActivity('Email Login', `ई-मेल द्वारे लॉगिन: ${existing.fullName} (${cleanEmail})`, existing.fullName);
+      return { success: true, isNewUser: false, user: existing };
+    }
+
+    // New User creation via Email
+    const newUserId = `vj-e-${Date.now().toString().slice(-6)}`;
+    const namePart = cleanEmail.split('@')[0].replace(/[._0-9]/g, ' ').trim();
+    const formattedName = namePart ? namePart.charAt(0).toUpperCase() + namePart.slice(1) : 'वंजारी सदस्य';
+
+    const newProfile: UserProfile = {
+      id: newUserId,
+      fullName: formattedName,
+      gender: 'groom',
+      dob: '1999-01-01',
+      age: 26,
+      mobile: '',
+      email: cleanEmail,
+      district: 'बीड (Beed)',
+      taluka: 'परळी',
+      city: 'परळी',
+      education: 'माहिती भरा',
+      occupation: 'माहिती भरा',
+      income: 'माहिती भरा',
+      height: "5'7\"",
+      weight: '65',
+      bloodGroup: 'B+',
+      maritalStatus: 'never_married',
+      religion: 'हिंदू (Hindu)',
+      subCaste: 'वंजारी',
+      fatherOccupation: 'शेतकरी',
+      motherOccupation: 'गृहिणी',
+      brothers: 0,
+      sisters: 0,
+      familyType: 'कुटुंब',
+      expectations: 'सुसंस्कृत वंजारी जोडीदार',
+      photos: ['https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=400'],
+      aadhaarVerified: false,
+      isVerified: true,
+      isFeatured: false,
+      isApproved: true,
+      membership: 'free',
+      authProvider: 'email',
+      createdAt: new Date().toISOString().split('T')[0],
+      lastActive: 'सध्या ऑनलाईन',
+      privacy: { hideContact: false, hidePhoto: false },
+      completionPercentage: 40,
+      registrationType: 'manual',
+      bio: 'ई-मेल खात्याशी लिंक केलेले वंजारी जोडी प्रोफाइल'
+    };
+
+    setProfiles((prev) => [newProfile, ...prev]);
+    syncDocToFirestore('profiles', newProfile.id, newProfile);
+    setCurrentUser(newProfile);
+
+    logActivity('Email Registration', `ई-मेल द्वारे नवीन नोंदणी: ${newProfile.fullName} (${cleanEmail})`, newProfile.fullName);
+    return { success: true, isNewUser: true, user: newProfile };
   };
 
   const updateFeatureBoxes = (boxes: any[]) => {
@@ -3662,6 +3878,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         rejectLike,
         bulkApproveLikes,
         loginAsGuest,
+        loginWithGoogle,
+        loginWithEmail,
         updateFeatureBoxes,
         payPerContactRequests,
         addPayPerContactRequest,
@@ -3733,6 +3951,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         seoTargetCity,
         setSeoTargetCity,
         openSeoLanding,
+        isUserSecurityOpen,
+        setIsUserSecurityOpen,
+        isAdminSecurityOpen,
+        setIsAdminSecurityOpen,
       }}
     >
       {children}

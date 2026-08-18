@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { X, ShieldCheck, FileText, Lock, RefreshCw, Phone, Mail, MapPin, CheckCircle2, Info, Building, CreditCard, Scale, UserCheck, AlertTriangle } from 'lucide-react';
+import { X, ShieldCheck, FileText, Lock, RefreshCw, Phone, Mail, MapPin, CheckCircle2, Info, Building, CreditCard, Scale, UserCheck, AlertTriangle, MessageCircle } from 'lucide-react';
 
 export type PolicyTabType = 'terms' | 'privacy' | 'refund' | 'contact' | 'about_pricing' | 'grievance';
 
@@ -326,19 +326,41 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
                     </p>
                   </div>
 
-                  <div className="space-y-1">
-                    <span className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">
-                      {isEn ? 'Direct Grievance Contact / Phone' : 'तक्रार निवारण संपर्क क्रमांक'}
+                  <div className="space-y-1 sm:col-span-2 bg-emerald-50/80 p-3 rounded-xl border border-emerald-300">
+                    <span className="text-[11px] font-bold uppercase text-emerald-800 tracking-wider block mb-1">
+                      {isEn ? 'Grievance Contact & WhatsApp Channel' : 'तक्रार निवारण संपर्क व व्हॉट्सॲप (WhatsApp)'}
                     </span>
-                    <p className="text-slate-900 font-black text-sm flex items-center gap-1.5">
-                      <Phone className="w-4 h-4 text-[#A71930]" />
-                      <a href={`tel:${grievanceOfficerPhone.replace(/\s+/g, '')}`} className="text-slate-900 hover:text-[#A71930]">
-                        {grievanceOfficerPhone}
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-slate-900 font-black text-sm flex items-center gap-1.5">
+                        <MessageCircle className="w-4 h-4 text-emerald-600" />
+                        <span>WhatsApp: {grievanceOfficerPhone}</span>
+                      </p>
+                      <a
+                        href={`https://wa.me/${grievanceOfficerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                          isEn
+                            ? 'Hello Grievance Officer, I would like to report an issue/grievance on VanjariJodi Matrimony.'
+                            : 'नमस्कार तक्रार निवारण अधिकारी, मला वंजारी जोडी मॅट्रिमोनी संदर्भात तक्रार नोंदवायची आहे.'
+                        )}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-lg shadow-sm flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5 fill-white text-emerald-600" />
+                        <span>{isEn ? 'Message on WhatsApp' : 'WhatsApp वर मेसेज करा'}</span>
                       </a>
-                    </p>
+                    </div>
+                    {/* Explicit instruction: Please message on WhatsApp, avoid calling */}
+                    <div className="mt-2 text-[11px] font-extrabold text-amber-900 bg-amber-100/90 px-2.5 py-1.5 rounded-lg border border-amber-300 flex items-start gap-1.5">
+                      <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                      <span>
+                        {isEn
+                          ? '⚠️ Note: For filing grievances, please message on WhatsApp or Email. Please avoid phone calls (do not call) to facilitate prompt written tracking.'
+                          : '⚠️ महत्त्वाची सूचना: तक्रार निवारणासाठी कृपया शक्यतो व्हॉट्सॲप (WhatsApp) वर मेसेज करावा किंवा ई-मेल करावा. कृपया कॉल करू नये (शक्यतो कॉल करणे टाळावे), जेणेकरून तक्रारीची लेखी नोंद ठेवून तात्काळ कार्यवाही करता येईल.'}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="space-y-1">
+                  <div className="space-y-1 sm:col-span-2">
                     <span className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">
                       {isEn ? 'Jurisdiction & Office Location' : 'अधिकार क्षेत्र व कार्यालयीन पत्ता'}
                     </span>
@@ -357,8 +379,8 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
                   </div>
                   <p>
                     {isEn
-                      ? '1. All received grievances (fake profile, abusive content, financial impersonation, or privacy breach) are acknowledged within 24 hours of receipt.'
-                      : '१. प्राप्त झालेल्या सर्व तक्रारींची (खोटे प्रोफाईल, आक्षेपार्ह मजकूर किंवा गैरव्यवहार) २४ तासांत दखल घेतली जाईल.'}
+                      ? '1. All received grievances (fake profile, abusive content, financial impersonation, or privacy breach) are acknowledged within 24 hours of receipt via WhatsApp/Email.'
+                      : '१. व्हॉट्सॲप किंवा ईमेलद्वारे प्राप्त झालेल्या सर्व तक्रारींची (खोटे प्रोफाईल, आक्षेपार्ह मजकूर किंवा गैरव्यवहार) २४ तासांत दखल घेतली जाईल.'}
                   </p>
                   <p>
                     {isEn

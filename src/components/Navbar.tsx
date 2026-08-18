@@ -43,6 +43,9 @@ export const Navbar: React.FC<{
     setIsRightDrawerOpen,
     setIsBusinessVendorDirectoryOpen,
     setIsBioDataMakerOpen,
+    setIsUserSecurityOpen,
+    setIsAdminSecurityOpen,
+    isAdminLoggedIn,
   } = useApp();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -238,7 +241,35 @@ export const Navbar: React.FC<{
                       </button>
                     )}
 
-                     {!currentUser && (
+                     {/* USER SECURITY & SESSIONS MODAL TRIGGER */}
+                    {currentUser && (
+                      <button
+                        onClick={() => {
+                          setIsUserSecurityOpen(true);
+                          setMenuOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 font-bold cursor-pointer border border-slate-200 shadow-xs"
+                      >
+                        <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                        <span>{isEn ? '🛡️ Security & Active Sessions' : '🛡️ खाते सुरक्षा व सेशन्स'}</span>
+                      </button>
+                    )}
+
+                    {/* ADMIN SECURITY & THREAT MONITORING */}
+                    {(isAdminLoggedIn || currentUser?.isAdmin) && (
+                      <button
+                        onClick={() => {
+                          setIsAdminSecurityOpen(true);
+                          setMenuOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-800 font-bold cursor-pointer border border-red-200 shadow-xs"
+                      >
+                        <ShieldCheck className="w-4 h-4 text-red-600" />
+                        <span>{isEn ? '🚨 Security & Cyber Defense' : '🚨 सायबर सुरक्षा नियंत्रण केंद्र'}</span>
+                      </button>
+                    )}
+
+                    {!currentUser && (
                       <>
                         <button
                           onClick={() => {
