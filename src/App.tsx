@@ -35,6 +35,9 @@ import { BusinessVendorRegisterModal } from './components/BusinessVendorRegister
 import { BusinessVendorPortalModal } from './components/BusinessVendorPortalModal';
 import { FlashAdPopup } from './components/FlashAdPopup';
 import { BioDataMakerModal } from './components/BioDataMakerModal';
+import { DynamicActionDock } from './components/DynamicActionDock';
+import { DynamicSeoHead } from './components/DynamicSeoHead';
+import { ProgrammaticSeoModal } from './components/ProgrammaticSeoModal';
 
 const MainAppContent: React.FC = () => {
   const {
@@ -67,6 +70,10 @@ const MainAppContent: React.FC = () => {
     setIsVendorPortalOpen,
     isBioDataMakerOpen,
     setIsBioDataMakerOpen,
+    isSeoHubOpen,
+    setIsSeoHubOpen,
+    seoTargetCommunity,
+    seoTargetCity,
   } = useApp();
 
   const [showSplash, setShowSplash] = React.useState(true);
@@ -83,6 +90,8 @@ const MainAppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FFFDFB] text-slate-800 flex flex-col font-sans selection:bg-[#A71930] selection:text-white">
+      {/* 🚀 Dynamic Technical SEO Meta, Title & Schema.org JSON-LD Injector */}
+      <DynamicSeoHead />
       
       {/* Header with Sticky Container & Integrated Site-wide Notice Banner */}
       <Navbar />
@@ -215,10 +224,21 @@ const MainAppContent: React.FC = () => {
         <BusinessVendorPortalModal onClose={() => setIsVendorPortalOpen(false)} />
       )}
 
+      {/* Server-Driven Dynamic Action Dock (Speed-dial, Bottom Sheet, Side-Rail, Chip-Bar) */}
+      <DynamicActionDock />
+
       {/* Online Marathi BioData Maker Modal */}
       <BioDataMakerModal
         isOpen={isBioDataMakerOpen}
         onClose={() => setIsBioDataMakerOpen(false)}
+      />
+
+      {/* Programmatic SEO Landing Pages Hub (Communities & Cities) */}
+      <ProgrammaticSeoModal
+        isOpen={isSeoHubOpen}
+        onClose={() => setIsSeoHubOpen(false)}
+        initialCommunitySlug={seoTargetCommunity}
+        initialCitySlug={seoTargetCity}
       />
 
     </div>

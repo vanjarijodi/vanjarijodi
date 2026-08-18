@@ -6,6 +6,7 @@ import { AIBioDataExtractor } from './AIBioDataExtractor';
 import { AdminEditProfileModal } from './AdminEditProfileModal';
 import { AdminMemberQuickSettingsModal } from './AdminMemberQuickSettingsModal';
 import { AdminMasterSettingsCenter } from './AdminMasterSettingsCenter';
+import { AdminPaymentApprovalPortal } from './AdminPaymentApprovalPortal';
 import { VanjariJodiLogo } from './VanjariJodiLogo';
 import { MAHARASHTRA_DISTRICTS } from '../data/initialData';
 import { getProfessionBadges, getTagStyleClass } from '../utils/professionUtils';
@@ -6700,7 +6701,10 @@ export const AdminPanel: React.FC<{
             }
 
             return (
-              <div className="space-y-4">
+              <div className="space-y-6">
+                {/* Modern Dynamic UPI & Payment Verification System */}
+                <AdminPaymentApprovalPortal />
+
                 {/* Header Title */}
                 <div className="p-4 bg-amber-100 rounded-2xl border border-amber-300 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
                   <div>

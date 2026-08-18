@@ -2,9 +2,38 @@ export type Language = 'mr' | 'en';
 
 export type ThemeMode = 'crimson-gold' | 'dark-obsidian' | 'classic-emerald';
 
+export type ThemePreset =
+  | 'modern_ruby'
+  | 'auspicious_crimson'
+  | 'royal_trust_blue'
+  | 'parents_easy_mode'
+  | 'velvet_dark';
+
+export type GestureMode =
+  | 'vertical_reels'
+  | 'four_way_swipe'
+  | 'three_d_flip'
+  | 'story_tap_pullup';
+
+export type ActionDockType =
+  | 'floating_speed_dial'
+  | 'collapsible_side_rail'
+  | 'category_chip_bar'
+  | 'bottom_sheet_dock';
+
+export type HoroscopeManglik = 'non_manglik' | 'manglik' | 'not_applicable';
+
+export type ProfessionCategory =
+  | 'govt_job'
+  | 'mnc_it'
+  | 'business_self'
+  | 'doctor_engineer'
+  | 'agriculture_business'
+  | 'other';
+
 export type Gender = 'bride' | 'groom';
 
-export type MaritalStatus = 'never_married' | 'divorced' | 'widowed' | 'awaiting_divorce';
+export type MaritalStatus = 'never_married' | 'divorced' | 'widowed' | 'awaiting_divorce' | 'separated';
 
 export type MembershipTier = 'free' | 'monthly' | 'yearly' | 'lifetime' | 'silver' | 'gold' | 'diamond' | 'vip' | string;
 
@@ -110,6 +139,9 @@ export interface UserProfile {
   isCustomAccessGranted?: boolean;
   badge?: string;
   customBadge?: string;
+  adminBadge?: string;
+  horoscopeManglik?: HoroscopeManglik;
+  professionCategory?: ProfessionCategory;
   hideBadge?: boolean;
   isHiddenByAdmin?: boolean;
   viewsCount?: number;
@@ -268,6 +300,32 @@ export interface CounterItem {
   iconName: string;
 }
 
+export interface SystemSettings {
+  id: string;
+  upi_id: string;
+  business_name: string;
+  whatsapp_api_token: string;
+  currency: string;
+  qr_code_url?: string;
+  payment_note?: string;
+  support_mobile?: string;
+  updated_at?: string;
+}
+
+export interface UserMembership {
+  id: string;
+  user_id: string;
+  user_name?: string;
+  user_mobile?: string;
+  plan_name: string;
+  plan_id: string;
+  amount: number;
+  status: 'active' | 'expired';
+  expires_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PaymentRequest {
   id: string;
   userId: string;
@@ -281,11 +339,14 @@ export interface PaymentRequest {
   screenshotUrl?: string;
   userPhotoUrl?: string;
   status: 'pending' | 'approved' | 'rejected';
+  adminNote?: string;
   createdAt: string;
+  updatedAt?: string;
   approvedAt?: string;
   isAutoApproved?: boolean;
   planDurationText?: string;
   validUntil?: string;
+  membershipId?: string;
 }
 
 export interface GuestPermissions {
@@ -657,6 +718,22 @@ export interface SiteConfig {
   metaTitle: string;
   metaDescription: string;
   metaKeywords: string;
+  // Technical SEO & Fast-Indexing Architecture
+  googleSiteVerification?: string;
+  bingSiteVerification?: string;
+  ga4MeasurementId?: string;
+  canonicalDomain?: string;
+  indexNowApiKey?: string;
+  enableDynamicSitemap?: boolean;
+  enableAutoIndexPing?: boolean;
+  metaTitleMr?: string;
+  metaTitleEn?: string;
+  metaDescriptionMr?: string;
+  metaDescriptionEn?: string;
+  seoKeywordsMr?: string;
+  seoKeywordsEn?: string;
+  organizationName?: string;
+  organizationTelephone?: string;
   adminCredentials?: {
     name: string;
     username: string;
@@ -696,6 +773,10 @@ export interface SiteConfig {
   enableAgeFilter?: boolean;
   showProfessionBadgesOnCards?: boolean;
   showGovtJobHighlight?: boolean;
+  // Module 3: Server-Driven Themes & Gestures
+  activeThemePreset?: ThemePreset;
+  activeGestureMode?: GestureMode;
+  activeActionDock?: ActionDockType;
 }
 
 export interface TrashedProfile {

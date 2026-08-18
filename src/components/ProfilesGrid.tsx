@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { UserProfile, Gender } from '../types';
 import { VerifiedBadge } from './VerifiedBadge';
+import { SmartBadgeRow } from './SmartBadgeRow';
+import { DynamicGestureView } from './DynamicGestureView';
 import { getProfessionBadges, getTagStyleClass } from '../utils/professionUtils';
 import { formatProfileDisplayName } from '../utils/nameFormatter';
 import { transliterateMarathiToEnglish } from '../utils/transliterate';
@@ -47,6 +49,7 @@ export const ProfilesGrid: React.FC<{
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'all' | 'bride' | 'groom' | 'shortlisted'>('all');
+  const [displayView, setDisplayView] = useState<'grid' | 'gesture'>('grid');
 
   const cleanLocation = (district?: string, city?: string) => {
     if (!district && !city) return '';
@@ -112,8 +115,35 @@ export const ProfilesGrid: React.FC<{
             </p>
           </div>
 
-          {/* Clean Category Filter Tabs Only */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0">
+          {/* Clean Category Filter Tabs & View Mode Switcher */}
+          <div className="flex flex-wrap items-center gap-2 pb-2 md:pb-0">
+            {/* View Mode Toggle Button */}
+            <div className="flex items-center bg-amber-100 p-1 rounded-2xl border border-amber-300">
+              <button
+                type="button"
+                onClick={() => setDisplayView('grid')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  displayView === 'grid'
+                    ? 'bg-[#A71930] text-amber-100 shadow'
+                    : 'text-slate-700 hover:text-slate-950'
+                }`}
+              >
+                🎴 ग्रीड व्ह्यू
+              </button>
+              <button
+                type="button"
+                onClick={() => setDisplayView('gesture')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1 ${
+                  displayView === 'gesture'
+                    ? 'bg-[#A71930] text-amber-100 shadow'
+                    : 'text-slate-700 hover:text-slate-950'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                <span>✨ 4D स्वाइप / जेस्चर</span>
+              </button>
+            </div>
+
             <button
               onClick={() => setActiveTab('all')}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
@@ -175,7 +205,7 @@ export const ProfilesGrid: React.FC<{
           </div>
         </div>
 
-        {/* Profiles Grid */}
+        {/* Profiles Grid or 4D Dynamic Gesture View */}
         {displayedProfiles.length === 0 ? (
           <div className="text-center py-12 px-6 bg-gradient-to-b from-amber-50/50 to-white rounded-3xl border-2 border-amber-200 p-8 shadow-sm max-w-2xl mx-auto space-y-4">
             <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto text-[#A71930] border border-amber-300">
@@ -202,6 +232,11 @@ export const ProfilesGrid: React.FC<{
               </div>
             )}
           </div>
+        ) : displayView === 'gesture' ? (
+          <DynamicGestureView
+            profiles={displayedProfiles}
+            onSelectProfile={setSelectedProfileForModal}
+          />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {displayedProfiles.map((profile) => {
@@ -343,6 +378,9 @@ export const ProfilesGrid: React.FC<{
                   {/* Profile Details */}
                   <div className="p-4 sm:p-5 space-y-3 text-xs text-slate-700 flex-1">
                     
+                    {/* Smart Badge & Quick Info Capsule Row */}
+                    <SmartBadgeRow profile={profile} showQuickInfo={true} />
+
                     <div className="grid grid-cols-2 gap-2 pb-2.5 border-b border-amber-100">
                       <div>
                         <span className="text-slate-500 text-[11px] block font-semibold">{t('height')}</span>

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Heart, Phone, Mail, MapPin, Download, ShieldCheck, Sparkles, ShieldAlert, MessageCircle, Send, FileText, Lock, RefreshCw, CreditCard } from 'lucide-react';
+import { Heart, Phone, Mail, MapPin, Download, ShieldCheck, Sparkles, ShieldAlert, MessageCircle, Send, FileText, Lock, RefreshCw, CreditCard, Globe, Users, Award } from 'lucide-react';
 import { VanjariJodiLogo } from './VanjariJodiLogo';
 import { LegalPoliciesModal, PolicyTabType } from './LegalPoliciesModal';
+import { VANJARI_SUB_CASTES, VANJARI_CITIES } from '../utils/seoData';
 
 export const Footer: React.FC = () => {
-  const { t, language, siteConfig, setIsAdminOpen } = useApp();
+  const { t, language, siteConfig, setIsAdminOpen, openSeoLanding } = useApp();
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
   const [legalTab, setLegalTab] = useState<PolicyTabType>('terms');
 
@@ -148,6 +149,77 @@ export const Footer: React.FC = () => {
           </p>
         </div>
 
+      </div>
+
+      {/* 4. PROGRAMMATIC SEO & DIRECTORY CRAWLER HUB (100% VANJARI SAMAJ) */}
+      <div className="bg-[#4D0612] py-5 px-4 sm:px-6 lg:px-8 border-t border-amber-400/30 text-amber-100">
+        <div className="max-w-7xl mx-auto space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <h4 className="text-xs sm:text-sm font-black text-amber-300 flex items-center gap-2">
+              <Globe className="w-4 h-4 text-amber-400" />
+              <span>
+                {language === 'en'
+                  ? 'Vanjari Matrimony Directory (Sub-Castes & Major Belts):'
+                  : 'वंजारी समाज पोटजात व जिल्हानिहाय विवाह शोध निर्देशिका:'}
+              </span>
+            </h4>
+
+            <button
+              onClick={() => openSeoLanding()}
+              className="text-[11px] font-bold text-amber-200 hover:text-white underline decoration-amber-400 flex items-center gap-1 cursor-pointer self-start sm:self-auto"
+            >
+              <span>{language === 'en' ? 'View All Vanjari Landing Pages ↗' : 'सर्व वंजारी पोटजात व जिल्हा पेजेस पहा ↗'}</span>
+            </button>
+          </div>
+
+          {/* Sub-Castes Tags */}
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+            <span className="font-bold text-amber-300/80 mr-1 flex items-center gap-1">
+              <Users className="w-3 h-3 text-amber-400" />
+              <span>{language === 'en' ? 'Sub-Castes:' : 'वंजारी पोटजाती:'}</span>
+            </span>
+            {VANJARI_SUB_CASTES.map((c) => (
+              <button
+                key={c.slug}
+                onClick={() => openSeoLanding({ community: c.slug })}
+                className="px-2.5 py-1 rounded-lg bg-[#5C0815] hover:bg-amber-400 hover:text-[#800C1E] transition border border-amber-400/30 cursor-pointer text-amber-100 font-medium"
+              >
+                {language === 'mr' ? c.nameMr.split(' (')[0] : c.nameEn}
+              </button>
+            ))}
+          </div>
+
+          {/* Major Districts Tags */}
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px] pt-1">
+            <span className="font-bold text-amber-300/80 mr-1 flex items-center gap-1">
+              <MapPin className="w-3 h-3 text-amber-400" />
+              <span>{language === 'en' ? 'Key Districts & Belts:' : 'प्रमुख वंजारी बालेकिल्ले / जिल्हे:'}</span>
+            </span>
+            {VANJARI_CITIES.map((city) => (
+              <button
+                key={city.slug}
+                onClick={() => openSeoLanding({ city: city.slug })}
+                className="px-2.5 py-1 rounded-lg bg-[#5C0815] hover:bg-amber-400 hover:text-[#800C1E] transition border border-amber-400/30 cursor-pointer text-amber-100 font-medium"
+              >
+                {language === 'mr' ? city.nameMr.split(' (')[0] : city.nameEn}
+              </button>
+            ))}
+          </div>
+
+          {/* XML Sitemap & Robots direct links for Web Crawlers */}
+          <div className="pt-2 flex flex-wrap items-center gap-4 text-[10px] text-amber-200/70 border-t border-amber-400/15">
+            <span>🚩 Official Vanjari Community Crawlers & Fast Indexing:</span>
+            <a href="/sitemap.xml" target="_blank" rel="noopener noreferrer" className="hover:text-amber-100 underline">
+              XML Sitemap (/sitemap.xml)
+            </a>
+            <a href="/robots.txt" target="_blank" rel="noopener noreferrer" className="hover:text-amber-100 underline">
+              Robots Directives (/robots.txt)
+            </a>
+            <a href="https://schema.org/MarriageAgency" target="_blank" rel="noopener noreferrer" className="hover:text-amber-100 underline">
+              Vanjari Matrimony Schema
+            </a>
+          </div>
+        </div>
       </div>
 
       {/* LEGAL POLICY LINKS BAR */}

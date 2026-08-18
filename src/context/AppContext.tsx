@@ -370,6 +370,15 @@ interface AppContextType {
   submitVendorBookingInquiry: (inquiry: Omit<VendorBookingInquiry, 'id' | 'createdAt' | 'status'>) => void;
   updateVendorBookingInquiryStatus: (id: string, status: VendorBookingInquiry['status']) => void;
   updateVendorDetails: (vendorId: string, updatedFields: Partial<BusinessVendor>) => void;
+
+  // Technical SEO & Programmatic Landing Modals
+  isSeoHubOpen: boolean;
+  setIsSeoHubOpen: (open: boolean) => void;
+  seoTargetCommunity: string | undefined;
+  setSeoTargetCommunity: (slug?: string) => void;
+  seoTargetCity: string | undefined;
+  setSeoTargetCity: (slug?: string) => void;
+  openSeoLanding: (params?: { community?: string; city?: string }) => void;
 }
 
 const defaultSearchFilters: SearchFilterState = {
@@ -3357,6 +3366,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Business Vendor State & Handlers
   const [isBioDataMakerOpen, setIsBioDataMakerOpen] = useState(false);
+  const [isSeoHubOpen, setIsSeoHubOpen] = useState(false);
+  const [seoTargetCommunity, setSeoTargetCommunity] = useState<string | undefined>(undefined);
+  const [seoTargetCity, setSeoTargetCity] = useState<string | undefined>(undefined);
+
+  const openSeoLanding = (params?: { community?: string; city?: string }) => {
+    setSeoTargetCommunity(params?.community);
+    setSeoTargetCity(params?.city);
+    setIsSeoHubOpen(true);
+  };
+
   const [businessVendors, setBusinessVendors] = useState<BusinessVendor[]>(() => {
     const saved = localStorage.getItem('vanjari_jodi_business_vendors');
     if (saved) {
@@ -3707,6 +3726,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         submitVendorBookingInquiry,
         updateVendorBookingInquiryStatus,
         updateVendorDetails,
+        isSeoHubOpen,
+        setIsSeoHubOpen,
+        seoTargetCommunity,
+        setSeoTargetCommunity,
+        seoTargetCity,
+        setSeoTargetCity,
+        openSeoLanding,
       }}
     >
       {children}

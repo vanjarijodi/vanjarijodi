@@ -32,7 +32,8 @@ import {
   UserCheck,
   Heart,
   Tag,
-  Crown
+  Crown,
+  ExternalLink
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { uploadToCloudinary } from '../utils/cloudinary';
@@ -43,6 +44,8 @@ export const AdminMasterSettingsCenter: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [saveToast, setSaveToast] = useState<string | null>(null);
   const [copiedWebhook, setCopiedWebhook] = useState(false);
+  const [isPingingIndexNow, setIsPingingIndexNow] = useState(false);
+  const [indexNowResponse, setIndexNowResponse] = useState<string | null>(null);
 
   const webhookUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/api/paytm-webhook`
@@ -52,6 +55,32 @@ export const AdminMasterSettingsCenter: React.FC = () => {
     navigator.clipboard.writeText(webhookUrl);
     setCopiedWebhook(true);
     setTimeout(() => setCopiedWebhook(false), 2500);
+  };
+
+  const handleTriggerIndexNow = async () => {
+    setIsPingingIndexNow(true);
+    setIndexNowResponse(null);
+    try {
+      const res = await fetch('/api/seo/indexnow-ping', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          host: siteConfig.canonicalDomain || window.location.host,
+          key: siteConfig.indexNowApiKey || 'vjmatrimony-indexnow-key-2026',
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setIndexNowResponse(`✅ गुगल व Bing सर्च इंजिनला ${data.pingedUrlsCount} URLs ची माहिती त्वरित पाठवली!`);
+        notifyChange('सर्च इंजिन फास्ट इंडेक्सिंग पिंग यशस्वी झाले!');
+      } else {
+        setIndexNowResponse(`⚠️ पिंग त्रुटी: ${data.error || 'अज्ञात त्रुटी'}`);
+      }
+    } catch (err: any) {
+      setIndexNowResponse(`⚠️ पिंग कनेक्शन त्रुटी: ${err.message}`);
+    } finally {
+      setIsPingingIndexNow(false);
+    }
   };
 
   const notifyChange = (msg: string) => {
@@ -183,6 +212,26 @@ export const AdminMasterSettingsCenter: React.FC = () => {
               }`}
             >
               ✨ फीचर्स
+            </button>
+            <button
+              onClick={() => setSelectedCategory('layout')}
+              className={`px-3 py-2 rounded-xl whitespace-nowrap cursor-pointer transition ${
+                selectedCategory === 'layout'
+                  ? 'bg-amber-400 text-amber-950 font-black'
+                  : 'bg-white/10 text-amber-100 hover:bg-white/20'
+              }`}
+            >
+              🎨 UI लेआउट व थीम इंजिन
+            </button>
+            <button
+              onClick={() => setSelectedCategory('seo')}
+              className={`px-3 py-2 rounded-xl whitespace-nowrap cursor-pointer transition ${
+                selectedCategory === 'seo'
+                  ? 'bg-amber-400 text-amber-950 font-black'
+                  : 'bg-white/10 text-amber-100 hover:bg-white/20'
+              }`}
+            >
+              🔍 SEO व इंडेक्सिंग
             </button>
           </div>
         </div>
@@ -1221,6 +1270,250 @@ export const AdminMasterSettingsCenter: React.FC = () => {
         </div>
       )}
 
+      {/* ========================================================================= */}
+      {/* 🔍 TECHNICAL SEO, WEBMASTER & FAST-INDEXING SETTINGS PANEL */}
+      {/* ========================================================================= */}
+      {(selectedCategory === 'all' || selectedCategory === 'seo') && (
+        <div className="bg-white rounded-3xl p-6 border-2 border-emerald-300 shadow-md space-y-6 animate-fadeIn">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-100 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-900 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                  Google & Bing Certified
+                </span>
+                <span className="text-xs text-slate-500 font-bold">Schema.org JSON-LD + Dynamic Sitemap</span>
+              </div>
+              <h3 className="text-lg sm:text-xl font-black text-emerald-950 flex items-center gap-2 mt-1">
+                <Globe className="w-6 h-6 text-emerald-600" />
+                <span>तांत्रिक SEO, वेबमास्टर व सर्च इंजिन फास्ट इंडेक्सिंग (Technical SEO & Indexing)</span>
+              </h3>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleTriggerIndexNow}
+              disabled={isPingingIndexNow}
+              className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition cursor-pointer self-start sm:self-auto disabled:opacity-50"
+            >
+              <Zap className={`w-4 h-4 text-amber-300 ${isPingingIndexNow ? 'animate-spin' : ''}`} />
+              <span>{isPingingIndexNow ? 'सर्च इंजिनला पिंग करत आहे...' : '⚡ गुगल / Bing ला त्वरित पिंग करा (IndexNow)'}</span>
+            </button>
+          </div>
+
+          {/* IndexNow Feedback Alert */}
+          {indexNowResponse && (
+            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-300 text-xs sm:text-sm font-bold text-emerald-900 flex items-center gap-2 animate-slideIn">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              <span>{indexNowResponse}</span>
+            </div>
+          )}
+
+          {/* Quick Links & Health Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <a
+              href="/sitemap.xml"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 transition group flex flex-col justify-between"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-slate-700 group-hover:text-emerald-900 flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-emerald-600" />
+                  <span>Dynamic XML Sitemap</span>
+                </span>
+                <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-600" />
+              </div>
+              <p className="text-[11px] text-slate-500 mt-2">
+                सर्व कम्युनिटी, शहरे व सक्रिय प्रोफाईल्सचा स्वयंचलित XML नकाशा
+              </p>
+              <span className="text-[10px] font-bold text-emerald-700 mt-2 block">
+                थेट तपासा: /sitemap.xml ↗
+              </span>
+            </a>
+
+            <a
+              href="/robots.txt"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 transition group flex flex-col justify-between"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-slate-700 group-hover:text-emerald-900 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-teal-600" />
+                  <span>Robots.txt Directives</span>
+                </span>
+                <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-teal-600" />
+              </div>
+              <p className="text-[11px] text-slate-500 mt-2">
+                गुगल बॉटसाठी सुरक्षित मार्गदर्शक व ॲडमिन पाथ सुरक्षा नियम
+              </p>
+              <span className="text-[10px] font-bold text-teal-700 mt-2 block">
+                थेट तपासा: /robots.txt ↗
+              </span>
+            </a>
+
+            <a
+              href="https://validator.schema.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-amber-500 hover:bg-amber-50/50 transition group flex flex-col justify-between"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-slate-700 group-hover:text-amber-900 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  <span>Schema.org Rich Snippets</span>
+                </span>
+                <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600" />
+              </div>
+              <p className="text-[11px] text-slate-500 mt-2">
+                MarriageAgency, WebSite, Breadcrumbs व FAQ स्कीमा व्हेरिफाय करा
+              </p>
+              <span className="text-[10px] font-bold text-amber-700 mt-2 block">
+                Schema Validator उघडा ↗
+              </span>
+            </a>
+          </div>
+
+          {/* Form Fields: Domain & Verification Codes */}
+          <div className="space-y-4 pt-2">
+            <h4 className="text-sm font-black text-slate-800 flex items-center gap-2">
+              <Sliders className="w-4 h-4 text-emerald-600" />
+              <span>१. वेबमास्टर व्हेरिफिकेशन व डोमेन सेटिंग्ज (Webmaster & Analytics):</span>
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  मुख्य कॅनॉनिकल डोमेन (Primary Canonical Domain):
+                </label>
+                <input
+                  type="text"
+                  value={siteConfig.canonicalDomain || ''}
+                  onChange={(e) => updateSiteConfig({ canonicalDomain: e.target.value })}
+                  placeholder="https://vanjarijodi.org"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                />
+                <p className="text-[10px] text-slate-500">Google ला मुख्य मूळ पत्ता निर्देशित करण्यासाठी वापरला जातो.</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Google Search Console Verification Code:
+                </label>
+                <input
+                  type="text"
+                  value={siteConfig.googleSiteVerification || ''}
+                  onChange={(e) => updateSiteConfig({ googleSiteVerification: e.target.value })}
+                  placeholder="google-site-verification कोड येथे टाका"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-mono focus:ring-2 focus:ring-emerald-500"
+                />
+                <p className="text-[10px] text-slate-500">Search Console मधील meta tag कोड (उदा. C1uriQTbgYIoBO...)</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Bing Webmaster Verification Code (msvalidate.01):
+                </label>
+                <input
+                  type="text"
+                  value={siteConfig.bingSiteVerification || ''}
+                  onChange={(e) => updateSiteConfig({ bingSiteVerification: e.target.value })}
+                  placeholder="B48F6CB54FDF4D4619B07231A8"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-mono focus:ring-2 focus:ring-emerald-500"
+                />
+                <p className="text-[10px] text-slate-500">Bing Webmaster meta tag चा व्हॅल्यु कोड</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Google Analytics 4 (GA4) Measurement ID:
+                </label>
+                <input
+                  type="text"
+                  value={siteConfig.ga4MeasurementId || ''}
+                  onChange={(e) => updateSiteConfig({ ga4MeasurementId: e.target.value })}
+                  placeholder="G-XXXXXXXXXX"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-mono focus:ring-2 focus:ring-emerald-500"
+                />
+                <p className="text-[10px] text-slate-500">थेट ट्रॅफिक व व्हिजिटर्स मोजण्यासाठी GA4 आयडी</p>
+              </div>
+            </div>
+
+            {/* Bilingual Meta Titles & Descriptions */}
+            <h4 className="text-sm font-black text-slate-800 flex items-center gap-2 pt-4">
+              <Search className="w-4 h-4 text-emerald-600" />
+              <span>२. द्विभाषिक मेटा टायटल व सर्च इंजिन वर्णन (Bilingual Meta Tags):</span>
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  मराठी मेटा टायटल (Marathi Meta Title):
+                </label>
+                <input
+                  type="text"
+                  value={siteConfig.metaTitleMr || siteConfig.metaTitle || ''}
+                  onChange={(e) => updateSiteConfig({ metaTitleMr: e.target.value, metaTitle: e.target.value })}
+                  placeholder="वंजारी जोडी वधू-वर सूचक केंद्र"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  इंग्रजी मेटा टायटल (English Meta Title):
+                </label>
+                <input
+                  type="text"
+                  value={siteConfig.metaTitleEn || ''}
+                  onChange={(e) => updateSiteConfig({ metaTitleEn: e.target.value })}
+                  placeholder="Vanjari Jodi Matrimony - Maharashtra Vadhu Var"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  मराठी मेटा वर्णन (Marathi Meta Description):
+                </label>
+                <textarea
+                  rows={3}
+                  value={siteConfig.metaDescriptionMr || siteConfig.metaDescription || ''}
+                  onChange={(e) => updateSiteConfig({ metaDescriptionMr: e.target.value, metaDescription: e.target.value })}
+                  placeholder="महाराष्ट्र व जगभरातील १# मानांकित अधिकृत वंजारी समाज वधू-वर सूचक केंद्र."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  इंग्रजी मेटा वर्णन (English Meta Description):
+                </label>
+                <textarea
+                  rows={3}
+                  value={siteConfig.metaDescriptionEn || ''}
+                  onChange={(e) => updateSiteConfig({ metaDescriptionEn: e.target.value })}
+                  placeholder="Verified brides and grooms matrimonial portal for Vanjari and Marathi communities."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+
+            {/* Save Confirmation Button */}
+            <div className="pt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => notifyChange('तांत्रिक SEO आणि वेबमास्टर सेटिंग्ज सुरक्षित जतन केल्या!')}
+                className="px-6 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs sm:text-sm shadow-md transition cursor-pointer flex items-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                <span>SEO सेटिंग्ज सेव्ह करा (Save SEO Config)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* CATEGORY 3: PAYMENTS & MEMBERSHIP */}
       {(selectedCategory === 'all' || selectedCategory === 'payments') && (
         <div className="bg-white rounded-3xl p-5 border-2 border-amber-300 shadow-md space-y-4">
@@ -1648,6 +1941,423 @@ export const AdminMasterSettingsCenter: React.FC = () => {
                 }`}
               >
                 {siteConfig.blurProfilePhotos === true ? 'ब्लर केले (ON)' : 'स्पष्ट (OFF)'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CATEGORY 5: UI LAYOUT ENGINE, THEMES & GESTURES */}
+      {(selectedCategory === 'all' || selectedCategory === 'layout') && (
+        <div className="bg-white rounded-3xl p-5 border-2 border-amber-300 shadow-md space-y-5">
+          <div className="flex items-center justify-between border-b border-amber-200 pb-3">
+            <h3 className="font-black text-[#A71930] text-base flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-[#A71930]" />
+              <span>५. सर्व्हर-चालित UI लेआउट, थीम्स व जेस्चर इंजिन (Server-Driven UI & Gesture Engine)</span>
+            </h3>
+            <span className="text-[10px] font-black bg-purple-100 text-purple-900 px-3 py-1 rounded-full border border-purple-300">
+              डायनॅमिक UI इंजिन 🎨
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            {/* 1. Theme Preset Selector */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50/40 border-2 border-amber-300 space-y-2">
+              <label className="font-black text-amber-950 block text-xs sm:text-sm flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-600" />
+                <span>१. सक्रिय व्हिज्युअल थीम प्रीसेट (Active Design Theme Preset):</span>
+              </label>
+              <p className="text-[11px] text-slate-600 font-medium">
+                सर्व सदस्यांच्या मोबाईल व डेस्कटॉपवर क्षणात थीम बदलते.
+              </p>
+              <div className="grid grid-cols-1 gap-2 pt-1">
+                {[
+                  { id: 'modern_ruby', name: '1. Modern Ruby (मॉडर्न रुबी)', desc: 'Clean White + Rich Ruby Crimson + Deep Amber + Slate' },
+                  { id: 'auspicious_crimson', name: '2. Auspicious Crimson (शुभ विवाह कुंकुम)', desc: 'Deep Sindoor Crimson + Pure Golden Yellow + Ivory' },
+                  { id: 'royal_trust_blue', name: '3. Royal Trust Blue (रॉयल ब्लू)', desc: 'Deep Royal Navy + Sapphire + Gold Trim Accent' },
+                  { id: 'parents_easy_mode', name: '4. Parents Easy-Mode (पालक सुलभ मोड)', desc: 'Ultra-High Contrast + 18px Bold Fonts + Large Touch Targets' },
+                  { id: 'velvet_dark', name: '5. Velvet Dark Luxury (वेलव्हेट डार्क लक्झरी)', desc: 'Midnight Obsidian + Warm Amber + Rose Quartz Glow' }
+                ].map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => handleModeChange('themePreset', t.id, `थीम: ${t.name}`)}
+                    className={`p-2.5 rounded-xl border text-left flex items-start justify-between transition cursor-pointer ${
+                      (siteConfig.themePreset || 'modern_ruby') === t.id
+                        ? 'bg-[#A71930] text-amber-100 border-[#A71930] shadow font-black'
+                        : 'bg-white text-slate-800 border-amber-200 hover:bg-amber-100/50'
+                    }`}
+                  >
+                    <div>
+                      <span className="font-black block">{t.name}</span>
+                      <span className="text-[10px] opacity-80">{t.desc}</span>
+                    </div>
+                    {(siteConfig.themePreset || 'modern_ruby') === t.id && (
+                      <CheckCircle2 className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. Gesture Mode Selector */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-50 to-indigo-50/40 border-2 border-purple-300 space-y-2">
+              <label className="font-black text-purple-950 block text-xs sm:text-sm flex items-center gap-2">
+                <Smartphone className="w-4 h-4 text-purple-600" />
+                <span>२. स्वाइप व जेस्चर मोड (Interaction & Gesture Architecture):</span>
+              </label>
+              <p className="text-[11px] text-slate-600 font-medium">
+                मोबाईल युझर्ससाठी स्वाइप, रिल्स आणि ३डी फ्लिप संवाद पद्धत.
+              </p>
+              <div className="grid grid-cols-1 gap-2 pt-1">
+                {[
+                  { id: 'swipe_4way', name: '1. 4-Way Multi-Action Swipe', desc: 'Right: Express Interest | Left: Pass | Up: Shortlist | Down: Contact' },
+                  { id: 'vertical_reels', name: '2. Vertical Reels / Hinge Style', desc: 'Full-bleed vertical snap-scroll with prominent action rail' },
+                  { id: 'flip_3d', name: '3. 3D Flip Card System', desc: 'Tap card to smoothly flip and view full Kundali, family & biodata' },
+                  { id: 'story_tap', name: '4. Story-Tap + Pull-Up Sheet', desc: 'Instagram/Snapchat style tap to cycle photos + pull up details' }
+                ].map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onClick={() => handleModeChange('gestureMode', g.id, `जेस्चर मोड: ${g.name}`)}
+                    className={`p-2.5 rounded-xl border text-left flex items-start justify-between transition cursor-pointer ${
+                      (siteConfig.gestureMode || 'swipe_4way') === g.id
+                        ? 'bg-purple-900 text-purple-100 border-purple-900 shadow font-black'
+                        : 'bg-white text-slate-800 border-purple-200 hover:bg-purple-100/50'
+                    }`}
+                  >
+                    <div>
+                      <span className="font-black block">{g.name}</span>
+                      <span className="text-[10px] opacity-80">{g.desc}</span>
+                    </div>
+                    {(siteConfig.gestureMode || 'swipe_4way') === g.id && (
+                      <CheckCircle2 className="w-4 h-4 text-purple-300 shrink-0 mt-0.5" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. Action Dock Type Selector */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 to-teal-50/40 border-2 border-emerald-300 space-y-2">
+              <label className="font-black text-emerald-950 block text-xs sm:text-sm flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-emerald-700" />
+                <span>३. सर्व्हर-चालित नेव्हिगेशन डॉक (Server-Driven Action Dock):</span>
+              </label>
+              <p className="text-[11px] text-slate-600 font-medium">
+                वेबसाईट व ॲपच्या खाली किंवा कडेला दिसणारा ॲक्शन डॉक.
+              </p>
+              <div className="grid grid-cols-1 gap-2 pt-1">
+                {[
+                  { id: 'chip_bar', name: '1. Horizontal Category Chip-Bar', desc: 'Sticky bar at top for quick filter switching (Govt Job, Verified, etc.)' },
+                  { id: 'speed_dial', name: '2. Floating Speed-Dial Dock', desc: 'Bottom-right circular button expanding into quick action nodes' },
+                  { id: 'side_rail', name: '3. Collapsible Side-Rail', desc: 'Sleek vertical rail for desktop and tablet screens' },
+                  { id: 'bottom_sheet', name: '4. Interactive Bottom Sheet', desc: 'Draggable mobile sheet revealing quick actions & status' }
+                ].map((d) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => handleModeChange('actionDockType', d.id, `ॲक्शन डॉक: ${d.name}`)}
+                    className={`p-2.5 rounded-xl border text-left flex items-start justify-between transition cursor-pointer ${
+                      (siteConfig.actionDockType || 'chip_bar') === d.id
+                        ? 'bg-emerald-900 text-emerald-100 border-emerald-900 shadow font-black'
+                        : 'bg-white text-slate-800 border-emerald-200 hover:bg-emerald-100/50'
+                    }`}
+                  >
+                    <div>
+                      <span className="font-black block">{d.name}</span>
+                      <span className="text-[10px] opacity-80">{d.desc}</span>
+                    </div>
+                    {(siteConfig.actionDockType || 'chip_bar') === d.id && (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-300 shrink-0 mt-0.5" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 4. Smart Badges & Matrix Controls */}
+            <div className="p-4 rounded-2xl bg-amber-50/80 border-2 border-amber-300 space-y-3">
+              <label className="font-black text-amber-950 block text-xs sm:text-sm flex items-center gap-2">
+                <Tag className="w-4 h-4 text-[#A71930]" />
+                <span>४. स्मार्ट बॅजेस व प्रोफाईल मॅट्रिक्स (Smart Badges & Matrix):</span>
+              </label>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-amber-200">
+                  <div>
+                    <span className="font-black text-slate-800 block">सरकारी नोकरी / क्लास-१ बॅज (Govt Job Badge):</span>
+                    <span className="text-[10px] text-slate-600 font-medium">Dark Emerald Green Pill Tag</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggle('showProfessionBadgesOnCards', siteConfig.showProfessionBadgesOnCards !== false, 'सरकारी नोकरी बॅज')}
+                    className={`px-3 py-1 rounded-xl text-xs font-black cursor-pointer ${
+                      siteConfig.showProfessionBadgesOnCards !== false ? 'bg-emerald-700 text-white' : 'bg-slate-300 text-slate-700'
+                    }`}
+                  >
+                    {siteConfig.showProfessionBadgesOnCards !== false ? 'सक्रिय (ON)' : 'बंद (OFF)'}
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-amber-200">
+                  <div>
+                    <span className="font-black text-slate-800 block">क्विक-इन्फो चिप रो (Education, Income, City, Manglik):</span>
+                    <span className="text-[10px] text-slate-600 font-medium">नावाखालील त्वरित माहिती चिप्स</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggle('showQuickInfoChipsOnCards', siteConfig.showQuickInfoChipsOnCards !== false, 'क्विक-इन्फो चिप्स')}
+                    className={`px-3 py-1 rounded-xl text-xs font-black cursor-pointer ${
+                      siteConfig.showQuickInfoChipsOnCards !== false ? 'bg-emerald-700 text-white' : 'bg-slate-300 text-slate-700'
+                    }`}
+                  >
+                    {siteConfig.showQuickInfoChipsOnCards !== false ? 'सक्रिय (ON)' : 'बंद (OFF)'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 🔍 TECHNICAL SEO, WEBMASTER & FAST-INDEXING SETTINGS PANEL */}
+      {/* ========================================================================= */}
+      {(selectedCategory === 'all' || selectedCategory === 'seo') && (
+        <div className="bg-white rounded-3xl p-6 border-2 border-emerald-300 shadow-md space-y-6 animate-fadeIn">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-100 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-900 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                  Google & Bing Certified
+                </span>
+                <span className="text-xs text-slate-500 font-bold">Schema.org JSON-LD + Dynamic Sitemap</span>
+              </div>
+              <h3 className="text-lg sm:text-xl font-black text-emerald-950 flex items-center gap-2 mt-1">
+                <Globe className="w-6 h-6 text-emerald-600" />
+                <span>तांत्रिक SEO, वेबमास्टर व सर्च इंजिन फास्ट इंडेक्सिंग (Technical SEO & Indexing)</span>
+              </h3>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleTriggerIndexNow}
+              disabled={isPingingIndexNow}
+              className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-extrabold text-xs sm:text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition cursor-pointer self-start sm:self-auto disabled:opacity-50"
+            >
+              <Zap className={`w-4 h-4 text-amber-300 ${isPingingIndexNow ? 'animate-spin' : ''}`} />
+              <span>{isPingingIndexNow ? 'सर्च इंजिनला पिंग करत आहे...' : '⚡ गुगल / Bing ला त्वरित पिंग करा (IndexNow)'}</span>
+            </button>
+          </div>
+
+          {/* IndexNow Feedback Alert */}
+          {indexNowResponse && (
+            <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-300 text-xs sm:text-sm font-bold text-emerald-900 flex items-center gap-2 animate-slideIn">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+              <span>{indexNowResponse}</span>
+            </div>
+          )}
+
+          {/* Quick Links & Health Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <a
+              href="/sitemap.xml"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 transition group flex flex-col justify-between"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-slate-700 group-hover:text-emerald-900 flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-emerald-600" />
+                  <span>Dynamic XML Sitemap</span>
+                </span>
+                <Globe className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-600" />
+              </div>
+              <p className="text-[11px] text-slate-500 mt-2">
+                सर्व कम्युनिटी, शहरे व सक्रिय प्रोफाईल्सचा स्वयंचलित XML नकाशा
+              </p>
+              <span className="text-[10px] font-bold text-emerald-700 mt-2 block">
+                थेट तपासा: /sitemap.xml ↗
+              </span>
+            </a>
+
+            <a
+              href="/robots.txt"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50/50 transition group flex flex-col justify-between"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-slate-700 group-hover:text-emerald-900 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-teal-600" />
+                  <span>Robots.txt Directives</span>
+                </span>
+                <Globe className="w-3.5 h-3.5 text-slate-400 group-hover:text-teal-600" />
+              </div>
+              <p className="text-[11px] text-slate-500 mt-2">
+                गुगल बॉटसाठी सुरक्षित मार्गदर्शक व ॲडमिन पाथ सुरक्षा नियम
+              </p>
+              <span className="text-[10px] font-bold text-teal-700 mt-2 block">
+                थेट तपासा: /robots.txt ↗
+              </span>
+            </a>
+
+            <a
+              href="https://validator.schema.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-4 rounded-2xl bg-slate-50 border border-slate-200 hover:border-amber-500 hover:bg-amber-50/50 transition group flex flex-col justify-between"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-slate-700 group-hover:text-amber-900 flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-amber-600" />
+                  <span>Schema.org Rich Snippets</span>
+                </span>
+                <Globe className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600" />
+              </div>
+              <p className="text-[11px] text-slate-500 mt-2">
+                MarriageAgency, WebSite, Breadcrumbs व FAQ स्कीमा व्हेरिफाय करा
+              </p>
+              <span className="text-[10px] font-bold text-amber-700 mt-2 block">
+                Schema Validator उघडा ↗
+              </span>
+            </a>
+          </div>
+
+          {/* Form Fields: Domain & Verification Codes */}
+          <div className="space-y-4 pt-2">
+            <h4 className="text-sm font-black text-slate-800 flex items-center gap-2">
+              <Sliders className="w-4 h-4 text-emerald-600" />
+              <span>१. वेबमास्टर व्हेरिफिकेशन व डोमेन सेटिंग्ज (Webmaster & Analytics):</span>
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  मुख्य कॅनॉनिकल डोमेन (Primary Canonical Domain):
+                </label>
+                <input
+                  type="text"
+                  value={siteConfig.canonicalDomain || ''}
+                  onChange={(e) => updateSiteConfig({ canonicalDomain: e.target.value })}
+                  placeholder="https://vanjarijodi.org"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                />
+                <p className="text-[10px] text-slate-500">Google ला मुख्य मूळ पत्ता निर्देशित करण्यासाठी वापरला जातो.</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Google Search Console Verification Code:
+                </label>
+                <input
+                  type="text"
+                  value={siteConfig.googleSiteVerification || ''}
+                  onChange={(e) => updateSiteConfig({ googleSiteVerification: e.target.value })}
+                  placeholder="google-site-verification कोड येथे टाका"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-mono focus:ring-2 focus:ring-emerald-500"
+                />
+                <p className="text-[10px] text-slate-500">Search Console मधील meta tag कोड (उदा. C1uriQTbgYIoBO...)</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Bing Webmaster Verification Code (msvalidate.01):
+                </label>
+                <input
+                  type="text"
+                  value={siteConfig.bingSiteVerification || ''}
+                  onChange={(e) => updateSiteConfig({ bingSiteVerification: e.target.value })}
+                  placeholder="B48F6CB54FDF4D4619B07231A8"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-mono focus:ring-2 focus:ring-emerald-500"
+                />
+                <p className="text-[10px] text-slate-500">Bing Webmaster meta tag चा व्हॅल्यु कोड</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  Google Analytics 4 (GA4) Measurement ID:
+                </label>
+                <input
+                  type="text"
+                  value={siteConfig.ga4MeasurementId || ''}
+                  onChange={(e) => updateSiteConfig({ ga4MeasurementId: e.target.value })}
+                  placeholder="G-XXXXXXXXXX"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-mono focus:ring-2 focus:ring-emerald-500"
+                />
+                <p className="text-[10px] text-slate-500">थेट ट्रॅफिक व व्हिजिटर्स मोजण्यासाठी GA4 आयडी</p>
+              </div>
+            </div>
+
+            {/* Bilingual Meta Titles & Descriptions */}
+            <h4 className="text-sm font-black text-slate-800 flex items-center gap-2 pt-4">
+              <Search className="w-4 h-4 text-emerald-600" />
+              <span>२. द्विभाषिक मेटा टायटल व सर्च इंजिन वर्णन (Bilingual Meta Tags):</span>
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  मराठी मेटा टायटल (Marathi Meta Title):
+                </label>
+                <input
+                  type="text"
+                  value={siteConfig.metaTitleMr || siteConfig.metaTitle || ''}
+                  onChange={(e) => updateSiteConfig({ metaTitleMr: e.target.value, metaTitle: e.target.value })}
+                  placeholder="वंजारी जोडी वधू-वर सूचक केंद्र"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  इंग्रजी मेटा टायटल (English Meta Title):
+                </label>
+                <input
+                  type="text"
+                  value={siteConfig.metaTitleEn || ''}
+                  onChange={(e) => updateSiteConfig({ metaTitleEn: e.target.value })}
+                  placeholder="Vanjari Jodi Matrimony - Maharashtra Vadhu Var"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  मराठी मेटा वर्णन (Marathi Meta Description):
+                </label>
+                <textarea
+                  rows={3}
+                  value={siteConfig.metaDescriptionMr || siteConfig.metaDescription || ''}
+                  onChange={(e) => updateSiteConfig({ metaDescriptionMr: e.target.value, metaDescription: e.target.value })}
+                  placeholder="महाराष्ट्र व जगभरातील १# मानांकित अधिकृत वंजारी समाज वधू-वर सूचक केंद्र."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700 block">
+                  इंग्रजी मेटा वर्णन (English Meta Description):
+                </label>
+                <textarea
+                  rows={3}
+                  value={siteConfig.metaDescriptionEn || ''}
+                  onChange={(e) => updateSiteConfig({ metaDescriptionEn: e.target.value })}
+                  placeholder="Verified brides and grooms matrimonial portal for Vanjari and Marathi communities."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+            </div>
+
+            {/* Save Confirmation Button */}
+            <div className="pt-3 flex justify-end">
+              <button
+                type="button"
+                onClick={() => notifyChange('तांत्रिक SEO आणि वेबमास्टर सेटिंग्ज सुरक्षित जतन केल्या!')}
+                className="px-6 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-extrabold text-xs sm:text-sm shadow-md transition cursor-pointer flex items-center gap-2"
+              >
+                <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                <span>SEO सेटिंग्ज सेव्ह करा (Save SEO Config)</span>
               </button>
             </div>
           </div>
