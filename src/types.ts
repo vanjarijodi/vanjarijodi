@@ -718,6 +718,11 @@ export interface SiteConfig {
   metaTitle: string;
   metaDescription: string;
   metaKeywords: string;
+  // Grievance Officer & Statutory Compliance (IT Act 2000 & DPDP Act 2023)
+  grievanceOfficerName?: string;
+  grievanceOfficerEmail?: string;
+  grievanceOfficerPhone?: string;
+  grievanceOfficerAddress?: string;
   // Technical SEO & Fast-Indexing Architecture
   googleSiteVerification?: string;
   bingSiteVerification?: string;

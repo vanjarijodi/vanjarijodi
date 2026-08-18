@@ -19,8 +19,13 @@ export const VanjariJodiLogo: React.FC<LogoProps> = ({
   const [imgError, setImgError] = React.useState(false);
 
   const customLogoUrl = siteConfig?.logoUrl;
-  const logoTitle = siteConfig?.logoTitle || 'वंजारी जोडी';
-  const logoSubtitle = siteConfig?.logoSubtitle || 'वर-वधू शोध';
+  const isEnglish = language === 'en';
+  const logoTitle = isEnglish 
+    ? (siteConfig?.logoTitleEn || 'Vanjari Jodi') 
+    : (siteConfig?.logoTitle || 'वंजारी जोडी');
+  const logoSubtitle = isEnglish 
+    ? (siteConfig?.logoSubtitleEn || 'Matrimony & Matchmaking') 
+    : (siteConfig?.logoSubtitle || 'वर-वधू शोध');
   const hideLogoText = siteConfig?.hideLogoText || false;
 
   React.useEffect(() => {

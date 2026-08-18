@@ -48,8 +48,10 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
     shortlistedIds,
     toggleShortlist,
     sendInterest,
+    language,
   } = useApp();
 
+  const isEn = language === 'en';
   const gestureMode: GestureMode = siteConfig.activeGestureMode || 'four_way_swipe';
   const theme = getActiveThemeConfig(siteConfig.activeThemePreset);
 
@@ -76,16 +78,20 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
         <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mb-4 text-[#A71930]">
           <Users className="w-8 h-8" />
         </div>
-        <h3 className="text-lg font-black text-slate-800">सर्व प्रोफाईल्स पाहून झाल्या आहेत!</h3>
+        <h3 className="text-lg font-black text-slate-800">
+          {isEn ? 'All profiles viewed!' : 'सर्व प्रोफाईल्स पाहून झाल्या आहेत!'}
+        </h3>
         <p className="text-xs text-slate-500 font-medium mt-1 mb-4">
-          तुम्ही सर्व अनुरूप स्थळे पाहिली आहेत. पुन्हा सुरुवातीपासून पाहण्यासाठी खालील बटण दाबा.
+          {isEn
+            ? 'You have viewed all matching profiles. Click the button below to view again.'
+            : 'तुम्ही सर्व अनुरूप स्थळे पाहिली आहेत. पुन्हा सुरुवातीपासून पाहण्यासाठी खालील बटण दाबा.'}
         </p>
         <button
           type="button"
           onClick={() => setCurrentIndex(0)}
           className="px-6 py-2.5 bg-gradient-to-r from-[#A71930] to-[#800C1E] text-amber-100 font-black text-xs rounded-xl shadow cursor-pointer"
         >
-          🔄 पुन्हा पाहा
+          {isEn ? '🔄 View Again' : '🔄 पुन्हा पाहा'}
         </button>
       </div>
     );
@@ -125,12 +131,12 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
         // Right Swipe: Like / Send Interest
         toggleLikeProfile(currentProfile.id);
         sendInterest(currentProfile.id);
-        setSwipeActionText('💖 आवडले (LIKE)!');
+        setSwipeActionText(isEn ? '💖 LIKED!' : '💖 आवडले (LIKE)!');
         setTimeout(nextProfile, 250);
         return;
       } else if (offset.x < -swipeThreshold || velocity.x < -500) {
         // Left Swipe: Skip
-        setSwipeActionText('✖️ पुढील स्थळ (PASS)');
+        setSwipeActionText(isEn ? '✖️ PASS' : '✖️ पुढील स्थळ (PASS)');
         setTimeout(nextProfile, 250);
         return;
       }
@@ -139,12 +145,12 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
       if (offset.y < -swipeThreshold || velocity.y < -500) {
         // Up Swipe: Super Match / Open Bio
         onSelectProfile(currentProfile);
-        setSwipeActionText('⭐ बायोडाटा उघडत आहे...');
+        setSwipeActionText(isEn ? '⭐ Opening Biodata...' : '⭐ बायोडाटा उघडत आहे...');
         return;
       } else if (offset.y > swipeThreshold || velocity.y > 500) {
         // Down Swipe: Shortlist
         toggleShortlist(currentProfile.id);
-        setSwipeActionText('🌟 सेव्ह केले (SHORTLIST)!');
+        setSwipeActionText(isEn ? '🌟 SHORTLISTED!' : '🌟 सेव्ह केले (SHORTLIST)!');
         setTimeout(nextProfile, 250);
         return;
       }
@@ -227,7 +233,7 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
               className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-transform active:scale-98"
             >
               <ChevronUp className="w-4 h-4 text-slate-950" />
-              <span>संपूर्ण बायोडाटा व संपर्क पाहा (Pull Up Bio)</span>
+              <span>{isEn ? 'View Complete Biodata & Contact' : 'संपूर्ण बायोडाटा व संपर्क पाहा (Pull Up Bio)'}</span>
             </button>
 
             {/* Action Bar */}
@@ -236,7 +242,7 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
                 type="button"
                 onClick={prevProfile}
                 className="p-3 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-2xl text-white cursor-pointer"
-                title="मागील स्थळ"
+                title={isEn ? 'Previous Profile' : 'मागील स्थळ'}
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -253,7 +259,7 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
                 }`}
               >
                 <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
-                <span>{isLiked ? 'आवडले ✓' : 'लाईक करा'}</span>
+                <span>{isLiked ? (isEn ? 'Liked ✓' : 'आवडले ✓') : (isEn ? 'Like Profile' : 'लाईक करा')}</span>
               </button>
               <button
                 type="button"
@@ -263,7 +269,7 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
                     ? 'bg-amber-400 text-slate-950'
                     : 'bg-white/20 hover:bg-white/30 text-white backdrop-blur-md'
                 }`}
-                title="शॉर्टलिस्ट"
+                title={isEn ? 'Shortlist' : 'शॉर्टलिस्ट'}
               >
                 <Star className={`w-5 h-5 ${isShortlisted ? 'fill-current' : ''}`} />
               </button>
@@ -271,7 +277,7 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
                 type="button"
                 onClick={nextProfile}
                 className="p-3 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-2xl text-white cursor-pointer"
-                title="पुढील स्थळ"
+                title={isEn ? 'Next Profile' : 'पुढील स्थळ'}
               >
                 <ChevronRight className="w-5 h-5" />
               </button>
@@ -305,12 +311,12 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
               {/* 3D Flip Hint Badge */}
               <div className="absolute top-4 right-4 z-10 px-3 py-1 rounded-full bg-amber-400 text-slate-950 font-black text-xs shadow flex items-center gap-1.5 animate-pulse">
                 <RotateCw className="w-3.5 h-3.5" />
-                <span>पत्रिका व कुटुंब माहितीसाठी टॅप करा (3D Flip)</span>
+                <span>{isEn ? 'Tap for Horoscope & Family details (3D Flip)' : 'पत्रिका व कुटुंब माहितीसाठी टॅप करा (3D Flip)'}</span>
               </div>
 
               {/* Name & Age Overlay */}
               <div className="absolute bottom-3 left-4 right-4 text-white">
-                <h3 className="text-2xl font-black drop-shadow-md">{currentProfile.fullName}, {currentProfile.age} वर्षे</h3>
+                <h3 className="text-2xl font-black drop-shadow-md">{currentProfile.fullName}, {currentProfile.age} {isEn ? 'Yrs' : 'वर्षे'}</h3>
                 <p className="text-xs text-amber-200 font-bold drop-shadow">
                   {[currentProfile.city, currentProfile.district].filter(Boolean).join(', ')}
                 </p>
@@ -322,12 +328,12 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
 
               <div className="grid grid-cols-2 gap-2 text-xs text-slate-700 font-bold bg-amber-50/60 p-2.5 rounded-2xl border border-amber-200">
                 <div>
-                  <span className="text-slate-400 block text-[10px]">शिक्षण:</span>
-                  <span className="text-slate-900">{currentProfile.education || 'उल्लेख नाही'}</span>
+                  <span className="text-slate-400 block text-[10px]">{isEn ? 'Education:' : 'शिक्षण:'}</span>
+                  <span className="text-slate-900">{currentProfile.education || (isEn ? 'Not specified' : 'उल्लेख नाही')}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">व्यवसाय / नोकरी:</span>
-                  <span className="text-slate-900">{currentProfile.occupation || 'उल्लेख नाही'}</span>
+                  <span className="text-slate-400 block text-[10px]">{isEn ? 'Profession:' : 'व्यवसाय / नोकरी:'}</span>
+                  <span className="text-slate-900">{currentProfile.occupation || (isEn ? 'Not specified' : 'उल्लेख नाही')}</span>
                 </div>
               </div>
 
@@ -341,7 +347,7 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
                   }}
                   className="flex-1 py-2.5 bg-gradient-to-r from-[#A71930] to-[#800C1E] text-amber-100 font-black text-xs rounded-xl shadow cursor-pointer text-center"
                 >
-                  बायोडाटा पाहा
+                  {isEn ? 'View Biodata' : 'बायोडाटा पाहा'}
                 </button>
                 <button
                   type="button"
@@ -351,7 +357,7 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
                   }}
                   className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl border border-slate-300 cursor-pointer"
                 >
-                  पुढील स्थळ ❯
+                  {isEn ? 'Next ❯' : 'पुढील स्थळ ❯'}
                 </button>
               </div>
             </div>
@@ -363,48 +369,50 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
               <div className="flex items-center justify-between border-b border-amber-300 pb-2">
                 <div className="flex items-center gap-2">
                   <Sun className="w-5 h-5 text-[#A71930]" />
-                  <h4 className="font-black text-[#A71930] text-base">पत्रिका, गोत्र व कौटुंबिक माहिती</h4>
+                  <h4 className="font-black text-[#A71930] text-base">
+                    {isEn ? 'Horoscope, Gotra & Family Details' : 'पत्रिका, गोत्र व कौटुंबिक माहिती'}
+                  </h4>
                 </div>
                 <span className="text-[10px] bg-amber-200 text-amber-950 font-black px-2 py-0.5 rounded-full">
-                  पुन्हा फोटोसाठी टॅप करा
+                  {isEn ? 'Tap to flip back' : 'पुन्हा फोटोसाठी टॅप करा'}
                 </span>
               </div>
 
               {/* Horoscope & Gotra Grid */}
               <div className="grid grid-cols-2 gap-2 text-xs bg-white p-3 rounded-2xl border border-amber-200 shadow-xs">
                 <div>
-                  <span className="text-slate-400 block text-[10px] font-bold">गोत्र / उपजात:</span>
-                  <span className="text-slate-900 font-black">{currentProfile.gotra || currentProfile.subCaste || 'वंजारी'}</span>
+                  <span className="text-slate-400 block text-[10px] font-bold">{isEn ? 'Gotra / Sub-caste:' : 'गोत्र / उपजात:'}</span>
+                  <span className="text-slate-900 font-black">{currentProfile.gotra || currentProfile.subCaste || (isEn ? 'Vanjari' : 'वंजारी')}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px] font-bold">रास व नक्षत्र:</span>
-                  <span className="text-slate-900 font-black">{[currentProfile.rashi, currentProfile.nakshatra].filter(Boolean).join(' / ') || 'निर्दोष'}</span>
+                  <span className="text-slate-400 block text-[10px] font-bold">{isEn ? 'Rashi & Nakshatra:' : 'रास व नक्षत्र:'}</span>
+                  <span className="text-slate-900 font-black">{[currentProfile.rashi, currentProfile.nakshatra].filter(Boolean).join(' / ') || (isEn ? 'Nirdosh' : 'निर्दोष')}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px] font-bold">नाडी व गण:</span>
-                  <span className="text-slate-900 font-black">{[currentProfile.nadi, currentProfile.gan].filter(Boolean).join(' • ') || 'उपलब्ध नाही'}</span>
+                  <span className="text-slate-400 block text-[10px] font-bold">{isEn ? 'Nadi & Gan:' : 'नाडी व गण:'}</span>
+                  <span className="text-slate-900 font-black">{[currentProfile.nadi, currentProfile.gan].filter(Boolean).join(' • ') || (isEn ? 'Not available' : 'उपलब्ध नाही')}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px] font-bold">मांगलिक / दोष:</span>
-                  <span className="text-emerald-700 font-black">{currentProfile.horoscopeManglik === 'manglik' ? 'मांगलिक' : 'निर्दोष पत्रिका'}</span>
+                  <span className="text-slate-400 block text-[10px] font-bold">{isEn ? 'Manglik Status:' : 'मांगलिक / दोष:'}</span>
+                  <span className="text-emerald-700 font-black">{currentProfile.horoscopeManglik === 'manglik' ? (isEn ? 'Manglik' : 'मांगलिक') : (isEn ? 'Non-Manglik' : 'निर्दोष पत्रिका')}</span>
                 </div>
               </div>
 
               {/* Family Details */}
               <div className="bg-white p-3 rounded-2xl border border-amber-200 shadow-xs space-y-1.5 text-xs text-slate-800">
-                <p><strong>वडिलांचे नाव:</strong> {currentProfile.fatherName || 'माहिती उपलब्ध नाही'} ({currentProfile.fatherOccupation || ''})</p>
-                <p><strong>आईचे नाव:</strong> {currentProfile.motherName || 'माहिती उपलब्ध नाही'} ({currentProfile.motherOccupation || ''})</p>
-                <p><strong>भाऊ / बहीण:</strong> {currentProfile.brothers || 0} भाऊ, {currentProfile.sisters || 0} बहिणी</p>
-                <p><strong>मामांचे गाव/नाव:</strong> {currentProfile.mamaName || ''} {currentProfile.mamaNative ? `(${currentProfile.mamaNative})` : ''}</p>
+                <p><strong>{isEn ? "Father's Name:" : 'वडिलांचे नाव:'}</strong> {currentProfile.fatherName || (isEn ? 'Not specified' : 'माहिती उपलब्ध नाही')} ({currentProfile.fatherOccupation || ''})</p>
+                <p><strong>{isEn ? "Mother's Name:" : 'आईचे नाव:'}</strong> {currentProfile.motherName || (isEn ? 'Not specified' : 'माहिती उपलब्ध नाही')} ({currentProfile.motherOccupation || ''})</p>
+                <p><strong>{isEn ? 'Siblings:' : 'भाऊ / बहीण:'}</strong> {currentProfile.brothers || 0} {isEn ? 'Brothers' : 'भाऊ'}, {currentProfile.sisters || 0} {isEn ? 'Sisters' : 'बहिणी'}</p>
+                <p><strong>{isEn ? "Uncle (Mama's) Details:" : 'मामांचे गाव/नाव:'}</strong> {currentProfile.mamaName || ''} {currentProfile.mamaNative ? `(${currentProfile.mamaNative})` : ''}</p>
                 {currentProfile.relativeSurnames && currentProfile.relativeSurnames.length > 0 && (
-                  <p><strong>नातेगोते / पाहुणे आडनावे:</strong> {currentProfile.relativeSurnames.join(', ')}</p>
+                  <p><strong>{isEn ? 'Relative Surnames:' : 'नातेगोते / पाहुणे आडनावे:'}</strong> {currentProfile.relativeSurnames.join(', ')}</p>
                 )}
               </div>
 
               {/* Expectations */}
               {currentProfile.expectations && (
                 <div className="bg-amber-100/70 p-3 rounded-2xl border border-amber-300 text-xs">
-                  <span className="font-extrabold text-[#A71930] block mb-1">अपेक्षा (Expectations):</span>
+                  <span className="font-extrabold text-[#A71930] block mb-1">{isEn ? 'Partner Preferences:' : 'अपेक्षा (Expectations):'}</span>
                   <p className="text-slate-800 font-medium italic">"{currentProfile.expectations}"</p>
                 </div>
               )}
@@ -418,7 +426,7 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
               }}
               className="w-full py-2.5 bg-gradient-to-r from-[#A71930] to-[#800C1E] text-amber-100 font-black text-xs rounded-xl shadow cursor-pointer mt-2"
             >
-              संपर्क माहिती अनलॉक करा
+              {isEn ? 'Unlock Contact Info' : 'संपर्क माहिती अनलॉक करा'}
             </button>
           </div>
         </motion.div>
@@ -453,7 +461,7 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
                 type="button"
                 onClick={prevProfile}
                 className="p-3 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-full text-white cursor-pointer shadow-lg"
-                title="मागील प्रोफाईल (Swipe Down)"
+                title={isEn ? 'Previous Profile' : 'मागील प्रोफाईल (Swipe Down)'}
               >
                 <ChevronUp className="w-5 h-5" />
               </button>
@@ -467,7 +475,7 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
                 className={`p-3.5 rounded-full cursor-pointer shadow-lg transition-transform active:scale-90 ${
                   isLiked ? 'bg-rose-600 text-white' : 'bg-white/20 backdrop-blur-md text-white'
                 }`}
-                title="लाईक / पसंती"
+                title={isEn ? 'Like' : 'लाईक / पसंती'}
               >
                 <Heart className={`w-6 h-6 ${isLiked ? 'fill-current' : ''}`} />
               </button>
@@ -478,7 +486,7 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
                 className={`p-3.5 rounded-full cursor-pointer shadow-lg transition-transform active:scale-90 ${
                   isShortlisted ? 'bg-amber-400 text-slate-950' : 'bg-white/20 backdrop-blur-md text-white'
                 }`}
-                title="शॉर्टलिस्ट"
+                title={isEn ? 'Shortlist' : 'शॉर्टलिस्ट'}
               >
                 <Star className={`w-6 h-6 ${isShortlisted ? 'fill-current' : ''}`} />
               </button>
@@ -487,7 +495,7 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
                 type="button"
                 onClick={() => onSelectProfile(currentProfile)}
                 className="p-3.5 bg-emerald-600 text-white rounded-full cursor-pointer shadow-lg"
-                title="बायोडाटा उघडा"
+                title={isEn ? 'View Biodata' : 'बायोडाटा उघडा'}
               >
                 <Info className="w-6 h-6" />
               </button>
@@ -496,7 +504,7 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
                 type="button"
                 onClick={nextProfile}
                 className="p-3 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-full text-white cursor-pointer shadow-lg"
-                title="पुढील प्रोफाईल (Swipe Up)"
+                title={isEn ? 'Next Profile' : 'पुढील प्रोफाईल (Swipe Up)'}
               >
                 <ChevronDown className="w-5 h-5" />
               </button>
@@ -524,7 +532,7 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
                 onClick={() => onSelectProfile(currentProfile)}
                 className="w-full py-2.5 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow-lg mt-2 cursor-pointer"
               >
-                संपूर्ण माहिती व संपर्क अनलॉक करा
+                {isEn ? 'Unlock Details & Contact' : 'संपूर्ण माहिती व संपर्क अनलॉक करा'}
               </button>
             </div>
           </motion.div>
@@ -613,9 +621,9 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
 
           {/* Gesture Instruction Bar */}
           <div className="flex items-center justify-between text-[10px] text-slate-400 font-extrabold bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
-            <span>👈 डावीकडे: Skip</span>
-            <span>👆 वर: बायोडाटा</span>
-            <span>उजवीकडे: Like 👉</span>
+            <span>{isEn ? '👈 Left: Skip' : '👈 डावीकडे: Skip'}</span>
+            <span>{isEn ? '👆 Up: Biodata' : '👆 वर: बायोडाटा'}</span>
+            <span>{isEn ? 'Right: Like 👉' : 'उजवीकडे: Like 👉'}</span>
           </div>
 
           {/* 4 Interactive Action Buttons */}
@@ -624,7 +632,7 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
               type="button"
               onClick={nextProfile}
               className="p-3.5 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 shadow-sm cursor-pointer transition-transform active:scale-90"
-              title="पुढील स्थळ (Pass)"
+              title={isEn ? 'Pass (Skip)' : 'पुढील स्थळ (Pass)'}
             >
               <X className="w-6 h-6" />
             </button>
@@ -637,7 +645,7 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
                   ? 'bg-amber-400 text-slate-950 border-amber-400'
                   : 'bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200'
               }`}
-              title="शॉर्टलिस्ट (Save)"
+              title={isEn ? 'Shortlist (Save)' : 'शॉर्टलिस्ट (Save)'}
             >
               <Star className={`w-6 h-6 ${isShortlisted ? 'fill-current' : ''}`} />
             </button>
@@ -653,7 +661,7 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
                   ? 'bg-emerald-600 text-white border-emerald-600'
                   : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
               }`}
-              title="लाईक / पसंती (Like)"
+              title={isEn ? 'Like Profile' : 'लाईक / पसंती (Like)'}
             >
               <Heart className={`w-6 h-6 ${isLiked ? 'fill-current' : ''}`} />
             </button>
@@ -663,7 +671,7 @@ export const DynamicGestureView: React.FC<DynamicGestureViewProps> = ({
               onClick={() => onSelectProfile(currentProfile)}
               className="flex-1 py-3 bg-gradient-to-r from-[#A71930] to-[#800C1E] text-amber-100 font-black text-xs rounded-2xl shadow cursor-pointer text-center"
             >
-              बायोडाटा उघडा
+              {isEn ? 'Open Biodata' : 'बायोडाटा उघडा'}
             </button>
           </div>
         </div>

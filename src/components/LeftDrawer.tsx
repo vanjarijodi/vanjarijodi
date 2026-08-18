@@ -43,8 +43,10 @@ export const LeftDrawer: React.FC = () => {
 
   if (!isLeftDrawerOpen) return null;
 
+  const isEn = language === 'en';
+
   const handleLogout = () => {
-    if (confirm('तुम्हाला खरोखर लॉगआउट करायचे आहे का?')) {
+    if (confirm(isEn ? 'Are you sure you want to log out?' : 'तुम्हाला खरोखर लॉगआउट करायचे आहे का?')) {
       setCurrentUser(null);
       setIsLeftDrawerOpen(false);
       setCurrentView('home');
@@ -127,16 +129,18 @@ export const LeftDrawer: React.FC = () => {
                       ID: {currentUser.id}
                     </p>
                     <span className="inline-block mt-1.5 px-2 py-0.5 text-[10px] bg-amber-400 text-slate-950 font-black rounded-full shadow-sm uppercase tracking-wider">
-                      {currentUser.membership === 'free' ? 'नॉर्मल' : `VIP - ${currentUser.membership}`}
+                      {currentUser.membership === 'free' ? (isEn ? 'FREE MEMBER' : 'नॉर्मल') : `VIP - ${currentUser.membership}`}
                     </span>
                   </div>
                 </div>
               </div>
             ) : (
               <div className="space-y-3 pt-4">
-                <h2 className="font-black text-lg text-amber-200">वंजारी जोडी (VanjariJodi)</h2>
+                <h2 className="font-black text-lg text-amber-200">{isEn ? 'Vanjari Jodi (VanjariJodi)' : 'वंजारी जोडी (VanjariJodi)'}</h2>
                 <p className="text-xs text-amber-100/80 leading-relaxed font-bold">
-                  महाराष्ट्रातील वंजारी समाजाचे विश्वासाचे आणि हक्काचे वधू-वर सूचक व्यासपीठ!
+                  {isEn
+                    ? 'Maharashtra’s #1 Trusted Vanjari Community Matrimonial Platform!'
+                    : 'महाराष्ट्रातील वंजारी समाजाचे विश्वासाचे आणि हक्काचे वधू-वर सूचक व्यासपीठ!'}
                 </p>
                 <button
                   onClick={() => {
@@ -147,7 +151,7 @@ export const LeftDrawer: React.FC = () => {
                   className="px-5 py-2 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-[#1A0307] text-xs font-black rounded-xl shadow-md flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer"
                 >
                   <UserCheck className="w-4 h-4 text-[#1A0307]" />
-                  <span>प्रवेश / लॉगिन करा</span>
+                  <span>{isEn ? 'Login / Sign In' : 'प्रवेश / लॉगिन करा'}</span>
                 </button>
               </div>
             )}
@@ -166,7 +170,7 @@ export const LeftDrawer: React.FC = () => {
             >
               <div className="flex items-center gap-3">
                 <Home className={`w-5 h-5 ${currentView === 'home' ? 'text-[#A71930]' : 'text-slate-500'}`} />
-                <span>{language === 'en' ? 'Home' : 'मुख्यपृष्ठ (Home)'}</span>
+                <span>{isEn ? 'Home' : 'मुख्यपृष्ठ (Home)'}</span>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
             </button>
@@ -182,7 +186,7 @@ export const LeftDrawer: React.FC = () => {
               >
                 <div className="flex items-center gap-3">
                   <Handshake className="w-5 h-5 text-[#A71930]" />
-                  <span>{language === 'en' ? 'Vendors & Wedding Halls' : 'लग्न व्यवसाय व नेटवर्किंग'}</span>
+                  <span>{isEn ? 'Vendors & Wedding Halls' : 'लग्न व्यवसाय व नेटवर्किंग'}</span>
                 </div>
                 <span className="text-[10px] bg-[#A71930] text-amber-100 px-2 py-0.5 rounded-full font-extrabold shadow-sm">
                   5%-10% OFF
@@ -209,7 +213,7 @@ export const LeftDrawer: React.FC = () => {
             >
               <div className="flex items-center gap-3">
                 <User className={`w-5 h-5 ${currentView === 'dashboard' ? 'text-[#A71930]' : 'text-slate-500'}`} />
-                <span>{language === 'en' ? 'My Profile & BioData' : 'माझी प्रोफाईल व बायोडाटा'}</span>
+                <span>{isEn ? 'My Profile & BioData' : 'माझी प्रोफाईल व बायोडाटा'}</span>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
             </button>
@@ -226,7 +230,7 @@ export const LeftDrawer: React.FC = () => {
               >
                 <div className="flex items-center gap-3">
                   <Heart className={`w-5 h-5 ${currentView === 'profiles' ? 'text-[#A71930]' : 'text-slate-500'}`} />
-                  <span>{language === 'en' ? 'All Bride/Groom Profiles' : 'सर्व वधू-वर बायोडाटा'}</span>
+                  <span>{isEn ? 'All Bride/Groom Profiles' : 'सर्व वधू-वर बायोडाटा'}</span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-400" />
               </button>
@@ -243,7 +247,7 @@ export const LeftDrawer: React.FC = () => {
               >
                 <div className="flex items-center gap-3">
                   <Bookmark className="w-5 h-5 text-slate-500" />
-                  <span>पसंती विनंत्या (Interests)</span>
+                  <span>{isEn ? 'Interests & Responses' : 'पसंती विनंत्या (Interests)'}</span>
                 </div>
                 <ChevronRight className="w-4 h-4 text-slate-400" />
               </button>
@@ -265,7 +269,7 @@ export const LeftDrawer: React.FC = () => {
             >
               <div className="flex items-center gap-3">
                 <Sparkles className="w-5 h-5 text-amber-500" />
-                <span>कुंडली जुळवणी (Kundali Matching)</span>
+                <span>{isEn ? 'Kundali Matching (Gun Milan)' : 'कुंडली जुळवणी (Kundali Matching)'}</span>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
             </button>
@@ -280,7 +284,7 @@ export const LeftDrawer: React.FC = () => {
             >
               <div className="flex items-center gap-3">
                 <Crown className="w-5 h-5 text-amber-500 animate-pulse" />
-                <span>प्रीमियम VIP योजना (Upgrade)</span>
+                <span>{isEn ? 'VIP Membership Plans' : 'प्रीमियम VIP योजना (Upgrade)'}</span>
               </div>
               <ChevronRight className="w-4 h-4 text-amber-500" />
             </button>
@@ -296,8 +300,12 @@ export const LeftDrawer: React.FC = () => {
               <div className="flex items-center gap-3">
                 <Scroll className="w-5 h-5 text-[#A71930]" />
                 <div className="text-left">
-                  <span className="block text-xs font-black text-[#800C1E]">🎨 ऑनलाईन बायोडाटा मेकर</span>
-                  <span className="block text-[9px] text-amber-800 font-bold">मोफत JPG & PDF डाऊनलोड करा</span>
+                  <span className="block text-xs font-black text-[#800C1E]">
+                    {isEn ? '🎨 Online BioData Maker' : '🎨 ऑनलाईन बायोडाटा मेकर'}
+                  </span>
+                  <span className="block text-[9px] text-amber-800 font-bold">
+                    {isEn ? 'Download Free JPG & PDF' : 'मोफत JPG & PDF डाऊनलोड करा'}
+                  </span>
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-amber-700" />
@@ -319,7 +327,7 @@ export const LeftDrawer: React.FC = () => {
             >
               <div className="flex items-center gap-3">
                 <Bot className="w-5 h-5 text-purple-600" />
-                <span>AI बायोडाटा रीडर</span>
+                <span>{isEn ? 'AI BioData Reader' : 'AI बायोडाटा रीडर'}</span>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
             </button>
@@ -340,8 +348,12 @@ export const LeftDrawer: React.FC = () => {
                     <Send className="w-4 h-4 animate-bounce" />
                   </div>
                   <div>
-                    <span className="block text-xs font-black">📢 टेलिग्राम ग्रुप जॉईन करा</span>
-                    <span className="block text-[9px] text-sky-100 font-medium">मोफत वधू-वर अपडेट्ससाठी</span>
+                    <span className="block text-xs font-black">
+                      {isEn ? '📢 Join Telegram Group' : '📢 टेलिग्राम ग्रुप जॉईन करा'}
+                    </span>
+                    <span className="block text-[9px] text-sky-100 font-medium">
+                      {isEn ? 'Free Vadhu-Var updates' : 'मोफत वधू-वर अपडेट्ससाठी'}
+                    </span>
                   </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-white" />
@@ -351,12 +363,11 @@ export const LeftDrawer: React.FC = () => {
             {/* 8. Help & Customer Support */}
             <button
               onClick={() => {
-                // Open support widget
                 const supportWidget = document.getElementById('support-chat-trigger-btn');
                 if (supportWidget) {
                   supportWidget.click();
                 } else {
-                  alert('मदत आणि सहाय्यासाठी कृपया स्क्रीनवरील ॲडमिन चॅट बटणावर क्लिक करा.');
+                  alert(isEn ? 'Please click the Admin Chat button on the screen.' : 'मदत आणि सहाय्यासाठी कृपया स्क्रीनवरील ॲडमिन चॅट बटणावर क्लिक करा.');
                 }
                 setIsLeftDrawerOpen(false);
               }}
@@ -366,7 +377,7 @@ export const LeftDrawer: React.FC = () => {
                 <div className="p-1.5 rounded-xl bg-gradient-to-br from-[#A71930] to-[#800C1E] text-white">
                   <Headphones className="w-4 h-4 text-amber-300 animate-pulse" />
                 </div>
-                <span>मदत व सहाय्य (Support)</span>
+                <span>{isEn ? 'Help & Support Desk' : 'मदत व सहाय्य (Support)'}</span>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
             </button>
@@ -380,7 +391,7 @@ export const LeftDrawer: React.FC = () => {
                 className="w-full py-3.5 px-4 rounded-2xl bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 font-black text-xs flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
               >
                 <LogOut className="w-4.5 h-4.5 text-rose-700" />
-                <span>बाहेर पडा (Log Out)</span>
+                <span>{isEn ? 'Log Out' : 'बाहेर पडा (Log Out)'}</span>
               </button>
             ) : (
               <p className="text-center text-[10px] text-slate-400 font-medium">VanjariJodi Android PWA App v2.4.0</p>

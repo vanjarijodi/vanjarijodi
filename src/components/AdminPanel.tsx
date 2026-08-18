@@ -8022,6 +8022,56 @@ export const AdminPanel: React.FC<{
                       className="w-full bg-white border border-amber-300 rounded-xl p-2.5 text-slate-900"
                     />
                   </div>
+
+                  {/* Grievance Officer compliance settings (IT Act 2021 & DPDP Act 2023) */}
+                  <div className="md:col-span-2 p-4 bg-amber-50 rounded-2xl border-2 border-amber-400/80 space-y-3">
+                    <div className="flex items-center gap-2 border-b border-amber-200 pb-2">
+                      <Scale className="w-5 h-5 text-[#A71930]" />
+                      <div>
+                        <h5 className="font-extrabold text-[#A71930] text-xs sm:text-sm">
+                          तक्रार निवारण अधिकारी माहिती (Grievance Officer - IT Rules 2021 & DPDP Act 2023)
+                        </h5>
+                        <p className="text-[10px] text-slate-600 font-medium">
+                          भारतीय आयटी कायद्यानुसार वैधानिक तक्रार निवारण अधिकाऱ्याचे नाव, ईमेल व फोन नंबर येथे नमूद करा.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      <div>
+                        <label className="block text-slate-700 mb-1">अधिकाऱ्याचे नाव (Officer Name):</label>
+                        <input
+                          type="text"
+                          value={siteConfig?.grievanceOfficerName || ''}
+                          onChange={(e) => updateSiteConfig({ grievanceOfficerName: e.target.value })}
+                          placeholder="उदा. Gite Vijay"
+                          className="w-full bg-white border border-amber-300 rounded-xl p-2.5 text-slate-900 font-bold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-700 mb-1">ईमेल (Email):</label>
+                        <input
+                          type="email"
+                          value={siteConfig?.grievanceOfficerEmail || ''}
+                          onChange={(e) => updateSiteConfig({ grievanceOfficerEmail: e.target.value })}
+                          placeholder="उदा. gitevijay123@gmail.com"
+                          className="w-full bg-white border border-amber-300 rounded-xl p-2.5 text-slate-900 font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-700 mb-1">फोन नंबर (Phone):</label>
+                        <input
+                          type="text"
+                          value={siteConfig?.grievanceOfficerPhone || ''}
+                          onChange={(e) => updateSiteConfig({ grievanceOfficerPhone: e.target.value })}
+                          placeholder="उदा. 9405790916"
+                          className="w-full bg-white border border-amber-300 rounded-xl p-2.5 text-slate-900 font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex justify-end pt-2">

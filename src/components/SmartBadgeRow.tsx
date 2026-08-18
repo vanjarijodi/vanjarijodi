@@ -1,6 +1,7 @@
 import React from 'react';
 import { ShieldCheck, Award, Briefcase, Heart, Sparkles, MapPin, GraduationCap, IndianRupee, Sun } from 'lucide-react';
 import { UserProfile } from '../types';
+import { useApp } from '../context/AppContext';
 
 interface SmartBadgeRowProps {
   profile: UserProfile;
@@ -15,6 +16,9 @@ export const SmartBadgeRow: React.FC<SmartBadgeRowProps> = ({
   showQuickInfo = true,
   className = '',
 }) => {
+  const { language } = useApp();
+  const isEn = language === 'en';
+
   // 1. Determine Marital Status Pill Tag
   const getMaritalBadge = () => {
     switch (profile.maritalStatus) {
@@ -22,25 +26,25 @@ export const SmartBadgeRow: React.FC<SmartBadgeRowProps> = ({
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-sky-100 text-sky-900 border border-sky-300 shadow-xs">
             <Heart className="w-3 h-3 text-sky-600 fill-current" />
-            <span>अविवाहित</span>
+            <span>{isEn ? 'Never Married' : 'अविवाहित'}</span>
           </span>
         );
       case 'divorced':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-slate-100 text-slate-800 border border-slate-300 shadow-xs">
-            <span>घटस्फोटित</span>
+            <span>{isEn ? 'Divorced' : 'घटस्फोटित'}</span>
           </span>
         );
       case 'widowed':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-purple-100 text-purple-900 border border-purple-300 shadow-xs">
-            <span>विधवा / विधुर</span>
+            <span>{isEn ? 'Widowed' : 'विधवा / विधुर'}</span>
           </span>
         );
       case 'separated':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-100 text-amber-900 border border-amber-300 shadow-xs">
-            <span>विभक्त</span>
+            <span>{isEn ? 'Separated' : 'विभक्त'}</span>
           </span>
         );
       default:
@@ -75,8 +79,8 @@ export const SmartBadgeRow: React.FC<SmartBadgeRowProps> = ({
 
   // 3. Manglik / Horoscope Info
   const getHoroscopeLabel = () => {
-    if (profile.horoscopeManglik === 'manglik') return 'मांगलिक (Manglik)';
-    if (profile.horoscopeManglik === 'non_manglik') return 'निर्दोष पत्रिका (Non-Manglik)';
+    if (profile.horoscopeManglik === 'manglik') return isEn ? 'Manglik' : 'मांगलिक (Manglik)';
+    if (profile.horoscopeManglik === 'non_manglik') return isEn ? 'Non-Manglik' : 'निर्दोष पत्रिका (Non-Manglik)';
     if (profile.rashi || profile.nakshatra) {
       return `${profile.rashi || ''} ${profile.nakshatra ? `(${profile.nakshatra})` : ''}`.trim();
     }
@@ -93,7 +97,7 @@ export const SmartBadgeRow: React.FC<SmartBadgeRowProps> = ({
         {(profile.isVerified || profile.aadhaarVerified || profile.isIdVerified) && (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 border border-amber-500 shadow-xs">
             <ShieldCheck className="w-3.5 h-3.5 text-slate-950 fill-amber-300" />
-            <span>100% व्हेरिफाइड</span>
+            <span>{isEn ? '100% Verified' : '100% व्हेरिफाइड'}</span>
           </span>
         )}
 
@@ -109,21 +113,21 @@ export const SmartBadgeRow: React.FC<SmartBadgeRowProps> = ({
         {isGovtJob ? (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-800 text-emerald-100 border border-emerald-600 shadow-xs">
             <Briefcase className="w-3 h-3 text-emerald-300" />
-            <span>🏛️ शासकीय / सरकारी नोकरी</span>
+            <span>{isEn ? '🏛️ Govt. Job / Officer' : '🏛️ शासकीय / सरकारी नोकरी'}</span>
           </span>
         ) : isDoctorOrEngineer ? (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-indigo-700 text-indigo-100 border border-indigo-500 shadow-xs">
             <GraduationCap className="w-3 h-3 text-indigo-300" />
-            <span>🩺 डॉक्टर / इंजिनिअर</span>
+            <span>{isEn ? '🩺 Doctor / Engineer' : '🩺 डॉक्टर / इंजिनिअर'}</span>
           </span>
         ) : isBusiness ? (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-700 text-amber-100 border border-amber-500 shadow-xs">
             <Briefcase className="w-3 h-3 text-amber-200" />
-            <span>💼 व्यवसाय / बिझनेस</span>
+            <span>{isEn ? '💼 Business / Self-Employed' : '💼 व्यवसाय / बिझनेस'}</span>
           </span>
         ) : isAgri ? (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-teal-800 text-teal-100 border border-teal-600 shadow-xs">
-            <span>🌾 शेती + व्यवसाय</span>
+            <span>{isEn ? '🌾 Agriculture & Business' : '🌾 शेती + व्यवसाय'}</span>
           </span>
         ) : null}
 
@@ -134,7 +138,7 @@ export const SmartBadgeRow: React.FC<SmartBadgeRowProps> = ({
         {(profile.membership === 'vip' || profile.membership === 'diamond') && (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-purple-900 text-amber-300 border border-amber-400 shadow-xs">
             <Award className="w-3 h-3 text-amber-300" />
-            <span>VIP सदस्य</span>
+            <span>{isEn ? 'VIP Member' : 'VIP सदस्य'}</span>
           </span>
         )}
       </div>

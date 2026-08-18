@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Heart, Phone, Mail, MapPin, Download, ShieldCheck, Sparkles, ShieldAlert, MessageCircle, Send, FileText, Lock, RefreshCw, CreditCard, Globe, Users, Award } from 'lucide-react';
+import { Heart, Phone, Mail, MapPin, Download, ShieldCheck, Sparkles, ShieldAlert, MessageCircle, Send, FileText, Lock, RefreshCw, CreditCard, Globe, Users, Award, Scale, UserCheck } from 'lucide-react';
 import { VanjariJodiLogo } from './VanjariJodiLogo';
 import { LegalPoliciesModal, PolicyTabType } from './LegalPoliciesModal';
 import { VANJARI_SUB_CASTES, VANJARI_CITIES } from '../utils/seoData';
@@ -247,6 +247,14 @@ export const Footer: React.FC = () => {
           >
             <RefreshCw className="w-3.5 h-3.5 text-amber-400" />
             <span>{language === 'en' ? 'Refund & Cancellation' : 'परतावा व रद्द धोरण (Refund)'}</span>
+          </button>
+
+          <button
+            onClick={() => openPolicy('grievance')}
+            className="hover:text-amber-100 underline decoration-amber-400 underline-offset-4 flex items-center gap-1 cursor-pointer transition-all bg-amber-400/15 px-2.5 py-1 rounded-lg border border-amber-400/40 text-amber-300"
+          >
+            <Scale className="w-3.5 h-3.5 text-amber-300" />
+            <span>{language === 'en' ? 'Grievance Officer (IT Rules)' : 'तक्रार निवारण अधिकारी (Grievance Officer)'}</span>
           </button>
 
           <button
