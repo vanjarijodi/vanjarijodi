@@ -39,13 +39,18 @@
       "description": "Dynamic UPI and business payment configurations",
       "properties": {
         "id": { "type": "string" },
+        "upiId": { "type": "string" },
+        "payeeName": { "type": "string" },
+        "amount": { "type": "string" },
+        "transactionNote": { "type": "string" },
         "upi_id": { "type": "string" },
         "business_name": { "type": "string" },
         "whatsapp_api_token": { "type": "string" },
         "currency": { "type": "string" },
         "qr_code_url": { "type": "string" },
         "payment_note": { "type": "string" },
-        "updated_at": { "type": "string" }
+        "updated_at": { "type": "string" },
+        "updatedAt": { "type": "string" }
       }
     },
     "memberships": {

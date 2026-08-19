@@ -27,6 +27,7 @@ export const ContactUnlockModal: React.FC = () => {
     setIsContactUnlockModalOpen,
     selectedProfileForUnlock,
     setSelectedProfileForUnlock,
+    paymentConfig,
     siteConfig,
     currentUser,
     unlockContact,
@@ -51,8 +52,8 @@ export const ContactUnlockModal: React.FC = () => {
   if (!isContactUnlockModalOpen || !selectedProfileForUnlock) return null;
 
   const unlockFee = siteConfig.unlockContactFee || 50;
-  const upiId = siteConfig.paymentUpiId || 'vanjarijodi@paytm';
-  const businessName = siteConfig.paymentPayeeName || 'Vanjari Jodi Matrimony';
+  const upiId = paymentConfig?.upiId || siteConfig.paymentUpiId || 'hangemahesh@ybl';
+  const businessName = paymentConfig?.payeeName || siteConfig.paymentPayeeName || 'Mahesh Hange';
   const note = `Unlock_${selectedProfileForUnlock.id.slice(-6)}`;
 
   // Construct Direct App Intents

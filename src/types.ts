@@ -314,6 +314,15 @@ export interface SystemSettings {
   updated_at?: string;
 }
 
+export interface PaymentConfig {
+  upiId: string;
+  payeeName: string;
+  amount: string;
+  transactionNote: string;
+  updatedAt?: string;
+  qrCodeUrl?: string;
+}
+
 export interface UserMembership {
   id: string;
   user_id: string;

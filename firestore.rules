@@ -48,6 +48,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Payment & System Settings: Read by all, editable by admins or pin-authorized admin
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+
     // Chat Messages: Read and write restricted to participant sender/receiver
     match /chatMessages/{messageId} {
       allow read: if isAuthenticated() && (

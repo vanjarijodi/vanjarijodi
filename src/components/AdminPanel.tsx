@@ -7,6 +7,7 @@ import { AdminEditProfileModal } from './AdminEditProfileModal';
 import { AdminMemberQuickSettingsModal } from './AdminMemberQuickSettingsModal';
 import { AdminMasterSettingsCenter } from './AdminMasterSettingsCenter';
 import { AdminPaymentApprovalPortal } from './AdminPaymentApprovalPortal';
+import { AdminPaymentSettings } from './AdminPaymentSettings';
 import { VanjariJodiLogo } from './VanjariJodiLogo';
 import { MAHARASHTRA_DISTRICTS } from '../data/initialData';
 import { getProfessionBadges, getTagStyleClass } from '../utils/professionUtils';
@@ -2532,6 +2533,12 @@ export const AdminPanel: React.FC<{
                       className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'payment_requests' ? 'text-[#A71930] bg-amber-100/80' : 'text-slate-600 hover:text-slate-900'}`}
                     >
                       <span>पेमेंट विनंत्या</span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('payment_settings')}
+                      className={`w-full text-left py-0.5 px-1.5 rounded text-[10px] font-extrabold flex items-center justify-between ${activeTab === 'payment_settings' ? 'text-[#A71930] bg-amber-100/80' : 'text-slate-600 hover:text-slate-900'}`}
+                    >
+                      <span>⚙️ पेमेंट सेटिंग्ज (UPI Config)</span>
                     </button>
                     <button
                       onClick={() => setActiveTab('plans_setup')}
@@ -6980,6 +6987,11 @@ export const AdminPanel: React.FC<{
                 </div>
               </div>
             </div>
+          )}
+
+          {/* TAB: DYNAMIC FIRESTORE PAYMENT CONFIG DASHBOARD */}
+          {activeTab === 'payment_settings' && (
+            <AdminPaymentSettings />
           )}
 
           {/* TAB: PAYMENT REQUESTS & PAYMENT HISTORY */}

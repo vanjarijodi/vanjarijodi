@@ -36,7 +36,8 @@ import {
   ProfileRemovalRequest,
   ProfileReport,
   BusinessVendor,
-  VendorBookingInquiry
+  VendorBookingInquiry,
+  PaymentConfig
 } from '../types';
 import {
   INITIAL_PROFILES,
@@ -64,7 +65,10 @@ import {
   listenToSiteConfig,
   listenToChatMessages,
   listenToAdminSupport,
-  listenToNotifications
+  listenToNotifications,
+  listenToPaymentConfig,
+  savePaymentConfigToFirestore,
+  DEFAULT_PAYMENT_CONFIG
 } from '../utils/firestoreSync';
 
 interface AppContextType {
@@ -135,6 +139,10 @@ interface AppContextType {
   setSelectedPlanForPayment: (plan: Plan | null) => void;
   isPaidPlansEnabled: boolean;
   setIsPaidPlansEnabled: (enabled: boolean) => void;
+  
+  // Dynamic Firestore Payment Config
+  paymentConfig: PaymentConfig;
+  updatePaymentConfig: (config: PaymentConfig) => Promise<boolean>;
   
   // Homepage Builder & Toggles
   siteConfig: SiteConfig;
@@ -447,6 +455,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('vanjari_jodi_profiles', JSON.stringify(profiles));
   }, [profiles]);
 
+  // Dynamic Payment Config State (Collection: settings, Document: payment_config)
+  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig>(DEFAULT_PAYMENT_CONFIG);
+
+  const updatePaymentConfig = async (newConfig: PaymentConfig): Promise<boolean> => {
+    setPaymentConfig(newConfig);
+    const success = await savePaymentConfigToFirestore(newConfig);
+    return success;
+  };
+
   // Real-time Firestore Sync Listeners
   useEffect(() => {
     const unsubProfiles = listenToProfiles((firestoreProfiles) => {
@@ -460,6 +477,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSiteConfig((prev) => ({ ...prev, ...remoteConfig }));
       }
     }, INITIAL_SITE_CONFIG);
+
+    const unsubPaymentConfig = listenToPaymentConfig((remotePaymentConfig) => {
+      if (remotePaymentConfig) {
+        setPaymentConfig(remotePaymentConfig);
+      }
+    });
 
     const unsubChats = listenToChatMessages((remoteChats) => {
       if (remoteChats) {
@@ -482,6 +505,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return () => {
       unsubProfiles();
       unsubConfig();
+      unsubPaymentConfig();
       unsubChats();
       unsubSupport();
       unsubNotifications();
@@ -3814,6 +3838,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSelectedPlanForPayment,
         isPaidPlansEnabled,
         setIsPaidPlansEnabled,
+        paymentConfig,
+        updatePaymentConfig,
         siteConfig,
         setSiteConfig,
         updateSiteConfig,

@@ -40,6 +40,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
 }) => {
   const {
     currentUser,
+    paymentConfig,
     siteConfig,
     plansList,
     selectedPlanForPayment,
@@ -124,7 +125,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }
-  }, [isOpen, activePlan?.id]);
+  }, [isOpen, activePlan?.id, paymentConfig?.upiId, paymentConfig?.payeeName, paymentConfig?.amount]);
 
   // Countdown Timer Engine (Handles tab backgrounding & mobile app switching seamlessly)
   useEffect(() => {
@@ -152,18 +153,19 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
   // Fetch Dynamic UPI Intent & QR from Backend
   const fetchPaymentIntent = async () => {
     if (!activePlan) return;
-    const targetUpi = siteConfig?.paymentUpiId || 'mahesh.hange1@ybl';
-    const targetBusiness = siteConfig?.paymentPayeeName || 'Vanjari Jodi Matrimony';
-    const transactionNote = `VanjariJodi_${activePlan.id}`;
+    const targetUpi = paymentConfig?.upiId || siteConfig?.paymentUpiId || 'hangemahesh@ybl';
+    const targetBusiness = paymentConfig?.payeeName || siteConfig?.paymentPayeeName || 'Mahesh Hange';
+    const targetPrice = activePlan ? activePlan.price : (paymentConfig?.amount || '199.00');
+    const transactionNote = paymentConfig?.transactionNote || `VanjariJodi_${activePlan.id}`;
 
     // Instant client-side fallback generation
-    const fallbackUniversal = `upi://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${activePlan.price}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
-    const fallbackPhonePe = `phonepe://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${activePlan.price}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
-    const fallbackGPay = `tez://upi/pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${activePlan.price}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
-    const fallbackPaytm = `paytmmp://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${activePlan.price}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
-    const fallbackBhim = `bhim://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${activePlan.price}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
-    const fallbackCred = `cred://upi/pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${activePlan.price}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
-    const fallbackAmazonPay = `amazonpay://upi/pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${activePlan.price}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
+    const fallbackUniversal = `upi://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
+    const fallbackPhonePe = `phonepe://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
+    const fallbackGPay = `tez://upi/pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
+    const fallbackPaytm = `paytmmp://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
+    const fallbackBhim = `bhim://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
+    const fallbackCred = `cred://upi/pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
+    const fallbackAmazonPay = `amazonpay://upi/pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
 
     setUpiIntentUri(fallbackUniversal);
     setPhonepeUri(fallbackPhonePe);
