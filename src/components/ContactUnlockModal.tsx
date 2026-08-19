@@ -72,7 +72,7 @@ export const ContactUnlockModal: React.FC = () => {
 
   const [launchNotice, setLaunchNotice] = useState<string | null>(null);
 
-  const handleLaunchApp = (uri: string, appName: string) => {
+  const handleLaunchApp = (appName: string, customUri?: string) => {
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(upiId);
@@ -85,21 +85,57 @@ export const ContactUnlockModal: React.FC = () => {
     setTimeout(() => setLaunchingApp(null), 4000);
 
     const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+
+    const formattedPrice = String(unlockFee).replace(/[^0-9.]/g, '');
+    const encodedUpi = encodeURIComponent(upiId);
+    const encodedBusiness = encodeURIComponent(businessName);
+    const encodedNote = encodeURIComponent(note);
+
+    let targetUri = customUri || universalUri;
+
+    if (appName === 'Google Pay') {
+      targetUri = isAndroid
+        ? `intent://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`
+        : gpayUri;
+    } else if (appName === 'PhonePe') {
+      targetUri = isAndroid
+        ? `intent://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=com.phonepe.app;end`
+        : phonepeUri;
+    } else if (appName === 'Paytm') {
+      targetUri = isAndroid
+        ? `intent://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=net.one97.paytm;end`
+        : paytmUri;
+    } else if (appName === 'BHIM UPI') {
+      targetUri = isAndroid
+        ? `intent://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=in.org.npci.upiapp;end`
+        : bhimUri;
+    } else if (appName === 'CRED') {
+      targetUri = isAndroid
+        ? `intent://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=com.dreamplug.androidapp;end`
+        : credUri;
+    } else if (appName === 'Amazon Pay') {
+      targetUri = isAndroid
+        ? `intent://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=in.amazon.mShop.android.shopping;end`
+        : amazonpayUri;
+    } else {
+      targetUri = universalUri;
+    }
 
     if (!isMobileDevice) {
       setLaunchNotice(
-        `💻 संगणक/लॅपटॉपवर थेट ॲप उघडत नाही. UPI ID (${upiId}) क्लिपबोर्डवर कॉपी झाला आहे! तुमच्या मोबाईलमधील PhonePe / GPay ने QR कोड स्कॅन करा.`
+        `💻 संगणक/लॅपटॉपवर थेट ॲप उघडत नाही. UPI ID (${upiId}) क्लिपबोर्डवर कॉपी झाला आहे! तुमच्या मोबाईलमधील PhonePe / GPay द्वारे ₹${formattedPrice} भरणा करा.`
       );
       return;
     }
 
     setLaunchNotice(
-      `📲 ${appName} उघडत आहे... जर ॲप आपोआप उघडले नाही, तर UPI ID (${upiId}) क्लिपबोर्डवर कॉपी झाला आहे. PhonePe/GPay मध्ये 'Pay to UPI ID' द्वारे भरणा करा.`
+      `📲 ${appName} उघडत आहे (रक्कम: ₹${formattedPrice}). जर ॲप उघडले नाही, तर UPI ID (${upiId}) कॉपी झाला आहे! 'Pay to UPI ID' द्वारे ₹${formattedPrice} पे करा.`
     );
 
     try {
       const link = document.createElement('a');
-      link.href = uri;
+      link.href = targetUri;
       link.target = '_top';
       link.rel = 'noopener noreferrer';
       document.body.appendChild(link);
@@ -108,8 +144,22 @@ export const ContactUnlockModal: React.FC = () => {
     } catch (err) {
       console.warn('Deep link trigger fallback:', err);
       try {
-        window.open(uri, '_blank');
+        window.location.href = targetUri;
       } catch (e2) {}
+    }
+
+    if (appName !== 'सर्व UPI ॲप्स') {
+      setTimeout(() => {
+        try {
+          const fallbackLink = document.createElement('a');
+          fallbackLink.href = universalUri;
+          fallbackLink.target = '_top';
+          fallbackLink.rel = 'noopener noreferrer';
+          document.body.appendChild(fallbackLink);
+          fallbackLink.click();
+          document.body.removeChild(fallbackLink);
+        } catch (e) {}
+      }, 1200);
     }
   };
 
@@ -370,7 +420,7 @@ export const ContactUnlockModal: React.FC = () => {
                     {/* Universal Pay Button */}
                     <button
                       type="button"
-                      onClick={() => handleLaunchApp(universalUri, 'सर्व UPI ॲप्स')}
+                      onClick={() => handleLaunchApp('सर्व UPI ॲप्स')}
                       className="w-full py-2.5 px-3 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow transition cursor-pointer"
                     >
                       <Smartphone className="w-4 h-4 text-amber-300 animate-bounce" />
@@ -403,7 +453,7 @@ export const ContactUnlockModal: React.FC = () => {
                     <div className="grid grid-cols-3 gap-2 pt-1">
                       <button
                         type="button"
-                        onClick={() => handleLaunchApp(phonepeUri, 'PhonePe')}
+                        onClick={() => handleLaunchApp('PhonePe')}
                         className="p-2 bg-purple-50/70 hover:bg-purple-100 border border-purple-200 hover:border-purple-500 rounded-xl flex flex-col items-center justify-center gap-0.5 shadow-sm transition active:scale-95 cursor-pointer"
                       >
                         <div className="w-6 h-6 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-[10px]">
@@ -415,7 +465,7 @@ export const ContactUnlockModal: React.FC = () => {
 
                       <button
                         type="button"
-                        onClick={() => handleLaunchApp(gpayUri, 'Google Pay')}
+                        onClick={() => handleLaunchApp('Google Pay')}
                         className="p-2 bg-blue-50/70 hover:bg-blue-100 border border-blue-200 hover:border-blue-500 rounded-xl flex flex-col items-center justify-center gap-0.5 shadow-sm transition active:scale-95 cursor-pointer"
                       >
                         <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-[10px]">
@@ -427,7 +477,7 @@ export const ContactUnlockModal: React.FC = () => {
 
                       <button
                         type="button"
-                        onClick={() => handleLaunchApp(paytmUri, 'Paytm')}
+                        onClick={() => handleLaunchApp('Paytm')}
                         className="p-2 bg-sky-50/70 hover:bg-sky-100 border border-sky-200 hover:border-sky-500 rounded-xl flex flex-col items-center justify-center gap-0.5 shadow-sm transition active:scale-95 cursor-pointer"
                       >
                         <div className="w-6 h-6 rounded-full bg-sky-500 text-white flex items-center justify-center font-bold text-[10px]">

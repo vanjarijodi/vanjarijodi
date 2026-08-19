@@ -214,10 +214,8 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     }
   };
 
-  // Launch Specific UPI App with auto-copy, desktop check, and safe trigger
-  const handleLaunchUpiApp = (uri: string, appName: string) => {
-    if (!uri) return;
-
+  // Launch Specific UPI App with auto-copy, desktop check, Android Intent & universal fallback
+  const handleLaunchUpiApp = (appName: string, customUri?: string) => {
     // Auto-copy UPI ID to clipboard as a fail-proof fallback
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -233,22 +231,57 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     setTimeout(() => setActiveAppLaunching(null), 4000);
 
     const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+
+    const formattedPrice = String(activePlan?.price || paymentConfig?.amount || '199').replace(/[^0-9.]/g, '');
+    const encodedUpi = encodeURIComponent(upiId);
+    const encodedBusiness = encodeURIComponent(businessName);
+    const encodedNote = encodeURIComponent(paymentConfig?.transactionNote || `VanjariJodi_${activePlan?.id || 'reg'}`);
+
+    let targetUri = customUri || upiIntentUri;
+
+    if (appName === 'Google Pay') {
+      targetUri = isAndroid
+        ? `intent://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`
+        : gpayUri || `tez://upi/pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+    } else if (appName === 'PhonePe') {
+      targetUri = isAndroid
+        ? `intent://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=com.phonepe.app;end`
+        : phonepeUri || `phonepe://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+    } else if (appName === 'Paytm') {
+      targetUri = isAndroid
+        ? `intent://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=net.one97.paytm;end`
+        : paytmUri || `paytmmp://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+    } else if (appName === 'BHIM UPI') {
+      targetUri = isAndroid
+        ? `intent://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=in.org.npci.upiapp;end`
+        : bhimUri || `bhim://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+    } else if (appName === 'CRED') {
+      targetUri = isAndroid
+        ? `intent://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=com.dreamplug.androidapp;end`
+        : credUri || `cred://upi/pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+    } else if (appName === 'Amazon Pay') {
+      targetUri = isAndroid
+        ? `intent://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=in.amazon.mShop.android.shopping;end`
+        : amazonpayUri || `amazonpay://upi/pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+    } else {
+      targetUri = upiIntentUri || `upi://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+    }
 
     if (!isMobileDevice) {
       setUpiLaunchNotice(
-        `💻 संगणक/लॅपटॉपवर थेट ॲप उघडत नाही. UPI ID (${upiId}) ऑटो-कॉपी झाला आहे! तुमच्या मोबाईलमधील PhonePe / GPay ने डावीकडील QR कोड स्कॅन करा किंवा UPI ID टाकून भरणा करा.`
+        `💻 संगणक/लॅपटॉपवर थेट ॲप उघडत नाही. UPI ID (${upiId}) ऑटो-कॉपी झाला आहे! तुमच्या मोबाईलमधील PhonePe / GPay द्वारे रक्कम ₹${formattedPrice} पाठवा.`
       );
       return;
     }
 
     setUpiLaunchNotice(
-      `📲 ${appName} उघडत आहे... जर ॲप आपोआप उघडले नाही, तर UPI ID (${upiId}) क्लिपबोर्डवर कॉपी झाला आहे. तुमच्या मोबाईलमधील PhonePe / GPay / Paytm उघडून 'Pay to UPI ID' द्वारे भरणा करा.`
+      `📲 ${appName} उघडत आहे (रक्कम: ₹${formattedPrice}). जर ॲप उघडले नाही, तर UPI ID (${upiId}) कॉपी झाला आहे! 'Pay to UPI ID' द्वारे ₹${formattedPrice} भरा.`
     );
 
     try {
-      // Create hidden element to safely trigger deep link without mutating window.location or showing ERR_UNKNOWN_URL_SCHEME
       const link = document.createElement('a');
-      link.href = uri;
+      link.href = targetUri;
       link.target = '_top';
       link.rel = 'noopener noreferrer';
       document.body.appendChild(link);
@@ -257,10 +290,24 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     } catch (err) {
       console.warn('Deep link trigger fallback:', err);
       try {
-        window.open(uri, '_blank');
-      } catch (e2) {
-        // ignore
-      }
+        window.location.href = targetUri;
+      } catch (e2) {}
+    }
+
+    // Fallback timer: if specific app intent wasn't handled, open universal OS chooser
+    if (appName !== 'सर्व UPI ॲप्स') {
+      setTimeout(() => {
+        try {
+          const universalFallback = `upi://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+          const fallbackLink = document.createElement('a');
+          fallbackLink.href = universalFallback;
+          fallbackLink.target = '_top';
+          fallbackLink.rel = 'noopener noreferrer';
+          document.body.appendChild(fallbackLink);
+          fallbackLink.click();
+          document.body.removeChild(fallbackLink);
+        } catch (e) {}
+      }, 1200);
     }
   };
 
@@ -705,11 +752,11 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                 {/* Universal Deep Link Button */}
                 <button
                   type="button"
-                  onClick={() => handleLaunchUpiApp(upiIntentUri, 'सर्व UPI ॲप्स')}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl font-bold text-sm flex items-center justify-center space-x-2 shadow-md hover:shadow-lg transition transform active:scale-98"
+                  onClick={() => handleLaunchUpiApp('सर्व UPI ॲप्स')}
+                  className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl font-bold text-sm flex items-center justify-center space-x-2 shadow-md hover:shadow-lg transition transform active:scale-98"
                 >
                   <Smartphone className="w-5 h-5 text-amber-300 animate-bounce" />
-                  <span>📱 कोणत्याही UPI ॲपद्वारे भरा (Pay ₹{activePlan.price})</span>
+                  <span>📱 कोणत्याही UPI ॲपद्वारे भरा (रक्कम: ₹{activePlan.price})</span>
                 </button>
 
                 {/* Live Launch Status / Copy Guidance Banner */}
@@ -739,7 +786,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                   {/* PhonePe */}
                   <button
                     type="button"
-                    onClick={() => handleLaunchUpiApp(phonepeUri || upiIntentUri, 'PhonePe')}
+                    onClick={() => handleLaunchUpiApp('PhonePe')}
                     className="p-2.5 bg-white hover:bg-purple-50/80 border border-purple-200 hover:border-purple-500 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-sm transition active:scale-95 group text-center"
                   >
                     <div className="w-7 h-7 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-xs shadow group-hover:scale-105 transition">
@@ -756,7 +803,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                   {/* Google Pay */}
                   <button
                     type="button"
-                    onClick={() => handleLaunchUpiApp(gpayUri || upiIntentUri, 'Google Pay')}
+                    onClick={() => handleLaunchUpiApp('Google Pay')}
                     className="p-2.5 bg-white hover:bg-blue-50/80 border border-blue-200 hover:border-blue-500 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-sm transition active:scale-95 group text-center"
                   >
                     <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow group-hover:scale-105 transition">
@@ -773,7 +820,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                   {/* Paytm */}
                   <button
                     type="button"
-                    onClick={() => handleLaunchUpiApp(paytmUri || upiIntentUri, 'Paytm')}
+                    onClick={() => handleLaunchUpiApp('Paytm')}
                     className="p-2.5 bg-white hover:bg-sky-50/80 border border-sky-200 hover:border-sky-500 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-sm transition active:scale-95 group text-center"
                   >
                     <div className="w-7 h-7 rounded-full bg-sky-500 text-white flex items-center justify-center font-bold text-xs shadow group-hover:scale-105 transition">
@@ -790,7 +837,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                   {/* BHIM UPI */}
                   <button
                     type="button"
-                    onClick={() => handleLaunchUpiApp(bhimUri || upiIntentUri, 'BHIM UPI')}
+                    onClick={() => handleLaunchUpiApp('BHIM UPI')}
                     className="p-2.5 bg-white hover:bg-emerald-50/80 border border-emerald-200 hover:border-emerald-500 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-sm transition active:scale-95 group text-center"
                   >
                     <div className="w-7 h-7 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow group-hover:scale-105 transition">
@@ -807,7 +854,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                   {/* CRED */}
                   <button
                     type="button"
-                    onClick={() => handleLaunchUpiApp(credUri || upiIntentUri, 'CRED')}
+                    onClick={() => handleLaunchUpiApp('CRED')}
                     className="p-2.5 bg-white hover:bg-slate-100 border border-slate-300 hover:border-slate-800 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-sm transition active:scale-95 group text-center"
                   >
                     <div className="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow group-hover:scale-105 transition">
@@ -824,7 +871,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                   {/* Amazon Pay */}
                   <button
                     type="button"
-                    onClick={() => handleLaunchUpiApp(amazonpayUri || upiIntentUri, 'Amazon Pay')}
+                    onClick={() => handleLaunchUpiApp('Amazon Pay')}
                     className="p-2.5 bg-white hover:bg-amber-50/80 border border-amber-200 hover:border-amber-500 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-sm transition active:scale-95 group text-center"
                   >
                     <div className="w-7 h-7 rounded-full bg-amber-600 text-white flex items-center justify-center font-bold text-xs shadow group-hover:scale-105 transition">
