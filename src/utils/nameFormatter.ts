@@ -15,10 +15,12 @@ export function formatProfileDisplayName(
     return language === 'en' ? transliterateMarathiToEnglish(profileName) : profileName;
   }
 
-  // Strict Guest Mode: Blur/Hide name for guest visitors
-  const isGuest = !currentUser || currentUser.id.startsWith('guest');
+  // Strict Guest Mode: Blur/Mask name for guest visitors
+  const isGuest = !currentUser || currentUser.id?.startsWith('guest') || currentUser.isGuest;
   if (isGuest) {
-    return language === 'en' ? '🔒 Vanjari Bride/Groom (Login to View)' : '🔒 वंजारी वधू-वर (नाव पाहण्यासाठी लॉगिन करा)';
+    const parts = profileName.trim().split(/\s+/);
+    const masked = parts.map((p) => (p.length > 0 ? p.charAt(0) + '****' : '****')).join(' ');
+    return language === 'en' ? `${masked} (🔒 Login to view)` : `${masked} (🔒 नाव पाहण्यासाठी लॉगिन करा)`;
   }
 
   // Free / Unpaid Member Mode

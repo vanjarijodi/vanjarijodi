@@ -511,6 +511,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     if (currentUser) {
       localStorage.setItem('vanjari_jodi_current_user', JSON.stringify(currentUser));
+      // Strict role isolation: When a regular member is logged in, immediately revoke admin mode
+      if (!currentUser.isAdmin && currentUser.id !== 'admin') {
+        setIsAdminLoggedInState(false);
+        localStorage.removeItem('vanjari_jodi_is_admin_logged_in');
+      }
     } else {
       localStorage.removeItem('vanjari_jodi_current_user');
     }

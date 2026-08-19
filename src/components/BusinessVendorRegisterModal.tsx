@@ -260,7 +260,7 @@ export const BusinessVendorRegisterModal: React.FC<{
                   <input
                     type="text"
                     required
-                    placeholder="उदा. भगवानबाबा मंगल कार्यालय व लॉन्स"
+                    placeholder="उदा. व्यवसायाचे नाव"
                     value={businessName}
                     onChange={(e) => setBusinessName(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2 text-white outline-none"
@@ -275,7 +275,7 @@ export const BusinessVendorRegisterModal: React.FC<{
                   <input
                     type="text"
                     required
-                    placeholder="उदा. साहेबराव सानप"
+                    placeholder="उदा. मालकाचे पूर्ण नाव"
                     value={ownerName}
                     onChange={(e) => setOwnerName(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2 text-white outline-none"
@@ -309,7 +309,7 @@ export const BusinessVendorRegisterModal: React.FC<{
                   </label>
                   <input
                     type="text"
-                    placeholder="उदा. परळी वैजनाथ / सिन्नर"
+                    placeholder="उदा. तालुका / शहर"
                     value={taluka}
                     onChange={(e) => setTaluka(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2 text-white outline-none"
@@ -323,7 +323,7 @@ export const BusinessVendorRegisterModal: React.FC<{
                 </label>
                 <input
                   type="text"
-                  placeholder="उदा. बायपास रोड, बँक ऑफ महाराष्ट्र समोर, परळी वैजनाथ"
+                  placeholder="उदा. व्यवसायाचा संपूर्ण पत्ता"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 focus:border-amber-500 rounded-xl px-3 py-2 text-white outline-none"

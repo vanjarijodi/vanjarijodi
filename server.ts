@@ -72,7 +72,7 @@ async function startServer() {
   // In-Memory Master Stores with persistent data
   let globalSettings: SystemSettings = {
     id: 'main_settings',
-    upi_id: process.env.PAYTM_UPI_ID || 'vanjarijodi@paytm',
+    upi_id: process.env.PAYTM_UPI_ID || 'mahesh.hange1@ybl',
     business_name: 'Vanjari Jodi Matrimony',
     whatsapp_api_token: process.env.WHATSAPP_API_TOKEN || '',
     currency: 'INR',

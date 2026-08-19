@@ -70,7 +70,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
   const [credUri, setCredUri] = useState<string>('');
   const [amazonpayUri, setAmazonpayUri] = useState<string>('');
   const [dynamicQrUrl, setDynamicQrUrl] = useState<string>('');
-  const [upiId, setUpiId] = useState<string>(siteConfig?.paymentUpiId || 'vanjarijodi@paytm');
+  const [upiId, setUpiId] = useState<string>(siteConfig?.paymentUpiId || 'mahesh.hange1@ybl');
   const [businessName, setBusinessName] = useState<string>(siteConfig?.paymentPayeeName || 'Vanjari Jodi Matrimony');
   const [isLoadingIntent, setIsLoadingIntent] = useState<boolean>(false);
   const [activeAppLaunching, setActiveAppLaunching] = useState<string | null>(null);
@@ -150,7 +150,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
   // Fetch Dynamic UPI Intent & QR from Backend
   const fetchPaymentIntent = async () => {
     if (!activePlan) return;
-    const targetUpi = siteConfig?.paymentUpiId || 'vanjarijodi@paytm';
+    const targetUpi = siteConfig?.paymentUpiId || 'mahesh.hange1@ybl';
     const targetBusiness = siteConfig?.paymentPayeeName || 'Vanjari Jodi Matrimony';
     const transactionNote = `VanjariJodi_${activePlan.id}`;
 

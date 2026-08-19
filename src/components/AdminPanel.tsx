@@ -285,7 +285,7 @@ const AdminAddVendorModal: React.FC<{
                 required
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
-                placeholder="उदा. राहुल मंगल कार्यालय / स्वाती डेकोरेटर्स"
+                placeholder="उदा. व्यवसायाचे किंवा संस्थेचे नाव"
                 className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
               />
             </div>
@@ -298,7 +298,7 @@ const AdminAddVendorModal: React.FC<{
                 required
                 value={ownerName}
                 onChange={(e) => setOwnerName(e.target.value)}
-                placeholder="उदा. राहुल ज्ञानदेव घुगे"
+                placeholder="उदा. मालकाचे नाव व आडनाव"
                 className="w-full bg-slate-50 border border-amber-300 rounded-xl px-3 py-2 text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold"
               />
             </div>
@@ -979,6 +979,306 @@ const AdminEditVendorModal: React.FC<{
   );
 };
 
+const AdminViewVendorDetailsModal: React.FC<{
+  vendor: BusinessVendor | null;
+  onClose: () => void;
+  onEdit: (vendor: BusinessVendor) => void;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+  onDelete: (id: string) => void;
+}> = ({ vendor, onClose, onEdit, onApprove, onReject, onDelete }) => {
+  if (!vendor) return null;
+
+  const formattedMobile = vendor.mobile ? vendor.mobile.replace(/\D/g, '') : '';
+  const formattedWhatsapp = vendor.whatsapp ? vendor.whatsapp.replace(/\D/g, '') : formattedMobile;
+
+  return (
+    <div className="fixed inset-0 z-55 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-md overflow-y-auto font-sans">
+      <div className="relative w-full max-w-2xl bg-white border-2 border-amber-400 rounded-3xl shadow-2xl text-slate-900 overflow-hidden my-auto max-h-[92vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-900 via-[#800C1E] to-[#A71930] text-amber-100 border-b border-amber-300 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-amber-400 text-[#800C1E] font-black shadow-md">
+              <Building2 className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base sm:text-lg font-black text-amber-200">
+                {vendor.businessName}
+              </h3>
+              <p className="text-xs text-amber-100/90 font-bold flex items-center gap-2 mt-0.5">
+                <span className="px-2 py-0.5 bg-amber-200 text-[#800C1E] rounded-full text-[10px] font-black">
+                  {vendor.category}
+                </span>
+                <span>• 📍 {vendor.district} {vendor.taluka ? `(${vendor.taluka})` : ''}</span>
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 rounded-full bg-slate-900/40 hover:bg-slate-900/80 text-amber-100 cursor-pointer transition-all"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content Body */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+          
+          {/* Top Banner: Status & Quick Action Buttons */}
+          <div className="p-4 bg-amber-50 rounded-2xl border border-amber-300 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-700">सध्याचे स्टेटस:</span>
+              {vendor.status === 'approved' ? (
+                <span className="px-3 py-1 bg-emerald-600 text-white rounded-full font-black text-xs shadow-sm">
+                  ✓ मंजूर (Approved)
+                </span>
+              ) : vendor.status === 'rejected' ? (
+                <span className="px-3 py-1 bg-rose-600 text-white rounded-full font-black text-xs shadow-sm">
+                  ✕ नाकारलेले (Rejected)
+                </span>
+              ) : (
+                <span className="px-3 py-1 bg-amber-500 text-slate-950 rounded-full font-black text-xs animate-pulse shadow-sm">
+                  ⏳ प्रलंबित (Pending Approval)
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {vendor.status !== 'approved' && (
+                <button
+                  type="button"
+                  onClick={() => onApprove(vendor.id)}
+                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow transition-all cursor-pointer flex items-center gap-1"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  <span>मंजूर करा</span>
+                </button>
+              )}
+              {vendor.status !== 'rejected' && (
+                <button
+                  type="button"
+                  onClick={() => onReject(vendor.id)}
+                  className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-black shadow transition-all cursor-pointer flex items-center gap-1"
+                >
+                  <XCircle className="w-4 h-4" />
+                  <span>रद्द करा</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onEdit(vendor);
+                }}
+                className="px-3.5 py-1.5 bg-[#A71930] hover:bg-[#800C1E] text-amber-100 rounded-xl text-xs font-black shadow transition-all cursor-pointer flex items-center gap-1"
+              >
+                <Edit3 className="w-4 h-4" />
+                <span>सुधारा (Edit & PIN)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Owner & Contact Card */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 bg-white rounded-2xl border border-amber-300 shadow-sm space-y-2 text-xs">
+              <h4 className="font-extrabold text-[#800C1E] text-xs border-b pb-1.5 flex items-center gap-1.5">
+                <User className="w-4 h-4 text-[#800C1E]" />
+                <span>मालक व संपर्क तपशील (Owner & Contact)</span>
+              </h4>
+              <p className="text-slate-900 font-extrabold text-sm">{vendor.ownerName}</p>
+              
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-600 font-medium">मोबाईल नंबर:</span>
+                  <a
+                    href={`tel:${formattedMobile}`}
+                    className="font-mono font-bold text-[#A71930] hover:underline flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded border border-amber-200"
+                  >
+                    📞 {vendor.mobile}
+                  </a>
+                </div>
+
+                {vendor.whatsapp && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-600 font-medium">व्हॉट्सॲप नंबर:</span>
+                    <a
+                      href={`https://wa.me/91${formattedWhatsapp}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono font-bold text-emerald-700 hover:underline flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200"
+                    >
+                      💬 {vendor.whatsapp}
+                    </a>
+                  </div>
+                )}
+
+                {vendor.email && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-600 font-medium">ई-मेल:</span>
+                    <a
+                      href={`mailto:${vendor.email}`}
+                      className="font-mono text-slate-800 hover:underline truncate max-w-[150px]"
+                    >
+                      ✉️ {vendor.email}
+                    </a>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                  <span className="text-slate-600 font-medium">लॉगिन पिन (Password):</span>
+                  <span className="font-mono font-black text-rose-700 bg-rose-50 px-2.5 py-0.5 rounded border border-rose-200">
+                    🔑 {vendor.pinPassword || 'सेट नाही'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Location & Address Card */}
+            <div className="p-4 bg-white rounded-2xl border border-amber-300 shadow-sm space-y-2 text-xs">
+              <h4 className="font-extrabold text-[#800C1E] text-xs border-b pb-1.5 flex items-center gap-1.5">
+                <MapPin className="w-4 h-4 text-[#800C1E]" />
+                <span>स्थान व पत्ता (Location & Address)</span>
+              </h4>
+              <p className="text-slate-800 font-bold">
+                📍 {vendor.district} {vendor.taluka ? `(${vendor.taluka} तालुका)` : ''}
+              </p>
+              <p className="text-slate-600 leading-relaxed bg-amber-50/50 p-2.5 rounded-xl border border-amber-200">
+                {vendor.address || 'पत्ता भरलेला नाही.'}
+              </p>
+            </div>
+          </div>
+
+          {/* Pricing, Packages, Discount & Commission */}
+          <div className="p-4 bg-white rounded-2xl border border-amber-300 shadow-sm space-y-3 text-xs">
+            <h4 className="font-extrabold text-[#800C1E] text-xs border-b pb-1.5 flex items-center gap-1.5">
+              <Tag className="w-4 h-4 text-[#800C1E]" />
+              <span>दर, सवलत व कमिशन तपशील (Rates, Packages & Offers)</span>
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 space-y-1">
+                <span className="text-[10px] text-slate-500 font-bold block">दर व पॅकेजेस (Rates):</span>
+                <p className="font-extrabold text-slate-900 text-sm">{vendor.ratesAndPackages}</p>
+              </div>
+
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 space-y-1">
+                <span className="text-[10px] text-emerald-800 font-bold block">वंजारी जोडी सवलत (Discount):</span>
+                <p className="font-extrabold text-emerald-900 text-xs">{vendor.memberDiscount || 'काहीही नाही'}</p>
+              </div>
+
+              <div className="p-3 bg-rose-50 rounded-xl border border-rose-200 space-y-1">
+                <span className="text-[10px] text-rose-800 font-bold block">कमिशन दर (Commission):</span>
+                <p className="font-extrabold text-rose-900 text-xs">{vendor.commissionRate || '१०% कमिशन'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Description */}
+          {vendor.description && (
+            <div className="p-4 bg-white rounded-2xl border border-amber-300 shadow-sm space-y-1.5 text-xs">
+              <h4 className="font-extrabold text-[#800C1E] text-xs flex items-center gap-1.5">
+                <FileText className="w-4 h-4 text-[#800C1E]" />
+                <span>व्यवसायाचे वर्णन (Description)</span>
+              </h4>
+              <p className="text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200 whitespace-pre-line">
+                {vendor.description}
+              </p>
+            </div>
+          )}
+
+          {/* Uploaded Documents & Media */}
+          <div className="p-4 bg-white rounded-2xl border border-amber-300 shadow-sm space-y-3 text-xs">
+            <h4 className="font-extrabold text-[#800C1E] text-xs border-b pb-1.5 flex items-center gap-1.5">
+              <Paperclip className="w-4 h-4 text-[#800C1E]" />
+              <span>अपलोड केलेले मीडिया व दस्तऐवज (Uploaded Photos & PDF Brochure)</span>
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Photo View */}
+              <div>
+                <span className="text-[11px] font-bold text-slate-700 block mb-1.5">📷 फोटो / बॅनर:</span>
+                {vendor.photoUrl ? (
+                  <a href={vendor.photoUrl} target="_blank" rel="noopener noreferrer" className="block relative group rounded-2xl overflow-hidden border border-amber-300">
+                    <img
+                      src={vendor.photoUrl}
+                      alt={vendor.businessName}
+                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition-opacity">
+                      🔍 फोटो मोठा पहा
+                    </div>
+                  </a>
+                ) : (
+                  <div className="p-6 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    कोणताही फोटो जोडलेला नाही.
+                  </div>
+                )}
+              </div>
+
+              {/* Rate Card PDF Download / View */}
+              <div>
+                <span className="text-[11px] font-bold text-slate-700 block mb-1.5">📄 रेट कार्ड / ब्रोशर PDF:</span>
+                {vendor.pdfUrl ? (
+                  <div className="p-5 bg-gradient-to-br from-rose-50 to-amber-50 rounded-2xl border border-amber-300 flex flex-col items-center justify-center text-center space-y-3 h-48">
+                    <div className="p-3 bg-rose-600 text-white rounded-2xl shadow">
+                      <FileText className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <p className="font-extrabold text-slate-900 text-xs">रेट कार्ड / ब्रोशर PDF</p>
+                      <p className="text-[10px] text-slate-500">व्हेंडरने अपलोड केलेली माहिती पत्रक</p>
+                    </div>
+                    <a
+                      href={vendor.pdfUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2 bg-[#A71930] hover:bg-[#800C1E] text-white font-black text-xs rounded-xl shadow flex items-center gap-1.5 transition hover:scale-102 cursor-pointer"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>PDF उघडा / डाऊनलोड करा</span>
+                    </a>
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200 h-48 flex items-center justify-center">
+                    कोणतीही PDF जोडलेली नाही.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 bg-slate-50 border-t border-amber-200 flex items-center justify-between shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm(`नक्की '${vendor.businessName}' हा व्यवसाय हटवायचा आहे का?`)) {
+                onDelete(vendor.id);
+                onClose();
+              }
+            }}
+            className="px-4 py-2 bg-rose-100 hover:bg-rose-200 text-rose-800 font-extrabold text-xs rounded-xl border border-rose-300 transition cursor-pointer flex items-center gap-1"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>व्यवसाय हटवा (Delete)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-black text-xs rounded-xl shadow cursor-pointer"
+          >
+            बंद करा (Close)
+          </button>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
 export const AdminPanel: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -1111,10 +1411,14 @@ export const AdminPanel: React.FC<{
   const [selectedEditProfile, setSelectedEditProfile] = useState<UserProfile | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // Business Vendor Add/Edit modal states
+  // Business Vendor Add/Edit/View modal & filter states
   const [isAddVendorModalOpen, setIsAddVendorModalOpen] = useState(false);
   const [isEditVendorModalOpen, setIsEditVendorModalOpen] = useState(false);
   const [selectedVendorForEdit, setSelectedVendorForEdit] = useState<BusinessVendor | null>(null);
+  const [selectedVendorForView, setSelectedVendorForView] = useState<BusinessVendor | null>(null);
+  const [vendorSearchTerm, setVendorSearchTerm] = useState('');
+  const [vendorCategoryFilter, setVendorCategoryFilter] = useState('all');
+  const [vendorStatusFilter, setVendorStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const [adminUsername, setAdminUsername] = useState('');
@@ -5149,7 +5453,7 @@ export const AdminPanel: React.FC<{
                                 : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                             }`}
                           >
-                            🟢 पूर्ण नाव (उदा. राहुल सानप)
+                            🟢 पूर्ण नाव (उदा. नाव व आडनाव)
                           </button>
                           <button
                             type="button"
@@ -5160,7 +5464,7 @@ export const AdminPanel: React.FC<{
                                 : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
                             }`}
                           >
-                            🟡 मधले व आडनाव (उदा. बबनराव मुंडे)
+                            🟡 मधले व आडनाव (उदा. मधले नाव व आडनाव)
                           </button>
                           <button
                             type="button"
@@ -8045,7 +8349,7 @@ export const AdminPanel: React.FC<{
                           type="text"
                           value={siteConfig?.grievanceOfficerName || ''}
                           onChange={(e) => updateSiteConfig({ grievanceOfficerName: e.target.value })}
-                          placeholder="उदा. Gite Vijay"
+                          placeholder="उदा. अधिकारी नाव"
                           className="w-full bg-white border border-amber-300 rounded-xl p-2.5 text-slate-900 font-bold"
                         />
                       </div>
@@ -8056,7 +8360,7 @@ export const AdminPanel: React.FC<{
                           type="email"
                           value={siteConfig?.grievanceOfficerEmail || ''}
                           onChange={(e) => updateSiteConfig({ grievanceOfficerEmail: e.target.value })}
-                          placeholder="उदा. gitevijay123@gmail.com"
+                          placeholder="उदा. support@example.com"
                           className="w-full bg-white border border-amber-300 rounded-xl p-2.5 text-slate-900 font-mono"
                         />
                       </div>
@@ -10316,8 +10620,9 @@ export const AdminPanel: React.FC<{
               </div>
 
               {/* Vendors List Table */}
-              <div className="bg-white rounded-2xl border border-amber-300 overflow-hidden shadow-md">
-                <div className="p-4 bg-gradient-to-r from-amber-200 via-amber-100 to-amber-200 border-b border-amber-300 flex flex-wrap items-center justify-between gap-2">
+              <div className="bg-white rounded-2xl border border-amber-300 overflow-hidden shadow-md space-y-0">
+                {/* Header & Main Action */}
+                <div className="p-4 bg-gradient-to-r from-amber-200 via-amber-100 to-amber-200 border-b border-amber-300 flex flex-wrap items-center justify-between gap-3">
                   <h4 className="font-black text-[#A71930] text-sm flex items-center gap-2">
                     <Building2 className="w-5 h-5 text-[#A71930]" />
                     <span>नोंदणीकृत व्यवसाय व अर्ज सूची ({businessVendors.length})</span>
@@ -10332,155 +10637,275 @@ export const AdminPanel: React.FC<{
                   </button>
                 </div>
 
-                {businessVendors.length === 0 ? (
-                  <div className="p-10 text-center text-slate-500 text-xs font-bold">
-                    कोणताही व्यवसाय नोंदवलेला नाही.
+                {/* Filter Toolbar Bar */}
+                <div className="p-3 bg-amber-50/70 border-b border-amber-200 flex flex-wrap items-center justify-between gap-3">
+                  {/* Search input */}
+                  <div className="relative flex-1 min-w-[200px]">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      placeholder="नाव, मोबाईल, जिल्हा, तालुका शोधा..."
+                      value={vendorSearchTerm}
+                      onChange={(e) => setVendorSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-3 py-1.5 bg-white border border-amber-300 rounded-xl text-xs outline-none focus:border-[#800C1E] text-slate-900 font-bold placeholder:font-normal"
+                    />
                   </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
-                      <thead>
-                        <tr className="bg-amber-100/70 border-b border-amber-300 text-[#800C1E] font-black text-[11px]">
-                          <th className="p-3">फोटो / नाव</th>
-                          <th className="p-3">मालक व संपर्क</th>
-                          <th className="p-3">श्रेणी व ठिकाण</th>
-                          <th className="p-3">दर व सवलत</th>
-                          <th className="p-3">कमिशन</th>
-                          <th className="p-3">स्टेटस</th>
-                          <th className="p-3 text-right">कृती (Actions)</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-amber-100 font-medium text-slate-800">
-                        {businessVendors.map((vendor) => (
-                          <tr key={vendor.id} className="hover:bg-amber-50/60 transition-colors">
-                            <td className="p-3">
-                              <div className="flex items-center gap-2.5">
-                                <img
-                                  src={vendor.photoUrl || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=200'}
-                                  alt={vendor.businessName}
-                                  className="w-10 h-10 rounded-lg object-cover border border-amber-300 shrink-0"
-                                />
-                                <div>
-                                  <span className="font-extrabold text-slate-900 block">{vendor.businessName}</span>
-                                  {vendor.pdfUrl && (
-                                    <a
-                                      href={vendor.pdfUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-[10px] text-rose-700 font-bold underline hover:text-rose-900"
-                                    >
-                                      📄 रेट कार्ड PDF
-                                    </a>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
 
-                            <td className="p-3">
-                              <span className="font-bold text-slate-900 block">{vendor.ownerName}</span>
-                              <div className="flex flex-col gap-1 mt-1">
-                                <a href={`tel:${vendor.mobile}`} className="text-[10px] text-slate-700 font-bold hover:text-[#A71930] font-mono flex items-center gap-1">
-                                  📞 {vendor.mobile}
-                                </a>
-                                <div className="inline-flex items-center gap-1 bg-amber-50 text-slate-700 text-[10px] px-1.5 py-0.5 rounded border border-amber-200 w-fit">
-                                  <KeyRound className="w-3.5 h-3.5 text-[#A71930]" />
-                                  <span>पिन: <strong className="font-mono text-[#A71930]">{vendor.pinPassword || 'सेट नाही'}</strong></span>
-                                </div>
-                              </div>
-                            </td>
+                  {/* Category Filter */}
+                  <select
+                    value={vendorCategoryFilter}
+                    onChange={(e) => setVendorCategoryFilter(e.target.value)}
+                    className="bg-white border border-amber-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-[#800C1E]"
+                  >
+                    <option value="all">सर्व श्रेण्या (All Categories)</option>
+                    {[
+                      'मॅरेज हॉल व लॉन्स',
+                      'कॅटरिंग व स्वयंपाकी',
+                      'फोटोग्राफी व व्हिडिओग्राफी',
+                      'डीजे, साऊंड व लाईट्स',
+                      'मंंडप डेकोरेटर्स',
+                      'मेकअप आर्टिस्ट व मेहंदी',
+                      'ट्रॅव्हल्स व लग्न गाड्या',
+                      'पौरोहित्य / भटजी',
+                      'इतर लग्न व्यवसाय'
+                    ].map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
 
-                            <td className="p-3">
-                              <span className="px-2 py-0.5 bg-amber-200 text-[#800C1E] rounded-full text-[10px] font-bold block w-fit mb-0.5">
-                                {vendor.category}
-                              </span>
-                              <span className="text-[10px] text-slate-600 block">
-                                📍 {vendor.district} {vendor.taluka ? `(${vendor.taluka})` : ''}
-                              </span>
-                            </td>
+                  {/* Status Pills */}
+                  <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-amber-200">
+                    <button
+                      type="button"
+                      onClick={() => setVendorStatusFilter('all')}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black cursor-pointer transition-colors ${
+                        vendorStatusFilter === 'all'
+                          ? 'bg-[#800C1E] text-amber-100 shadow'
+                          : 'text-slate-600 hover:bg-amber-50'
+                      }`}
+                    >
+                      सर्व ({businessVendors.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVendorStatusFilter('pending')}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black cursor-pointer transition-colors ${
+                        vendorStatusFilter === 'pending'
+                          ? 'bg-amber-500 text-slate-950 shadow'
+                          : 'text-amber-800 hover:bg-amber-50'
+                      }`}
+                    >
+                      प्रलंबित ({businessVendors.filter(v => v.status === 'pending').length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVendorStatusFilter('approved')}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black cursor-pointer transition-colors ${
+                        vendorStatusFilter === 'approved'
+                          ? 'bg-emerald-600 text-white shadow'
+                          : 'text-emerald-800 hover:bg-emerald-50'
+                      }`}
+                    >
+                      मंजूर ({businessVendors.filter(v => v.status === 'approved').length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVendorStatusFilter('rejected')}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-black cursor-pointer transition-colors ${
+                        vendorStatusFilter === 'rejected'
+                          ? 'bg-rose-600 text-white shadow'
+                          : 'text-rose-800 hover:bg-rose-50'
+                      }`}
+                    >
+                      रद्द ({businessVendors.filter(v => v.status === 'rejected').length})
+                    </button>
+                  </div>
+                </div>
 
-                            <td className="p-3 max-w-xs">
-                              <p className="font-bold text-slate-900 text-[11px] line-clamp-1">{vendor.ratesAndPackages}</p>
-                              {vendor.memberDiscount && (
-                                <span className="text-[10px] text-emerald-700 font-bold block">
-                                  🏷️ {vendor.memberDiscount}
-                                </span>
-                              )}
-                            </td>
+                {(() => {
+                  const filteredVendors = businessVendors.filter((v) => {
+                    const matchesSearch =
+                      !vendorSearchTerm ||
+                      v.businessName.toLowerCase().includes(vendorSearchTerm.toLowerCase()) ||
+                      v.ownerName.toLowerCase().includes(vendorSearchTerm.toLowerCase()) ||
+                      v.mobile.includes(vendorSearchTerm) ||
+                      v.district.toLowerCase().includes(vendorSearchTerm.toLowerCase()) ||
+                      (v.taluka && v.taluka.toLowerCase().includes(vendorSearchTerm.toLowerCase()));
 
-                            <td className="p-3">
-                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold text-[10px]">
-                                {vendor.commissionRate || '१०% कमिशन'}
-                              </span>
-                            </td>
+                    const matchesCategory = vendorCategoryFilter === 'all' || v.category === vendorCategoryFilter;
+                    const matchesStatus = vendorStatusFilter === 'all' || v.status === vendorStatusFilter;
 
-                            <td className="p-3">
-                              {vendor.status === 'approved' ? (
-                                <span className="px-2 py-0.5 bg-emerald-600 text-white rounded-full font-bold text-[10px]">
-                                  मंजूर (Approved ✓)
-                                </span>
-                              ) : vendor.status === 'rejected' ? (
-                                <span className="px-2 py-0.5 bg-rose-600 text-white rounded-full font-bold text-[10px]">
-                                  रद्द (Rejected)
-                                </span>
-                              ) : (
-                                <span className="px-2 py-0.5 bg-amber-500 text-slate-950 rounded-full font-bold text-[10px] animate-pulse">
-                                  प्रलंबित (Pending)
-                                </span>
-                              )}
-                            </td>
+                    return matchesSearch && matchesCategory && matchesStatus;
+                  });
 
-                            <td className="p-3 text-right">
-                              <div className="flex items-center justify-end gap-1.5">
-                                <button
-                                  onClick={() => {
-                                    setSelectedVendorForEdit(vendor);
-                                    setIsEditVendorModalOpen(true);
-                                  }}
-                                  className="p-1 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded cursor-pointer"
-                                  title="सुधारा (Edit & PIN)"
-                                >
-                                  <Edit3 className="w-4 h-4" />
-                                </button>
+                  if (filteredVendors.length === 0) {
+                    return (
+                      <div className="p-10 text-center text-slate-500 text-xs font-bold">
+                        शोध निकषांनुसार कोणताही व्यवसाय आढळला नाही.
+                      </div>
+                    );
+                  }
 
-                                {vendor.status !== 'approved' && (
-                                  <button
-                                    onClick={() => updateBusinessVendorStatus(vendor.id, 'approved')}
-                                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg shadow cursor-pointer"
-                                    title="मंजूर करा"
-                                  >
-                                    मंजूर
-                                  </button>
-                                )}
-
-                                {vendor.status !== 'rejected' && (
-                                  <button
-                                    onClick={() => updateBusinessVendorStatus(vendor.id, 'rejected')}
-                                    className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold rounded-lg cursor-pointer"
-                                    title="नाकारा"
-                                  >
-                                    रद्द
-                                  </button>
-                                )}
-
-                                <button
-                                  onClick={() => {
-                                    if (confirm(`नक्की '${vendor.businessName}' हा व्यवसाय हटवायचा आहे का?`)) {
-                                      deleteBusinessVendor(vendor.id);
-                                    }
-                                  }}
-                                  className="p-1 text-rose-600 hover:text-rose-800 hover:bg-rose-100 rounded cursor-pointer"
-                                  title="हटवा"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </td>
+                  return (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-amber-100/70 border-b border-amber-300 text-[#800C1E] font-black text-[11px]">
+                            <th className="p-3">फोटो / नाव</th>
+                            <th className="p-3">मालक व संपर्क</th>
+                            <th className="p-3">श्रेणी व ठिकाण</th>
+                            <th className="p-3">दर व सवलत</th>
+                            <th className="p-3">कमिशन</th>
+                            <th className="p-3">स्टेटस</th>
+                            <th className="p-3 text-right">कृती (Actions)</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                        </thead>
+                        <tbody className="divide-y divide-amber-100 font-medium text-slate-800">
+                          {filteredVendors.map((vendor) => (
+                            <tr key={vendor.id} className="hover:bg-amber-50/60 transition-colors">
+                              <td className="p-3">
+                                <div className="flex items-center gap-2.5">
+                                  <img
+                                    src={vendor.photoUrl || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=200'}
+                                    alt={vendor.businessName}
+                                    className="w-10 h-10 rounded-lg object-cover border border-amber-300 shrink-0"
+                                  />
+                                  <div>
+                                    <span className="font-extrabold text-slate-900 block">{vendor.businessName}</span>
+                                    {vendor.pdfUrl && (
+                                      <a
+                                        href={vendor.pdfUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[10px] text-rose-700 font-bold underline hover:text-rose-900"
+                                      >
+                                        📄 रेट कार्ड PDF
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td className="p-3">
+                                <span className="font-bold text-slate-900 block">{vendor.ownerName}</span>
+                                <div className="flex flex-col gap-1 mt-1">
+                                  <a href={`tel:${vendor.mobile}`} className="text-[10px] text-slate-700 font-bold hover:text-[#A71930] font-mono flex items-center gap-1">
+                                    📞 {vendor.mobile}
+                                  </a>
+                                  <div className="inline-flex items-center gap-1 bg-amber-50 text-slate-700 text-[10px] px-1.5 py-0.5 rounded border border-amber-200 w-fit">
+                                    <KeyRound className="w-3.5 h-3.5 text-[#A71930]" />
+                                    <span>पिन: <strong className="font-mono text-[#A71930]">{vendor.pinPassword || 'सेट नाही'}</strong></span>
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td className="p-3">
+                                <span className="px-2 py-0.5 bg-amber-200 text-[#800C1E] rounded-full text-[10px] font-bold block w-fit mb-0.5">
+                                  {vendor.category}
+                                </span>
+                                <span className="text-[10px] text-slate-600 block">
+                                  📍 {vendor.district} {vendor.taluka ? `(${vendor.taluka})` : ''}
+                                </span>
+                              </td>
+
+                              <td className="p-3 max-w-xs">
+                                <p className="font-bold text-slate-900 text-[11px] line-clamp-1">{vendor.ratesAndPackages}</p>
+                                {vendor.memberDiscount && (
+                                  <span className="text-[10px] text-emerald-700 font-bold block">
+                                    🏷️ {vendor.memberDiscount}
+                                  </span>
+                                )}
+                              </td>
+
+                              <td className="p-3">
+                                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold text-[10px]">
+                                  {vendor.commissionRate || '१०% कमिशन'}
+                                </span>
+                              </td>
+
+                              <td className="p-3">
+                                {vendor.status === 'approved' ? (
+                                  <span className="px-2 py-0.5 bg-emerald-600 text-white rounded-full font-bold text-[10px]">
+                                    मंजूर (Approved ✓)
+                                  </span>
+                                ) : vendor.status === 'rejected' ? (
+                                  <span className="px-2 py-0.5 bg-rose-600 text-white rounded-full font-bold text-[10px]">
+                                    रद्द (Rejected)
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 bg-amber-500 text-slate-950 rounded-full font-bold text-[10px] animate-pulse">
+                                    प्रलंबित (Pending)
+                                  </span>
+                                )}
+                              </td>
+
+                              <td className="p-3 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => setSelectedVendorForView(vendor)}
+                                    className="px-2 py-1 bg-amber-100 hover:bg-amber-200 text-[#800C1E] text-[10px] font-extrabold rounded-lg border border-amber-300 transition cursor-pointer flex items-center gap-1"
+                                    title="सर्व माहिती पहा (View Full Info & Media)"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    <span>पाहणी</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedVendorForEdit(vendor);
+                                      setIsEditVendorModalOpen(true);
+                                    }}
+                                    className="p-1 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded cursor-pointer"
+                                    title="सुधारा (Edit & PIN)"
+                                  >
+                                    <Edit3 className="w-4 h-4" />
+                                  </button>
+
+                                  {vendor.status !== 'approved' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => updateBusinessVendorStatus(vendor.id, 'approved')}
+                                      className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg shadow cursor-pointer"
+                                      title="मंजूर करा"
+                                    >
+                                      मंजूर
+                                    </button>
+                                  )}
+
+                                  {vendor.status !== 'rejected' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => updateBusinessVendorStatus(vendor.id, 'rejected')}
+                                      className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold rounded-lg cursor-pointer"
+                                      title="नाकारा"
+                                    >
+                                      रद्द
+                                    </button>
+                                  )}
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (confirm(`नक्की '${vendor.businessName}' हा व्यवसाय हटवायचा आहे का?`)) {
+                                        deleteBusinessVendor(vendor.id);
+                                      }
+                                    }}
+                                    className="p-1 text-rose-600 hover:text-rose-800 hover:bg-rose-100 rounded cursor-pointer"
+                                    title="हटवा"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })()}
               </div>
 
             </div>
@@ -11561,7 +11986,7 @@ export const AdminPanel: React.FC<{
                     <input
                       type="text"
                       required
-                      placeholder="उदा. राहुल पाटील"
+                      placeholder="उदा. नाव व आडनाव"
                       value={subAdminName}
                       onChange={(e) => setSubAdminName(e.target.value)}
                       className="w-full bg-white border border-amber-300 rounded-xl p-2.5 text-slate-900 font-bold"
@@ -11573,7 +11998,7 @@ export const AdminPanel: React.FC<{
                     <input
                       type="text"
                       required
-                      placeholder="उदा. rahul_admin"
+                      placeholder="उदा. admin_username"
                       value={subAdminUsernameInput}
                       onChange={(e) => setSubAdminUsernameInput(e.target.value)}
                       className="w-full bg-white border border-amber-300 rounded-xl p-2.5 font-mono text-slate-900 font-bold"
@@ -11731,7 +12156,7 @@ export const AdminPanel: React.FC<{
           </div>
         )}
 
-        {/* BUSINESS VENDOR ADD & EDIT MODALS */}
+        {/* BUSINESS VENDOR ADD, EDIT & VIEW DETAILS MODALS */}
         <AdminAddVendorModal
           isOpen={isAddVendorModalOpen}
           onClose={() => setIsAddVendorModalOpen(false)}
@@ -11744,6 +12169,18 @@ export const AdminPanel: React.FC<{
             setSelectedVendorForEdit(null);
           }}
           vendor={selectedVendorForEdit}
+        />
+
+        <AdminViewVendorDetailsModal
+          vendor={selectedVendorForView}
+          onClose={() => setSelectedVendorForView(null)}
+          onEdit={(v) => {
+            setSelectedVendorForEdit(v);
+            setIsEditVendorModalOpen(true);
+          }}
+          onApprove={(id) => updateBusinessVendorStatus(id, 'approved')}
+          onReject={(id) => updateBusinessVendorStatus(id, 'rejected')}
+          onDelete={(id) => deleteBusinessVendor(id)}
         />
 
         {/* FULL PROFILE, DOCUMENTS, FACE VERIFICATION & BADGES EDITOR MODAL */}

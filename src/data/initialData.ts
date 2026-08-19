@@ -580,7 +580,7 @@ export const INITIAL_SITE_CONFIG: any = {
   logoHeight: 52,
   hideLogoText: false,
   paymentQrUrl: '',
-  paymentUpiId: 'vanjarijodi@upi',
+  paymentUpiId: 'mahesh.hange1@ybl',
   paymentNote: 'PhonePe / Google Pay / Paytm द्वारे क्यूआर कोड स्कॅन करून किंवा UPI ID वर पेमेंट करा व UTR नंबर सादर करा.',
   paymentMode: 'both',
   enableRazorpay: false,

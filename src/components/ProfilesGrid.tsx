@@ -285,12 +285,13 @@ export const ProfilesGrid: React.FC<{
                     {(() => {
                       const mainPhoto = (profile.photos && profile.photos.length > 0 && profile.photos[0]) ? profile.photos[0] : (profile.photoUrl || null);
                       const isOverride = siteConfig?.adminOverrideMemberPrivacy === true;
+                      const isGuest = !currentUser || currentUser?.id?.startsWith('guest') || currentUser?.isGuest;
                       const isPhotoBlurred = isAuthorized ? false : (
+                        isGuest ||
                         (profile.privacy?.hidePhoto && !isOverride) ||
                         siteConfig?.blurPhotosForFreeUsers === true ||
                         siteConfig?.blurProfilePhotos === true ||
-                        (!currentUser && siteConfig?.allowPublicVisitorsToViewPhotos === false) ||
-                        (currentUser?.id?.startsWith('guest') && siteConfig?.allowGuestsToViewPhotos === false)
+                        (!currentUser && siteConfig?.allowPublicVisitorsToViewPhotos === false)
                       );
 
                       const blurPct = siteConfig?.photoBlurPercentage || 50;

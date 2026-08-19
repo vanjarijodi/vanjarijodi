@@ -122,6 +122,13 @@ export const ProfileDetailModal: React.FC<{
 
   if (!profile) return null;
 
+  // Strict check: Only genuine admins can view and use administrative actions
+  const isUserAdmin = Boolean(
+    isAdminLoggedIn &&
+    (!currentUser || currentUser.isAdmin === true || currentUser.id === 'admin') &&
+    !(currentUser && !currentUser.isAdmin && currentUser.id !== 'admin')
+  );
+
   const isShortlisted = shortlistedIds.includes(profile.id);
   const isAuthorized = isContactAuthorizedForUser(profile.id);
   const pendingReq = currentUser && contactRequests.find(
@@ -205,8 +212,8 @@ export const ProfileDetailModal: React.FC<{
               </div>
             )}
 
-            {/* ⚙️ ADMIN ACTION PANEL */}
-            {isAdminLoggedIn && (
+            {/* ⚙️ ADMIN ACTION PANEL (ACCESSIBLE ONLY BY AUTHENTICATED ADMINS) */}
+            {isUserAdmin && (
               <div className="bg-red-50/90 border-2 border-red-300 p-5 rounded-3xl shadow-lg space-y-4 animate-fadeIn text-xs sm:text-sm font-bold">
                 <div className="border-b border-red-200 pb-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
@@ -664,12 +671,13 @@ export const ProfileDetailModal: React.FC<{
                     style={{
                       filter: (() => {
                         const isOverride = siteConfig?.adminOverrideMemberPrivacy === true;
+                        const isGuest = !currentUser || currentUser?.id?.startsWith('guest') || currentUser?.isGuest;
                         const isPhotoBlurred = isAuthorized ? false : (
+                          isGuest ||
                           (profile.privacy?.hidePhoto && !isOverride) ||
                           siteConfig?.blurPhotosForFreeUsers === true ||
                           siteConfig?.blurProfilePhotos === true ||
-                          (!currentUser && siteConfig?.allowPublicVisitorsToViewPhotos === false) ||
-                          (currentUser?.id?.startsWith('guest') && siteConfig?.allowGuestsToViewPhotos === false)
+                          (!currentUser && siteConfig?.allowPublicVisitorsToViewPhotos === false)
                         );
 
                         const blurPct = siteConfig?.photoBlurPercentage || siteConfig?.photoBlurPercent || 50;
@@ -949,22 +957,22 @@ export const ProfileDetailModal: React.FC<{
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <span className="text-slate-500 text-xs block font-medium">वडिलांचे नाव व व्यवसाय</span>
-                      <span className="font-bold text-slate-900">{profile.fatherName || 'श्री. मुंडे'} ({profile.fatherOccupation})</span>
+                      <span className="font-bold text-slate-900">{profile.fatherName || 'माहिती दिलेली नाही'} ({profile.fatherOccupation || 'माहिती उपलब्ध नाही'})</span>
                     </div>
                     <div>
                       <span className="text-slate-500 text-xs block font-medium">आईचे नाव व व्यवसाय</span>
-                      <span className="font-bold text-slate-900">{profile.motherName || 'सौ. मुंडे'} ({profile.motherOccupation})</span>
+                      <span className="font-bold text-slate-900">{profile.motherName || 'माहिती दिलेली नाही'} ({profile.motherOccupation || 'माहिती उपलब्ध नाही'})</span>
                     </div>
                     <div>
                       <span className="text-slate-500 text-xs block font-medium">भाऊ व बहीण तपशील</span>
                       <span className="font-bold text-slate-900">
-                        {profile.brothers} भाऊ, {profile.sisters} बहीण
+                        {profile.brothers || 0} भाऊ, {profile.sisters || 0} बहीण
                         {profile.brotherDetails && ` (${profile.brotherDetails})`}
                       </span>
                     </div>
                     <div>
                       <span className="text-slate-500 text-xs block font-medium">कुटुंब पद्धत</span>
-                      <span className="font-bold text-[#A71930]">{profile.familyType}</span>
+                      <span className="font-bold text-[#A71930]">{profile.familyType || 'एकत्र / विभक्त'}</span>
                     </div>
                   </div>
 
@@ -979,7 +987,7 @@ export const ProfileDetailModal: React.FC<{
                             </span>
                           ))
                         ) : (
-                          <span className="text-slate-700 font-semibold">मुंडे, सानप, नागरे, काकड, घूगे, आघाव</span>
+                          <span className="text-slate-500 font-medium text-xs">माहिती दिलेली नाही</span>
                         )}
                       </div>
                     </div>
@@ -987,7 +995,7 @@ export const ProfileDetailModal: React.FC<{
                     <div className="grid grid-cols-2 gap-2 pt-2 border-t border-amber-200">
                       <div>
                         <span className="text-slate-500 text-[11px] block">मामांचे नाव</span>
-                        <span className="font-bold text-slate-800 text-xs">{profile.mamaName || 'श्री. सानप'}</span>
+                        <span className="font-bold text-slate-800 text-xs">{profile.mamaName || 'माहिती दिलेली नाही'}</span>
                       </div>
                       <div>
                         <span className="text-slate-500 text-[11px] block">मामांचे गाव</span>
@@ -1045,6 +1053,16 @@ export const ProfileDetailModal: React.FC<{
                 <Share2 className="w-4 h-4" />
                 <span>शेअर करा</span>
               </button>
+              {currentUser?.id !== profile.id && !isUserAdmin && (
+                <button
+                  onClick={() => setIsReportModalOpen(true)}
+                  className="px-3.5 py-2 rounded-xl bg-rose-100 hover:bg-rose-200 text-rose-800 text-xs font-black flex items-center gap-1.5 border border-rose-300 transition"
+                  title="ॲडमिनकडे या प्रोफाईलबाबत तक्रार नोंदवा"
+                >
+                  <ShieldAlert className="w-4 h-4 text-rose-600" />
+                  <span>तक्रार नोंदवा</span>
+                </button>
+              )}
             </div>
 
             <div className="flex flex-col gap-2">

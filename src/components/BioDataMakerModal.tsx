@@ -86,33 +86,33 @@ export const BioDataMakerModal: React.FC<{
     birthDate: '',
     birthTime: '',
     birthPlace: '',
-    height: '५ फूट ६ इंच',
-    complexion: 'गोरा (Fair)',
-    bloodGroup: 'O +ve',
-    education: 'बी.ई. (कॉम्प्युटरसायन्स)',
-    occupation: 'आयटी इंजिनीअर (पुणे)',
-    jobTitle: 'आयटी इंजिनीअर (पुणे)',
+    height: '',
+    complexion: '',
+    bloodGroup: '',
+    education: '',
+    occupation: '',
+    jobTitle: '',
     businessTitle: '',
-    income: '८ लाख प्रतिवर्ष',
+    income: '',
     fatherName: '',
-    fatherOccupation: 'शेती व व्यवसाय',
+    fatherOccupation: '',
     motherName: '',
-    brothers: '१ भाऊ (विवाहित)',
-    sisters: '१ बहीण (विवाहित)',
+    brothers: '',
+    sisters: '',
     chultaName: '',
-    nativePlace: 'बीड / परळी',
-    mamaName: 'मामा: काळे (अंबाजोगाई)',
-    relatives: 'आंधळे, पालवे, फड, गर्जे, सानप',
-    rashi: 'सिंह',
-    nakshatra: 'मघा',
-    gotra: 'कश्यप',
-    devak: 'कलम',
-    nadi: 'मध्य',
-    mangal: 'नाही (बिगर-मंगळ)',
+    nativePlace: '',
+    mamaName: '',
+    relatives: '',
+    rashi: '',
+    nakshatra: '',
+    gotra: '',
+    devak: '',
+    nadi: '',
+    mangal: '',
     mobile: '',
     whatsapp: '',
     address: '',
-    expectations: 'सुशिक्षित व सुसंस्कृत वधू/वर',
+    expectations: '',
     candidatePhotoUrl: undefined,
     linkToPortal: false, // Default: FALSE (Does NOT save to database unless requested)
     customFields: [],
@@ -577,7 +577,7 @@ export const BioDataMakerModal: React.FC<{
                     type="text"
                     value={formData.fullName}
                     onChange={(e) => handleChange('fullName', e.target.value)}
-                    placeholder="उदा. अमित रमेश गर्जे"
+                    placeholder="उदा. नाव मधले नाव आडनाव"
                     className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white font-bold"
                   />
                 </div>
@@ -588,7 +588,7 @@ export const BioDataMakerModal: React.FC<{
                     type="text"
                     value={formData.birthDate}
                     onChange={(e) => handleChange('birthDate', e.target.value)}
-                    placeholder="उदा. १५/०८/१९९८"
+                    placeholder="उदा. १५/०८/२००१"
                     className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
                   />
                 </div>
@@ -610,7 +610,7 @@ export const BioDataMakerModal: React.FC<{
                     type="text"
                     value={formData.birthPlace}
                     onChange={(e) => handleChange('birthPlace', e.target.value)}
-                    placeholder="उदा. बीड / परळी"
+                    placeholder="उदा. शहर / जिल्हा"
                     className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
                   />
                 </div>
@@ -809,7 +809,7 @@ export const BioDataMakerModal: React.FC<{
                     type="text"
                     value={formData.fatherName}
                     onChange={(e) => handleChange('fatherName', e.target.value)}
-                    placeholder="उदा. श्री. रमेश बबनराव गर्जे (शेती)"
+                    placeholder="उदा. वडिलांचे पूर्ण नाव (व्यवसाय)"
                     className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
                   />
                 </div>
@@ -820,7 +820,7 @@ export const BioDataMakerModal: React.FC<{
                     type="text"
                     value={formData.motherName}
                     onChange={(e) => handleChange('motherName', e.target.value)}
-                    placeholder="उदा. सौ. संगीता रमेश गर्जे (गृहणी)"
+                    placeholder="उदा. आईचे पूर्ण नाव (व्यवसाय/गृहणी)"
                     className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
                   />
                 </div>
@@ -831,7 +831,7 @@ export const BioDataMakerModal: React.FC<{
                     type="text"
                     value={formData.brothers}
                     onChange={(e) => handleChange('brothers', e.target.value)}
-                    placeholder="उदा. १ भाऊ (विवाहित)"
+                    placeholder="उदा. १ भाऊ (विवाहित / अविवाहित)"
                     className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
                   />
                 </div>
@@ -842,7 +842,7 @@ export const BioDataMakerModal: React.FC<{
                     type="text"
                     value={formData.sisters}
                     onChange={(e) => handleChange('sisters', e.target.value)}
-                    placeholder="उदा. १ बहीण (विवाहित)"
+                    placeholder="उदा. १ बहीण (विवाहित / अविवाहित)"
                     className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
                   />
                 </div>
@@ -853,7 +853,7 @@ export const BioDataMakerModal: React.FC<{
                     type="text"
                     value={formData.chultaName}
                     onChange={(e) => handleChange('chultaName', e.target.value)}
-                    placeholder="उदा. श्री. अशोकराव गर्जे"
+                    placeholder="उदा. काकांचे पूर्ण नाव"
                     className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
                   />
                 </div>
@@ -864,7 +864,7 @@ export const BioDataMakerModal: React.FC<{
                     type="text"
                     value={formData.mamaName}
                     onChange={(e) => handleChange('mamaName', e.target.value)}
-                    placeholder="उदा. श्री. अशोकराव काळे (मूळ गाव: अंबाजोगाई)"
+                    placeholder="उदा. मामांचे नाव व मूळ गाव"
                     className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
                   />
                 </div>
@@ -875,7 +875,7 @@ export const BioDataMakerModal: React.FC<{
                     type="text"
                     value={formData.relatives}
                     onChange={(e) => handleChange('relatives', e.target.value)}
-                    placeholder="उदा. आंधळे, पालवे, सानप, फड, गर्जे, नागरे"
+                    placeholder="उदा. नातेसंबंधातील विविध आडनावे"
                     className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
                   />
                 </div>
@@ -887,11 +887,11 @@ export const BioDataMakerModal: React.FC<{
                   <button onClick={() => removeCustomField(field.id)} className="absolute -top-2 -right-2 p-1 bg-red-900/80 text-white rounded-full shadow hidden group-hover:block"><Trash2 className="w-3 h-3" /></button>
                   <div className="space-y-1">
                     <label className="text-slate-400 text-[10px]">रकाण्याचे नाव (Label):</label>
-                    <input type="text" value={field.label} onChange={(e) => updateCustomField(field.id, 'label', e.target.value)} placeholder="उदा. आत्या" className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs" />
+                    <input type="text" value={field.label} onChange={(e) => updateCustomField(field.id, 'label', e.target.value)} placeholder="उदा. नातेसंबंध" className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs" />
                   </div>
                   <div className="space-y-1">
                     <label className="text-slate-400 text-[10px]">माहिती (Value):</label>
-                    <input type="text" value={field.value} onChange={(e) => updateCustomField(field.id, 'value', e.target.value)} placeholder="उदा. सौ. कविता मुंडे" className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs" />
+                    <input type="text" value={field.value} onChange={(e) => updateCustomField(field.id, 'value', e.target.value)} placeholder="उदा. नाव व आडनाव" className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs" />
                   </div>
                 </div>
               ))}
@@ -925,7 +925,7 @@ export const BioDataMakerModal: React.FC<{
                     type="text"
                     value={formData.nativePlace}
                     onChange={(e) => handleChange('nativePlace', e.target.value)}
-                    placeholder="उदा. परळी, जि. बीड"
+                    placeholder="उदा. मूळ गाव, तालुका, जिल्हा"
                     className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
                   />
                 </div>
@@ -936,7 +936,7 @@ export const BioDataMakerModal: React.FC<{
                     type="text"
                     value={formData.address}
                     onChange={(e) => handleChange('address', e.target.value)}
-                    placeholder="उदा. प्लॉट नं. २५, समर्थ नगर, पुणे"
+                    placeholder="उदा. घराचा किंवा राहण्याचा संपूर्ण पत्ता"
                     className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
                   />
                 </div>

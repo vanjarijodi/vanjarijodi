@@ -136,7 +136,7 @@ export const ProfileRemovalModal: React.FC = () => {
                     type="text"
                     value={partnerDetails}
                     onChange={(e) => setPartnerDetails(e.target.value)}
-                    placeholder="उदा. राहुल सानप (बीड) यांच्याशी विवाह ठरला..."
+                    placeholder="उदा. विवाह निश्चित झाला किंवा संक्षिप्त माहिती..."
                     className="w-full px-3.5 py-2 text-xs rounded-xl border border-amber-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#A71930]"
                   />
                 </div>

@@ -311,7 +311,7 @@ export const PrintBiodataModal: React.FC<{
                 <p className="font-bold text-amber-900 mt-1">
                   {profile.relativeSurnames && profile.relativeSurnames.length > 0
                     ? profile.relativeSurnames.join(', ')
-                    : 'मुंडे, सानप, नागरे, काकड, घूगे, आघाव, आंधळे'}
+                    : '-'}
                 </p>
               </div>
             </div>
@@ -664,7 +664,7 @@ export const PrintBiodataModal: React.FC<{
                     <td colSpan={3} style={{ padding: '5px 0', fontSize: '13px', color: '#7c2d12', fontWeight: 'bold' }}>
                       {profile.relativeSurnames && profile.relativeSurnames.length > 0
                         ? profile.relativeSurnames.join(', ')
-                        : 'मुंडे, सानप, नागरे, काकड, घूगे, आघाव, आंधळे'}
+                        : '-'}
                     </td>
                   </tr>
                 </tbody>

@@ -212,11 +212,11 @@ export const SuccessStories: React.FC = () => {
             ) : (
               <form onSubmit={handleSubmitStory} className="space-y-4 text-xs">
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">जोडप्याचे नाव (उदा. अमित व स्वाती आव्हाड):</label>
+                  <label className="block text-slate-300 font-bold mb-1">जोडप्याचे नाव (उदा. वर व वधूचे नाव):</label>
                   <input
                     type="text"
                     required
-                    placeholder="उदा. राहुल आणि पूजा गर्जे"
+                    placeholder="उदा. वर व वधूचे नाव"
                     value={coupleName}
                     onChange={(e) => setCoupleName(e.target.value)}
                     className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-white outline-none focus:border-amber-400"

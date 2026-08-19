@@ -3,11 +3,14 @@ import { useApp } from '../context/AppContext';
 import { Heart, Phone, Mail, MapPin, Download, ShieldCheck, Sparkles, ShieldAlert, MessageCircle, Send, FileText, Lock, RefreshCw, CreditCard, Globe, Users, Award, Scale, UserCheck } from 'lucide-react';
 import { VanjariJodiLogo } from './VanjariJodiLogo';
 import { LegalPoliciesModal, PolicyTabType } from './LegalPoliciesModal';
-import { VANJARI_SUB_CASTES, VANJARI_CITIES } from '../utils/seoData';
+import { WadheBhauModal } from './WadheBhauModal';
+import { VANJARI_FOUR_DIVISIONS } from '../data/vanjariKuliData';
+import { VANJARI_CITIES } from '../utils/seoData';
 
 export const Footer: React.FC = () => {
   const { t, language, siteConfig, setIsAdminOpen, openSeoLanding } = useApp();
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
+  const [isWadheBhauOpen, setIsWadheBhauOpen] = useState(false);
   const [legalTab, setLegalTab] = useState<PolicyTabType>('terms');
 
   const openPolicy = (tab: PolicyTabType) => {
@@ -172,21 +175,28 @@ export const Footer: React.FC = () => {
             </button>
           </div>
 
-          {/* Sub-Castes Tags */}
-          <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-            <span className="font-bold text-amber-300/80 mr-1 flex items-center gap-1">
-              <Users className="w-3 h-3 text-amber-400" />
-              <span>{language === 'en' ? 'Sub-Castes:' : 'वंजारी पोटजाती:'}</span>
+          {/* Four Major Vanjari Divisions & Wadhe Bhau Guide */}
+          <div className="flex flex-wrap items-center gap-2 text-[11px] bg-[#5C0815]/90 p-3 rounded-2xl border border-amber-400/30">
+            <span className="font-bold text-amber-300 flex items-center gap-1 shrink-0">
+              <Users className="w-4 h-4 text-amber-400" />
+              <span>{language === 'en' ? '4 Major Divisions:' : 'वंजारी समाज ४ मुख्य विभाग:'}</span>
             </span>
-            {VANJARI_SUB_CASTES.map((c) => (
-              <button
-                key={c.slug}
-                onClick={() => openSeoLanding({ community: c.slug })}
-                className="px-2.5 py-1 rounded-lg bg-[#5C0815] hover:bg-amber-400 hover:text-[#800C1E] transition border border-amber-400/30 cursor-pointer text-amber-100 font-medium"
-              >
-                {language === 'mr' ? c.nameMr.split(' (')[0] : c.nameEn}
-              </button>
-            ))}
+            <div className="flex flex-wrap items-center gap-1.5 flex-1">
+              {VANJARI_FOUR_DIVISIONS.map((div) => (
+                <span
+                  key={div.code}
+                  className="px-2.5 py-1 rounded-lg bg-[#800C1E] border border-amber-400/30 text-amber-100 font-bold text-[11px]"
+                >
+                  {div.name}
+                </span>
+              ))}
+            </div>
+            <button
+              onClick={() => setIsWadheBhauOpen(true)}
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 text-[#800C1E] font-black text-xs hover:from-amber-300 hover:to-amber-400 transition shadow-md flex items-center gap-1.5 cursor-pointer shrink-0"
+            >
+              <span>🚩 वंजारी जातकुळी, गोत्र व वाढे भाऊ मार्गदर्शिका ↗</span>
+            </button>
           </div>
 
           {/* Major Districts Tags */}
@@ -293,6 +303,12 @@ export const Footer: React.FC = () => {
         isOpen={isLegalModalOpen}
         initialTab={legalTab}
         onClose={() => setIsLegalModalOpen(false)}
+      />
+
+      {/* Wadhe Bhau & Kuli Guide Modal */}
+      <WadheBhauModal
+        isOpen={isWadheBhauOpen}
+        onClose={() => setIsWadheBhauOpen(false)}
       />
     </footer>
   );

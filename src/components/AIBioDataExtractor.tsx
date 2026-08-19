@@ -640,7 +640,7 @@ export const AIBioDataExtractor: React.FC<AIBioDataExtractorProps> = ({
                 onChange={(e) =>
                   setExtractedResult((prev) => (prev ? { ...prev, fullName: e.target.value } : null))
                 }
-                placeholder="उदा. अमित तुकाराम सानप / पूजा बाळकृष्ण मुंडे"
+                placeholder="उदा. वर किंवा वधूचे पूर्ण नाव"
                 className="w-full bg-slate-900 border border-amber-500/50 rounded-xl px-3.5 py-2 text-sm text-white font-black outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/50"
               />
             </div>
