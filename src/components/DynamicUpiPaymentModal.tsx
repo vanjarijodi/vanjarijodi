@@ -24,6 +24,7 @@ import {
   FileText,
   CreditCard,
   Lock,
+  Info,
 } from 'lucide-react';
 
 interface DynamicUpiPaymentModalProps {
@@ -101,8 +102,9 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
   const [adminNote, setAdminNote] = useState<string>('');
   const [approvedDetails, setApprovedDetails] = useState<any>(null);
 
-  // Toast / Copy Feedback
+  // Toast / Copy Feedback & Deep Link Notice
   const [copiedToast, setCopiedToast] = useState<boolean>(false);
+  const [upiLaunchNotice, setUpiLaunchNotice] = useState<string | null>(null);
 
   // Reset & Initialize on Open
   useEffect(() => {
@@ -210,20 +212,54 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     }
   };
 
-  // Launch Specific UPI App with auto-copy and visual feedback
+  // Launch Specific UPI App with auto-copy, desktop check, and safe trigger
   const handleLaunchUpiApp = (uri: string, appName: string) => {
     if (!uri) return;
-    try {
-      // Auto-copy UPI ID to clipboard as a helpful fallback
-      navigator.clipboard.writeText(upiId);
-    } catch (e) {
-      // ignore
-    }
-    setActiveAppLaunching(appName);
-    setTimeout(() => setActiveAppLaunching(null), 3000);
 
-    // Direct Intent Trigger
-    window.location.href = uri;
+    // Auto-copy UPI ID to clipboard as a fail-proof fallback
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(upiId);
+      }
+    } catch (e) {
+      console.log('Clipboard copy error:', e);
+    }
+
+    setCopiedToast(true);
+    setTimeout(() => setCopiedToast(false), 3000);
+    setActiveAppLaunching(appName);
+    setTimeout(() => setActiveAppLaunching(null), 4000);
+
+    const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    if (!isMobileDevice) {
+      setUpiLaunchNotice(
+        `💻 संगणक/लॅपटॉपवर थेट ॲप उघडत नाही. UPI ID (${upiId}) ऑटो-कॉपी झाला आहे! तुमच्या मोबाईलमधील PhonePe / GPay ने डावीकडील QR कोड स्कॅन करा किंवा UPI ID टाकून भरणा करा.`
+      );
+      return;
+    }
+
+    setUpiLaunchNotice(
+      `📲 ${appName} उघडत आहे... जर ॲप आपोआप उघडले नाही, तर UPI ID (${upiId}) क्लिपबोर्डवर कॉपी झाला आहे. तुमच्या मोबाईलमधील PhonePe / GPay / Paytm उघडून 'Pay to UPI ID' द्वारे भरणा करा.`
+    );
+
+    try {
+      // Create hidden element to safely trigger deep link without mutating window.location or showing ERR_UNKNOWN_URL_SCHEME
+      const link = document.createElement('a');
+      link.href = uri;
+      link.target = '_top';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.warn('Deep link trigger fallback:', err);
+      try {
+        window.open(uri, '_blank');
+      } catch (e2) {
+        // ignore
+      }
+    }
   };
 
   // Copy UPI ID with Toast
@@ -673,6 +709,28 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                   <Smartphone className="w-5 h-5 text-amber-300 animate-bounce" />
                   <span>📱 कोणत्याही UPI ॲपद्वारे भरा (Pay ₹{activePlan.price})</span>
                 </button>
+
+                {/* Live Launch Status / Copy Guidance Banner */}
+                {upiLaunchNotice && (
+                  <div className="p-3 bg-amber-500/10 border border-amber-300 rounded-xl text-xs text-amber-950 font-bold leading-relaxed flex items-start gap-2 shadow-sm animate-in fade-in duration-200">
+                    <Info className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                    <div className="flex-1 space-y-1">
+                      <p>{upiLaunchNotice}</p>
+                      <div className="flex items-center gap-2 pt-0.5">
+                        <span className="font-mono text-xs bg-white px-2 py-0.5 rounded border border-amber-300 font-extrabold text-[#800C1E]">
+                          {upiId}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleCopyUpi}
+                          className="text-[11px] bg-[#800C1E] text-amber-100 px-2 py-0.5 rounded font-bold hover:bg-[#A71930] transition"
+                        >
+                          {copiedToast ? '✓ आयडी कॉपी झाला!' : 'आयडी कॉपी करा'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Granular Individual App Launch Buttons */}
                 <div className="grid grid-cols-3 gap-2">

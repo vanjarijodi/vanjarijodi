@@ -17,7 +17,8 @@ import {
   Smartphone,
   Sparkles,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  Info
 } from 'lucide-react';
 
 export const ContactUnlockModal: React.FC = () => {
@@ -68,13 +69,47 @@ export const ContactUnlockModal: React.FC = () => {
     siteConfig.paymentQrUrl ||
     `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(universalUri)}`;
 
+  const [launchNotice, setLaunchNotice] = useState<string | null>(null);
+
   const handleLaunchApp = (uri: string, appName: string) => {
     try {
-      navigator.clipboard.writeText(upiId);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(upiId);
+      }
     } catch (e) {}
+
     setLaunchingApp(appName);
-    setTimeout(() => setLaunchingApp(null), 3000);
-    window.location.href = uri;
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 3000);
+    setTimeout(() => setLaunchingApp(null), 4000);
+
+    const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    if (!isMobileDevice) {
+      setLaunchNotice(
+        `💻 संगणक/लॅपटॉपवर थेट ॲप उघडत नाही. UPI ID (${upiId}) क्लिपबोर्डवर कॉपी झाला आहे! तुमच्या मोबाईलमधील PhonePe / GPay ने QR कोड स्कॅन करा.`
+      );
+      return;
+    }
+
+    setLaunchNotice(
+      `📲 ${appName} उघडत आहे... जर ॲप आपोआप उघडले नाही, तर UPI ID (${upiId}) क्लिपबोर्डवर कॉपी झाला आहे. PhonePe/GPay मध्ये 'Pay to UPI ID' द्वारे भरणा करा.`
+    );
+
+    try {
+      const link = document.createElement('a');
+      link.href = uri;
+      link.target = '_top';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.warn('Deep link trigger fallback:', err);
+      try {
+        window.open(uri, '_blank');
+      } catch (e2) {}
+    }
   };
 
   // Check if there is an existing request for this target profile
@@ -340,6 +375,28 @@ export const ContactUnlockModal: React.FC = () => {
                       <Smartphone className="w-4 h-4 text-amber-300 animate-bounce" />
                       <span>📱 कोणत्याही UPI ॲपद्वारे भरा (Pay ₹{unlockFee})</span>
                     </button>
+
+                    {/* Launch Guidance Banner */}
+                    {launchNotice && (
+                      <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-300 text-amber-950 text-xs font-bold leading-relaxed flex items-start gap-2 shadow-sm animate-in fade-in duration-200">
+                        <Info className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                        <div className="flex-1 space-y-1">
+                          <p>{launchNotice}</p>
+                          <div className="flex items-center gap-2 pt-0.5">
+                            <span className="font-mono text-xs bg-white px-2 py-0.5 rounded border border-amber-300 font-extrabold text-[#800C1E]">
+                              {upiId}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={handleCopyUpi}
+                              className="text-[11px] bg-[#800C1E] text-amber-100 px-2 py-0.5 rounded font-bold hover:bg-[#A71930] transition"
+                            >
+                              {isCopied ? '✓ कॉपी झाले!' : 'कॉपी करा'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* App Icons Grid */}
                     <div className="grid grid-cols-3 gap-2 pt-1">
