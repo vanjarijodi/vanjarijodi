@@ -26,7 +26,10 @@ import {
   ArrowRight,
   ArrowLeft,
   Loader2,
-  Upload
+  Upload,
+  Users,
+  Crown,
+  ShieldCheck,
 } from 'lucide-react';
 
 export const RegisterModal: React.FC<{
@@ -162,6 +165,16 @@ export const RegisterModal: React.FC<{
   const [acceptedTermsAndConditions, setAcceptedTermsAndConditions] = useState<boolean>(false);
   const [isLegalModalOpen, setIsLegalModalOpen] = useState<boolean>(false);
   const [legalModalTab, setLegalModalTab] = useState<PolicyTabType>('terms');
+
+  // Registration Success Finished Screen State
+  const [isSuccessFinished, setIsSuccessFinished] = useState<boolean>(false);
+  const [registeredProfileData, setRegisteredProfileData] = useState<UserProfile | null>(null);
+  const [savedChosenPlan, setSavedChosenPlan] = useState<any>(null);
+
+  const handleModalClose = () => {
+    setIsSuccessFinished(false);
+    onClose();
+  };
 
   if (!isOpen) return null;
 
@@ -361,21 +374,10 @@ export const RegisterModal: React.FC<{
     // 2. Set newly registered user as current logged in user instantly
     setCurrentUser(newProfile);
 
-    const isAutoApproved = siteConfig.isAutoModeEnabled && (siteConfig.autoApproveNewRegistrations || siteConfig.autoModeType === 'free_for_all');
-
-    alert(
-      isAutoApproved
-        ? '🎉 अभिनंदन! तुमची नोंदणी यशस्वी झाली आहे व तुमचे प्रोफाइल थेट लॉगिन झाले आहे!'
-        : '🎉 धन्यवाद! तुमची नोंदणी, फोटो व सर्व माहिती यशस्वीरित्या सबमिट झाली आहे. तुमचे खाते थेट लॉगिन झाले आहे.'
-    );
-
-    // 3. If a paid plan was chosen, trigger payment modal automatically
-    if (chosenPlan && chosenPlan.price > 0 && !appliedRegPromoRes?.isVipFree) {
-      setSelectedPlanForPayment(chosenPlan);
-      setIsPaymentOpen(true);
-    }
-
-    onClose();
+    // 3. Transition to Registration Success Screen (Do NOT force payment modal overlay automatically)
+    setRegisteredProfileData(newProfile);
+    setSavedChosenPlan(chosenPlan);
+    setIsSuccessFinished(true);
   };
 
   return (
@@ -415,8 +417,110 @@ export const RegisterModal: React.FC<{
           </div>
         </div>
 
-        {/* STEP 1: CLEAN SELECTOR POPUP (If showSelector is true) */}
-        {showSelector ? (
+        {/* REGISTRATION SUCCESS & PLATFORM GUIDANCE SCREEN */}
+        {isSuccessFinished ? (
+          <div className="p-6 sm:p-8 space-y-6 text-center overflow-y-auto">
+            {/* Celebration Header */}
+            <div className="space-y-2">
+              <div className="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center mx-auto border-2 border-emerald-300 shadow-lg animate-bounce">
+                <CheckCircle2 className="w-10 h-10 text-emerald-600" />
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-black text-[#800C1E] tracking-tight">
+                🎉 अभिनंदन! तुमचा बायोडाटा तयार झाला आहे!
+              </h3>
+              <p className="text-xs sm:text-sm font-semibold text-slate-700 max-w-lg mx-auto leading-relaxed">
+                तुमची नोंदणी व माहिती यशस्वीरित्या जतन झाली आहे. आता तुम्ही वंजारी जोडी पोर्टलवर उपलब्ध सर्व वधू-वर बायोडाटा (Profiles) पाहू शकता.
+              </p>
+            </div>
+
+            {/* Saved Profile Card */}
+            {registeredProfileData && (
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50/80 p-4 rounded-2xl border-2 border-amber-300 flex items-center gap-4 text-left shadow-sm max-w-md mx-auto">
+                <img
+                  src={
+                    registeredProfileData.photos?.[0] ||
+                    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200'
+                  }
+                  alt={registeredProfileData.fullName}
+                  className="w-16 h-16 rounded-2xl object-cover border-2 border-[#800C1E] shadow"
+                />
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                    ✓ बायोडाटा सेव्ह झाला
+                  </span>
+                  <h4 className="font-extrabold text-slate-900 text-base truncate mt-1">
+                    {registeredProfileData.fullName}
+                  </h4>
+                  <p className="text-xs text-slate-600 truncate">
+                    {registeredProfileData.subCaste || 'वंजारी'} • {registeredProfileData.district || 'महाराष्ट्र'}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Platform Overview Guidance */}
+            <div className="bg-white p-5 rounded-2xl border-2 border-amber-200 shadow-sm space-y-3 text-left max-w-xl mx-auto">
+              <div className="flex items-center gap-2 text-[#800C1E] font-bold text-sm">
+                <Sparkles className="w-5 h-5 text-amber-500 flex-shrink-0" />
+                <span>पुढील सोपे पर्याय (तुमच्या निवडीनुसार):</span>
+              </div>
+
+              <div className="space-y-2.5 text-xs text-slate-700 leading-relaxed">
+                <div className="flex items-start gap-2.5 bg-amber-50/80 p-3 rounded-xl border border-amber-200">
+                  <span className="bg-[#800C1E] text-amber-100 font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[11px] mt-0.5">
+                    १
+                  </span>
+                  <div>
+                    <strong className="text-slate-900 block font-bold text-xs">
+                      इतर सर्व वधू-वर बायोडाटा पहा (Explore All Profiles)
+                    </strong>
+                    <span>पोर्टलवर वंजारी समाजातील १,०००+ हून अधिक बायोडाटा उपलब्ध आहेत. तुम्ही लगेच सर्व वधू-वर प्रोफाईल्स पाहू शकता.</span>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-2.5 bg-amber-50/80 p-3 rounded-xl border border-amber-200">
+                  <span className="bg-[#800C1E] text-amber-100 font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-[11px] mt-0.5">
+                    २
+                  </span>
+                  <div>
+                    <strong className="text-slate-900 block font-bold text-xs">
+                      प्रीमियम प्लॅन / संपर्क अन-लॉक (Optional Upgrade)
+                    </strong>
+                    <span>पसंतीच्या बायोडाटाचे थेट मोबाईल नंबर मिळवण्यासाठी सोयीनुसार प्लॅन ॲक्टिव्हेट करा.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-3 max-w-md mx-auto pt-1">
+              <button
+                type="button"
+                onClick={handleModalClose}
+                className="w-full py-3.5 px-5 bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] hover:from-[#980e24] text-white font-black text-sm rounded-2xl shadow-xl flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer border border-amber-300"
+              >
+                <Users className="w-5 h-5 text-amber-300" />
+                <span>🔍 सर्व वधू-वर बायोडाटा पहा (Explore Profiles)</span>
+                <ArrowRight className="w-4 h-4 text-amber-300" />
+              </button>
+
+              {savedChosenPlan && savedChosenPlan.price > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleModalClose();
+                    setSelectedPlanForPayment(savedChosenPlan);
+                    setIsPaymentOpen(true);
+                  }}
+                  className="w-full py-3 px-5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 text-amber-950 font-extrabold text-xs sm:text-sm rounded-2xl shadow-md flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer border border-amber-400"
+                >
+                  <Crown className="w-4 h-4 text-amber-950" />
+                  <span>👑 संपर्क अनलॉक करण्यासाठी प्लॅन घ्या (Pay ₹{savedChosenPlan.price})</span>
+                </button>
+              )}
+            </div>
+          </div>
+        ) : showSelector ? (
           <div className="p-8 space-y-6 text-center overflow-y-auto">
             
             {/* Centered Brand Logo */}
