@@ -194,23 +194,30 @@ async function startServer() {
       const businessName = (customBusinessName ? sanitizeString(customBusinessName) : '') || globalSettings.business_name || 'Vanjari Jodi Matrimony';
       const transactionNote = note ? sanitizeString(note) : `VanjariJodi_${cleanPlanId}`;
 
-      // Standard Universal UPI Deep Link (RFC / NPCI Spec)
-      const upiIntentUri = `upi://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=${globalSettings.currency || 'INR'}&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent(transactionNote)}`;
+      // Clean Payee Name and Transaction Note according to NPCI UPI Deep Link specification
+      const rawBusinessName = (customBusinessName ? sanitizeString(customBusinessName) : '') || globalSettings.business_name || 'Mahesh Hange';
+      const cleanBusinessName = rawBusinessName.replace(/[^a-zA-Z0-9\s]/g, '').trim() || 'Mahesh Hange';
+      
+      const rawNote = note ? sanitizeString(note) : `VanjariJodi${cleanPlanId}`;
+      const cleanNote = rawNote.replace(/[^a-zA-Z0-9]/g, '') || 'VanjariJodi';
+
+      // Standard Universal UPI Deep Link (Strict NPCI Spec: pa, pn, am, cu, tn - NO tr to prevent PSP Merchant error)
+      const upiIntentUri = `upi://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(cleanBusinessName)}&am=${numAmount}&cu=${globalSettings.currency || 'INR'}&tn=${encodeURIComponent(cleanNote)}`;
 
       // Brand-specific UPI direct intents & Android native Intent package links for 1-click mobile app launcher
-      const phonepeUri = `phonepe://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent(transactionNote)}`;
-      const gpayUri = `tez://upi/pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent(transactionNote)}`;
-      const gpayAltUri = `gpay://upi/pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent(transactionNote)}`;
-      const paytmUri = `paytmmp://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent(transactionNote)}`;
-      const bhimUri = `bhim://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent(transactionNote)}`;
-      const credUri = `cred://upi/pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent(transactionNote)}`;
-      const amazonpayUri = `amazonpay://upi/pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tr=${encodeURIComponent(orderId)}&tn=${encodeURIComponent(transactionNote)}`;
+      const phonepeUri = `phonepe://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(cleanBusinessName)}&am=${numAmount}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+      const gpayUri = `tez://upi/pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(cleanBusinessName)}&am=${numAmount}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+      const gpayAltUri = `gpay://upi/pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(cleanBusinessName)}&am=${numAmount}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+      const paytmUri = `paytmmp://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(cleanBusinessName)}&am=${numAmount}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+      const bhimUri = `bhim://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(cleanBusinessName)}&am=${numAmount}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+      const credUri = `cred://upi/pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(cleanBusinessName)}&am=${numAmount}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+      const amazonpayUri = `amazonpay://upi/pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(cleanBusinessName)}&am=${numAmount}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
 
       // Explicit Android Package Intent URIs (Guaranteed to invoke target app or chooser on Android Chrome/WebView)
-      const phonepeIntent = `intent://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tn=${encodeURIComponent(transactionNote)}#Intent;scheme=upi;package=com.phonepe.app;end`;
-      const gpayIntent = `intent://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tn=${encodeURIComponent(transactionNote)}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`;
-      const paytmIntent = `intent://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tn=${encodeURIComponent(transactionNote)}#Intent;scheme=upi;package=net.one97.paytm;end`;
-      const bhimIntent = `intent://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(businessName)}&am=${numAmount}&cu=INR&tn=${encodeURIComponent(transactionNote)}#Intent;scheme=upi;package=in.org.npci.upiapp;end`;
+      const phonepeIntent = `intent://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(cleanBusinessName)}&am=${numAmount}&cu=INR&tn=${encodeURIComponent(cleanNote)}#Intent;scheme=upi;package=com.phonepe.app;end`;
+      const gpayIntent = `intent://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(cleanBusinessName)}&am=${numAmount}&cu=INR&tn=${encodeURIComponent(cleanNote)}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`;
+      const paytmIntent = `intent://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(cleanBusinessName)}&am=${numAmount}&cu=INR&tn=${encodeURIComponent(cleanNote)}#Intent;scheme=upi;package=net.one97.paytm;end`;
+      const bhimIntent = `intent://pay?pa=${encodeURIComponent(targetUpiId)}&pn=${encodeURIComponent(cleanBusinessName)}&am=${numAmount}&cu=INR&tn=${encodeURIComponent(cleanNote)}#Intent;scheme=upi;package=in.org.npci.upiapp;end`;
 
       // Dynamic QR Code SVG / API Generator
       const qrDataString = upiIntentUri;

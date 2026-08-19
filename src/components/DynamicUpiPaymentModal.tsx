@@ -158,14 +158,17 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     const targetPrice = activePlan ? activePlan.price : (paymentConfig?.amount || '199.00');
     const transactionNote = paymentConfig?.transactionNote || `VanjariJodi_${activePlan.id}`;
 
+    const cleanBusiness = String(targetBusiness).replace(/[^a-zA-Z0-9\s]/g, '').trim() || 'Mahesh Hange';
+    const cleanNote = String(transactionNote).replace(/[^a-zA-Z0-9]/g, '') || 'VanjariJodi';
+
     // Instant client-side fallback generation
-    const fallbackUniversal = `upi://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
-    const fallbackPhonePe = `phonepe://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
-    const fallbackGPay = `tez://upi/pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
-    const fallbackPaytm = `paytmmp://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
-    const fallbackBhim = `bhim://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
-    const fallbackCred = `cred://upi/pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
-    const fallbackAmazonPay = `amazonpay://upi/pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(targetBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(transactionNote)}`;
+    const fallbackUniversal = `upi://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+    const fallbackPhonePe = `phonepe://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+    const fallbackGPay = `tez://upi/pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+    const fallbackPaytm = `paytmmp://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+    const fallbackBhim = `bhim://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+    const fallbackCred = `cred://upi/pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+    const fallbackAmazonPay = `amazonpay://upi/pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
 
     setUpiIntentUri(fallbackUniversal);
     setPhonepeUri(fallbackPhonePe);
@@ -233,10 +236,13 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     const isAndroid = /Android/i.test(navigator.userAgent);
 
+    const cleanBusiness = String(businessName || 'Mahesh Hange').replace(/[^a-zA-Z0-9\s]/g, '').trim() || 'Mahesh Hange';
+    const cleanNote = String(paymentConfig?.transactionNote || 'VanjariJodi').replace(/[^a-zA-Z0-9]/g, '') || 'VanjariJodi';
+
     const formattedPrice = String(activePlan?.price || paymentConfig?.amount || '199').replace(/[^0-9.]/g, '');
     const encodedUpi = encodeURIComponent(upiId);
-    const encodedBusiness = encodeURIComponent(businessName);
-    const encodedNote = encodeURIComponent(paymentConfig?.transactionNote || `VanjariJodi_${activePlan?.id || 'reg'}`);
+    const encodedBusiness = encodeURIComponent(cleanBusiness);
+    const encodedNote = encodeURIComponent(cleanNote);
 
     let targetUri = customUri || upiIntentUri;
 
@@ -886,16 +892,16 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                   </button>
                 </div>
 
-                {/* 3 Step Instructions */}
-                <div className="bg-amber-50/70 rounded-xl p-3 border border-amber-200 text-xs text-amber-950 space-y-1.5">
-                  <p className="font-bold flex items-center space-x-1 text-amber-900">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
-                    <span>३ सोप्या पायऱ्यांत पेमेंट पूर्ण करा:</span>
+                {/* 3 Step Instructions & Easy Manual Fallback */}
+                <div className="bg-amber-50/90 rounded-xl p-3.5 border border-amber-300 text-xs text-amber-950 space-y-2 shadow-sm">
+                  <p className="font-bold flex items-center space-x-1 text-amber-900 text-xs">
+                    <Sparkles className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                    <span>सोप्या पद्धतीने पेमेंट पूर्ण करा:</span>
                   </p>
-                  <ol className="list-decimal list-inside space-y-0.5 text-[11px] text-slate-700 leading-relaxed">
-                    <li>तुमच्या मोबाईलमधील ॲपचे बटण दाबा (थेट ॲप ओपन होईल आणि रक्कम दिसेल).</li>
-                    <li>UPI पिन टाकून ₹{activePlan.price} पेमेंट करा.</li>
-                    <li>पेमेंट झाल्यावर बँक मेसेज / ॲपमधील १२-अंकी UTR नंबर खाली टाकून सबमिट करा.</li>
+                  <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-800 leading-relaxed font-medium">
+                    <li>वर दिलेले ॲप बटण दाबा (थेट PhonePe/GPay ओपन होऊन ₹{activePlan.price} दिसेल).</li>
+                    <li>जर ॲपमध्ये मेसेज आला, तर UPI ID (<strong>{upiId}</strong>) ऑटो-कॉपी झाला आहे! PhonePe/GPay मध्ये 'Pay to UPI ID' निवडून ₹{activePlan.price} पाठवा.</li>
+                    <li>पेमेंट झाल्यावर मिळालेला १२-अंकी UTR क्रमांक खाली टाकून सबमिट करा.</li>
                   </ol>
                 </div>
               </div>
