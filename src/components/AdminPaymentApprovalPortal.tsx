@@ -32,6 +32,11 @@ import {
   AlertCircle,
   HelpCircle,
   Trash2,
+  Tag,
+  Gift,
+  Percent,
+  TrendingUp,
+  Users,
 } from 'lucide-react';
 
 export const AdminPaymentApprovalPortal: React.FC = () => {
@@ -48,10 +53,11 @@ export const AdminPaymentApprovalPortal: React.FC = () => {
     deletePayPerContactRequest,
     logActivity,
     profiles,
+    promoCodes,
   } = useApp();
 
-  // Active Tab: 'pending' | 'approved' | 'rejected' | 'all' | 'contact_unlocks' | 'settings'
-  const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected' | 'all' | 'contact_unlocks' | 'settings'>('pending');
+  // Active Tab: 'pending' | 'approved' | 'rejected' | 'all' | 'contact_unlocks' | 'promo_report' | 'settings'
+  const [activeTab, setActiveTab] = useState<'pending' | 'approved' | 'rejected' | 'all' | 'contact_unlocks' | 'promo_report' | 'settings'>('pending');
 
   // Sub-filter for request type: 'all' | 'plans' | 'contacts'
   const [requestTypeFilter, setRequestTypeFilter] = useState<'all' | 'plans' | 'contacts'>('all');
@@ -162,6 +168,9 @@ export const AdminPaymentApprovalPortal: React.FC = () => {
         status: r.status,
         createdAt: r.created_at || r.createdAt,
         adminNote: r.admin_note || r.adminNote,
+        promoCode: r.promo_code || r.promoCode,
+        discountAmount: Number(r.discount_amount || r.discountAmount) || 0,
+        originalAmount: Number(r.original_amount || r.originalAmount) || Number(r.amount) || 0,
         type: 'plan',
       });
     });
@@ -172,6 +181,9 @@ export const AdminPaymentApprovalPortal: React.FC = () => {
         seenIds.add(r.id);
         list.push({
           ...r,
+          promoCode: r.promoCode || (r.adminNote?.includes('कूपन कोड लागू:') ? r.adminNote.split('कूपन कोड लागू:')[1]?.split(' ')[1] : undefined),
+          discountAmount: Number(r.discountAmount) || 0,
+          originalAmount: Number(r.originalAmount) || Number(r.amount) || 0,
           type: 'plan',
         });
       }
@@ -229,6 +241,69 @@ export const AdminPaymentApprovalPortal: React.FC = () => {
     return { utrCounts, screenshotCounts };
   }, [allUnifiedRequests, profiles]);
 
+  // Comprehensive Promo Code Usage & Revenue Analytics
+  const promoAnalytics = useMemo(() => {
+    const promoTransactions = allUnifiedRequests.filter(
+      (r) => !!r.promoCode || (r.adminNote && r.adminNote.includes('कूपन'))
+    );
+
+    let totalPromoUses = 0;
+    let totalDiscountGiven = 0;
+    let totalPromoRevenue = 0;
+
+    const breakdown: Record<
+      string,
+      {
+        code: string;
+        count: number;
+        discountTotal: number;
+        revenueTotal: number;
+        orders: any[];
+      }
+    > = {};
+
+    // Initialize all existing promo codes from context
+    promoCodes.forEach((p) => {
+      breakdown[p.code.toUpperCase()] = {
+        code: p.code.toUpperCase(),
+        count: p.usedCount || 0,
+        discountTotal: 0,
+        revenueTotal: 0,
+        orders: [],
+      };
+    });
+
+    promoTransactions.forEach((t) => {
+      const rawCode = (t.promoCode || 'CUSTOM').toUpperCase();
+      totalPromoUses++;
+      totalDiscountGiven += Number(t.discountAmount) || 0;
+      totalPromoRevenue += Number(t.amount) || 0;
+
+      if (!breakdown[rawCode]) {
+        breakdown[rawCode] = {
+          code: rawCode,
+          count: 0,
+          discountTotal: 0,
+          revenueTotal: 0,
+          orders: [],
+        };
+      }
+
+      breakdown[rawCode].count++;
+      breakdown[rawCode].discountTotal += Number(t.discountAmount) || 0;
+      breakdown[rawCode].revenueTotal += Number(t.amount) || 0;
+      breakdown[rawCode].orders.push(t);
+    });
+
+    return {
+      totalPromoUses,
+      totalDiscountGiven,
+      totalPromoRevenue,
+      promoTransactions,
+      breakdownList: Object.values(breakdown),
+    };
+  }, [allUnifiedRequests, promoCodes]);
+
   // Counts Calculation
   const counts = useMemo(() => {
     let pending = 0;
@@ -257,8 +332,9 @@ export const AdminPaymentApprovalPortal: React.FC = () => {
       rejected,
       contactUnlocks,
       duplicateAlerts,
+      promoOrders: promoAnalytics.totalPromoUses,
     };
-  }, [allUnifiedRequests, fraudAnalytics]);
+  }, [allUnifiedRequests, fraudAnalytics, promoAnalytics]);
 
   // Filtered List
   const displayedRequests = useMemo(() => {
@@ -268,6 +344,7 @@ export const AdminPaymentApprovalPortal: React.FC = () => {
       if (activeTab === 'approved' && r.status !== 'approved') return false;
       if (activeTab === 'rejected' && r.status !== 'rejected') return false;
       if (activeTab === 'contact_unlocks' && r.type !== 'contact_unlock') return false;
+      if (activeTab === 'promo_report' && !r.promoCode && (!r.adminNote || !r.adminNote.includes('कूपन'))) return false;
 
       // Sub-type filter
       if (requestTypeFilter === 'plans' && r.type !== 'plan') return false;
@@ -580,6 +657,20 @@ export const AdminPaymentApprovalPortal: React.FC = () => {
             <span>सर्व नोंदी ({counts.all})</span>
           </button>
 
+          {/* Promo Code Report Tab */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('promo_report')}
+            className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center space-x-2 transition cursor-pointer ${
+              activeTab === 'promo_report'
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md'
+                : 'bg-white/10 text-white hover:bg-white/20'
+            }`}
+          >
+            <Gift className="w-4 h-4 text-emerald-300" />
+            <span>🏷️ कूपन वापर अहवाल ({counts.promoOrders})</span>
+          </button>
+
           {/* UPI Settings Tab */}
           <button
             type="button"
@@ -597,7 +688,7 @@ export const AdminPaymentApprovalPortal: React.FC = () => {
       </div>
 
       {/* Collapsible Admin Bank Verification Quick Guide */}
-      {activeTab !== 'settings' && (
+      {activeTab !== 'settings' && activeTab !== 'promo_report' && (
         <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300/80 rounded-2xl p-4 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -653,7 +744,7 @@ export const AdminPaymentApprovalPortal: React.FC = () => {
       {/* ------------------------------------------------------------- */}
       {/* VIEW 1: PAYMENTS & UNLOCK REQUESTS LIST                       */}
       {/* ------------------------------------------------------------- */}
-      {activeTab !== 'settings' && (
+      {activeTab !== 'settings' && activeTab !== 'promo_report' && (
         <div className="space-y-4">
           {/* Filter & Search Bar */}
           <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -828,15 +919,41 @@ export const AdminPaymentApprovalPortal: React.FC = () => {
                           </span>
                         </div>
 
-                        <p className="text-xs text-gray-600 flex items-center space-x-2">
-                          <span className="font-semibold text-slate-800">
+                        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                          <span className="font-semibold text-slate-800 text-xs">
                             {req.planName}
                           </span>
-                          <span>•</span>
-                          <span className="font-extrabold text-[#800C1E] text-sm">
-                            ₹{req.amount}
-                          </span>
-                        </p>
+                          <span className="text-xs text-gray-400">•</span>
+                          {req.originalAmount && req.originalAmount > req.amount ? (
+                            <div className="flex items-center space-x-1.5">
+                              <span className="text-xs text-gray-400 line-through">
+                                ₹{req.originalAmount}
+                              </span>
+                              <span className="font-extrabold text-emerald-700 text-sm">
+                                ₹{req.amount}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="font-extrabold text-[#800C1E] text-sm">
+                              ₹{req.amount}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Promo Code Applied Tag */}
+                        {(req.promoCode || (req.discountAmount && req.discountAmount > 0)) && (
+                          <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                            <span className="px-2 py-0.5 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-md text-[10px] font-black flex items-center gap-1">
+                              <Tag className="w-3 h-3 text-emerald-600" />
+                              <span>कूपन: {req.promoCode || 'PROMO'}</span>
+                            </span>
+                            {req.discountAmount > 0 && (
+                              <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100/60 px-1.5 py-0.5 rounded">
+                                ₹{req.discountAmount} सवलत लागू
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {/* Middle: 12-Digit UTR with Click-to-Copy & Screenshot */}
@@ -1004,7 +1121,316 @@ export const AdminPaymentApprovalPortal: React.FC = () => {
       )}
 
       {/* ------------------------------------------------------------- */}
-      {/* VIEW 2: INSTANT UPI & BUSINESS CONFIG FORM                    */}
+      {/* VIEW 2: PROMO CODE USAGE & FINANCIAL REPORT                   */}
+      {/* ------------------------------------------------------------- */}
+      {activeTab === 'promo_report' && (
+        <div className="space-y-6">
+          {/* Top Banner */}
+          <div className="bg-gradient-to-br from-slate-900 via-[#800C1E]/90 to-slate-950 rounded-3xl p-6 sm:p-7 text-white shadow-lg border border-amber-400/20 space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center space-x-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300 shadow-inner">
+                  <Gift className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-white flex items-center space-x-2">
+                    <span>🏷️ कूपन व प्रोमो कोड्स वापर अहवाल</span>
+                    <span className="px-2.5 py-0.5 bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 rounded-full text-xs font-mono">
+                      Analytics & Revenue
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    कोणत्या सदस्याने कोणता प्रोमो कोड वापरला, किती सवलत मिळाली व एकूण किती रक्कम जमा झाली याचा रिअल-टाईम हिशोब.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={fetchBackendRequests}
+                  className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold flex items-center space-x-1.5 backdrop-blur-md border border-white/20 transition cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isLoadingRequests ? 'animate-spin' : ''}`} />
+                  <span>रिफ्रेश</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 4 Summary Stat Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 pt-2">
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15">
+                <div className="flex items-center justify-between text-slate-300 text-xs font-bold mb-1">
+                  <span>एकूण प्रोमो ऑर्डर्स</span>
+                  <Tag className="w-4 h-4 text-amber-300" />
+                </div>
+                <div className="text-2xl font-black text-white font-mono">
+                  {promoAnalytics.totalPromoUses}
+                </div>
+                <p className="text-[10px] text-emerald-300 mt-1 font-medium">
+                  यशस्वीरित्या कूपन लागू केलेल्या नोंदी
+                </p>
+              </div>
+
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15">
+                <div className="flex items-center justify-between text-slate-300 text-xs font-bold mb-1">
+                  <span>एकूण दिलेली सवलत</span>
+                  <Percent className="w-4 h-4 text-rose-300" />
+                </div>
+                <div className="text-2xl font-black text-rose-300 font-mono">
+                  ₹{promoAnalytics.totalDiscountGiven.toLocaleString('en-IN')}
+                </div>
+                <p className="text-[10px] text-slate-300 mt-1 font-medium">
+                  सदस्यांना मिळालेली एकूण सूट
+                </p>
+              </div>
+
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15">
+                <div className="flex items-center justify-between text-slate-300 text-xs font-bold mb-1">
+                  <span>प्रत्यक्ष गोळा झालेली रक्कम</span>
+                  <TrendingUp className="w-4 h-4 text-emerald-300" />
+                </div>
+                <div className="text-2xl font-black text-emerald-300 font-mono">
+                  ₹{promoAnalytics.totalPromoRevenue.toLocaleString('en-IN')}
+                </div>
+                <p className="text-[10px] text-emerald-200 mt-1 font-medium">
+                  कूपन वापरून आलेले निव्वळ उत्पन्न
+                </p>
+              </div>
+
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/15">
+                <div className="flex items-center justify-between text-slate-300 text-xs font-bold mb-1">
+                  <span>सक्रिय कूपन्स संख्या</span>
+                  <Sparkles className="w-4 h-4 text-cyan-300" />
+                </div>
+                <div className="text-2xl font-black text-white font-mono">
+                  {promoCodes.length}
+                </div>
+                <p className="text-[10px] text-cyan-200 mt-1 font-medium">
+                  सिस्टममध्ये उपलब्ध प्रोमो कोड्स
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Section: Promo Code Wise Summary Cards */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-4">
+            <h4 className="text-sm sm:text-base font-bold text-slate-900 flex items-center space-x-2">
+              <Sparkles className="w-4 h-4 text-amber-600" />
+              <span>प्रत्येक प्रोमो कोडनुसार सारांश (Code-wise Performance Breakdown)</span>
+            </h4>
+
+            {promoAnalytics.breakdownList.length === 0 ? (
+              <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-500 text-xs">
+                कोणतेही कूपन किंवा प्रोमो कोड्स अद्याप तयार केलेले नाहीत.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {promoAnalytics.breakdownList.map((item) => {
+                  const configuredPromo = promoCodes.find(
+                    (p) => p.code.toUpperCase() === item.code.toUpperCase()
+                  );
+                  return (
+                    <div
+                      key={item.code}
+                      className="bg-gradient-to-br from-slate-50 to-amber-50/30 rounded-2xl p-4 border-2 border-slate-200 hover:border-emerald-300 transition shadow-sm space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className="px-2.5 py-1 bg-emerald-700 text-white font-mono font-black text-xs rounded-lg shadow-sm">
+                            {item.code}
+                          </span>
+                          {configuredPromo && (
+                            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                              {configuredPromo.discountType === 'percentage'
+                                ? `${configuredPromo.discountValue}% सूट`
+                                : configuredPromo.discountType === 'vip_free'
+                                ? '१००% मोफत VIP'
+                                : `₹${configuredPromo.discountValue} सवलत`}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs font-mono font-bold text-slate-600 bg-white px-2 py-0.5 rounded border border-slate-200">
+                          {item.count} वेळा वापर
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/80 text-xs">
+                        <div className="bg-white p-2.5 rounded-xl border border-slate-100">
+                          <span className="text-[10px] text-gray-500 block">एकूण सवलत:</span>
+                          <span className="font-mono font-extrabold text-rose-600">
+                            ₹{item.discountTotal.toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                        <div className="bg-white p-2.5 rounded-xl border border-slate-100">
+                          <span className="text-[10px] text-gray-500 block">गोळा रक्कम:</span>
+                          <span className="font-mono font-extrabold text-emerald-700">
+                            ₹{item.revenueTotal.toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Section: Detailed User-wise Promo Transactions Table */}
+          <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+              <div>
+                <h4 className="text-sm sm:text-base font-bold text-slate-900 flex items-center space-x-2">
+                  <Users className="w-4 h-4 text-[#800C1E]" />
+                  <span>कूपन वापरलेल्या सदस्यांची सविस्तर यादी (User-wise Transactions)</span>
+                </h4>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  येथे कोणत्या सदस्याने कोणता प्लॅन किती सवलत घेऊन खरेदी केला याची संपूर्ण माहिती आहे.
+                </p>
+              </div>
+
+              <div className="text-xs text-slate-600 font-bold bg-slate-100 px-3 py-1.5 rounded-xl">
+                एकूण नोंदी: {promoAnalytics.promoTransactions.length}
+              </div>
+            </div>
+
+            {promoAnalytics.promoTransactions.length === 0 ? (
+              <div className="p-12 text-center bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                <Gift className="w-12 h-12 text-slate-300 mx-auto" />
+                <h5 className="font-bold text-slate-700 text-sm">कोणताही प्रोमो कोड वापर अद्याप झालेला नाही</h5>
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  जेव्हा सदस्य पेमेंट करताना प्रोमो कोड टाकतील, तेव्हा त्यांची सविस्तर यादी आणि सवलतीची रक्कम येथे आपोआप दिसेल.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-700 uppercase font-black tracking-wider text-[10px] border-b border-slate-200">
+                      <th className="p-3">सदस्य नाव व मोबाईल</th>
+                      <th className="p-3">कूपन कोड</th>
+                      <th className="p-3">प्लॅन नाव</th>
+                      <th className="p-3 text-right">मूळ किंमत</th>
+                      <th className="p-3 text-right">मिळालेली सवलत</th>
+                      <th className="p-3 text-right">भरलेली प्रत्यक्ष रक्कम</th>
+                      <th className="p-3">UTR व तारीख</th>
+                      <th className="p-3 text-center">स्टेटस</th>
+                      <th className="p-3 text-center">कृती</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200">
+                    {promoAnalytics.promoTransactions.map((tx) => (
+                      <tr key={tx.id} className="hover:bg-amber-50/30 transition">
+                        {/* User Name & Mobile */}
+                        <td className="p-3">
+                          <div className="font-bold text-slate-900 text-xs">
+                            {tx.userName || 'अनामिक सदस्य'}
+                          </div>
+                          <div className="text-[11px] text-slate-500 font-mono">
+                            {tx.userMobile || 'मोबाईल नाही'}
+                          </div>
+                        </td>
+
+                        {/* Promo Code Badge */}
+                        <td className="p-3">
+                          <span className="px-2.5 py-1 bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-md font-mono font-black text-[11px] inline-flex items-center gap-1">
+                            <Tag className="w-3 h-3 text-emerald-600" />
+                            <span>{tx.promoCode || 'PROMO'}</span>
+                          </span>
+                        </td>
+
+                        {/* Plan */}
+                        <td className="p-3 font-medium text-slate-800">
+                          {tx.planName || 'मेंबरशिप प्लॅन'}
+                        </td>
+
+                        {/* Original Price */}
+                        <td className="p-3 text-right font-mono text-slate-500">
+                          ₹{tx.originalAmount || tx.amount}
+                        </td>
+
+                        {/* Discount */}
+                        <td className="p-3 text-right font-mono font-bold text-rose-600">
+                          -₹{tx.discountAmount || 0}
+                        </td>
+
+                        {/* Final Paid Amount */}
+                        <td className="p-3 text-right font-mono font-black text-emerald-700 text-sm">
+                          ₹{tx.amount}
+                        </td>
+
+                        {/* UTR & Date */}
+                        <td className="p-3">
+                          <div className="font-mono font-bold text-slate-800 text-[11px]">
+                            {tx.utrNumber || 'N/A'}
+                          </div>
+                          <div className="text-[10px] text-slate-400">
+                            {new Date(tx.createdAt).toLocaleDateString('mr-IN', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
+                          </div>
+                        </td>
+
+                        {/* Status */}
+                        <td className="p-3 text-center">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
+                              tx.status === 'approved'
+                                ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                : tx.status === 'pending'
+                                ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                : 'bg-rose-100 text-rose-900 border-rose-300'
+                            }`}
+                          >
+                            {tx.status === 'approved' ? 'मंजूर' : tx.status === 'pending' ? 'प्रलंबित' : 'नाकारले'}
+                          </span>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="p-3 text-center">
+                          <div className="flex items-center justify-center space-x-1.5">
+                            {tx.screenshotUrl && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPreviewScreenshot({
+                                    url: tx.screenshotUrl,
+                                    utr: tx.utrNumber,
+                                    userName: tx.userName,
+                                    amount: tx.amount,
+                                    planName: tx.planName,
+                                  })
+                                }
+                                className="p-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition cursor-pointer"
+                                title="पावती पाहा"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleSendWhatsAppClarification(tx)}
+                              className="p-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg transition cursor-pointer"
+                              title="WhatsApp मेसेज"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* VIEW 3: INSTANT UPI & BUSINESS CONFIG FORM                    */}
       {/* ------------------------------------------------------------- */}
       {activeTab === 'settings' && (
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">

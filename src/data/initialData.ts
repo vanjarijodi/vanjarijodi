@@ -660,6 +660,12 @@ export const INITIAL_SITE_CONFIG: any = {
   specialNoticeTitle: 'महत्त्वाची सूचना व विशेष घोषणा',
   specialNoticeText: 'वंजारी समाजातील सर्व पालकांनी कृपया नोंद घ्यावी: आपल्या पाल्यांची नोंदणी करताना आधार कार्ड व अचूक शैक्षणिक माहिती सादर करावी.',
   isSpecialNoticeEnabled: true,
+  // Aadhaar & Govt ID Security Defaults
+  showMaskedAadhaarNotice: true,
+  maskedAadhaarNoticeText: '🔒 सुरक्षा सूचना: आधार कार्ड किंवा सरकारी ओळखपत्र अपलोड करताना आपल्या गोपनीयतेसाठी व सुरक्षिततेसाठी कृपया पहिल्या ८ अंकांवर मास्क केलेले (Masked Aadhaar) किंवा केवळ शेवटचे ४ अंक दिसणारे आधार कार्ड अपलोड करा. (किंवा ॲडमिन मंजुरीच्या वेळी आवश्यकतेनुसार ओळखपत्र सुरक्षित ठेवले जाईल.)',
+  enableAadhaarFrontBackUpload: true,
+  allowMembersToRequestIdProof: true,
+  autoMaskAadhaarForMembers: true,
   hideContactAndAddressGlobal: false,
   hideDistrictHeadquarters: false,
   hideOfficeAddress: false,
@@ -849,7 +855,48 @@ export const INITIAL_PAYMENT_REQUESTS: any[] = [];
 
 export const INITIAL_SUB_ADMINS: any[] = [];
 
-export const INITIAL_PROMO_CODES: any[] = [];
+export const INITIAL_PROMO_CODES: any[] = [
+  {
+    id: 'promo-welcome50',
+    code: 'WELCOME50',
+    discountType: 'flat',
+    discountValue: 50,
+    maxUses: 500,
+    usedCount: 14,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'promo-vanjari20',
+    code: 'VANJARI20',
+    discountType: 'percentage',
+    discountValue: 20,
+    maxUses: 250,
+    usedCount: 9,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'promo-special100',
+    code: 'SPECIAL100',
+    discountType: 'flat',
+    discountValue: 100,
+    maxUses: 100,
+    usedCount: 6,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'promo-vipfree',
+    code: 'VIPFREE',
+    discountType: 'vip_free',
+    discountValue: 100,
+    maxUses: 50,
+    usedCount: 3,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  },
+];
 
 export const INITIAL_PENDING_PROFILES: any[] = [];
 

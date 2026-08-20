@@ -67,6 +67,9 @@ async function startServer() {
     approved_at?: string;
     membership_id?: string;
     payment_method?: string;
+    promo_code?: string;
+    discount_amount?: number;
+    original_amount?: number;
   }
 
   // In-Memory Master Stores with persistent data
@@ -305,6 +308,9 @@ async function startServer() {
         utr_number,
         screenshot_url,
         payment_method,
+        promo_code,
+        discount_amount,
+        original_amount,
       } = req.body || {};
 
       const cleanUtr = sanitizeString(utr_number).replace(/[^0-9a-zA-Z]/g, '');
@@ -352,6 +358,9 @@ async function startServer() {
         created_at: nowIso,
         updated_at: nowIso,
         payment_method: payment_method || 'upi_intent',
+        promo_code: promo_code ? sanitizeString(promo_code).toUpperCase() : undefined,
+        discount_amount: Number(discount_amount) || 0,
+        original_amount: Number(original_amount) || numAmount,
       };
 
       // Add to records and register UTR in UNIQUE set

@@ -55,12 +55,15 @@ export const MemberDashboard: React.FC = () => {
     setIsProfileRemovalModalOpen,
     uploadAadhaarCard,
     updateProfileDirect,
-    isCurrentUserPlanExpired
+    isCurrentUserPlanExpired,
+    memberIdRequests
   } = useApp();
 
   const [tab, setTab] = useState<'overview' | 'interests' | 'shortlist' | 'notifications' | 'membership' | 'privacy'>('overview');
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
   const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+  const [isUploadingFront, setIsUploadingFront] = useState(false);
+  const [isUploadingBack, setIsUploadingBack] = useState(false);
   const [docUploadError, setDocUploadError] = useState<string | null>(null);
   const [docSuccessMsg, setDocSuccessMsg] = useState<string | null>(null);
 
@@ -72,21 +75,65 @@ export const MemberDashboard: React.FC = () => {
     );
   }, [notifications, currentUser]);
 
+  const handleDashboardAadhaarFrontUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDocUploadError(null);
+    setDocSuccessMsg(null);
+    const file = e.target.files?.[0];
+    if (!file || !currentUser) return;
+
+    if (file.size > 1.5 * 1024 * 1024) {
+      setDocUploadError(`कागदपत्राचा आकार ${(file.size / 1024).toFixed(0)} KB आहे. कृपया १.५ MB पेक्षा लहान फाईल निवडा.`);
+      return;
+    }
+
+    setIsUploadingFront(true);
+    const res = await uploadToCloudinary(file, 'vanjarijodi_documents');
+    if (res.success && res.url) {
+      uploadAadhaarCard(currentUser.id, res.url, currentUser.aadhaarBackUrl, currentUser.isAadhaarMasked !== false);
+      setDocSuccessMsg('आधार पुढील बाजू (Front Photo) यशस्वीरीत्या जतन झाली!');
+    } else {
+      setDocUploadError(res.error || 'पुढील बाजू अपलोड करताना त्रुटी आली. कृपया पुन्हा प्रयत्न करा.');
+    }
+    setIsUploadingFront(false);
+  };
+
+  const handleDashboardAadhaarBackUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDocUploadError(null);
+    setDocSuccessMsg(null);
+    const file = e.target.files?.[0];
+    if (!file || !currentUser) return;
+
+    if (file.size > 1.5 * 1024 * 1024) {
+      setDocUploadError(`कागदपत्राचा आकार ${(file.size / 1024).toFixed(0)} KB आहे. कृपया १.५ MB पेक्षा लहान फाईल निवडा.`);
+      return;
+    }
+
+    setIsUploadingBack(true);
+    const res = await uploadToCloudinary(file, 'vanjarijodi_documents');
+    if (res.success && res.url) {
+      uploadAadhaarCard(currentUser.id, currentUser.aadhaarFrontUrl || currentUser.aadhaarCardUrl || '', res.url, currentUser.isAadhaarMasked !== false);
+      setDocSuccessMsg('आधार मागील बाजू (Back Photo) यशस्वीरीत्या जतन झाली!');
+    } else {
+      setDocUploadError(res.error || 'मागील बाजू अपलोड करताना त्रुटी आली. कृपया पुन्हा प्रयत्न करा.');
+    }
+    setIsUploadingBack(false);
+  };
+
   const handleDashboardAadhaarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setDocUploadError(null);
     setDocSuccessMsg(null);
     const file = e.target.files?.[0];
     if (!file || !currentUser) return;
 
-    if (file.size > 600 * 1024) {
-      setDocUploadError(`कागदपत्राचा आकार ${(file.size / 1024).toFixed(0)} KB आहे. कृपया ६०० KB पेक्षा लहान फाईल (PDF/फोटो) निवडा.`);
+    if (file.size > 1.5 * 1024 * 1024) {
+      setDocUploadError(`कागदपत्राचा आकार ${(file.size / 1024).toFixed(0)} KB आहे. कृपया १.५ MB पेक्षा लहान फाईल निवडा.`);
       return;
     }
 
     setIsUploadingDoc(true);
     const res = await uploadToCloudinary(file, 'vanjarijodi_documents');
     if (res.success && res.url) {
-      uploadAadhaarCard(currentUser.id, res.url);
+      uploadAadhaarCard(currentUser.id, res.url, currentUser.aadhaarBackUrl, currentUser.isAadhaarMasked !== false);
       setDocSuccessMsg('तुमचे आधार / ओळखपत्र ऑनलाईन क्लाऊडवर यशस्वीपणे जतन झाले आहे!');
     } else {
       setDocUploadError(res.error || 'कागदपत्र अपलोड करताना त्रुटी आली. कृपया पुन्हा प्रयत्न करा.');
@@ -548,8 +595,8 @@ export const MemberDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* 4. Aadhaar / ID Card Document Management Card */}
-            <div className="bg-[#FFFDF5] p-6 rounded-3xl border-2 border-amber-300 shadow-md space-y-4">
+            {/* 4. Aadhaar / ID Card Document Management Card (Front & Back with Masking & Requests) */}
+            <div className="bg-[#FFFDF5] p-6 rounded-3xl border-2 border-amber-300 shadow-md space-y-5">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-amber-200 pb-3">
                 <div className="flex items-center gap-3">
                   <div className="p-2.5 rounded-2xl bg-gradient-to-r from-[#800C1E] to-[#A71930] text-amber-100 shadow">
@@ -557,25 +604,36 @@ export const MemberDashboard: React.FC = () => {
                   </div>
                   <div>
                     <h4 className="text-base sm:text-lg font-black text-[#A71930] flex items-center gap-2">
-                      <span>आधार कार्ड व ओळखपत्र व्यवस्थापन (Aadhaar & ID Proof)</span>
+                      <span>आधार कार्ड व सरकारी ओळखपत्र (Aadhaar & Govt ID Proof)</span>
                     </h4>
                     <p className="text-xs text-slate-600 font-bold">
-                      (नोंदणीनंतर इथे कधीही आधार जोडता किंवा अपडेट करता येते. क्लाउडवर साठवले जाते.)
+                      पुढील व मागील दोन्ही बाजूंचे फोटो सुरक्षितपणे अपलोड करा. ॲडमिन मंजुरीनंतरच इतरांना सुरक्षित मास्क ॲक्सेस दिला जातो.
                     </p>
                   </div>
                 </div>
 
-                {currentUser.idProofUrl || currentUser.aadhaarCardUrl ? (
+                {currentUser.aadhaarFrontUrl || currentUser.idProofUrl || currentUser.aadhaarCardUrl ? (
                   <span className="px-3.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black border border-emerald-300 flex items-center gap-1.5 shadow-xs">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                     <span>कागदपत्र ऑनलाइन जतन आहे</span>
                   </span>
                 ) : (
                   <span className="px-3.5 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold border border-amber-300">
-                    कागदपत्र अद्याप जोडलेले नाही (ऐच्छिक)
+                    कागदपत्र जोडलेले नाही (ऐच्छिक)
                   </span>
                 )}
               </div>
+
+              {/* Admin Configured Security Notice */}
+              {siteConfig.showMaskedAadhaarNotice !== false && (
+                <div className="p-3.5 bg-amber-50/90 border-2 border-amber-300/80 rounded-2xl text-xs text-amber-950 font-semibold leading-relaxed shadow-sm flex items-start gap-2.5">
+                  <span className="text-xl shrink-0">🛡️</span>
+                  <div>
+                    <strong className="text-[#800C1E] block mb-0.5">गोपनीयता व सुरक्षितता सूचना:</strong>
+                    <span>{siteConfig.maskedAadhaarNoticeText || 'आपल्या गोपनीयतेसाठी व सुरक्षिततेसाठी कृपया पहिल्या ८ अंकांवर मास्क केलेले (Masked Aadhaar) किंवा केवळ शेवटचे ४ अंक दिसणारे आधार कार्ड अपलोड करा.'}</span>
+                  </div>
+                </div>
+              )}
 
               {docSuccessMsg && (
                 <div className="p-3 bg-emerald-100 border border-emerald-300 rounded-xl text-emerald-800 text-xs font-bold flex items-center gap-2">
@@ -591,81 +649,229 @@ export const MemberDashboard: React.FC = () => {
                 </div>
               )}
 
-              {/* Existing Document Display or Upload Field */}
-              {currentUser.idProofUrl || currentUser.aadhaarCardUrl ? (
-                <div className="bg-white p-4 rounded-2xl border border-amber-300 space-y-3">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                    <div className="space-y-1">
-                      <p className="text-xs font-black text-slate-900">
-                        📄 तुमचा ऑनलाइन जोडलेला आधार कार्ड / आयडी दस्तऐवज:
-                      </p>
-                      <p className="text-[11px] text-slate-600 font-medium">
-                        हे कागदपत्र क्लाउड फायरीबेस व क्लाउडनरीवर सुरक्षित साठवलेले आहे.
-                      </p>
+              {/* MASKING TOGGLE */}
+              <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-amber-200">
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={currentUser.isAadhaarMasked !== false}
+                    onChange={(e) => {
+                      updateProfileDirect(currentUser.id, { isAadhaarMasked: e.target.checked });
+                    }}
+                    className="w-4 h-4 text-[#A71930] rounded accent-[#A71930]"
+                  />
+                  <span className="text-xs font-bold text-slate-800">
+                    🔒 माझे आधार कार्ड मास्क केलेले (Masked Aadhaar) आहे — पहिल्या ८ अंकांवर सुरक्षित मास्क आहे.
+                  </span>
+                </label>
+              </div>
+
+              {/* FRONT & BACK 2-COLUMN UPLOAD CARDS */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* 1. FRONT PHOTO */}
+                <div className="bg-white p-4 rounded-2xl border-2 border-amber-200 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                      <span className="w-5 h-5 rounded-full bg-amber-100 text-[#800C1E] flex items-center justify-center text-[10px] font-black">१</span>
+                      <span>आधार पुढील बाजू (Front Side)</span>
+                    </span>
+                    {currentUser.aadhaarFrontUrl || currentUser.aadhaarCardUrl ? (
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-black px-2 py-0.5 rounded-full border border-emerald-300">
+                        ✓ जोडले आहे
+                      </span>
+                    ) : (
+                      <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full">
+                        रिकामे
+                      </span>
+                    )}
+                  </div>
+
+                  {currentUser.aadhaarFrontUrl || currentUser.aadhaarCardUrl ? (
+                    <div className="space-y-2">
+                      <div className="h-32 bg-slate-50 rounded-xl overflow-hidden border border-amber-200 flex items-center justify-center">
+                        <img
+                          src={currentUser.aadhaarFrontUrl || currentUser.aadhaarCardUrl}
+                          alt="Aadhaar Front"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={currentUser.aadhaarFrontUrl || currentUser.aadhaarCardUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 py-1.5 text-center bg-amber-100 hover:bg-amber-200 text-[#A71930] rounded-xl text-xs font-black border border-amber-300"
+                        >
+                          👁️ पहा
+                        </a>
+                        <label className="flex-1 py-1.5 text-center bg-[#A71930] hover:bg-[#800C1E] text-amber-100 rounded-xl text-xs font-black cursor-pointer shadow-xs">
+                          {isUploadingFront ? 'अपलोड...' : 'बदला'}
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            onChange={handleDashboardAadhaarFrontUpload}
+                            disabled={isUploadingFront}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
                     </div>
-
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <a
-                        href={currentUser.idProofUrl || currentUser.aadhaarCardUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-4 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-[#A71930] text-xs font-black border border-amber-300 flex items-center gap-1.5 transition-all shadow-xs"
-                      >
-                        <Eye className="w-4 h-4 text-[#A71930]" />
-                        <span>कागदपत्र उघडा / पहा</span>
-                      </a>
-
-                      <label className="px-4 py-2 rounded-xl bg-[#A71930] hover:bg-[#800C1E] text-amber-100 text-xs font-black cursor-pointer flex items-center gap-1.5 transition-all shadow-xs">
-                        {isUploadingDoc ? (
+                  ) : (
+                    <div className="py-4 text-center space-y-2">
+                      <p className="text-[11px] text-slate-600">आधार कार्डच्या पुढील बाजूचा स्पष्ट फोटो निवडा</p>
+                      <label className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-[#A71930] font-black text-xs border-2 border-dashed border-amber-400 cursor-pointer transition-all">
+                        {isUploadingFront ? (
                           <>
-                            <Loader2 className="w-4 h-4 animate-spin text-amber-200" />
+                            <Loader2 className="w-4 h-4 animate-spin text-[#A71930]" />
                             <span>अपलोड होत आहे...</span>
                           </>
                         ) : (
                           <>
-                            <Upload className="w-4 h-4 text-amber-200" />
-                            <span>कागदपत्र बदला (Change / Update)</span>
+                            <Upload className="w-4 h-4 text-[#A71930]" />
+                            <span>📸 पुढील बाजू निवडा</span>
                           </>
                         )}
                         <input
                           type="file"
                           accept="image/*,application/pdf"
-                          onChange={handleDashboardAadhaarUpload}
-                          disabled={isUploadingDoc}
+                          onChange={handleDashboardAadhaarFrontUpload}
+                          disabled={isUploadingFront}
                           className="hidden"
                         />
                       </label>
                     </div>
-                  </div>
+                  )}
                 </div>
-              ) : (
-                <div className="bg-white p-5 rounded-2xl border-2 border-dashed border-amber-300 text-center space-y-3">
-                  <div className="max-w-md mx-auto space-y-1">
-                    <p className="text-xs text-slate-900 font-black">
-                      इथे क्लिक करून तुमचे आधार कार्ड किंवा ओळखपत्राची फाईल (PDF किंवा फोटो) अपलोड करा.
-                    </p>
-                    <p className="text-[11px] text-slate-600 font-medium">
-                      (टीप: आधार अपलोड अनिवार्य नाही, परंतु अपलोड केल्यास तुमची प्रोफाइल अधिक विश्वासार्ह दिसते.)
-                    </p>
+
+                {/* 2. BACK PHOTO */}
+                <div className="bg-white p-4 rounded-2xl border-2 border-amber-200 shadow-sm space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                      <span className="w-5 h-5 rounded-full bg-amber-100 text-[#800C1E] flex items-center justify-center text-[10px] font-black">२</span>
+                      <span>आधार मागील बाजू (Back Side)</span>
+                    </span>
+                    {currentUser.aadhaarBackUrl ? (
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-black px-2 py-0.5 rounded-full border border-emerald-300">
+                        ✓ जोडले आहे
+                      </span>
+                    ) : (
+                      <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full">
+                        रिकामे
+                      </span>
+                    )}
                   </div>
 
-                  {isUploadingDoc ? (
-                    <div className="flex items-center justify-center gap-2 py-3 text-[#A71930] font-bold text-xs">
-                      <Loader2 className="w-5 h-5 animate-spin text-[#A71930]" />
-                      <span>क्लाऊडवर कागदपत्र सुरक्षित अपलोड होत आहे...</span>
+                  {currentUser.aadhaarBackUrl ? (
+                    <div className="space-y-2">
+                      <div className="h-32 bg-slate-50 rounded-xl overflow-hidden border border-amber-200 flex items-center justify-center">
+                        <img
+                          src={currentUser.aadhaarBackUrl}
+                          alt="Aadhaar Back"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={currentUser.aadhaarBackUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 py-1.5 text-center bg-amber-100 hover:bg-amber-200 text-[#A71930] rounded-xl text-xs font-black border border-amber-300"
+                        >
+                          👁️ पहा
+                        </a>
+                        <label className="flex-1 py-1.5 text-center bg-[#A71930] hover:bg-[#800C1E] text-amber-100 rounded-xl text-xs font-black cursor-pointer shadow-xs">
+                          {isUploadingBack ? 'अपलोड...' : 'बदला'}
+                          <input
+                            type="file"
+                            accept="image/*,application/pdf"
+                            onChange={handleDashboardAadhaarBackUpload}
+                            disabled={isUploadingBack}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
                     </div>
                   ) : (
-                    <label className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#A71930] to-[#C82333] hover:from-[#800C1E] text-amber-100 font-black text-xs cursor-pointer shadow-md border border-amber-300/40 transition-transform active:scale-95">
-                      <Upload className="w-4 h-4 text-amber-200" />
-                      <span>📂 आधार / दस्तऐवज फाईल निवडा (Choose PDF or Photo)</span>
-                      <input
-                        type="file"
-                        accept="image/*,application/pdf"
-                        onChange={handleDashboardAadhaarUpload}
-                        className="hidden"
-                      />
-                    </label>
+                    <div className="py-4 text-center space-y-2">
+                      <p className="text-[11px] text-slate-600">आधार कार्डच्या पत्ता असलेल्या मागील बाजूचा फोटो निवडा</p>
+                      <label className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-[#A71930] font-black text-xs border-2 border-dashed border-amber-400 cursor-pointer transition-all">
+                        {isUploadingBack ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin text-[#A71930]" />
+                            <span>अपलोड होत आहे...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4 text-[#A71930]" />
+                            <span>📸 मागील बाजू निवडा</span>
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*,application/pdf"
+                          onChange={handleDashboardAadhaarBackUpload}
+                          disabled={isUploadingBack}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
                   )}
+                </div>
+              </div>
+
+              {/* 5. MEMBER'S SENT ID REQUESTS STATUS */}
+              {memberIdRequests && memberIdRequests.filter(r => r.requesterId === currentUser.id).length > 0 && (
+                <div className="pt-2 border-t border-amber-200 space-y-2.5">
+                  <h5 className="text-xs font-black text-[#800C1E] flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-[#A71930]" />
+                    <span>माझ्या ओळखपत्र पाहण्याच्या विनंत्या (My Govt ID Requests):</span>
+                  </h5>
+                  <div className="space-y-2">
+                    {memberIdRequests.filter(r => r.requesterId === currentUser.id).map((req) => (
+                      <div
+                        key={req.id}
+                        className="p-3 bg-white rounded-xl border border-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                      >
+                        <div>
+                          <div className="font-black text-slate-900">
+                            उमेदवार: {req.targetProfileName}
+                          </div>
+                          <div className="text-[11px] text-slate-600">
+                            कारण: {req.reason || 'ओळखपत्र पडताळणी'}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {req.status === 'approved' ? (
+                            <div className="flex items-center gap-2">
+                              <span className="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full font-black text-[10px] border border-emerald-300 flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                <span>मंजूर (Approved)</span>
+                              </span>
+                              {req.allowedFrontUrl && (
+                                <a
+                                  href={req.allowedFrontUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-3 py-1 bg-[#A71930] text-amber-100 rounded-lg text-xs font-black"
+                                >
+                                  📄 आयडी पहा
+                                </a>
+                              )}
+                            </div>
+                          ) : req.status === 'rejected' ? (
+                            <span className="px-2.5 py-1 bg-rose-100 text-rose-800 rounded-full font-black text-[10px] border border-rose-300">
+                              नाकारले (Rejected)
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 bg-amber-100 text-amber-900 rounded-full font-black text-[10px] border border-amber-300">
+                              ⏳ ॲडमिन मंजुरी प्रलंबित
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

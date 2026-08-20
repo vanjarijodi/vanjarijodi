@@ -114,6 +114,11 @@ export interface UserProfile {
   isFaceVerified?: boolean;
   faceVerifiedAt?: string;
   idProofUrl?: string;
+  aadhaarCardUrl?: string;
+  aadhaarFrontUrl?: string;
+  aadhaarBackUrl?: string;
+  isAadhaarMasked?: boolean;
+  idProofType?: 'aadhaar' | 'pan' | 'voter_id' | 'driving_license' | 'other';
   idVerificationNumber?: string; // Optional Govt ID / Aadhaar Number
   isVerified: boolean;
   isFeatured: boolean;
@@ -146,7 +151,6 @@ export interface UserProfile {
   isHiddenByAdmin?: boolean;
   viewsCount?: number;
   pendingPhotoApproval?: boolean;
-  aadhaarCardUrl?: string;
   allowGuestContactView?: boolean;
   forceShowContact?: boolean;
   forceHideContact?: boolean;
@@ -367,6 +371,9 @@ export interface PaymentRequest {
   planDurationText?: string;
   validUntil?: string;
   membershipId?: string;
+  promoCode?: string;
+  discountAmount?: number;
+  originalAmount?: number;
 }
 
 export interface GuestPermissions {
@@ -490,10 +497,30 @@ export interface FaceVerificationLog {
   capturedPhotoUrl: string;
   profilePhotoUrl?: string;
   matchScore: number;
+  livenessCheckPassed?: boolean;
+  livenessAction?: string;
   status: 'pending' | 'approved' | 'rejected';
   submittedAt: string;
   reviewedAt?: string;
   notes?: string;
+}
+
+export interface MemberIdRequest {
+  id: string;
+  requesterId: string;
+  requesterName: string;
+  requesterMobile: string;
+  targetProfileId: string;
+  targetProfileName: string;
+  targetProfileMobile: string;
+  reason?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  reviewedAt?: string;
+  adminNotes?: string;
+  allowedFrontUrl?: string;
+  allowedBackUrl?: string;
+  isMaskedShared?: boolean;
 }
 
 export interface SocialLinkItem {
@@ -750,6 +777,12 @@ export interface SiteConfig {
   grievanceOfficerEmail?: string;
   grievanceOfficerPhone?: string;
   grievanceOfficerAddress?: string;
+  // Aadhaar & Govt ID Security Settings
+  showMaskedAadhaarNotice?: boolean;
+  maskedAadhaarNoticeText?: string;
+  enableAadhaarFrontBackUpload?: boolean;
+  allowMembersToRequestIdProof?: boolean;
+  autoMaskAadhaarForMembers?: boolean;
   // Technical SEO & Fast-Indexing Architecture
   googleSiteVerification?: string;
   bingSiteVerification?: string;

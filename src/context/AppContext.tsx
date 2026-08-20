@@ -37,7 +37,8 @@ import {
   ProfileReport,
   BusinessVendor,
   VendorBookingInquiry,
-  PaymentConfig
+  PaymentConfig,
+  MemberIdRequest
 } from '../types';
 import {
   INITIAL_PROFILES,
@@ -251,6 +252,7 @@ interface AppContextType {
   addPromoCode: (promo: Omit<PromoCode, 'id' | 'createdAt' | 'usedCount'>) => void;
   deletePromoCode: (id: string) => void;
   togglePromoCodeStatus: (id: string) => void;
+  usePromoCode: (codeStr: string) => void;
   validatePromoCode: (codeStr: string, originalAmount: number) => {
     valid: boolean;
     discountAmount: number;
@@ -273,6 +275,13 @@ interface AppContextType {
   submitFaceVerification: (logData: Omit<FaceVerificationLog, 'id' | 'submittedAt'>) => void;
   approveFaceVerification: (logId: string) => void;
   rejectFaceVerification: (logId: string) => void;
+
+  // Member Govt ID & Aadhaar Requests
+  memberIdRequests: MemberIdRequest[];
+  requestMemberGovtId: (targetProfileId: string, reason?: string) => void;
+  approveMemberIdRequest: (requestId: string, isMasked?: boolean, adminNotes?: string) => void;
+  rejectMemberIdRequest: (requestId: string, reason?: string) => void;
+  deleteMemberIdRequest: (requestId: string) => void;
 
   // Plan Expiry & Auto Paid Revocation
   isProfilePlanExpired: (p: UserProfile | null) => boolean;
@@ -2544,12 +2553,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('vanjari_jodi_promos');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       } catch (e) {
-        return [];
+        return INITIAL_PROMO_CODES;
       }
     }
-    return [];
+    return INITIAL_PROMO_CODES;
   });
 
   useEffect(() => {
@@ -2577,6 +2587,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const togglePromoCodeStatus = (id: string) => {
     setPromoCodes((prev) =>
       prev.map((p) => (p.id === id ? { ...p, isActive: !p.isActive } : p))
+    );
+  };
+
+  const usePromoCode = (codeStr: string) => {
+    if (!codeStr) return;
+    const clean = codeStr.toUpperCase().trim();
+    setPromoCodes((prev) =>
+      prev.map((p) => (p.code === clean ? { ...p, usedCount: (p.usedCount || 0) + 1 } : p))
     );
   };
 
@@ -2790,6 +2808,136 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       prev.map(l => (l.id === logId ? { ...l, status: 'rejected', reviewedAt: new Date().toISOString() } : l))
     );
     logActivity('face_verification_rejected', `चेहरा पडताळणी नाकारली ID: ${logId}`);
+  };
+
+  // Member Govt ID / Aadhaar Access Requests State & Handlers
+  const [memberIdRequests, setMemberIdRequests] = useState<MemberIdRequest[]>(() => {
+    const saved = localStorage.getItem('vanjari_jodi_member_id_requests');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return [];
+      }
+    }
+    return [
+      {
+        id: 'id-req-1',
+        requesterId: 'vj-user-101',
+        requesterName: 'अविनाश तात्यासाहेब मुंडे',
+        requesterMobile: '+91 98220 11223',
+        targetProfileId: '1',
+        targetProfileName: 'पूजा भास्कर सानप',
+        targetProfileMobile: '+91 94057 90916',
+        reason: 'विवाह निश्चितीसाठी अधिकृत आधार पडताळणी कागदपत्र पाहण्याची विनंती.',
+        status: 'pending',
+        createdAt: new Date(Date.now() - 3600000 * 4).toISOString(),
+      }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('vanjari_jodi_member_id_requests', JSON.stringify(memberIdRequests));
+  }, [memberIdRequests]);
+
+  const requestMemberGovtId = (targetProfileId: string, reason?: string) => {
+    if (!currentUser) {
+      alert('कृपया ओळखपत्र विनंती पाठवण्यासाठी आधी लॉगिन करा!');
+      return;
+    }
+    const target = profiles.find(p => p.id === targetProfileId);
+    if (!target) return;
+
+    const existing = memberIdRequests.find(
+      r => r.requesterId === currentUser.id && r.targetProfileId === targetProfileId && r.status === 'pending'
+    );
+    if (existing) {
+      alert('आपण यापूर्वीच या सदस्याच्या ओळखपत्राची विनंती पाठवली आहे. ॲडमिन मंजुरीची प्रतीक्षा करा.');
+      return;
+    }
+
+    const newReq: MemberIdRequest = {
+      id: 'id-req-' + Date.now(),
+      requesterId: currentUser.id,
+      requesterName: currentUser.fullName,
+      requesterMobile: currentUser.mobile,
+      targetProfileId: target.id,
+      targetProfileName: target.fullName,
+      targetProfileMobile: target.mobile,
+      reason: reason || 'विवाह निश्चितीसाठी अधिकृत ओळखपत्र तपासण्याची विनंती.',
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+
+    setMemberIdRequests(prev => [newReq, ...prev]);
+    addNotification({
+      userId: 'admin',
+      title: 'New Member Govt ID Request',
+      titleMr: 'नवीन सरकारी आयडी / आधार पाहण्याची विनंती!',
+      message: `${currentUser.fullName} requested to view Govt ID for ${target.fullName}`,
+      messageMr: `सदस्य ${currentUser.fullName} यांनी ${target.fullName} यांचे आधार कार्ड/ओळखपत्र पाहण्याची विनंती केली आहे.`,
+      type: 'system'
+    });
+    logActivity('Request Member Govt ID', `${currentUser.fullName} ने ${target.fullName} च्या आधार कार्डची विनंती केली.`);
+    alert(`🎉 तुमची ओळखपत्र पाहण्याची विनंती ॲडमिनकडे पाठवली गेली आहे! ॲडमिनने तपासणी करून मंजुरी दिल्यानंतर तुम्हाला सुरक्षित मास्क केलेले ओळखपत्र दिसेल.`);
+  };
+
+  const approveMemberIdRequest = (requestId: string, isMasked: boolean = true, adminNotes?: string) => {
+    setMemberIdRequests(prev => prev.map(r => {
+      if (r.id === requestId) {
+        const target = profiles.find(p => p.id === r.targetProfileId);
+        const frontUrl = target?.aadhaarFrontUrl || target?.aadhaarCardUrl || target?.idProofUrl || '';
+        const backUrl = target?.aadhaarBackUrl || '';
+
+        addNotification({
+          userId: r.requesterId,
+          title: 'Govt ID Access Approved',
+          titleMr: '✅ आधार कार्ड / ओळखपत्र पाहण्याची विनंती मंजूर!',
+          message: `Admin approved your request to view Govt ID of ${r.targetProfileName}`,
+          messageMr: `ॲडमिनने ${r.targetProfileName} यांचे सुरक्षित मास्क केलेले ओळखपत्र पाहण्याची विनंती मंजूर केली आहे. आता आपण त्यांच्या प्रोफाईलवर जाऊन ओळखपत्र पाहू शकता.`,
+          type: 'approval'
+        });
+
+        return {
+          ...r,
+          status: 'approved',
+          reviewedAt: new Date().toISOString(),
+          adminNotes: adminNotes || 'ॲडमिन द्वारे पडताळणी करून सुरक्षित मास्क ॲक्सेस मंजूर.',
+          allowedFrontUrl: frontUrl,
+          allowedBackUrl: backUrl,
+          isMaskedShared: isMasked
+        };
+      }
+      return r;
+    }));
+    logActivity('Approve ID Request', `ॲडमिनने आयडी विनंती मंजूर केली: ID ${requestId}`);
+  };
+
+  const rejectMemberIdRequest = (requestId: string, reason?: string) => {
+    setMemberIdRequests(prev => prev.map(r => {
+      if (r.id === requestId) {
+        addNotification({
+          userId: r.requesterId,
+          title: 'Govt ID Request Rejected',
+          titleMr: '❌ ओळखपत्र विनंती नाकारली',
+          message: `Your request was rejected: ${reason || 'सुरक्षा कारणास्तव नाकारले.'}`,
+          messageMr: `तुमची ओळखपत्र पाहण्याची विनंती नाकारण्यात आली: ${reason || 'सुरक्षा कारणास्तव नाकारले.'}`,
+          type: 'system'
+        });
+        return {
+          ...r,
+          status: 'rejected',
+          reviewedAt: new Date().toISOString(),
+          adminNotes: reason || 'अमान्य केले.'
+        };
+      }
+      return r;
+    }));
+    logActivity('Reject ID Request', `ॲडमिनने आयडी विनंती नाकारली: ID ${requestId}`);
+  };
+
+  const deleteMemberIdRequest = (requestId: string) => {
+    setMemberIdRequests(prev => prev.filter(r => r.id !== requestId));
   };
 
   // APK Uploader Settings
@@ -3584,10 +3732,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  const uploadAadhaarCard = (profileId: string, aadhaarUrl: string) => {
+  const uploadAadhaarCard = (profileId: string, aadhaarUrl: string, backUrl?: string, isMasked: boolean = true, idNumber?: string) => {
     updateProfileDirect(profileId, {
       aadhaarCardUrl: aadhaarUrl,
+      aadhaarFrontUrl: aadhaarUrl,
+      aadhaarBackUrl: backUrl || '',
       idProofUrl: aadhaarUrl,
+      isAadhaarMasked: isMasked,
+      idVerificationNumber: idNumber || '',
       aadhaarVerified: true,
       isIdVerified: true
     });
@@ -3985,6 +4137,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addPromoCode,
         deletePromoCode,
         togglePromoCodeStatus,
+        usePromoCode,
         validatePromoCode,
         pendingProfileEdits,
         submitProfileEditRequest,
@@ -3996,6 +4149,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         submitFaceVerification,
         approveFaceVerification,
         rejectFaceVerification,
+        memberIdRequests,
+        requestMemberGovtId,
+        approveMemberIdRequest,
+        rejectMemberIdRequest,
+        deleteMemberIdRequest,
         isProfilePlanExpired,
         isCurrentUserPlanExpired,
         updateApkSettings,

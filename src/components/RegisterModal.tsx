@@ -152,10 +152,15 @@ export const RegisterModal: React.FC<{
   const [isUploadingPhoto, setIsUploadingPhoto] = useState<boolean>(false);
   const [extractedSuccessBadge, setExtractedSuccessBadge] = useState<string | null>(null);
 
-  // Aadhaar / ID Document Optional Upload State
+  // Aadhaar / ID Document Optional Upload State (Front & Back)
   const [aadhaarDocUrl, setAadhaarDocUrl] = useState<string>('');
+  const [aadhaarFrontUrl, setAadhaarFrontUrl] = useState<string>('');
+  const [aadhaarBackUrl, setAadhaarBackUrl] = useState<string>('');
+  const [isAadhaarMasked, setIsAadhaarMasked] = useState<boolean>(true);
   const [aadhaarNumber, setAadhaarNumber] = useState<string>('');
   const [isUploadingAadhaar, setIsUploadingAadhaar] = useState<boolean>(false);
+  const [isUploadingAadhaarFront, setIsUploadingAadhaarFront] = useState<boolean>(false);
+  const [isUploadingAadhaarBack, setIsUploadingAadhaarBack] = useState<boolean>(false);
   const [aadhaarError, setAadhaarError] = useState<string | null>(null);
 
   // Privacy & Terms Checkbox States
@@ -267,6 +272,7 @@ export const RegisterModal: React.FC<{
       const res = await uploadToCloudinary(fileToUpload, 'vanjarijodi_documents');
       if (res.success && res.url) {
         setAadhaarDocUrl(res.url);
+        if (!aadhaarFrontUrl) setAadhaarFrontUrl(res.url);
       } else {
         setAadhaarError(res.error || 'कागदपत्र अपलोड करताना अडचण आली. कृपया पुन्हा प्रयत्न करा.');
       }
@@ -274,6 +280,55 @@ export const RegisterModal: React.FC<{
       setAadhaarError('कागदपत्र प्रक्रिया करताना अडचण आली.');
     }
     setIsUploadingAadhaar(false);
+  };
+
+  const handleAadhaarFrontUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAadhaarError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAadhaarFront(true);
+    try {
+      let fileToUpload: File = file;
+      if (file.type.startsWith('image/')) {
+        const comp = await compressAndResizeImage(file, 1200, 0.82);
+        fileToUpload = comp.file;
+      }
+      const res = await uploadToCloudinary(fileToUpload, 'vanjarijodi_documents');
+      if (res.success && res.url) {
+        setAadhaarFrontUrl(res.url);
+        setAadhaarDocUrl(res.url);
+      } else {
+        setAadhaarError(res.error || 'पुढील बाजूचा फोटो अपलोड करताना अडचण आली.');
+      }
+    } catch (err) {
+      setAadhaarError('पुढील बाजूचा फोटो प्रक्रिया करताना अडचण आली.');
+    }
+    setIsUploadingAadhaarFront(false);
+  };
+
+  const handleAadhaarBackUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAadhaarError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAadhaarBack(true);
+    try {
+      let fileToUpload: File = file;
+      if (file.type.startsWith('image/')) {
+        const comp = await compressAndResizeImage(file, 1200, 0.82);
+        fileToUpload = comp.file;
+      }
+      const res = await uploadToCloudinary(fileToUpload, 'vanjarijodi_documents');
+      if (res.success && res.url) {
+        setAadhaarBackUrl(res.url);
+      } else {
+        setAadhaarError(res.error || 'मागील बाजूचा फोटो अपलोड करताना अडचण आली.');
+      }
+    } catch (err) {
+      setAadhaarError('मागील बाजूचा फोटो प्रक्रिया करताना अडचण आली.');
+    }
+    setIsUploadingAadhaarBack(false);
   };
 
   const handleSubmitRegistration = (e: React.FormEvent) => {
@@ -304,6 +359,10 @@ export const RegisterModal: React.FC<{
 
     const chosenPlan = plansList.find((p) => p.id === selectedPlanId);
     const assignedMembership = chosenPlan ? chosenPlan.id : 'free';
+
+    const finalAadhaarFront = aadhaarFrontUrl || aadhaarDocUrl || '';
+    const finalAadhaarBack = aadhaarBackUrl || '';
+    const hasAadhaar = !!(finalAadhaarFront || finalAadhaarBack);
 
     const newProfile: UserProfile = {
       id: 'vj-' + Date.now() + '-' + Math.floor(1000 + Math.random() * 9000),
@@ -352,12 +411,15 @@ export const RegisterModal: React.FC<{
       familyType,
       expectations: expectations || 'सुशिक्षित आणि सुसंस्कृत वंजारी जोडीदार.',
       photos: orderedPhotos,
-      idProofUrl: aadhaarDocUrl || '',
+      idProofUrl: finalAadhaarFront,
+      aadhaarFrontUrl: finalAadhaarFront,
+      aadhaarBackUrl: finalAadhaarBack,
+      isAadhaarMasked: isAadhaarMasked,
       idVerificationNumber: aadhaarNumber || '',
-      aadhaarCardUrl: aadhaarDocUrl || '',
-      aadhaarVerified: !!aadhaarDocUrl,
-      isIdVerified: !!aadhaarDocUrl,
-      isVerified: !!aadhaarDocUrl,
+      aadhaarCardUrl: finalAadhaarFront,
+      aadhaarVerified: hasAadhaar,
+      isIdVerified: hasAadhaar,
+      isVerified: hasAadhaar,
       isFeatured: false,
       isApproved: false,
       membership: assignedMembership,
@@ -1353,21 +1415,30 @@ export const RegisterModal: React.FC<{
                       )}
                     </div>
 
-                    {/* OPTIONAL Aadhaar & ID Document Upload Section */}
-                    <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50/60 rounded-2xl border-2 border-amber-300 space-y-3">
+                    {/* OPTIONAL Aadhaar & ID Document Upload Section (Front & Back) */}
+                    <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50/60 rounded-2xl border-2 border-amber-300 space-y-3.5">
                       <div className="flex items-center justify-between flex-wrap gap-2 border-b border-amber-200 pb-2">
-                        <label className="block text-[#A71930] font-black text-xs flex items-center gap-1.5">
+                        <label className="block text-[#A71930] font-black text-xs sm:text-sm flex items-center gap-1.5">
                           <FileText className="w-4 h-4 text-[#A71930]" />
-                          <span>४. आधार / ओळखपत्र कागदपत्रे जोडणे (Optional / ऐच्छिक)</span>
+                          <span>४. आधार / ओळखपत्र कागदपत्रे जोडणे (पुढील व मागील बाजू)</span>
                         </label>
                         <span className="text-[10px] font-black bg-amber-200 text-[#800C1E] px-2.5 py-0.5 rounded-full border border-amber-300">
-                          नॉट कंपल्सरी
+                          ऐच्छिक / Optional
                         </span>
                       </div>
 
-                      <p className="text-[11px] text-slate-700 font-bold leading-relaxed">
-                        💡 **टीप:** नोंदणी करताना आधार जोडणे <strong>अनिवार्य/कंपल्सरी नाही</strong>. जर तुम्ही आता आधार जोडले नाही तर नोंदणी झाल्यावर तुमच्या <strong>'Member Dashboard'</strong> मधून देखील नंतर कधीही आधार किंवा कागदपत्राची PDF/फोटो अपलोड करू शकता.
-                      </p>
+                      {/* Admin Configured Security Notice */}
+                      {siteConfig.showMaskedAadhaarNotice !== false && (
+                        <div className="p-3 bg-white/90 border-2 border-amber-300/80 rounded-xl text-[11px] sm:text-xs text-amber-950 font-semibold leading-relaxed shadow-sm">
+                          <div className="flex items-start gap-2">
+                            <span className="text-base shrink-0">🛡️</span>
+                            <div>
+                              <strong className="text-[#800C1E] block mb-0.5">गोपनीयता व सुरक्षितता सूचना:</strong>
+                              <span>{siteConfig.maskedAadhaarNoticeText || 'आपल्या गोपनीयतेसाठी व सुरक्षिततेसाठी कृपया पहिल्या ८ अंकांवर मास्क केलेले (Masked Aadhaar) किंवा केवळ शेवटचे ४ अंक दिसणारे आधार कार्ड अपलोड करा.'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
@@ -1376,27 +1447,54 @@ export const RegisterModal: React.FC<{
                           </label>
                           <input
                             type="text"
-                            placeholder="उदा. १२ अंकी आधार क्रमांक किंवा शेवटचे ४ अंक"
+                            placeholder="उदा. XXXX XXXX 1234 किंवा शेवटचे ४ अंक"
                             value={aadhaarNumber}
                             onChange={(e) => setAadhaarNumber(e.target.value)}
                             className="w-full bg-white border-2 border-amber-300 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:border-[#A71930]"
                           />
                         </div>
 
-                        <div>
-                          <label className="block text-slate-800 text-xs font-bold mb-1">
-                            आधार कार्ड / ओळखपत्र फाईल (PDF/फोटो):
+                        <div className="flex items-center">
+                          <label className="flex items-center gap-2 cursor-pointer p-2 bg-white/80 rounded-xl border border-amber-200 w-full">
+                            <input
+                              type="checkbox"
+                              checked={isAadhaarMasked}
+                              onChange={(e) => setIsAadhaarMasked(e.target.checked)}
+                              className="w-4 h-4 text-[#A71930] rounded accent-[#A71930]"
+                            />
+                            <span className="text-[11px] font-bold text-slate-800">
+                              🔒 माझे आधार कार्ड मास्क केलेले (Masked) आहे
+                            </span>
                           </label>
-                          
-                          {aadhaarDocUrl ? (
-                            <div className="flex items-center justify-between p-2.5 bg-emerald-50 border border-emerald-300 rounded-xl">
-                              <span className="text-xs font-bold text-emerald-800 flex items-center gap-1">
-                                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                                <span>कागदपत्र अपलोड झाले!</span>
+                        </div>
+                      </div>
+
+                      {/* FRONT & BACK UPLOAD GRIDS */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
+                        {/* 1. FRONT SIDE */}
+                        <div className="p-3 bg-white rounded-xl border-2 border-amber-200 space-y-2">
+                          <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                            <span className="flex items-center gap-1.5">
+                              <span className="w-5 h-5 rounded-full bg-amber-100 text-[#800C1E] flex items-center justify-center text-[10px] font-black">१</span>
+                              <span>आधार पुढील बाजू (Front Photo)</span>
+                            </span>
+                            {aadhaarFrontUrl && (
+                              <span className="text-[10px] text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full font-black">
+                                ✓ अपलोड झाले
                               </span>
+                            )}
+                          </div>
+
+                          {aadhaarFrontUrl ? (
+                            <div className="relative rounded-lg overflow-hidden border border-emerald-300 bg-emerald-50/50 p-2 flex items-center justify-between">
+                              <img
+                                src={aadhaarFrontUrl}
+                                alt="Aadhaar Front"
+                                className="w-14 h-10 object-cover rounded border border-emerald-400"
+                              />
                               <div className="flex items-center gap-2">
                                 <a
-                                  href={aadhaarDocUrl}
+                                  href={aadhaarFrontUrl}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-[11px] text-[#A71930] font-black underline"
@@ -1405,7 +1503,10 @@ export const RegisterModal: React.FC<{
                                 </a>
                                 <button
                                   type="button"
-                                  onClick={() => setAadhaarDocUrl('')}
+                                  onClick={() => {
+                                    setAadhaarFrontUrl('');
+                                    if (aadhaarDocUrl === aadhaarFrontUrl) setAadhaarDocUrl('');
+                                  }}
                                   className="text-[11px] text-rose-600 font-bold hover:underline"
                                 >
                                   हटवा
@@ -1413,20 +1514,20 @@ export const RegisterModal: React.FC<{
                               </div>
                             </div>
                           ) : (
-                            <div className="relative">
+                            <div>
                               <input
                                 type="file"
                                 accept="image/*,application/pdf"
-                                onChange={handleAadhaarUploadSim}
-                                disabled={isUploadingAadhaar}
+                                onChange={handleAadhaarFrontUpload}
+                                disabled={isUploadingAadhaarFront}
                                 className="hidden"
-                                id="modal-aadhaar-upload"
+                                id="modal-aadhaar-front-upload"
                               />
                               <label
-                                htmlFor="modal-aadhaar-upload"
-                                className="w-full px-3 py-2.5 rounded-xl bg-white hover:bg-amber-100 text-[#A71930] font-black text-xs border-2 border-dashed border-amber-400 cursor-pointer flex items-center justify-center gap-2 transition-all"
+                                htmlFor="modal-aadhaar-front-upload"
+                                className="w-full px-3 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-[#A71930] font-black text-xs border-2 border-dashed border-amber-400 cursor-pointer flex items-center justify-center gap-2 transition-all"
                               >
-                                {isUploadingAadhaar ? (
+                                {isUploadingAadhaarFront ? (
                                   <>
                                     <Loader2 className="w-4 h-4 animate-spin text-[#A71930]" />
                                     <span>अपलोड होत आहे...</span>
@@ -1434,7 +1535,76 @@ export const RegisterModal: React.FC<{
                                 ) : (
                                   <>
                                     <Upload className="w-4 h-4 text-[#A71930]" />
-                                    <span>📂 आधार / ID फाईल निवडा (PDF/Image)</span>
+                                    <span>📸 पुढील बाजू निवडा</span>
+                                  </>
+                                )}
+                              </label>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 2. BACK SIDE */}
+                        <div className="p-3 bg-white rounded-xl border-2 border-amber-200 space-y-2">
+                          <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                            <span className="flex items-center gap-1.5">
+                              <span className="w-5 h-5 rounded-full bg-amber-100 text-[#800C1E] flex items-center justify-center text-[10px] font-black">२</span>
+                              <span>आधार मागील बाजू (Back Photo)</span>
+                            </span>
+                            {aadhaarBackUrl && (
+                              <span className="text-[10px] text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full font-black">
+                                ✓ अपलोड झाले
+                              </span>
+                            )}
+                          </div>
+
+                          {aadhaarBackUrl ? (
+                            <div className="relative rounded-lg overflow-hidden border border-emerald-300 bg-emerald-50/50 p-2 flex items-center justify-between">
+                              <img
+                                src={aadhaarBackUrl}
+                                alt="Aadhaar Back"
+                                className="w-14 h-10 object-cover rounded border border-emerald-400"
+                              />
+                              <div className="flex items-center gap-2">
+                                <a
+                                  href={aadhaarBackUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[11px] text-[#A71930] font-black underline"
+                                >
+                                  पहा
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => setAadhaarBackUrl('')}
+                                  className="text-[11px] text-rose-600 font-bold hover:underline"
+                                >
+                                  हटवा
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <input
+                                type="file"
+                                accept="image/*,application/pdf"
+                                onChange={handleAadhaarBackUpload}
+                                disabled={isUploadingAadhaarBack}
+                                className="hidden"
+                                id="modal-aadhaar-back-upload"
+                              />
+                              <label
+                                htmlFor="modal-aadhaar-back-upload"
+                                className="w-full px-3 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-[#A71930] font-black text-xs border-2 border-dashed border-amber-400 cursor-pointer flex items-center justify-center gap-2 transition-all"
+                              >
+                                {isUploadingAadhaarBack ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 animate-spin text-[#A71930]" />
+                                    <span>अपलोड होत आहे...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Upload className="w-4 h-4 text-[#A71930]" />
+                                    <span>📸 मागील बाजू निवडा</span>
                                   </>
                                 )}
                               </label>

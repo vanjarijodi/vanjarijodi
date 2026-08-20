@@ -63,6 +63,7 @@ import {
   Square,
   RotateCcw,
   Camera,
+  ScanFace,
   MapPin,
   Phone,
   Mail,
@@ -7887,20 +7888,23 @@ export const AdminPanel: React.FC<{
           {/* TAB: FACE VERIFICATION LOGS */}
           {activeTab === 'face_verification' && (
             <div className="space-y-4">
-              <div className="p-4 bg-amber-100 rounded-2xl border border-amber-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="p-4 bg-gradient-to-r from-amber-100 to-orange-100 rounded-2xl border border-amber-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-lg font-black text-[#A71930] flex items-center gap-2">
-                    <Camera className="w-5 h-5 text-blue-600" />
-                    <span>चेहरा व फोटो पडताळणी ऑथेंटिकेशन लॉग्स (Face Verification Logs)</span>
+                    <ScanFace className="w-5 h-5 text-blue-600" />
+                    <span>चेहरा व थेट कॅमेरा पडताळणी केंद्र (Face & Liveness Verification Logs)</span>
                   </h3>
                   <p className="text-xs text-slate-700 font-medium">
-                    सदस्यांनी पाठवलेले फोटो तपासा, मूळ प्रोफाइल फोटोशी तुलना करून मॅन्युअली Approved (मंजूर) किंवा Rejected (अमान्य) करा.
+                    बनावट व दुसऱ्याचे फोटो रोखण्यासाठी AI मॅच स्कोअर आणि थेट हालचाल पडताळणी तपासा. खात्री पटल्यास खात्यावर Verified Blue Tick द्या.
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <span className="px-3 py-1 bg-amber-200 text-[#800C1E] rounded-full text-xs font-black border border-amber-300">
                     एकूण प्रलंबित: {faceVerificationLogs.filter((l) => l.status === 'pending').length}
+                  </span>
+                  <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-black border border-emerald-300">
+                    प्रमाणित: {faceVerificationLogs.filter((l) => l.status === 'approved').length}
                   </span>
                 </div>
               </div>
@@ -7909,12 +7913,12 @@ export const AdminPanel: React.FC<{
                 <table className="w-full text-left text-xs">
                   <thead className="bg-amber-100 text-[#800C1E] font-black border-b border-amber-200">
                     <tr>
-                      <th className="p-3">सदस्याचे नाव & ID</th>
-                      <th className="p-3">सादर केलेला चेहऱ्याचा फोटो</th>
-                      <th className="p-3">मूळ प्रोफाइल फोटो</th>
-                      <th className="p-3">पडताळणी प्रकार</th>
+                      <th className="p-3">सदस्याचे नाव & संपर्क</th>
+                      <th className="p-3">थेट कॅमेऱ्यातील सेल्फी</th>
+                      <th className="p-3">मूळ प्रोफाईल फोटो</th>
+                      <th className="p-3">AI मॅच व Liveness पडताळणी</th>
                       <th className="p-3">सादर वेळ</th>
-                      <th className="p-3 text-right">कृती (Actions)</th>
+                      <th className="p-3 text-right">कृती (Admin Actions)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-amber-100 font-semibold">
@@ -7925,77 +7929,131 @@ export const AdminPanel: React.FC<{
                         </td>
                       </tr>
                     ) : (
-                      faceVerificationLogs.map((log) => (
-                        <tr key={log.id} className="hover:bg-amber-50">
-                          <td className="p-3">
-                            <p className="font-extrabold text-slate-900">{log.userName}</p>
-                            <span className="text-[10px] font-mono text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
-                              ID: {log.userId}
-                            </span>
-                          </td>
-                          <td className="p-3">
-                            <div className="relative group w-14 h-14 rounded-xl overflow-hidden border-2 border-blue-400 bg-slate-900">
-                              <img
-                                src={log.capturedPhotoUrl}
-                                alt="Captured"
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          </td>
-                          <td className="p-3">
-                            <div className="w-14 h-14 rounded-xl overflow-hidden border-2 border-amber-300 bg-slate-100">
-                              <img
-                                src={log.profilePhotoUrl}
-                                alt="Profile"
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          </td>
-                          <td className="p-3">
-                            <span
-                              className="px-2.5 py-1 rounded-full font-black text-xs inline-flex items-center gap-1 bg-amber-100 text-amber-900 border border-amber-300"
-                            >
-                              <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
-                              <span>मॅन्युअल ॲडमिन रिव्ह्यू</span>
-                            </span>
-                          </td>
-                          <td className="p-3 font-mono text-slate-500 text-[11px]">{log.submittedAt}</td>
-                          <td className="p-3 text-right">
-                            {log.status === 'pending' ? (
-                              <div className="flex items-center justify-end gap-1.5">
-                                <button
-                                  onClick={() => {
-                                    approveFaceVerification(log.id);
-                                    alert(`सदस्य ${log.userName} ची चेहरा पडताळणी मंजूर करून Verified Blue Tick देण्यात आला!`);
-                                  }}
-                                  className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs rounded-xl shadow cursor-pointer flex items-center gap-1"
-                                >
-                                  <Check className="w-3.5 h-3.5" />
-                                  <span>मंजूर करा (Blue Tick)</span>
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    const reason = prompt('अमान्य करण्याचे कारण लिहा:', 'चेहरा मूळ प्रोफाइल फोटोशी जुळला नाही.');
-                                    if (reason) rejectFaceVerification(log.id, reason);
-                                  }}
-                                  className="px-3 py-1.5 bg-rose-700 hover:bg-rose-800 text-white font-black text-xs rounded-xl shadow cursor-pointer flex items-center gap-1"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                  <span>अमान्य</span>
-                                </button>
+                      faceVerificationLogs.map((log) => {
+                        const cleanMobile = (log.userMobile || '').replace(/[^0-9]/g, '');
+                        const score = log.matchScore || 90;
+                        const isHighConfidence = score >= 80;
+
+                        return (
+                          <tr key={log.id} className="hover:bg-amber-50">
+                            <td className="p-3">
+                              <p className="font-extrabold text-slate-900 text-sm">{log.userName}</p>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="text-[10px] font-mono text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
+                                  ID: {log.userId}
+                                </span>
+                                {cleanMobile && (
+                                  <a
+                                    href={`https://wa.me/91${cleanMobile.slice(-10)}?text=${encodeURIComponent(
+                                      `नमस्कार ${log.userName}, वंजारी जोडी मॅट्रिमोनीवरून आम्ही आपली चेहरा पडताळणी तपासत आहोत.`
+                                    )}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="p-1 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-md inline-flex items-center gap-0.5 text-[10px] font-bold"
+                                    title="व्हॉट्सॲपवर संपर्क करा"
+                                  >
+                                    <MessageCircle className="w-3 h-3 text-emerald-600" />
+                                    <span>{cleanMobile.slice(-10)}</span>
+                                  </a>
+                                )}
                               </div>
-                            ) : (
-                              <span
-                                className={`px-3 py-1 rounded-full text-xs font-black uppercase ${
-                                  log.status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                                }`}
-                              >
-                                {log.status}
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      ))
+                            </td>
+
+                            <td className="p-3">
+                              <div className="relative group w-16 h-16 rounded-xl overflow-hidden border-2 border-emerald-500 bg-slate-900 shadow-sm cursor-pointer" onClick={() => window.open(log.capturedPhotoUrl, '_blank')}>
+                                <img
+                                  src={log.capturedPhotoUrl}
+                                  alt="Captured"
+                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                                />
+                                <span className="absolute bottom-0 inset-x-0 bg-emerald-600/90 text-white text-[8px] font-bold text-center py-0.5">
+                                  थेट सेल्फी
+                                </span>
+                              </div>
+                            </td>
+
+                            <td className="p-3">
+                              <div className="relative group w-16 h-16 rounded-xl overflow-hidden border-2 border-amber-400 bg-slate-100 shadow-sm cursor-pointer" onClick={() => window.open(log.profilePhotoUrl || '', '_blank')}>
+                                <img
+                                  src={log.profilePhotoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                                  alt="Profile"
+                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                                />
+                                <span className="absolute bottom-0 inset-x-0 bg-amber-700/90 text-white text-[8px] font-bold text-center py-0.5">
+                                  मूळ फोटो
+                                </span>
+                              </div>
+                            </td>
+
+                            <td className="p-3">
+                              <div className="space-y-1">
+                                <span
+                                  className={`px-2.5 py-0.5 rounded-full font-black text-[11px] inline-flex items-center gap-1 border ${
+                                    isHighConfidence
+                                      ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                      : 'bg-amber-100 text-amber-900 border-amber-300'
+                                  }`}
+                                >
+                                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>{score}% AI मॅच साम्य</span>
+                                </span>
+                                {log.livenessAction && (
+                                  <p className="text-[10px] text-slate-600 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                                    <span>हालचाल: {log.livenessAction}</span>
+                                  </p>
+                                )}
+                              </div>
+                            </td>
+
+                            <td className="p-3 font-mono text-slate-500 text-[11px]">
+                              {new Date(log.submittedAt).toLocaleString('mr-IN', {
+                                day: '2-digit',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </td>
+
+                            <td className="p-3 text-right">
+                              {log.status === 'pending' ? (
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <button
+                                    onClick={() => {
+                                      approveFaceVerification(log.id);
+                                      alert(`🎉 सदस्य ${log.userName} ची चेहरा पडताळणी मंजूर करण्यात आली असून प्रोफाईलवर Verified Blue Tick जोडण्यात आला!`);
+                                    }}
+                                    className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs rounded-xl shadow cursor-pointer flex items-center gap-1"
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                    <span>मंजूर (Blue Tick)</span>
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      const reason = prompt('अमान्य करण्याचे कारण लिहा:', 'चेहरा मूळ प्रोफाइल फोटोशी जुळला नाही किंवा अस्पष्ट आहे.');
+                                      if (reason) rejectFaceVerification(log.id, reason);
+                                    }}
+                                    className="px-2.5 py-1.5 bg-rose-700 hover:bg-rose-800 text-white font-black text-xs rounded-xl shadow cursor-pointer flex items-center gap-1"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                    <span>अमान्य</span>
+                                  </button>
+                                </div>
+                              ) : (
+                                <span
+                                  className={`px-3 py-1 rounded-full text-xs font-black uppercase ${
+                                    log.status === 'approved'
+                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                      : 'bg-rose-100 text-rose-800 border border-rose-300'
+                                  }`}
+                                >
+                                  {log.status === 'approved' ? '✓ प्रमाणित (Approved)' : '✗ नाकारले (Rejected)'}
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
                     )}
                   </tbody>
                 </table>

@@ -919,6 +919,116 @@ export const AdminMasterSettingsCenter: React.FC = () => {
                 {siteConfig.enableAadhaarVerification !== false ? 'सक्रिय (ON)' : 'बंद (OFF)'}
               </button>
             </div>
+
+            {/* AADHAAR FRONT/BACK & MASKING NOTICE MANAGEMENT (FULL WIDTH BOX) */}
+            <div className="p-4 rounded-2xl bg-amber-50/90 border-2 border-amber-300 space-y-3.5 col-span-1 md:col-span-2 shadow-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-200 pb-2">
+                <span className="font-black text-[#800C1E] text-sm flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-[#A71930]" />
+                  <span>आधार कार्ड (पुढील व मागील बाजू) आणि मास्क आधार सूचना संपादन (Aadhaar & Privacy Notice):</span>
+                </span>
+                <span className="text-[10px] font-black bg-amber-200 text-[#800C1E] px-2.5 py-0.5 rounded-full border border-amber-300 self-start sm:self-auto">
+                  सुरक्षा नियम 🛡️
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                {/* 1. Toggle Masked Aadhaar Notice */}
+                <div className="p-3 bg-white rounded-xl border border-amber-200 flex items-center justify-between gap-2">
+                  <div>
+                    <span className="font-bold text-slate-900 block">मास्क आधार सूचना बॅनर दाखवा (Show Privacy Notice):</span>
+                    <span className="text-[10px] text-slate-600">नोंदणी व डॅशबोर्डवर मास्क आधार अपलोड करण्याची सूचना दिसेल.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleToggle(
+                        'showMaskedAadhaarNotice',
+                        siteConfig.showMaskedAadhaarNotice !== false,
+                        'मास्क आधार सूचना'
+                      )
+                    }
+                    className={`px-3 py-1.5 rounded-lg text-xs font-black shrink-0 ${
+                      siteConfig.showMaskedAadhaarNotice !== false
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-300 text-slate-700'
+                    }`}
+                  >
+                    {siteConfig.showMaskedAadhaarNotice !== false ? 'चालू (ON)' : 'बंद (OFF)'}
+                  </button>
+                </div>
+
+                {/* 2. Toggle Front & Back Upload */}
+                <div className="p-3 bg-white rounded-xl border border-amber-200 flex items-center justify-between gap-2">
+                  <div>
+                    <span className="font-bold text-slate-900 block">पुढील व मागील बाजू दोन्ही अपलोड (Front & Back Photos):</span>
+                    <span className="text-[10px] text-slate-600">सदस्यांना आधारच्या दोन्ही बाजूंचे स्वतंत्र फोटो अपलोड करता येतील.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleToggle(
+                        'enableAadhaarFrontBackUpload',
+                        siteConfig.enableAadhaarFrontBackUpload !== false,
+                        'आधार पुढील/मागील बाजू अपलोड'
+                      )
+                    }
+                    className={`px-3 py-1.5 rounded-lg text-xs font-black shrink-0 ${
+                      siteConfig.enableAadhaarFrontBackUpload !== false
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-300 text-slate-700'
+                    }`}
+                  >
+                    {siteConfig.enableAadhaarFrontBackUpload !== false ? 'चालू (ON)' : 'बंद (OFF)'}
+                  </button>
+                </div>
+
+                {/* 3. Allow Member Govt ID Request System */}
+                <div className="p-3 bg-white rounded-xl border border-amber-200 flex items-center justify-between gap-2 sm:col-span-2">
+                  <div>
+                    <span className="font-bold text-slate-900 block">सदस्यांना दुसऱ्याचे ओळखपत्र मागण्याची सिस्टीम (Allow Member ID Requests):</span>
+                    <span className="text-[10px] text-slate-600">सदस्य ॲडमिनकडे दुसऱ्या बायोडाटाचे ओळखपत्र पाहण्याची विनंती पाठवू शकतात; ॲडमिन अप्रूव्ह केल्यावरच सुरक्षित मास्क ॲक्सेस मिळतो.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleToggle(
+                        'allowMemberIdRequest',
+                        siteConfig.allowMemberIdRequest !== false,
+                        'ओळखपत्र विनंती सिस्टीम'
+                      )
+                    }
+                    className={`px-3 py-1.5 rounded-lg text-xs font-black shrink-0 ${
+                      siteConfig.allowMemberIdRequest !== false
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-slate-300 text-slate-700'
+                    }`}
+                  >
+                    {siteConfig.allowMemberIdRequest !== false ? 'चालू (ON)' : 'बंद (OFF)'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Notice Text Editor */}
+              <div className="space-y-1.5 pt-1">
+                <label className="block font-black text-slate-900 text-xs flex items-center justify-between">
+                  <span>✍️ सदस्यांना दिसणारी मास्क आधार सूचना मजकूर (Edit Notice Text):</span>
+                  <span className="text-[10px] text-[#A71930] font-bold">(ॲडमिन थेट एडिट करू शकतात)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  value={siteConfig.maskedAadhaarNoticeText || ''}
+                  placeholder="उदा. आपल्या गोपनीयतेसाठी व सुरक्षिततेसाठी कृपया पहिल्या ८ अंकांवर मास्क केलेले (Masked Aadhaar) किंवा केवळ शेवटचे ४ अंक दिसणारे आधार कार्ड अपलोड करा."
+                  onChange={(e) => {
+                    updateSiteConfig({ maskedAadhaarNoticeText: e.target.value });
+                  }}
+                  className="w-full bg-white border-2 border-amber-300 rounded-xl p-2.5 text-xs text-slate-900 font-medium outline-none focus:border-[#800C1E] focus:ring-1 focus:ring-[#800C1E]"
+                />
+                <p className="text-[10px] text-slate-600">
+                  💡 ही सूचना सदस्यांना रजिस्ट्रेशन फॉर्म, प्रोफाइल एडिट व मेंबर डॅशबोर्डमध्ये आधार अपलोड करताना ठळकपणे दिसेल.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       )}

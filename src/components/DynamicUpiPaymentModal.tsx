@@ -27,6 +27,9 @@ import {
   Info,
   Download,
   MessageCircle,
+  Tag,
+  Percent,
+  Gift,
 } from 'lucide-react';
 
 interface DynamicUpiPaymentModalProps {
@@ -51,6 +54,8 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     logActivity,
     updateMemberTier,
     setCurrentView,
+    validatePromoCode,
+    usePromoCode,
   } = useApp();
 
   // Active Plan Resolution
@@ -60,6 +65,25 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     plansList.find((p) => p.id === 'welcome_offer' && p.isActive !== false) ||
     plansList.find((p) => p.isActive !== false) ||
     plansList[0];
+
+  // Promo Code State
+  const [promoCodeInput, setPromoCodeInput] = useState<string>('');
+  const [appliedPromo, setAppliedPromo] = useState<{
+    code: string;
+    discountAmount: number;
+    finalAmount: number;
+    isVipFree: boolean;
+    message: string;
+    promo?: any;
+  } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [isApplyingPromo, setIsApplyingPromo] = useState<boolean>(false);
+
+  // Dynamic Pricing Math
+  const originalPrice = Number(activePlan?.price || paymentConfig?.amount || 199);
+  const discountAmount = appliedPromo ? appliedPromo.discountAmount : 0;
+  const finalPayablePrice = appliedPromo ? appliedPromo.finalAmount : originalPrice;
+  const isVipFree = Boolean(appliedPromo?.isVipFree || finalPayablePrice === 0);
 
   // Steps: 'checkout' | 'waiting' | 'approved' | 'rejected'
   const [step, setStep] = useState<'checkout' | 'waiting' | 'approved' | 'rejected'>('checkout');
@@ -122,6 +146,9 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
       setScreenshotFile(null);
       setSubmitError(null);
       setSubmittedRequestId(null);
+      setPromoCodeInput('');
+      setAppliedPromo(null);
+      setPromoError(null);
       deadlineRef.current = Date.now() + 600 * 1000;
       setTimeLeft(600);
       fetchPaymentIntent();
@@ -179,14 +206,17 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
   }, [isOpen, step]);
 
   // Fetch Dynamic UPI Intent & QR from Backend
-  const fetchPaymentIntent = async () => {
+  const fetchPaymentIntent = async (overridePrice?: number) => {
     if (!activePlan) return;
-    const targetUpi = paymentConfig?.upiId || siteConfig?.paymentUpiId || 'hangemahesh@ybl';
-    const targetBusiness = paymentConfig?.payeeName || siteConfig?.paymentPayeeName || 'Mahesh Hange';
-    const targetPrice = activePlan ? activePlan.price : (paymentConfig?.amount || '199.00');
+    const targetUpi = paymentConfig?.upiId || siteConfig?.paymentUpiId || 'hange.usha@ybl';
+    const targetBusiness = paymentConfig?.payeeName || siteConfig?.paymentPayeeName || 'Usha Hange';
+    const currentPrice = typeof overridePrice === 'number'
+      ? overridePrice
+      : (appliedPromo ? appliedPromo.finalAmount : (activePlan.price || 199));
+    const targetPrice = currentPrice;
     const transactionNote = paymentConfig?.transactionNote || `VanjariJodi_${activePlan.id}`;
 
-    const cleanBusiness = String(targetBusiness).replace(/[^a-zA-Z0-9\s]/g, '').trim() || 'Mahesh Hange';
+    const cleanBusiness = String(targetBusiness).replace(/[^a-zA-Z0-9\s]/g, '').trim() || 'Usha Hange';
     const cleanNote = String(transactionNote).replace(/[^a-zA-Z0-9]/g, '') || 'VanjariJodi';
 
     // Multi-App UPI routing IDs
@@ -225,7 +255,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
           user_id: currentUser?.id || 'guest-user',
           plan_id: activePlan.id,
           plan_name: activePlan.nameMr || activePlan.name,
-          amount: activePlan.price,
+          amount: targetPrice,
           upi_id: targetUpi,
           phonepe_upi_id: phonepeUpi,
           gpay_upi_id: gpayUpi,
@@ -255,6 +285,109 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     }
   };
 
+  // Apply Promo Code Handler
+  const handleApplyPromoCode = (codeToApply?: string) => {
+    const rawCode = (typeof codeToApply === 'string' ? codeToApply : promoCodeInput).trim().toUpperCase();
+    setPromoError(null);
+
+    if (!rawCode) {
+      setPromoError('कृपया प्रोमो / कूपन कोड टाकावा.');
+      return;
+    }
+
+    setIsApplyingPromo(true);
+    const result = validatePromoCode(rawCode, originalPrice);
+    setIsApplyingPromo(false);
+
+    if (!result.valid) {
+      setPromoError(result.message || 'हा प्रोमो कोड अवैध किंवा कालबाह्य झालेला आहे.');
+      return;
+    }
+
+    setAppliedPromo({
+      code: rawCode,
+      discountAmount: result.discountAmount,
+      finalAmount: result.finalAmount,
+      isVipFree: result.isVipFree,
+      message: result.message,
+      promo: result.promo,
+    });
+    setPromoCodeInput('');
+    setPromoError(null);
+
+    // Regenerate QR and UPI Intent with new discounted price
+    fetchPaymentIntent(result.finalAmount);
+  };
+
+  // Remove Promo Code Handler
+  const handleRemovePromoCode = () => {
+    setAppliedPromo(null);
+    setPromoError(null);
+    setPromoCodeInput('');
+    fetchPaymentIntent(originalPrice);
+  };
+
+  // 1-Click Instant VIP Free Activation (For 100% Discount / VIPFREE code)
+  const handleInstantVipFreeActivation = async () => {
+    if (!isVipFree || !appliedPromo) return;
+    try {
+      setIsSubmitting(true);
+      const nowIso = new Date().toISOString();
+      const vipUtr = `VIPFREE${Date.now().toString().slice(-6)}`;
+      const memberId = currentUser?.id || `guest-${Date.now()}`;
+      const memberName = currentUser?.fullName || 'Member';
+      const memberMobile = userMobile || currentUser?.mobile || currentUser?.mobileNumber || '';
+
+      // Context Sync
+      addPaymentRequest({
+        userId: memberId,
+        userName: memberName,
+        userMobile: memberMobile,
+        planId: activePlan.id as MembershipTier,
+        planName: activePlan.nameMr || activePlan.name,
+        amount: 0,
+        utrNumber: vipUtr,
+        screenshotUrl: '',
+        paymentMethod: 'vip_promo_code',
+        adminNote: `VIP Promo Code Auto-Activated: ${appliedPromo.code}`,
+        promoCode: appliedPromo.code,
+        discountAmount: originalPrice,
+        originalAmount: originalPrice,
+      });
+
+      // Update User Membership directly
+      if (currentUser) {
+        updateMemberTier(currentUser.id, activePlan.id as MembershipTier, undefined, {
+          paidAt: nowIso,
+          paymentApprovedAt: nowIso,
+          paymentAmount: 0,
+          paymentUtr: vipUtr,
+          paymentPlanName: `${activePlan.nameMr || activePlan.name} (VIP कूपन)`,
+        });
+      }
+
+      // Record promo code usage count
+      usePromoCode(appliedPromo.code);
+
+      logActivity(
+        'VIP Free Promo Code Activated',
+        `सदस्याने ${appliedPromo.code} कूपन वापरून मोफत ${activePlan.nameMr || activePlan.name} (₹०) ॲक्टिव्हेट केला.`,
+        memberName
+      );
+
+      handlePaymentApproved({
+        plan_name: activePlan.nameMr || activePlan.name,
+        amount: 0,
+        utr_number: vipUtr,
+      });
+    } catch (err: any) {
+      console.error('Error activating VIP Free promo:', err);
+      setSubmitError('VIP कूपन ॲक्टिव्हेट करताना त्रुटी आली. कृपया पुन्हा प्रयत्न करा.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Launch Specific UPI App with auto-copy, desktop check, Android Intent & universal fallback
   const handleLaunchUpiApp = (appName: string, customUri?: string) => {
     // Auto-copy UPI ID to clipboard as a fail-proof fallback
@@ -274,10 +407,10 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     const isAndroid = /Android/i.test(navigator.userAgent);
 
-    const cleanBusiness = String(businessName || 'Mahesh Hange').replace(/[^a-zA-Z0-9\s]/g, '').trim() || 'Mahesh Hange';
+    const cleanBusiness = String(businessName || 'Usha Hange').replace(/[^a-zA-Z0-9\s]/g, '').trim() || 'Usha Hange';
     const cleanNote = String(paymentConfig?.transactionNote || 'VanjariJodi').replace(/[^a-zA-Z0-9]/g, '') || 'VanjariJodi';
 
-    const formattedPrice = String(activePlan?.price || paymentConfig?.amount || '199').replace(/[^0-9.]/g, '');
+    const formattedPrice = String(finalPayablePrice).replace(/[^0-9.]/g, '');
     
     const phonepeUpi = (paymentConfig?.phonepeUpiId || upiId).trim();
     const gpayUpi = (paymentConfig?.gpayUpiId || '').trim();
@@ -512,10 +645,13 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
           user_mobile: userMobile || currentUser?.mobile || '',
           plan_id: activePlan.id,
           plan_name: activePlan.nameMr || activePlan.name,
-          amount: activePlan.price,
+          amount: finalPayablePrice,
           utr_number: utrNumber,
           screenshot_url: finalScreenshotUrl || screenshotPreview,
           payment_method: 'upi_intent',
+          promo_code: appliedPromo?.code || undefined,
+          discount_amount: discountAmount,
+          original_amount: originalPrice,
         }),
       });
 
@@ -539,16 +675,23 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
         userMobile: userMobile || currentUser?.mobile || '',
         planId: activePlan.id as MembershipTier,
         planName: activePlan.nameMr || activePlan.name,
-        amount: activePlan.price,
+        amount: finalPayablePrice,
         utrNumber: utrNumber,
         screenshotUrl: finalScreenshotUrl || screenshotPreview,
         paymentMethod: 'upi_intent',
-        adminNote: '',
+        adminNote: appliedPromo ? `कूपन कोड लागू: ${appliedPromo.code} (सवलत ₹${discountAmount})` : '',
+        promoCode: appliedPromo?.code,
+        discountAmount: discountAmount,
+        originalAmount: originalPrice,
       });
+
+      if (appliedPromo) {
+        usePromoCode(appliedPromo.code);
+      }
 
       logActivity(
         'UPI Payment Proof Submitted',
-        `सदस्याने ${activePlan.nameMr || activePlan.name} (₹${activePlan.price}) साठी १२-अंकी UTR: ${utrNumber} सबमिट केला.`,
+        `सदस्याने ${activePlan.nameMr || activePlan.name} (रक्कम: ₹${finalPayablePrice}${appliedPromo ? `, कूपन: ${appliedPromo.code}` : ''}) साठी १२-अंकी UTR: ${utrNumber} सबमिट केला.`,
         currentUser?.fullName || 'Member'
       );
 
@@ -711,9 +854,21 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
               <div className="flex items-center space-x-4">
                 <div className="text-right">
                   <span className="text-xs text-gray-500 block">एकूण देय रक्कम</span>
-                  <span className="text-2xl sm:text-3xl font-black text-[#800C1E]">
-                    ₹{activePlan.price}
-                  </span>
+                  <div className="flex items-baseline space-x-1.5 justify-end">
+                    {appliedPromo && discountAmount > 0 && (
+                      <span className="text-sm font-bold text-gray-400 line-through">
+                        ₹{originalPrice}
+                      </span>
+                    )}
+                    <span className={`text-2xl sm:text-3xl font-black ${isVipFree ? 'text-emerald-700' : 'text-[#800C1E]'}`}>
+                      {isVipFree ? '₹० (मोफत)' : `₹${finalPayablePrice}`}
+                    </span>
+                  </div>
+                  {appliedPromo && (
+                    <span className="text-[10px] font-bold text-emerald-700 block bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200 mt-0.5">
+                      ✓ ₹{discountAmount} सवलत लागू ({appliedPromo.code})
+                    </span>
+                  )}
                 </div>
 
                 {/* 10:00 Countdown Badge */}
@@ -735,6 +890,152 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* ------------------------------------------------------------- */}
+            {/* PROMO / COUPON CODE SECTION */}
+            {/* ------------------------------------------------------------- */}
+            <div className="bg-slate-50/90 rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-800 flex items-center space-x-1.5">
+                  <Tag className="w-4 h-4 text-[#800C1E]" />
+                  <span>कूपन किंवा प्रोमो कोड (Promo / Discount Code):</span>
+                </label>
+                {appliedPromo && (
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>कूपन लागू झाले</span>
+                  </span>
+                )}
+              </div>
+
+              {!appliedPromo ? (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        value={promoCodeInput}
+                        onChange={(e) => {
+                          setPromoCodeInput(e.target.value.toUpperCase());
+                          setPromoError(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleApplyPromoCode();
+                          }
+                        }}
+                        placeholder="उदा. WELCOME50, VANJARI20, VIPFREE"
+                        className="w-full pl-3.5 pr-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold font-mono tracking-wider focus:outline-none focus:border-[#800C1E] focus:ring-1 focus:ring-[#800C1E] uppercase"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyPromoCode()}
+                      disabled={isApplyingPromo || !promoCodeInput.trim()}
+                      className="px-4 py-2.5 bg-[#800C1E] hover:bg-[#6A0A19] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1 shadow-sm active:scale-95 flex-shrink-0"
+                    >
+                      {isApplyingPromo ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Percent className="w-3.5 h-3.5" />
+                          <span>लागू करा</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Quick Promo Suggestions Chips */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <span className="text-[11px] text-gray-500 font-medium">उपलब्ध ऑफर्स:</span>
+                    {['WELCOME50', 'VANJARI20', 'VIPFREE'].map((code) => (
+                      <button
+                        key={code}
+                        type="button"
+                        onClick={() => {
+                          setPromoCodeInput(code);
+                          handleApplyPromoCode(code);
+                        }}
+                        className="text-[10px] font-mono font-bold bg-white hover:bg-amber-50 text-[#800C1E] border border-amber-300/80 px-2 py-0.5 rounded-lg shadow-2xs transition active:scale-95 flex items-center space-x-0.5"
+                      >
+                        <Tag className="w-2.5 h-2.5 opacity-70" />
+                        <span>{code}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {promoError && (
+                    <p className="text-xs text-rose-600 font-medium flex items-center space-x-1 animate-in fade-in">
+                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span>{promoError}</span>
+                    </p>
+                  )}
+                </div>
+              ) : (
+                /* Applied Promo Card */
+                <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl flex items-center justify-between gap-3">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-xs flex-shrink-0">
+                      <Gift className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-1.5">
+                        <span className="font-mono font-black text-xs text-emerald-950 bg-white px-2 py-0.5 rounded border border-emerald-300">
+                          {appliedPromo.code}
+                        </span>
+                        <span className="text-xs font-bold text-emerald-800">
+                          {appliedPromo.message || 'सवलत लागू झाली!'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-emerald-700 font-medium mt-0.5">
+                        मूळ रक्कम: <span className="line-through">₹{originalPrice}</span> • सवलत: <span className="font-bold">₹{discountAmount}</span> • अंतिम रक्कम: <span className="font-bold text-[#800C1E]">₹{finalPayablePrice}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleRemovePromoCode}
+                    className="text-xs font-bold text-rose-700 hover:text-rose-900 bg-white hover:bg-rose-50 border border-rose-200 px-2.5 py-1.5 rounded-lg transition shadow-2xs flex-shrink-0"
+                  >
+                    काढून टाका
+                  </button>
+                </div>
+              )}
+
+              {/* Instant VIP Free 1-Click Activation Button */}
+              {isVipFree && (
+                <div className="p-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white rounded-xl shadow-md space-y-2 animate-in zoom-in-95 duration-200">
+                  <div className="flex items-center space-x-2">
+                    <Sparkles className="w-5 h-5 text-amber-300" />
+                    <span className="font-bold text-sm">🎉 १००% मोफत VIP कूपन लागू झाले आहे!</span>
+                  </div>
+                  <p className="text-xs text-emerald-100">
+                    या कूपनद्वारे तुम्हाला कोणतेही शुल्क भरण्याची किंवा UTR टाकण्याची आवश्यकता नाही. खालील बटण दाबून थेट ॲक्टिव्हेट करा.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleInstantVipFreeActivation}
+                    disabled={isSubmitting}
+                    className="w-full py-3 px-4 bg-amber-400 hover:bg-amber-300 text-amber-950 font-black rounded-xl text-sm shadow-md hover:shadow-lg transition flex items-center justify-center space-x-2 active:scale-98"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>VIP प्लॅन सुरू होत आहे...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-5 h-5 text-emerald-900" />
+                        <span>🎉 मोफत VIP मेंबरशिप त्वरित सुरू करा (₹० भरणा)</span>
+                        <ArrowRight className="w-4 h-4 text-emerald-900" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Timer Expired Warning */}
@@ -876,7 +1177,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                   className="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl font-bold text-sm flex items-center justify-center space-x-2 shadow-md hover:shadow-lg transition transform active:scale-98"
                 >
                   <Smartphone className="w-5 h-5 text-amber-300 animate-bounce" />
-                  <span>📱 कोणत्याही UPI ॲपद्वारे भरा (रक्कम: ₹{activePlan.price})</span>
+                  <span>📱 कोणत्याही UPI ॲपद्वारे भरा (रक्कम: ₹{finalPayablePrice})</span>
                 </button>
 
                 {/* Live Launch Status / Copy Guidance Banner */}
@@ -1016,7 +1317,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                     <span>सोप्या पद्धतीने पेमेंट पूर्ण करा:</span>
                   </p>
                   <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-800 leading-relaxed font-medium">
-                    <li><strong className="text-purple-800">PhonePe युजर्स:</strong> वरील <strong>PhonePe</strong> बटण दाबा — थेट ₹{activePlan.price} रक्कम असलेली पेमेंट स्क्रीन उघडेल.</li>
+                    <li><strong className="text-purple-800">PhonePe युजर्स:</strong> वरील <strong>PhonePe</strong> बटण दाबा — थेट ₹{finalPayablePrice} रक्कम असलेली पेमेंट स्क्रीन उघडेल.</li>
                     <li><strong className="text-blue-800">Google Pay / इतर ॲप्स:</strong> डावीकडील <strong>"QR कोड सेव्ह करा"</strong> बटण दाबा आणि तुमच्या ॲपमध्ये Scan QR वर जाऊन गॅलरीतील QR फोटो निवडा (किंवा UPI आयडी <strong>{upiId}</strong> कॉपी करून पेस्ट करा).</li>
                     <li>पेमेंट झाल्यावर मिळालेला <strong>१२-अंकी UTR क्रमांक</strong> खाली टाकून सबमिट करा.</li>
                   </ol>

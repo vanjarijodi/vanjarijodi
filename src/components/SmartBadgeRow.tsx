@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Award, Briefcase, Heart, Sparkles, MapPin, GraduationCap, IndianRupee, Sun } from 'lucide-react';
+import { ShieldCheck, Award, Briefcase, Heart, Sparkles, MapPin, GraduationCap, IndianRupee, Sun, Camera } from 'lucide-react';
 import { UserProfile } from '../types';
 import { useApp } from '../context/AppContext';
 
@@ -93,6 +93,14 @@ export const SmartBadgeRow: React.FC<SmartBadgeRowProps> = ({
     <div className={`space-y-2 ${className}`}>
       {/* Capsule Badges (Pill Tags) Row */}
       <div className="flex flex-wrap items-center gap-1.5">
+        {/* Face Verified Badge (📸 फेस व्हेरिफाइड) */}
+        {profile.isFaceVerified && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-gradient-to-r from-teal-500 to-emerald-600 text-white border border-teal-300 shadow-xs">
+            <Camera className="w-3 h-3 text-teal-100" />
+            <span>{isEn ? 'Face Verified' : '📸 फेस व्हेरिफाइड'}</span>
+          </span>
+        )}
+
         {/* Verification Gold / Blue Badge */}
         {(profile.isVerified || profile.aadhaarVerified || profile.isIdVerified) && (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-gradient-to-r from-amber-400 to-amber-500 text-slate-950 border border-amber-500 shadow-xs">
