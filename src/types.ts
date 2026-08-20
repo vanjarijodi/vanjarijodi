@@ -321,6 +321,13 @@ export interface PaymentConfig {
   transactionNote: string;
   updatedAt?: string;
   qrCodeUrl?: string;
+  phonepeUpiId?: string;
+  gpayUpiId?: string;
+  paytmUpiId?: string;
+  bhimUpiId?: string;
+  adminMobileNumber?: string;
+  whatsappNumber?: string;
+  merchantQrImageUrl?: string;
 }
 
 export interface UserMembership {

@@ -53,19 +53,27 @@ export const ContactUnlockModal: React.FC = () => {
 
   const unlockFee = siteConfig.unlockContactFee || 50;
   const upiId = paymentConfig?.upiId || siteConfig.paymentUpiId || 'hangemahesh@ybl';
+  const phonepeUpi = paymentConfig?.phonepeUpiId || upiId;
+  const gpayUpi = paymentConfig?.gpayUpiId || (upiId.includes('@ybl') || upiId.includes('@ibl') ? '' : upiId);
+  const paytmUpi = paymentConfig?.paytmUpiId || upiId;
+  const bhimUpi = paymentConfig?.bhimUpiId || upiId;
+
   const businessName = paymentConfig?.payeeName || siteConfig.paymentPayeeName || 'Mahesh Hange';
   const note = `Unlock_${selectedProfileForUnlock.id.slice(-6)}`;
 
   // Construct Direct App Intents
   const universalUri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(businessName)}&am=${unlockFee}&cu=INR&tn=${encodeURIComponent(note)}`;
-  const phonepeUri = `phonepe://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(businessName)}&am=${unlockFee}&cu=INR&tn=${encodeURIComponent(note)}`;
-  const gpayUri = `tez://upi/pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(businessName)}&am=${unlockFee}&cu=INR&tn=${encodeURIComponent(note)}`;
-  const paytmUri = `paytmmp://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(businessName)}&am=${unlockFee}&cu=INR&tn=${encodeURIComponent(note)}`;
-  const bhimUri = `bhim://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(businessName)}&am=${unlockFee}&cu=INR&tn=${encodeURIComponent(note)}`;
+  const phonepeUri = `phonepe://pay?pa=${encodeURIComponent(phonepeUpi)}&pn=${encodeURIComponent(businessName)}&am=${unlockFee}&cu=INR&tn=${encodeURIComponent(note)}`;
+  const gpayUri = gpayUpi
+    ? `tez://upi/pay?pa=${encodeURIComponent(gpayUpi)}&pn=${encodeURIComponent(businessName)}&am=${unlockFee}&cu=INR&tn=${encodeURIComponent(note)}`
+    : universalUri;
+  const paytmUri = `paytmmp://pay?pa=${encodeURIComponent(paytmUpi)}&pn=${encodeURIComponent(businessName)}&am=${unlockFee}&cu=INR&tn=${encodeURIComponent(note)}`;
+  const bhimUri = `bhim://pay?pa=${encodeURIComponent(bhimUpi)}&pn=${encodeURIComponent(businessName)}&am=${unlockFee}&cu=INR&tn=${encodeURIComponent(note)}`;
   const credUri = `cred://upi/pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(businessName)}&am=${unlockFee}&cu=INR&tn=${encodeURIComponent(note)}`;
   const amazonpayUri = `amazonpay://upi/pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(businessName)}&am=${unlockFee}&cu=INR&tn=${encodeURIComponent(note)}`;
 
   const qrCodeUrl =
+    paymentConfig?.merchantQrImageUrl ||
     siteConfig.paymentQrCodeUrl ||
     siteConfig.paymentQrUrl ||
     `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(universalUri)}`;

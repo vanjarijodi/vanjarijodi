@@ -14,6 +14,13 @@ export const DEFAULT_PAYMENT_CONFIG: PaymentConfig = {
   payeeName: 'Mahesh Hange',
   amount: '199.00',
   transactionNote: 'Vanjari Jodi Registration',
+  phonepeUpiId: 'hangemahesh@ybl',
+  gpayUpiId: '',
+  paytmUpiId: '',
+  bhimUpiId: '',
+  adminMobileNumber: '',
+  whatsappNumber: '7083070830',
+  merchantQrImageUrl: '',
   updatedAt: new Date().toISOString()
 };
 
@@ -208,10 +215,18 @@ export const listenToPaymentConfig = (
 export const savePaymentConfigToFirestore = async (config: PaymentConfig): Promise<boolean> => {
   try {
     const cleanConfig: PaymentConfig = {
-      upiId: config.upiId.trim() || DEFAULT_PAYMENT_CONFIG.upiId,
-      payeeName: config.payeeName.trim() || DEFAULT_PAYMENT_CONFIG.payeeName,
-      amount: String(config.amount).trim() || DEFAULT_PAYMENT_CONFIG.amount,
-      transactionNote: config.transactionNote.trim() || DEFAULT_PAYMENT_CONFIG.transactionNote,
+      upiId: config.upiId?.trim() || DEFAULT_PAYMENT_CONFIG.upiId,
+      payeeName: config.payeeName?.trim() || DEFAULT_PAYMENT_CONFIG.payeeName,
+      amount: String(config.amount || DEFAULT_PAYMENT_CONFIG.amount).trim(),
+      transactionNote: config.transactionNote?.trim() || DEFAULT_PAYMENT_CONFIG.transactionNote,
+      phonepeUpiId: config.phonepeUpiId?.trim() || config.upiId?.trim() || 'hangemahesh@ybl',
+      gpayUpiId: config.gpayUpiId?.trim() || '',
+      paytmUpiId: config.paytmUpiId?.trim() || '',
+      bhimUpiId: config.bhimUpiId?.trim() || '',
+      adminMobileNumber: config.adminMobileNumber?.trim() || '',
+      whatsappNumber: config.whatsappNumber?.trim() || '7083070830',
+      merchantQrImageUrl: config.merchantQrImageUrl?.trim() || '',
+      qrCodeUrl: config.qrCodeUrl || '',
       updatedAt: new Date().toISOString()
     };
 
@@ -228,7 +243,8 @@ export const savePaymentConfigToFirestore = async (config: PaymentConfig): Promi
     await syncDocToFirestore('siteConfig', 'mainConfig', {
       paymentUpiId: cleanConfig.upiId,
       paymentPayeeName: cleanConfig.payeeName,
-      paymentNote: cleanConfig.transactionNote
+      paymentNote: cleanConfig.transactionNote,
+      paymentQrUrl: cleanConfig.merchantQrImageUrl || cleanConfig.qrCodeUrl || ''
     });
 
     // Also send to backend API

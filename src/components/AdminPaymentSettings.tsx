@@ -28,6 +28,13 @@ export const AdminPaymentSettings: React.FC = () => {
     payeeName: paymentConfig?.payeeName || 'Mahesh Hange',
     amount: paymentConfig?.amount || '199.00',
     transactionNote: paymentConfig?.transactionNote || 'Vanjari Jodi Registration',
+    phonepeUpiId: paymentConfig?.phonepeUpiId || paymentConfig?.upiId || 'hangemahesh@ybl',
+    gpayUpiId: paymentConfig?.gpayUpiId || '',
+    paytmUpiId: paymentConfig?.paytmUpiId || '',
+    bhimUpiId: paymentConfig?.bhimUpiId || '',
+    adminMobileNumber: paymentConfig?.adminMobileNumber || '',
+    whatsappNumber: paymentConfig?.whatsappNumber || '7083070830',
+    merchantQrImageUrl: paymentConfig?.merchantQrImageUrl || '',
     updatedAt: paymentConfig?.updatedAt || new Date().toISOString()
   });
 
@@ -42,6 +49,13 @@ export const AdminPaymentSettings: React.FC = () => {
         payeeName: paymentConfig.payeeName || 'Mahesh Hange',
         amount: paymentConfig.amount || '199.00',
         transactionNote: paymentConfig.transactionNote || 'Vanjari Jodi Registration',
+        phonepeUpiId: paymentConfig.phonepeUpiId || paymentConfig.upiId || 'hangemahesh@ybl',
+        gpayUpiId: paymentConfig.gpayUpiId || '',
+        paytmUpiId: paymentConfig.paytmUpiId || '',
+        bhimUpiId: paymentConfig.bhimUpiId || '',
+        adminMobileNumber: paymentConfig.adminMobileNumber || '',
+        whatsappNumber: paymentConfig.whatsappNumber || '7083070830',
+        merchantQrImageUrl: paymentConfig.merchantQrImageUrl || '',
         updatedAt: paymentConfig.updatedAt || new Date().toISOString()
       });
     }
@@ -76,6 +90,13 @@ export const AdminPaymentSettings: React.FC = () => {
         payeeName: formData.payeeName.trim(),
         amount: formData.amount.trim(),
         transactionNote: formData.transactionNote.trim(),
+        phonepeUpiId: (formData.phonepeUpiId || formData.upiId).trim(),
+        gpayUpiId: (formData.gpayUpiId || '').trim(),
+        paytmUpiId: (formData.paytmUpiId || '').trim(),
+        bhimUpiId: (formData.bhimUpiId || '').trim(),
+        adminMobileNumber: (formData.adminMobileNumber || '').trim(),
+        whatsappNumber: (formData.whatsappNumber || '7083070830').trim(),
+        merchantQrImageUrl: (formData.merchantQrImageUrl || '').trim(),
         updatedAt: new Date().toISOString()
       });
 
@@ -218,22 +239,33 @@ export const AdminPaymentSettings: React.FC = () => {
           </div>
 
           <form onSubmit={handleSave} className="space-y-5">
-            {/* Input 1: UPI ID */}
-            <div>
-              <label className="text-xs font-bold text-slate-800 block mb-1">
-                १. मर्चंट UPI आयडी (UPI ID) <span className="text-rose-600">*</span>
-              </label>
+            {/* Input 1: Single PhonePe / Primary UPI ID */}
+            <div className="bg-purple-50/70 p-5 rounded-2xl border-2 border-purple-300 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-purple-950 block">
+                  १. PhonePe / मुख्य UPI आयडी (UPI ID) <span className="text-rose-600">*</span>
+                </label>
+                <span className="text-[10px] bg-purple-200 text-purple-900 font-extrabold px-2 py-0.5 rounded-full">
+                  सर्व ॲप्ससाठी लागू (All-in-One)
+                </span>
+              </div>
               <input
                 type="text"
                 required
                 value={formData.upiId}
-                onChange={(e) => setFormData({ ...formData, upiId: e.target.value })}
+                onChange={(e) => setFormData({ 
+                  ...formData, 
+                  upiId: e.target.value, 
+                  phonepeUpiId: e.target.value,
+                  paytmUpiId: e.target.value,
+                  bhimUpiId: e.target.value
+                })}
                 placeholder="उदा. hangemahesh@ybl"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-mono text-sm font-bold text-slate-900 focus:bg-white focus:border-[#800C1E] focus:outline-none transition shadow-sm"
+                className="w-full px-4 py-3 bg-white border border-purple-300 rounded-xl font-mono text-sm font-bold text-slate-900 focus:border-purple-600 focus:outline-none transition shadow-sm"
               />
-              <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
-                <Info className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                <span>या UPI आयडीवर सदस्यांचे पैसे जमा होतील. (उदा. PhonePe / Google Pay UPI)</span>
+              <p className="text-[11px] text-purple-900 leading-relaxed flex items-start gap-1.5 font-medium">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                <span>हा एकच PhonePe UPI आयडी (<strong>{formData.upiId || 'hangemahesh@ybl'}</strong>) PhonePe, Google Pay, Paytm, BHIM आणि QR कोडद्वारे सर्व ग्राहकांकडून पेमेंट घेण्यासाठी वापरला जाईल.</span>
               </p>
             </div>
 
@@ -251,7 +283,7 @@ export const AdminPaymentSettings: React.FC = () => {
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:border-[#800C1E] focus:outline-none transition shadow-sm"
               />
               <p className="text-[11px] text-slate-500 mt-1">
-                GPay, PhonePe व Paytm मधील पेमेंट स्क्रीनवर हे नाव दिसेल.
+                PhonePe, GPay व Paytm मधील पेमेंट स्क्रीनवर हे नाव दिसेल.
               </p>
             </div>
 
@@ -271,25 +303,51 @@ export const AdminPaymentSettings: React.FC = () => {
                   className="w-full pl-8 pr-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-mono text-sm font-bold text-slate-900 focus:bg-white focus:border-[#800C1E] focus:outline-none transition shadow-sm"
                 />
               </div>
-              <p className="text-[11px] text-slate-500 mt-1">
-                वापरकर्त्यास दाखवली जाणारी मानक नोंदणी फी रक्कम.
-              </p>
             </div>
 
-            {/* Input 4: Transaction Note */}
+            {/* Input 4: Admin WhatsApp & Helpline */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold text-slate-800 block mb-1">
+                  ४. ॲडमिन WhatsApp नंबर (हेल्पलाइन)
+                </label>
+                <input
+                  type="text"
+                  value={formData.whatsappNumber || ''}
+                  onChange={(e) => setFormData({ ...formData, whatsappNumber: e.target.value })}
+                  placeholder="उदा. 7083070830"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl font-mono text-sm font-bold text-slate-900 focus:bg-white focus:border-[#800C1E] focus:outline-none transition shadow-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-800 block mb-1">
+                  ५. ट्रान्सफर नोट (Transaction Note)
+                </label>
+                <input
+                  type="text"
+                  value={formData.transactionNote}
+                  onChange={(e) => setFormData({ ...formData, transactionNote: e.target.value })}
+                  placeholder="VanjariJodiReg"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-900 focus:bg-white focus:border-[#800C1E] focus:outline-none transition shadow-sm"
+                />
+              </div>
+            </div>
+
+            {/* Input 5: Merchant All-In-One QR Code Image URL */}
             <div>
               <label className="text-xs font-bold text-slate-800 block mb-1">
-                ४. ट्रान्सफर नोट (Transaction Note)
+                ६. मर्चंट QR कोड इमेज URL (पर्यायी)
               </label>
               <input
                 type="text"
-                value={formData.transactionNote}
-                onChange={(e) => setFormData({ ...formData, transactionNote: e.target.value })}
-                placeholder="Vanjari Jodi Registration"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-900 focus:bg-white focus:border-[#800C1E] focus:outline-none transition shadow-sm"
+                value={formData.merchantQrImageUrl || ''}
+                onChange={(e) => setFormData({ ...formData, merchantQrImageUrl: e.target.value })}
+                placeholder="उदा. https://... किंवा तुमच्या मर्चंट QR कोडचा फोटो URL"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono text-slate-900 focus:bg-white focus:border-[#800C1E] focus:outline-none transition shadow-sm"
               />
               <p className="text-[11px] text-slate-500 mt-1">
-                बँक पासबुक / स्टेटमेंटमध्ये दिसणारी ट्रान्सफर टीप.
+                जर तुमच्याकडे PhonePe मर्चंटचा स्टँडी / ऑल-इन-वन QR कोड असेल, तर त्याची लिंक टाकू शकता.
               </p>
             </div>
 

@@ -25,6 +25,8 @@ import {
   CreditCard,
   Lock,
   Info,
+  Download,
+  MessageCircle,
 } from 'lucide-react';
 
 interface DynamicUpiPaymentModalProps {
@@ -105,6 +107,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
 
   // Toast / Copy Feedback & Deep Link Notice
   const [copiedToast, setCopiedToast] = useState<boolean>(false);
+  const [qrDownloaded, setQrDownloaded] = useState<boolean>(false);
   const [upiLaunchNotice, setUpiLaunchNotice] = useState<string | null>(null);
 
   // Reset & Initialize on Open
@@ -161,11 +164,18 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     const cleanBusiness = String(targetBusiness).replace(/[^a-zA-Z0-9\s]/g, '').trim() || 'Mahesh Hange';
     const cleanNote = String(transactionNote).replace(/[^a-zA-Z0-9]/g, '') || 'VanjariJodi';
 
+    // Multi-App UPI routing IDs
+    const phonepeUpi = (paymentConfig?.phonepeUpiId || targetUpi).trim();
+    const gpayUpi = (paymentConfig?.gpayUpiId || '').trim();
+    const paytmUpi = (paymentConfig?.paytmUpiId || targetUpi).trim();
+
     // Instant client-side fallback generation
     const fallbackUniversal = `upi://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
-    const fallbackPhonePe = `phonepe://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
-    const fallbackGPay = `tez://upi/pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
-    const fallbackPaytm = `paytmmp://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+    const fallbackPhonePe = `phonepe://pay?pa=${encodeURIComponent(phonepeUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+    const fallbackGPay = gpayUpi
+      ? `tez://upi/pay?pa=${encodeURIComponent(gpayUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`
+      : fallbackUniversal;
+    const fallbackPaytm = `paytmmp://pay?pa=${encodeURIComponent(paytmUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
     const fallbackBhim = `bhim://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
     const fallbackCred = `cred://upi/pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
     const fallbackAmazonPay = `amazonpay://upi/pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
@@ -179,7 +189,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     setAmazonpayUri(fallbackAmazonPay);
     setUpiId(targetUpi);
     setBusinessName(targetBusiness);
-    setDynamicQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(fallbackUniversal)}`);
+    setDynamicQrUrl(paymentConfig?.merchantQrImageUrl || siteConfig?.paymentQrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(fallbackUniversal)}`);
 
     try {
       setIsLoadingIntent(true);
@@ -192,6 +202,9 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
           plan_name: activePlan.nameMr || activePlan.name,
           amount: activePlan.price,
           upi_id: targetUpi,
+          phonepe_upi_id: phonepeUpi,
+          gpay_upi_id: gpayUpi,
+          paytm_upi_id: paytmUpi,
           business_name: targetBusiness,
           note: transactionNote,
         }),
@@ -206,7 +219,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
         setBhimUri(data.bhimUri || fallbackBhim);
         setCredUri(data.credUri || fallbackCred);
         setAmazonpayUri(data.amazonpayUri || fallbackAmazonPay);
-        setDynamicQrUrl(data.dynamicQrUrl || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(data.upiIntentUri || fallbackUniversal)}`);
+        setDynamicQrUrl(paymentConfig?.merchantQrImageUrl || siteConfig?.paymentQrCodeUrl || data.dynamicQrUrl || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(data.upiIntentUri || fallbackUniversal)}`);
         setUpiId(data.targetUpiId || targetUpi);
         setBusinessName(data.businessName || targetBusiness);
       }
@@ -240,6 +253,11 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     const cleanNote = String(paymentConfig?.transactionNote || 'VanjariJodi').replace(/[^a-zA-Z0-9]/g, '') || 'VanjariJodi';
 
     const formattedPrice = String(activePlan?.price || paymentConfig?.amount || '199').replace(/[^0-9.]/g, '');
+    
+    const phonepeUpi = (paymentConfig?.phonepeUpiId || upiId).trim();
+    const gpayUpi = (paymentConfig?.gpayUpiId || '').trim();
+    const paytmUpi = (paymentConfig?.paytmUpiId || upiId).trim();
+
     const encodedUpi = encodeURIComponent(upiId);
     const encodedBusiness = encodeURIComponent(cleanBusiness);
     const encodedNote = encodeURIComponent(cleanNote);
@@ -247,17 +265,26 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     let targetUri = customUri || upiIntentUri;
 
     if (appName === 'Google Pay') {
-      targetUri = isAndroid
-        ? `intent://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`
-        : gpayUri || `tez://upi/pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+      if (gpayUpi) {
+        const encodedGPayUpi = encodeURIComponent(gpayUpi);
+        targetUri = isAndroid
+          ? `intent://pay?pa=${encodedGPayUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`
+          : `tez://upi/pay?pa=${encodedGPayUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+      } else {
+        // When GPay-specific ID is not configured, avoid forced package lock which triggers "account not registered with Google Pay"
+        // Instead use standard open upi:// scheme so Google Pay / Android routes cross-network
+        targetUri = `upi://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+      }
     } else if (appName === 'PhonePe') {
+      const encodedPhonePeUpi = encodeURIComponent(phonepeUpi);
       targetUri = isAndroid
-        ? `intent://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=com.phonepe.app;end`
-        : phonepeUri || `phonepe://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+        ? `intent://pay?pa=${encodedPhonePeUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=com.phonepe.app;end`
+        : `phonepe://pay?pa=${encodedPhonePeUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
     } else if (appName === 'Paytm') {
+      const encodedPaytmUpi = encodeURIComponent(paytmUpi);
       targetUri = isAndroid
-        ? `intent://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=net.one97.paytm;end`
-        : paytmUri || `paytmmp://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+        ? `intent://pay?pa=${encodedPaytmUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=net.one97.paytm;end`
+        : `paytmmp://pay?pa=${encodedPaytmUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
     } else if (appName === 'BHIM UPI') {
       targetUri = isAndroid
         ? `intent://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=in.org.npci.upiapp;end`
@@ -281,9 +308,15 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
       return;
     }
 
-    setUpiLaunchNotice(
-      `📲 ${appName} उघडत आहे (रक्कम: ₹${formattedPrice}). जर ॲप उघडले नाही, तर UPI ID (${upiId}) कॉपी झाला आहे! 'Pay to UPI ID' द्वारे ₹${formattedPrice} भरा.`
-    );
+    if (appName === 'Google Pay' && !gpayUpi) {
+      setUpiLaunchNotice(
+        `📲 Google Pay / UPI ओपन होत आहे (रक्कम: ₹${formattedPrice}). जर GPay वर एरर आल्यास UPI ID (${upiId}) कॉपी झाला आहे, 'Pay UPI ID' मध्ये पेस्ट करा किंवा PhonePe वापरा!`
+      );
+    } else {
+      setUpiLaunchNotice(
+        `📲 ${appName} उघडत आहे (रक्कम: ₹${formattedPrice}). जर ॲप उघडले नाही, तर UPI ID (${upiId}) कॉपी झाला आहे! 'Pay to UPI ID' द्वारे ₹${formattedPrice} भरा.`
+      );
+    }
 
     try {
       const link = document.createElement('a');
@@ -322,6 +355,31 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     navigator.clipboard.writeText(upiId);
     setCopiedToast(true);
     setTimeout(() => setCopiedToast(false), 2500);
+  };
+
+  // Download / Save QR Code Image
+  const handleDownloadQr = () => {
+    const qrUrl = paymentConfig?.merchantQrImageUrl || siteConfig?.paymentQrCodeUrl || siteConfig?.paymentQrUrl || dynamicQrUrl;
+    if (!qrUrl) return;
+    const link = document.createElement('a');
+    link.href = qrUrl;
+    link.download = `VanjariJodi_UPI_QR_${activePlan?.price || '199'}.png`;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setQrDownloaded(true);
+    setTimeout(() => setQrDownloaded(false), 3000);
+  };
+
+  // Direct WhatsApp Admin Assistance
+  const handleOpenWhatsApp = () => {
+    const num = paymentConfig?.whatsappNumber || '7083070830';
+    const cleanNum = num.replace(/[^0-9]/g, '');
+    const planName = activePlan?.nameMr || activePlan?.name || 'नोंदणी प्लॅन';
+    const planPrice = activePlan?.price || paymentConfig?.amount || '199';
+    const msg = encodeURIComponent(`नमस्कार ॲडमिन, मी वंजारी जोडी मॅट्रिमोनीवर "${planName}" (रक्कम: ₹${planPrice}) साठी पेमेंट करत आहे. मला पेमेंट करताना मदत हवी आहे.`);
+    window.open(`https://wa.me/91${cleanNum.slice(-10)}?text=${msg}`, '_blank');
   };
 
   // Strict 12-Digit Numeric UTR Input Handler & Live Validation
@@ -691,9 +749,9 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                       <Loader2 className="w-8 h-8 text-[#800C1E] animate-spin" />
                       <span className="text-xs text-gray-500 font-medium">QR कोड जनरेट होत आहे...</span>
                     </div>
-                  ) : (siteConfig?.paymentQrCodeUrl || siteConfig?.paymentQrUrl || dynamicQrUrl) ? (
+                  ) : (paymentConfig?.merchantQrImageUrl || siteConfig?.paymentQrCodeUrl || siteConfig?.paymentQrUrl || dynamicQrUrl) ? (
                     <img
-                      src={siteConfig?.paymentQrCodeUrl || siteConfig?.paymentQrUrl || dynamicQrUrl}
+                      src={paymentConfig?.merchantQrImageUrl || siteConfig?.paymentQrCodeUrl || siteConfig?.paymentQrUrl || dynamicQrUrl}
                       alt="UPI Payment QR Code"
                       className="w-44 h-44 sm:w-48 sm:h-48 object-contain rounded-lg"
                       referrerPolicy="no-referrer"
@@ -711,8 +769,39 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                   </div>
                 </div>
 
+                {/* Download QR & WhatsApp Quick Buttons */}
+                <div className="w-full mt-3 flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleDownloadQr}
+                    className="flex-1 py-2 px-3 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-xl text-amber-900 text-xs font-bold flex items-center justify-center space-x-1.5 shadow-sm transition active:scale-95"
+                  >
+                    {qrDownloaded ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span className="text-emerald-700">QR सेव्ह झाला!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-3.5 h-3.5 text-amber-700" />
+                        <span>QR कोड सेव्ह करा</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenWhatsApp}
+                    className="py-2 px-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-xl text-emerald-800 text-xs font-bold flex items-center justify-center space-x-1 shadow-sm transition active:scale-95"
+                    title="WhatsApp वर मदत मिळवा"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>मदत</span>
+                  </button>
+                </div>
+
                 {/* Copy UPI ID Section */}
-                <div className="w-full mt-3.5 pt-3 border-t border-slate-200">
+                <div className="w-full mt-3 pt-3 border-t border-slate-200">
                   <span className="text-[11px] text-gray-500 block mb-1">
                     किंवा थेट UPI आयडीवर पाठवा:
                   </span>
@@ -789,12 +878,15 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
 
                 {/* Granular Individual App Launch Buttons */}
                 <div className="grid grid-cols-3 gap-2">
-                  {/* PhonePe */}
+                  {/* PhonePe (Recommended) */}
                   <button
                     type="button"
                     onClick={() => handleLaunchUpiApp('PhonePe')}
-                    className="p-2.5 bg-white hover:bg-purple-50/80 border border-purple-200 hover:border-purple-500 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-sm transition active:scale-95 group text-center"
+                    className="relative p-2.5 bg-white hover:bg-purple-50/80 border-2 border-purple-500 rounded-xl flex flex-col items-center justify-center space-y-1 shadow-sm transition active:scale-95 group text-center"
                   >
+                    <span className="absolute -top-2 bg-purple-600 text-white text-[9px] font-extrabold px-1.5 py-0.2 rounded-full uppercase shadow">
+                      सर्वोत्तम
+                    </span>
                     <div className="w-7 h-7 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-xs shadow group-hover:scale-105 transition">
                       पे
                     </div>
@@ -802,7 +894,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                       PhonePe
                     </span>
                     <span className="text-[9px] text-purple-600 font-semibold bg-purple-50 px-1.5 py-0.2 rounded-full">
-                      फोन पे
+                      फोन पे (Direct)
                     </span>
                   </button>
 
@@ -899,9 +991,9 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                     <span>सोप्या पद्धतीने पेमेंट पूर्ण करा:</span>
                   </p>
                   <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-800 leading-relaxed font-medium">
-                    <li>वर दिलेले ॲप बटण दाबा (थेट PhonePe/GPay ओपन होऊन ₹{activePlan.price} दिसेल).</li>
-                    <li>जर ॲपमध्ये मेसेज आला, तर UPI ID (<strong>{upiId}</strong>) ऑटो-कॉपी झाला आहे! PhonePe/GPay मध्ये 'Pay to UPI ID' निवडून ₹{activePlan.price} पाठवा.</li>
-                    <li>पेमेंट झाल्यावर मिळालेला १२-अंकी UTR क्रमांक खाली टाकून सबमिट करा.</li>
+                    <li><strong className="text-purple-800">PhonePe युजर्स:</strong> वरील <strong>PhonePe</strong> बटण दाबा — थेट ₹{activePlan.price} रक्कम असलेली पेमेंट स्क्रीन उघडेल.</li>
+                    <li><strong className="text-blue-800">Google Pay / इतर ॲप्स:</strong> डावीकडील <strong>"QR कोड सेव्ह करा"</strong> बटण दाबा आणि तुमच्या ॲपमध्ये Scan QR वर जाऊन गॅलरीतील QR फोटो निवडा (किंवा UPI आयडी <strong>{upiId}</strong> कॉपी करून पेस्ट करा).</li>
+                    <li>पेमेंट झाल्यावर मिळालेला <strong>१२-अंकी UTR क्रमांक</strong> खाली टाकून सबमिट करा.</li>
                   </ol>
                 </div>
               </div>
