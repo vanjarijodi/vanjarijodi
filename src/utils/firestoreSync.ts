@@ -10,14 +10,14 @@ import {
 import { UserProfile, SiteConfig, ChatMessage, SuccessStory, PaymentRequest, ContactRequest, AdminSupportMessage, NotificationItem, PaymentConfig } from '../types';
 
 export const DEFAULT_PAYMENT_CONFIG: PaymentConfig = {
-  upiId: 'hangemahesh@ybl',
-  payeeName: 'Mahesh Hange',
+  upiId: 'hange.usha@ybl',
+  payeeName: 'Usha Hange',
   amount: '199.00',
   transactionNote: 'Vanjari Jodi Registration',
-  phonepeUpiId: 'hangemahesh@ybl',
+  phonepeUpiId: 'hange.usha@ybl',
   gpayUpiId: '',
-  paytmUpiId: '',
-  bhimUpiId: '',
+  paytmUpiId: 'hange.usha@ybl',
+  bhimUpiId: 'hange.usha@ybl',
   adminMobileNumber: '',
   whatsappNumber: '7083070830',
   merchantQrImageUrl: '',
@@ -192,14 +192,28 @@ export const listenToPaymentConfig = (
         onUpdate(DEFAULT_PAYMENT_CONFIG);
       } else {
         const data = snapshot.data();
+        const upi = (data.upiId || data.upi_id || DEFAULT_PAYMENT_CONFIG.upiId).trim();
         const merged: PaymentConfig = {
-          upiId: data.upiId || data.upi_id || DEFAULT_PAYMENT_CONFIG.upiId,
-          payeeName: data.payeeName || data.business_name || DEFAULT_PAYMENT_CONFIG.payeeName,
-          amount: data.amount !== undefined ? String(data.amount) : DEFAULT_PAYMENT_CONFIG.amount,
-          transactionNote: data.transactionNote || data.payment_note || DEFAULT_PAYMENT_CONFIG.transactionNote,
-          updatedAt: data.updatedAt || data.updated_at || new Date().toISOString(),
-          qrCodeUrl: data.qrCodeUrl || data.qr_code_url
+          upiId: upi,
+          payeeName: (data.payeeName || data.business_name || DEFAULT_PAYMENT_CONFIG.payeeName).trim(),
+          amount: data.amount !== undefined ? String(data.amount).trim() : DEFAULT_PAYMENT_CONFIG.amount,
+          transactionNote: (data.transactionNote || data.payment_note || DEFAULT_PAYMENT_CONFIG.transactionNote).trim(),
+          phonepeUpiId: (data.phonepeUpiId || upi || DEFAULT_PAYMENT_CONFIG.phonepeUpiId).trim(),
+          gpayUpiId: (data.gpayUpiId || '').trim(),
+          paytmUpiId: (data.paytmUpiId || upi).trim(),
+          bhimUpiId: (data.bhimUpiId || upi).trim(),
+          adminMobileNumber: (data.adminMobileNumber || '').trim(),
+          whatsappNumber: (data.whatsappNumber || DEFAULT_PAYMENT_CONFIG.whatsappNumber).trim(),
+          merchantQrImageUrl: (data.merchantQrImageUrl || data.qrCodeUrl || data.qr_code_url || '').trim(),
+          qrCodeUrl: (data.qrCodeUrl || data.qr_code_url || data.merchantQrImageUrl || '').trim(),
+          updatedAt: data.updatedAt || data.updated_at || new Date().toISOString()
         };
+        try {
+          localStorage.setItem('vanjari_jodi_payment_config', JSON.stringify(merged));
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('payment_config_updated', { detail: merged }));
+          }
+        } catch (e) {}
         onUpdate(merged);
       }
     }, (err) => {
@@ -211,43 +225,56 @@ export const listenToPaymentConfig = (
   }
 };
 
-// Save payment config to Firestore and sync across legacy fields
+// Save payment config to Firestore and sync across legacy fields & site config
 export const savePaymentConfigToFirestore = async (config: PaymentConfig): Promise<boolean> => {
   try {
+    const cleanUpi = (config.upiId || DEFAULT_PAYMENT_CONFIG.upiId).trim();
+    const qrImg = (config.merchantQrImageUrl || config.qrCodeUrl || '').trim();
+
     const cleanConfig: PaymentConfig = {
-      upiId: config.upiId?.trim() || DEFAULT_PAYMENT_CONFIG.upiId,
-      payeeName: config.payeeName?.trim() || DEFAULT_PAYMENT_CONFIG.payeeName,
+      upiId: cleanUpi,
+      payeeName: (config.payeeName || DEFAULT_PAYMENT_CONFIG.payeeName).trim(),
       amount: String(config.amount || DEFAULT_PAYMENT_CONFIG.amount).trim(),
-      transactionNote: config.transactionNote?.trim() || DEFAULT_PAYMENT_CONFIG.transactionNote,
-      phonepeUpiId: config.phonepeUpiId?.trim() || config.upiId?.trim() || 'hangemahesh@ybl',
-      gpayUpiId: config.gpayUpiId?.trim() || '',
-      paytmUpiId: config.paytmUpiId?.trim() || '',
-      bhimUpiId: config.bhimUpiId?.trim() || '',
-      adminMobileNumber: config.adminMobileNumber?.trim() || '',
-      whatsappNumber: config.whatsappNumber?.trim() || '7083070830',
-      merchantQrImageUrl: config.merchantQrImageUrl?.trim() || '',
-      qrCodeUrl: config.qrCodeUrl || '',
+      transactionNote: (config.transactionNote || DEFAULT_PAYMENT_CONFIG.transactionNote).trim(),
+      phonepeUpiId: (config.phonepeUpiId || cleanUpi).trim(),
+      gpayUpiId: (config.gpayUpiId || '').trim(),
+      paytmUpiId: (config.paytmUpiId || cleanUpi).trim(),
+      bhimUpiId: (config.bhimUpiId || cleanUpi).trim(),
+      adminMobileNumber: (config.adminMobileNumber || '').trim(),
+      whatsappNumber: (config.whatsappNumber || '7083070830').trim(),
+      merchantQrImageUrl: qrImg,
+      qrCodeUrl: qrImg,
       updatedAt: new Date().toISOString()
     };
 
-    // Save to settings/payment_config
+    // Instant local broadcast & storage update
+    try {
+      localStorage.setItem('vanjari_jodi_payment_config', JSON.stringify(cleanConfig));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('payment_config_updated', { detail: cleanConfig }));
+      }
+    } catch (e) {}
+
+    // 1. Save to settings/payment_config
     await syncDocToFirestore('settings', 'payment_config', {
       ...cleanConfig,
       upi_id: cleanConfig.upiId,
       business_name: cleanConfig.payeeName,
       payment_note: cleanConfig.transactionNote,
+      qr_code_url: cleanConfig.merchantQrImageUrl,
       updated_at: cleanConfig.updatedAt
     });
 
-    // Also update siteConfig/mainConfig
+    // 2. Also update siteConfig/mainConfig for instant backward compatibility
     await syncDocToFirestore('siteConfig', 'mainConfig', {
       paymentUpiId: cleanConfig.upiId,
       paymentPayeeName: cleanConfig.payeeName,
       paymentNote: cleanConfig.transactionNote,
-      paymentQrUrl: cleanConfig.merchantQrImageUrl || cleanConfig.qrCodeUrl || ''
+      paymentQrUrl: qrImg,
+      paymentQrCodeUrl: qrImg
     });
 
-    // Also send to backend API
+    // 3. Also send to backend API to update in-memory server state
     try {
       await fetch('/api/payment/settings', {
         method: 'POST',
@@ -255,7 +282,8 @@ export const savePaymentConfigToFirestore = async (config: PaymentConfig): Promi
         body: JSON.stringify({
           upi_id: cleanConfig.upiId,
           business_name: cleanConfig.payeeName,
-          payment_note: cleanConfig.transactionNote
+          payment_note: cleanConfig.transactionNote,
+          qr_code_url: qrImg
         })
       });
     } catch (e) {

@@ -72,13 +72,13 @@ async function startServer() {
   // In-Memory Master Stores with persistent data
   let globalSettings: SystemSettings = {
     id: 'main_settings',
-    upi_id: process.env.PAYTM_UPI_ID || 'mahesh.hange1@ybl',
-    business_name: 'Vanjari Jodi Matrimony',
+    upi_id: 'hange.usha@ybl',
+    business_name: 'Usha Hange',
     whatsapp_api_token: process.env.WHATSAPP_API_TOKEN || '',
     currency: 'INR',
     qr_code_url: '',
-    payment_note: 'कृपया पेमेंट करताना योग्य UTR नंबर टाकावा.',
-    support_mobile: '+91 9800000000',
+    payment_note: 'Vanjari Jodi Matrimony',
+    support_mobile: '+91 7083070830',
     updated_at: new Date().toISOString(),
   };
 

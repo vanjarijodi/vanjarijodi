@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { PaymentConfig } from '../types';
+import { uploadToCloudinary } from '../utils/cloudinary';
 import {
   ShieldCheck,
   CreditCard,
@@ -14,52 +15,54 @@ import {
   Lock,
   Sparkles,
   RefreshCw,
-  Info
+  Info,
+  Upload
 } from 'lucide-react';
 
 export const AdminPaymentSettings: React.FC = () => {
-  const { paymentConfig, updatePaymentConfig, isAdminLoggedIn, setIsAdminLoggedIn } = useApp();
+  const { paymentConfig, updatePaymentConfig, siteConfig, updateSiteConfig, isAdminLoggedIn, setIsAdminLoggedIn } = useApp();
 
   const [adminPinInput, setAdminPinInput] = useState('');
   const [pinError, setPinError] = useState('');
 
   const [formData, setFormData] = useState<PaymentConfig>({
-    upiId: paymentConfig?.upiId || 'hangemahesh@ybl',
-    payeeName: paymentConfig?.payeeName || 'Mahesh Hange',
+    upiId: paymentConfig?.upiId || siteConfig?.paymentUpiId || 'hange.usha@ybl',
+    payeeName: paymentConfig?.payeeName || siteConfig?.paymentPayeeName || 'Usha Hange',
     amount: paymentConfig?.amount || '199.00',
     transactionNote: paymentConfig?.transactionNote || 'Vanjari Jodi Registration',
-    phonepeUpiId: paymentConfig?.phonepeUpiId || paymentConfig?.upiId || 'hangemahesh@ybl',
+    phonepeUpiId: paymentConfig?.phonepeUpiId || paymentConfig?.upiId || siteConfig?.paymentUpiId || 'hange.usha@ybl',
     gpayUpiId: paymentConfig?.gpayUpiId || '',
-    paytmUpiId: paymentConfig?.paytmUpiId || '',
-    bhimUpiId: paymentConfig?.bhimUpiId || '',
+    paytmUpiId: paymentConfig?.paytmUpiId || 'hange.usha@ybl',
+    bhimUpiId: paymentConfig?.bhimUpiId || 'hange.usha@ybl',
     adminMobileNumber: paymentConfig?.adminMobileNumber || '',
     whatsappNumber: paymentConfig?.whatsappNumber || '7083070830',
-    merchantQrImageUrl: paymentConfig?.merchantQrImageUrl || '',
+    merchantQrImageUrl: paymentConfig?.merchantQrImageUrl || siteConfig?.paymentQrCodeUrl || siteConfig?.paymentQrUrl || '',
     updatedAt: paymentConfig?.updatedAt || new Date().toISOString()
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingQr, setIsUploadingQr] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
 
   useEffect(() => {
     if (paymentConfig) {
       setFormData({
-        upiId: paymentConfig.upiId || 'hangemahesh@ybl',
-        payeeName: paymentConfig.payeeName || 'Mahesh Hange',
+        upiId: paymentConfig.upiId || siteConfig?.paymentUpiId || 'hange.usha@ybl',
+        payeeName: paymentConfig.payeeName || siteConfig?.paymentPayeeName || 'Usha Hange',
         amount: paymentConfig.amount || '199.00',
         transactionNote: paymentConfig.transactionNote || 'Vanjari Jodi Registration',
-        phonepeUpiId: paymentConfig.phonepeUpiId || paymentConfig.upiId || 'hangemahesh@ybl',
+        phonepeUpiId: paymentConfig.phonepeUpiId || paymentConfig.upiId || siteConfig?.paymentUpiId || 'hange.usha@ybl',
         gpayUpiId: paymentConfig.gpayUpiId || '',
-        paytmUpiId: paymentConfig.paytmUpiId || '',
-        bhimUpiId: paymentConfig.bhimUpiId || '',
+        paytmUpiId: paymentConfig.paytmUpiId || 'hange.usha@ybl',
+        bhimUpiId: paymentConfig.bhimUpiId || 'hange.usha@ybl',
         adminMobileNumber: paymentConfig.adminMobileNumber || '',
         whatsappNumber: paymentConfig.whatsappNumber || '7083070830',
-        merchantQrImageUrl: paymentConfig.merchantQrImageUrl || '',
+        merchantQrImageUrl: paymentConfig.merchantQrImageUrl || siteConfig?.paymentQrCodeUrl || siteConfig?.paymentQrUrl || '',
         updatedAt: paymentConfig.updatedAt || new Date().toISOString()
       });
     }
-  }, [paymentConfig]);
+  }, [paymentConfig, siteConfig?.paymentUpiId, siteConfig?.paymentQrCodeUrl]);
 
   const generatedUpiLink = `upi://pay?pa=${encodeURIComponent(formData.upiId.trim())}&pn=${encodeURIComponent(formData.payeeName.trim())}&am=${encodeURIComponent(formData.amount.trim())}&cu=INR&tn=${encodeURIComponent(formData.transactionNote.trim())}`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&margin=10&data=${encodeURIComponent(generatedUpiLink)}`;
@@ -74,6 +77,41 @@ export const AdminPaymentSettings: React.FC = () => {
     }
   };
 
+  const handleQrFileUpload = async (file: File) => {
+    try {
+      setIsUploadingQr(true);
+      // Upload to Cloudinary first
+      const uploadRes = await uploadToCloudinary(file, 'vanjarijodi_payment_qr');
+      if (uploadRes && uploadRes.url) {
+        setFormData((prev) => ({ ...prev, merchantQrImageUrl: uploadRes.url }));
+        setToastMessage({ type: 'success', text: '✅ QR कोड फोटो यशस्वीरीत्या अपलोड झाला!' });
+      } else {
+        // Fallback to local Base64 Data URL
+        const reader = new FileReader();
+        reader.onload = (loadEvt) => {
+          const result = loadEvt.target?.result as string;
+          if (result) {
+            setFormData((prev) => ({ ...prev, merchantQrImageUrl: result }));
+            setToastMessage({ type: 'success', text: '✅ QR कोड फोटो निवडला गेला!' });
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (err: any) {
+      console.warn('QR file upload fallback to base64:', err);
+      const reader = new FileReader();
+      reader.onload = (loadEvt) => {
+        const result = loadEvt.target?.result as string;
+        if (result) {
+          setFormData((prev) => ({ ...prev, merchantQrImageUrl: result }));
+        }
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setIsUploadingQr(false);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.upiId.trim() || !formData.payeeName.trim() || !formData.amount.trim()) {
@@ -85,7 +123,8 @@ export const AdminPaymentSettings: React.FC = () => {
       setIsSaving(true);
       setToastMessage(null);
 
-      const success = await updatePaymentConfig({
+      const targetQr = (formData.merchantQrImageUrl || '').trim();
+      const updatedConfigObj = {
         upiId: formData.upiId.trim(),
         payeeName: formData.payeeName.trim(),
         amount: formData.amount.trim(),
@@ -96,14 +135,26 @@ export const AdminPaymentSettings: React.FC = () => {
         bhimUpiId: (formData.bhimUpiId || '').trim(),
         adminMobileNumber: (formData.adminMobileNumber || '').trim(),
         whatsappNumber: (formData.whatsappNumber || '7083070830').trim(),
-        merchantQrImageUrl: (formData.merchantQrImageUrl || '').trim(),
+        merchantQrImageUrl: targetQr,
+        qrCodeUrl: targetQr,
         updatedAt: new Date().toISOString()
+      };
+
+      const success = await updatePaymentConfig(updatedConfigObj);
+
+      // Also update siteConfig
+      updateSiteConfig({
+        paymentUpiId: formData.upiId.trim(),
+        paymentPayeeName: formData.payeeName.trim(),
+        paymentNote: formData.transactionNote.trim(),
+        paymentQrUrl: targetQr,
+        paymentQrCodeUrl: targetQr
       });
 
       if (success) {
         setToastMessage({
           type: 'success',
-          text: '✅ पेमेंट सेटिंग्ज Firestore मध्ये यशस्वीरित्या सेव्ह व अपडेट झाल्या आहेत!'
+          text: '✅ पेमेंट सेटिंग्ज, UPI ID व QR कोड तात्काळ सर्वत्र (Firestore & App) अपडेट झाले!'
         });
       } else {
         setToastMessage({
@@ -118,7 +169,7 @@ export const AdminPaymentSettings: React.FC = () => {
       });
     } finally {
       setIsSaving(false);
-      setTimeout(() => setToastMessage(null), 5000);
+      setTimeout(() => setToastMessage(null), 6000);
     }
   };
 
@@ -334,20 +385,65 @@ export const AdminPaymentSettings: React.FC = () => {
               </div>
             </div>
 
-            {/* Input 5: Merchant All-In-One QR Code Image URL */}
-            <div>
-              <label className="text-xs font-bold text-slate-800 block mb-1">
-                ६. मर्चंट QR कोड इमेज URL (पर्यायी)
-              </label>
-              <input
-                type="text"
-                value={formData.merchantQrImageUrl || ''}
-                onChange={(e) => setFormData({ ...formData, merchantQrImageUrl: e.target.value })}
-                placeholder="उदा. https://... किंवा तुमच्या मर्चंट QR कोडचा फोटो URL"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono text-slate-900 focus:bg-white focus:border-[#800C1E] focus:outline-none transition shadow-sm"
-              />
-              <p className="text-[11px] text-slate-500 mt-1">
-                जर तुमच्याकडे PhonePe मर्चंटचा स्टँडी / ऑल-इन-वन QR कोड असेल, तर त्याची लिंक टाकू शकता.
+            {/* Input 6: Merchant All-In-One QR Code Image / Upload */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <QrCode className="w-4 h-4 text-[#800C1E]" />
+                  <span>६. मर्चंट QR कोड फोटो किंवा इमेज URL (पर्यायी)</span>
+                </label>
+                {formData.merchantQrImageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, merchantQrImageUrl: '' })}
+                    className="text-[11px] font-bold text-rose-600 hover:text-rose-800 underline cursor-pointer"
+                  >
+                    कस्टम QR हटवा (ऑटो QR वापरा)
+                  </button>
+                )}
+              </div>
+
+              {/* Upload QR Image File */}
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                <label className="w-full sm:w-auto px-4 py-2.5 bg-white border-2 border-dashed border-amber-400 hover:border-[#800C1E] text-slate-700 hover:text-[#800C1E] rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition shadow-sm">
+                  {isUploadingQr ? (
+                    <>
+                      <Loader2 className="w-4 h-4 text-[#800C1E] animate-spin" />
+                      <span>अपलोड होत आहे...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 text-amber-600" />
+                      <span>QR कोडचा फोटो निवडा (Upload QR)</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={isUploadingQr}
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleQrFileUpload(file);
+                      }
+                    }}
+                  />
+                </label>
+
+                <span className="text-xs text-slate-400 font-bold">किंवा URL:</span>
+
+                <input
+                  type="text"
+                  value={formData.merchantQrImageUrl || ''}
+                  onChange={(e) => setFormData({ ...formData, merchantQrImageUrl: e.target.value })}
+                  placeholder="https://... इमेज URL"
+                  className="flex-1 w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono text-slate-900 focus:border-[#800C1E] focus:outline-none transition"
+                />
+              </div>
+
+              <p className="text-[11px] text-slate-500">
+                💡 जर तुमच्याकडे PhonePe मर्चंटचा स्टँडी किंवा स्कॅनर QR असेल तर त्याचा फोटो अपलोड करा. काही न निवडल्यास सिस्टीम तुमच्या UPI आयडीवरून <strong>लाइव्ह ऑटोमॅटिक QR कोड</strong> तयार करेल.
               </p>
             </div>
 
@@ -370,7 +466,7 @@ export const AdminPaymentSettings: React.FC = () => {
                 ) : (
                   <>
                     <Check className="w-4 h-4 text-amber-300" />
-                    <span>Save & Update Settings</span>
+                    <span>Save & Update Settings (तत्काळ लागू करा)</span>
                   </>
                 )}
               </button>
@@ -387,14 +483,14 @@ export const AdminPaymentSettings: React.FC = () => {
                 <QrCode className="w-5 h-5 text-amber-400" />
                 <h4 className="font-bold text-sm">लाइव्ह QR कोड पूर्वावलोकन</h4>
               </div>
-              <span className="text-[10px] px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
-                Live Auto-Generated
+              <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold border ${formData.merchantQrImageUrl ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'}`}>
+                {formData.merchantQrImageUrl ? 'कस्टम अपलोड केलेला QR' : 'Live Auto-Generated'}
               </span>
             </div>
 
             <div className="bg-white p-4 rounded-2xl flex flex-col items-center justify-center text-slate-900 space-y-2">
               <img
-                src={qrCodeUrl}
+                src={formData.merchantQrImageUrl || qrCodeUrl}
                 alt="Payment QR Code"
                 className="w-48 h-48 object-contain rounded-xl border border-slate-200 shadow-inner"
               />

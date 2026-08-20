@@ -110,7 +110,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
   const [qrDownloaded, setQrDownloaded] = useState<boolean>(false);
   const [upiLaunchNotice, setUpiLaunchNotice] = useState<string | null>(null);
 
-  // Reset & Initialize on Open
+  // Reset & Initialize on Open & on Payment Config Updates
   useEffect(() => {
     if (isOpen && activePlan) {
       setStep('checkout');
@@ -128,7 +128,32 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }
-  }, [isOpen, activePlan?.id, paymentConfig?.upiId, paymentConfig?.payeeName, paymentConfig?.amount]);
+  }, [
+    isOpen,
+    activePlan?.id,
+    activePlan?.price,
+    paymentConfig?.upiId,
+    paymentConfig?.merchantQrImageUrl,
+    paymentConfig?.qrCodeUrl,
+    paymentConfig?.payeeName,
+    paymentConfig?.amount,
+    siteConfig?.paymentQrCodeUrl,
+    siteConfig?.paymentQrUrl,
+    siteConfig?.paymentUpiId
+  ]);
+
+  // Global event listener for instant realtime update when Admin changes QR or UPI ID
+  useEffect(() => {
+    const handleConfigUpdated = () => {
+      if (isOpen && activePlan) {
+        fetchPaymentIntent();
+      }
+    };
+    window.addEventListener('vanjari_payment_config_updated', handleConfigUpdated);
+    return () => {
+      window.removeEventListener('vanjari_payment_config_updated', handleConfigUpdated);
+    };
+  }, [isOpen, activePlan]);
 
   // Countdown Timer Engine (Handles tab backgrounding & mobile app switching seamlessly)
   useEffect(() => {

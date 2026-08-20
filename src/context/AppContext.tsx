@@ -456,10 +456,54 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [profiles]);
 
   // Dynamic Payment Config State (Collection: settings, Document: payment_config)
-  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig>(DEFAULT_PAYMENT_CONFIG);
+  const [paymentConfig, setPaymentConfig] = useState<PaymentConfig>(() => {
+    const saved = localStorage.getItem('vanjari_jodi_payment_config');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && (parsed.upiId || parsed.upi_id)) {
+          return {
+            ...DEFAULT_PAYMENT_CONFIG,
+            ...parsed,
+            upiId: parsed.upiId || parsed.upi_id || DEFAULT_PAYMENT_CONFIG.upiId,
+            phonepeUpiId: parsed.phonepeUpiId || parsed.upiId || parsed.upi_id || DEFAULT_PAYMENT_CONFIG.phonepeUpiId,
+            merchantQrImageUrl: parsed.merchantQrImageUrl || parsed.qrCodeUrl || parsed.qr_code_url || ''
+          };
+        }
+      } catch (e) {}
+    }
+    return DEFAULT_PAYMENT_CONFIG;
+  });
 
   const updatePaymentConfig = async (newConfig: PaymentConfig): Promise<boolean> => {
+    // 1. Instant local reactive state update
     setPaymentConfig(newConfig);
+    try {
+      localStorage.setItem('vanjari_jodi_payment_config', JSON.stringify(newConfig));
+    } catch (e) {}
+
+    // 2. Synchronize legacy siteConfig instantly
+    setSiteConfig((prev) => {
+      const updated = {
+        ...prev,
+        paymentUpiId: newConfig.upiId,
+        paymentPayeeName: newConfig.payeeName,
+        paymentNote: newConfig.transactionNote,
+        paymentQrUrl: newConfig.merchantQrImageUrl || newConfig.qrCodeUrl || '',
+        paymentQrCodeUrl: newConfig.merchantQrImageUrl || newConfig.qrCodeUrl || ''
+      };
+      try {
+        localStorage.setItem('vanjari_jodi_site_config', JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+
+    // 3. Broadcast instant global event for any active modals or forms
+    try {
+      window.dispatchEvent(new CustomEvent('vanjari_payment_config_updated', { detail: newConfig }));
+    } catch (e) {}
+
+    // 4. Save to Firestore & backend server
     const success = await savePaymentConfigToFirestore(newConfig);
     return success;
   };
@@ -481,6 +525,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const unsubPaymentConfig = listenToPaymentConfig((remotePaymentConfig) => {
       if (remotePaymentConfig) {
         setPaymentConfig(remotePaymentConfig);
+        try {
+          localStorage.setItem('vanjari_jodi_payment_config', JSON.stringify(remotePaymentConfig));
+          setSiteConfig((prev) => ({
+            ...prev,
+            paymentUpiId: remotePaymentConfig.upiId,
+            paymentPayeeName: remotePaymentConfig.payeeName,
+            paymentNote: remotePaymentConfig.transactionNote,
+            paymentQrUrl: remotePaymentConfig.merchantQrImageUrl || remotePaymentConfig.qrCodeUrl || '',
+            paymentQrCodeUrl: remotePaymentConfig.merchantQrImageUrl || remotePaymentConfig.qrCodeUrl || ''
+          }));
+          window.dispatchEvent(new CustomEvent('vanjari_payment_config_updated', { detail: remotePaymentConfig }));
+        } catch (e) {}
       }
     });
 
