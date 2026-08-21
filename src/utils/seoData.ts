@@ -339,14 +339,24 @@ export function generateStructuredJsonLd(config: {
 }) {
   const orgSchema = {
     '@context': 'https://schema.org',
-    '@type': 'MarriageAgency',
+    '@type': ['Organization', 'MarriageAgency'],
     '@id': `${config.siteUrl}/#organization`,
-    name: 'वंजारी जोडी वधू-वर सूचक केंद्र (Vanjari Jodi Matrimony)',
-    alternateName: ['Vanjari Jodi', 'Vanjari Vivah', 'Vanjari Matrimony', 'Rao Vanjari Vivah Mandal'],
+    name: 'वंजारी जोडी (Vanjari Jodi)',
+    alternateName: [
+      'वंजारी',
+      'Vanjari',
+      'Vanjari Jodi',
+      'वंजारी जोडी वधू-वर सूचक केंद्र',
+      'Vanjari Jodi Matrimony',
+      'vanjarijodi.web.app',
+      'Vanjari Vivah',
+      'वंजारी समाज विवाह मंडळ',
+      'Rao Vanjari Vivah'
+    ],
     url: config.siteUrl,
     logo: config.logoUrl || `${config.siteUrl}/logo.png`,
     image: config.logoUrl || `${config.siteUrl}/logo.png`,
-    description: 'महाराष्ट्र व जगभरातील १# मानांकित अधिकृत वंजारी समाज वधू-वर सूचक केंद्र (Official Vanjari Community Matrimonial Portal).',
+    description: 'महाराष्ट्र व जगभरातील १# मानांकित अधिकृत वंजारी समाज वधू-वर सूचक केंद्र (Official Vanjari Community Matrimonial Portal - vanjarijodi.web.app).',
     telephone: config.supportPhone || '+91-9800000000',
     email: config.supportEmail || 'support@vanjarijodi.org',
     priceRange: '₹0 - ₹999',

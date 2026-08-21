@@ -27,12 +27,12 @@ export const DynamicSeoHead: React.FC<DynamicSeoHeadProps> = ({
     const siteDomain = siteConfig?.canonicalDomain || (typeof window !== 'undefined' ? window.location.origin : 'https://vanjarijodi.web.app');
 
     let dynamicTitle = isMr
-      ? siteConfig?.metaTitleMr || siteConfig?.metaTitle || 'वंजारी जोडी वधू-वर सूचक केंद्र | Vanjari Jodi Matrimony'
-      : siteConfig?.metaTitleEn || 'Vanjari Jodi Matrimony - Official Vadhu Var Portal';
+      ? siteConfig?.metaTitleMr || siteConfig?.metaTitle || 'वंजारी जोडी | वंजारी वधू-वर सूचक केंद्र | Vanjari Jodi Matrimony Portal (vanjarijodi.web.app)'
+      : siteConfig?.metaTitleEn || 'Vanjari Jodi Matrimony - Official Vanjari Community Vadhu Var Portal (vanjarijodi.web.app)';
 
     let dynamicDesc = isMr
-      ? siteConfig?.metaDescriptionMr || siteConfig?.metaDescription || 'महाराष्ट्र व जगभरातील १# मानांकित अधिकृत वंजारी समाज वधू-वर सूचक केंद्र.'
-      : siteConfig?.metaDescriptionEn || 'Verified brides and grooms matrimonial portal for Vanjari and Marathi communities.';
+      ? siteConfig?.metaDescriptionMr || siteConfig?.metaDescription || 'वंजारी जोडी (Vanjari Jodi) - महाराष्ट्र व जगभरातील १# अधिकृत वंजारी समाज वधू-वर सूचक केंद्र. हजारो पडताळणी झालेले वंजारी वधू-वर बायोडाटा, पत्रिका जुळवणी, मोफत नोंदणी व विवाह स्थळे (vanjarijodi.web.app).'
+      : siteConfig?.metaDescriptionEn || 'Vanjari Jodi (vanjarijodi.web.app) is the official matrimonial portal for Vanjari community brides and grooms across Maharashtra and worldwide.';
 
     let targetUrl = canonicalUrl || siteDomain;
     let shareImg = ogImage || siteConfig?.logoUrl || `${siteDomain}/logo.png`;

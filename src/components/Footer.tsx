@@ -131,8 +131,8 @@ export const Footer: React.FC = () => {
           </div>
           <p className="text-xs text-amber-100/90 leading-relaxed font-medium">
             {language === 'en'
-              ? (siteConfig?.aboutUsTextEn || 'Trusted digital matrimonial platform for Vanjari community brides & grooms with full safety & privacy features.')
-              : (siteConfig?.aboutUsText || 'वंजारी समाजातील वधू-वरांसाठी विश्वासाचे आणि सर्व सोयींनी युक्त डिजिटल मॅट्रिमोनी व्यासपीठ.')}
+              ? (siteConfig?.aboutUsTextEn || 'Vanjari Jodi (vanjarijodi.web.app) is the official trusted matrimonial portal for Vanjari brides and grooms across Maharashtra and worldwide, offering verified matchmaking and biodata services.')
+              : (siteConfig?.aboutUsText || 'वंजारी जोडी (Vanjari Jodi) हे वंजारी समाजातील वधू-वरांसाठी अधिकृत आणि विश्वासू वधू-वर सूचक केंद्र आहे; जिथे राज्यभरातील उच्चशिक्षित वंजारी स्थळे व योग्य पत्रिका जुळवणी एकाच ठिकाणी उपलब्ध आहे.')}
           </p>
           <div className="flex items-center justify-center md:justify-start gap-2 text-xs font-bold text-amber-300">
             <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
