@@ -388,13 +388,6 @@ export function generateStructuredJsonLd(config: {
       dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
       opens: '08:00',
       closes: '22:00'
-    },
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: '4.95',
-      reviewCount: '2840',
-      bestRating: '5',
-      worstRating: '1'
     }
   };
 
