@@ -761,6 +761,8 @@ export interface SiteConfig {
   logoUrl?: string;
   logoHeight?: number;
   logoWidth?: number;
+  logoScalePercent?: number; // Logo size adjustment in percentage (e.g. 50% to 150%)
+  logoSize?: number; // Explicit pixel size override if configured
   hideLogoText?: boolean;
   paymentQrUrl?: string;
   paymentQrCodeUrl?: string;

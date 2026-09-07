@@ -202,7 +202,7 @@ export function generatePaymentInvoicePDF(data: InvoiceData): jsPDF {
   doc.text('1. This is a computer-generated tax invoice verified with banking UTR.', 18, yPos + 12);
   doc.text('2. Membership fee is non-refundable and non-transferable.', 18, yPos + 17);
   doc.text('3. Account access is active immediately across Web and Android Mobile App.', 18, yPos + 22);
-  doc.text('4. For any billing questions, contact support@vanjarijodi.web.app / Telegram @Primemultiservice.', 18, yPos + 27);
+  doc.text('4. For any billing questions, contact gitevijay123@gmail.com / Telegram @Primemultiservice.', 18, yPos + 27);
 
   // 6. Signature & Seal
   yPos += 38;

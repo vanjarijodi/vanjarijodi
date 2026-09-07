@@ -38,11 +38,13 @@ import {
   Headphones,
   Download,
   Upload,
-  Scroll
+  Scroll,
+  Image as ImageIcon
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { uploadToCloudinary } from '../utils/cloudinary';
 import { AdminOcrKeyManager } from './AdminOcrKeyManager';
+import { VanjariJodiLogo } from './VanjariJodiLogo';
 
 export const AdminMasterSettingsCenter: React.FC = () => {
   const { siteConfig, updateSiteConfig, currentSubAdmin } = useApp();
@@ -103,6 +105,11 @@ export const AdminMasterSettingsCenter: React.FC = () => {
   const handleModeChange = (key: keyof typeof siteConfig, value: any, label: string) => {
     updateSiteConfig({ [key]: value });
     notifyChange(`'${label}' अपडेट केली!`);
+  };
+
+  const handleDirectFieldSave = (key: keyof typeof siteConfig, value: any, label: string) => {
+    updateSiteConfig({ [key]: value });
+    notifyChange(label);
   };
 
   return (
@@ -248,6 +255,16 @@ export const AdminMasterSettingsCenter: React.FC = () => {
               }`}
             >
               🎨 UI लेआउट व थीम इंजिन
+            </button>
+            <button
+              onClick={() => setSelectedCategory('branding')}
+              className={`px-3 py-2 rounded-xl whitespace-nowrap cursor-pointer transition ${
+                selectedCategory === 'branding'
+                  ? 'bg-rose-400 text-rose-950 font-black'
+                  : 'bg-white/10 text-amber-100 hover:bg-white/20'
+              }`}
+            >
+              🏷️ गोल लोगो व ब्रँडिंग
             </button>
             <button
               onClick={() => setSelectedCategory('seo')}
@@ -2869,6 +2886,254 @@ export const AdminMasterSettingsCenter: React.FC = () => {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 🏷️ OFFICIAL ROUND LOGO & SCALE CONTROLLER (अधिकृत गोल लोगो व आकार नियंत्रक) */}
+      {/* ========================================================================= */}
+      {(selectedCategory === 'all' || selectedCategory === 'branding' || selectedCategory === 'layout') && (
+        <div className="bg-white rounded-3xl p-5 sm:p-6 border-2 border-rose-300 shadow-md space-y-6 animate-fadeIn">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-rose-100 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider bg-rose-100 text-rose-900 px-2.5 py-0.5 rounded-full border border-rose-300">
+                  अधिकृत ब्रँडिंग इंजिन 🏷️
+                </span>
+                <span className="text-xs text-slate-500 font-bold">Round Emblem & Scale Manager</span>
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-rose-950 flex items-center gap-2 mt-1">
+                <ImageIcon className="w-5 h-5 text-rose-600 shrink-0" />
+                <span>अधिकृत गोल लोगो व आकार नियंत्रक (Official Round Logo & Scale Control)</span>
+              </h3>
+            </div>
+            <div className="text-xs font-black bg-rose-50 text-rose-800 px-3 py-1.5 rounded-xl border border-rose-200 self-start sm:self-auto">
+              सध्याचा आकार: <span className="text-rose-950 font-black text-sm">{siteConfig.logoScalePercent || 100}%</span>
+            </div>
+          </div>
+
+          {/* Grid Layout: Left = Live Logo Preview | Right = Size Slider & Upload Controls */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            {/* Left: Live Visual Preview */}
+            <div className="lg:col-span-5 bg-gradient-to-br from-amber-50 via-rose-50/40 to-orange-50/50 rounded-2xl p-5 border-2 border-amber-300/80 flex flex-col items-center justify-center text-center space-y-3">
+              <span className="text-xs font-black text-[#800C1E] uppercase tracking-wider">
+                👁️ लाईव्ह गोल लोगो प्रिव्ह्यू (Live Preview)
+              </span>
+
+              <div className="w-full min-h-[160px] flex items-center justify-center p-4 bg-white/80 rounded-2xl shadow-inner border border-amber-200/60 overflow-hidden">
+                <VanjariJodiLogo
+                  variant="emblem"
+                  size={110}
+                  className="transition-all duration-200"
+                />
+              </div>
+
+              <div className="w-full bg-white rounded-xl p-2.5 border border-amber-200 text-left space-y-1">
+                <div className="text-[11px] font-black text-slate-800 flex justify-between">
+                  <span>शीर्षक:</span>
+                  <span className="text-[#800C1E]">{siteConfig.logoTitle || 'वंजारी जोडी'}</span>
+                </div>
+                <div className="text-[11px] font-black text-slate-800 flex justify-between">
+                  <span>उपशीर्षक:</span>
+                  <span className="text-slate-600">{siteConfig.logoSubtitle || 'वर-वधू शोध'}</span>
+                </div>
+                <div className="text-[11px] font-black text-slate-800 flex justify-between">
+                  <span>स्त्रोत URL:</span>
+                  <span className="text-slate-500 truncate max-w-[150px]">{siteConfig.logoUrl || '/logo.png'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Controls & Adjustments */}
+            <div className="lg:col-span-7 space-y-5">
+              
+              {/* 1. Logo Size Percentage Slider (टक्केवारी स्लायडर) */}
+              <div className="p-4 rounded-2xl bg-slate-50 border-2 border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="font-black text-slate-900 text-xs sm:text-sm flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-rose-600" />
+                    <span>१. लोगो आकार टक्केवारी (Logo Size Scale):</span>
+                  </label>
+                  <span className="px-2.5 py-1 rounded-lg bg-rose-600 text-white font-black text-xs shadow-xs">
+                    {siteConfig.logoScalePercent || 100}%
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
+                  स्लायडर सरकवून वेलकम स्क्रीन व ॲपमधील गोल लोगोचा आकार ५०% ते १६०% पर्यंत सहज कमी-जास्त करा.
+                </p>
+
+                {/* Range Slider */}
+                <div className="space-y-1 pt-1">
+                  <input
+                    type="range"
+                    min="50"
+                    max="160"
+                    step="5"
+                    value={siteConfig.logoScalePercent || 100}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10) || 100;
+                      handleDirectFieldSave('logoScalePercent', val, `लोगो आकार: ${val}%`);
+                    }}
+                    className="w-full h-2.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-rose-600"
+                  />
+                  <div className="flex justify-between text-[10px] font-black text-slate-500">
+                    <span>५०% (अति-लहान)</span>
+                    <span>१००% (मूळ आकार)</span>
+                    <span>१६०% (अति-मोठा)</span>
+                  </div>
+                </div>
+
+                {/* Preset Quick Buttons */}
+                <div className="pt-2 border-t border-slate-200 grid grid-cols-4 gap-1.5 text-center">
+                  {[
+                    { label: '८०% (लहान)', val: 80 },
+                    { label: '१००% (सामान्य)', val: 100 },
+                    { label: '१२०% (मध्यम)', val: 120 },
+                    { label: '१४०% (मोठा)', val: 140 },
+                  ].map((p) => (
+                    <button
+                      key={p.val}
+                      type="button"
+                      onClick={() => handleDirectFieldSave('logoScalePercent', p.val, `लोगो आकार: ${p.val}%`)}
+                      className={`py-1.5 px-1 rounded-xl text-[10.5px] font-black transition cursor-pointer border ${
+                        (siteConfig.logoScalePercent || 100) === p.val
+                          ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                          : 'bg-white text-slate-800 border-slate-300 hover:bg-rose-50'
+                      }`}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 2. Logo Upload & URL Source */}
+              <div className="p-4 rounded-2xl bg-amber-50/60 border-2 border-amber-300 space-y-3">
+                <label className="font-black text-amber-950 text-xs sm:text-sm flex items-center gap-2">
+                  <Upload className="w-4 h-4 text-amber-700" />
+                  <span>२. गोल लोगो इमेज बदला (Change Logo Image / Upload):</span>
+                </label>
+                
+                <p className="text-[11px] text-slate-600 font-medium">
+                  मोबाईलवरून किंवा कॉम्प्युटरवरून नवीन गोल लोगो फोटो निवडा किंवा थेट इमेज URL टाका.
+                </p>
+
+                {/* File Upload Button */}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <label className="flex-1 min-h-[40px] py-2 px-3 rounded-xl bg-gradient-to-r from-[#800C1E] to-[#A71930] hover:brightness-110 text-white font-black text-xs flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-95 transition">
+                    <Upload className="w-4 h-4 text-amber-300 shrink-0" />
+                    <span>गॅलरीतून लोगो फोटो अपलोड करा</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          try {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                              const base64 = ev.target?.result as string;
+                              if (base64) {
+                                handleDirectFieldSave('logoUrl', base64, 'नवीन गोल लोगो यशस्वीरित्या अपलोड केला!');
+                              }
+                            };
+                            reader.readAsDataURL(file);
+                          } catch (err: any) {
+                            alert('फोटो अपलोड करताना त्रुटी आली: ' + err.message);
+                          }
+                        }
+                      }}
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDirectFieldSave('logoUrl', '/logo.png', 'मूळ अधिकृत लोगो रिस्टोअर केला!')}
+                    className="py-2 px-3 rounded-xl bg-white hover:bg-slate-100 text-slate-800 font-black text-xs border border-slate-300 shadow-2xs transition cursor-pointer"
+                  >
+                    🔄 मूळ अधिकृत लोगो सेट करा
+                  </button>
+                </div>
+
+                {/* Direct Image URL input */}
+                <div className="space-y-1 pt-1">
+                  <span className="text-[10px] font-black text-slate-600">किंवा थेट इमेज URL टाका:</span>
+                  <input
+                    type="text"
+                    defaultValue={siteConfig.logoUrl || '/logo.png'}
+                    placeholder="उदा. https://... किंवा /logo.png"
+                    onBlur={(e) => {
+                      const val = e.target.value.trim();
+                      if (val && val !== siteConfig.logoUrl) {
+                        handleDirectFieldSave('logoUrl', val, 'लोगो URL अपडेट केली!');
+                      }
+                    }}
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-amber-300 text-xs text-slate-800 font-medium focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* 3. Logo Titles & Subtitles */}
+              <div className="p-4 rounded-2xl bg-white border-2 border-slate-200 space-y-3">
+                <label className="font-black text-slate-900 text-xs sm:text-sm flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-slate-700" />
+                  <span>३. लोगो मजकूर व उपशीर्षक (Logo Text & Labels):</span>
+                </label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="block font-black text-slate-700 text-[11px] mb-1">मुख्य शीर्षक (Title):</span>
+                    <input
+                      type="text"
+                      defaultValue={siteConfig.logoTitle || 'वंजारी जोडी'}
+                      onBlur={(e) => {
+                        const val = e.target.value.trim();
+                        if (val && val !== siteConfig.logoTitle) {
+                          handleDirectFieldSave('logoTitle', val, `लोगो शीर्षक: ${val}`);
+                        }
+                      }}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 font-bold text-slate-800 focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <span className="block font-black text-slate-700 text-[11px] mb-1">उपशीर्षक (Subtitle):</span>
+                    <input
+                      type="text"
+                      defaultValue={siteConfig.logoSubtitle || 'वर-वधू शोध'}
+                      onBlur={(e) => {
+                        const val = e.target.value.trim();
+                        if (val && val !== siteConfig.logoSubtitle) {
+                          handleDirectFieldSave('logoSubtitle', val, `लोगो उपशीर्षक: ${val}`);
+                        }
+                      }}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 font-bold text-slate-800 focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                  <div>
+                    <span className="font-black text-slate-800 text-xs block">फक्त गोल चिन्ह दाखवा (Hide Logo Text):</span>
+                    <span className="text-[10px] text-slate-500 font-medium">हेडर्समध्ये फक्त गोल चिन्ह दिसेल</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggle('hideLogoText', siteConfig.hideLogoText, 'लोगो मजकूर लपवणे')}
+                    className={`px-3 py-1 rounded-xl text-xs font-black cursor-pointer ${
+                      siteConfig.hideLogoText ? 'bg-rose-600 text-white' : 'bg-slate-300 text-slate-700'
+                    }`}
+                  >
+                    {siteConfig.hideLogoText ? 'सक्रिय (ON)' : 'बंद (OFF)'}
+                  </button>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>

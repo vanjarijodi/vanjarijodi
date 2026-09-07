@@ -414,7 +414,7 @@ export const RegisterModal: React.FC<{
       birthPlace,
       mobile: mobile.trim(),
       secondaryMobile: secondaryMobile ? secondaryMobile.trim() : '',
-      email: email ? email.trim() : 'user@vanjarijodi.com',
+      email: email ? email.trim() : '',
       district,
       taluka: taluka || 'मुख्य तालुका',
       city: city || 'शहर',

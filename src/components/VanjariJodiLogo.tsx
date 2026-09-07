@@ -20,7 +20,13 @@ export const VanjariJodiLogo: React.FC<LogoProps> = ({
   const { siteConfig, language } = useApp();
   const [imgError, setImgError] = React.useState(false);
 
-  const customLogoUrl = siteConfig?.logoUrl;
+  const customLogoUrl = siteConfig?.logoUrl || '/logo.png';
+  const scalePercent = Number(siteConfig?.logoScalePercent) || 100;
+  const scaleFactor = Math.max(0.4, Math.min(2.5, scalePercent / 100));
+  
+  // Effective size scaled by admin config
+  const effectiveSize = Math.round(size * scaleFactor);
+
   const isEnglish = language === 'en';
   const logoTitle = isEnglish 
     ? (siteConfig?.logoTitleEn || 'Vanjari Jodi') 
@@ -39,7 +45,7 @@ export const VanjariJodiLogo: React.FC<LogoProps> = ({
 
   // SVG Official Royal Circular Emblem matching the user's official insignia
   const renderSVGEmblem = (extraClass = '') => {
-    const emblemSize = variant === 'full' ? Math.min(size, 46) : size;
+    const emblemSize = variant === 'full' ? Math.min(effectiveSize, 46) : effectiveSize;
     return (
       <svg
         viewBox="0 0 400 400"
@@ -502,13 +508,41 @@ export const VanjariJodiLogo: React.FC<LogoProps> = ({
     );
   };
 
-  // If custom logo URL is provided by admin, wrap it inside a beautiful container
-  // that provides perfect contrast on any background (light or dark) and maintains ratio.
-  const renderCustomLogoImg = (imgHeight = size) => {
-    const adjustedHeight = variant === 'full' ? Math.min(imgHeight, 40) : imgHeight;
+  // If custom logo URL is provided by admin or local logo file exists:
+  const renderCustomLogoImg = (imgHeight = effectiveSize) => {
+    const isEmblem = variant === 'emblem';
+    const adjustedHeight = isEmblem ? imgHeight : (variant === 'full' ? Math.min(imgHeight, 46) : imgHeight);
+    
+    if (isEmblem) {
+      return (
+        <div 
+          className="inline-flex items-center justify-center shrink-0 select-none transition-all duration-300"
+          style={{ 
+            width: `${adjustedHeight}px`,
+            height: `${adjustedHeight}px`,
+          }}
+        >
+          <img
+            src={customLogoUrl}
+            alt={logoTitle}
+            style={{ 
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+            }}
+            className="shrink-0 drop-shadow-md rounded-full select-none"
+            referrerPolicy="no-referrer"
+            onError={() => {
+              setImgError(true);
+            }}
+          />
+        </div>
+      );
+    }
+
     return (
       <div 
-        className="flex items-center justify-center bg-white/95 backdrop-blur-md rounded-xl px-2 py-1 shadow-xs border border-amber-300/80 shrink-0 select-none overflow-hidden transition-all duration-300"
+        className="flex items-center justify-center bg-white/95 backdrop-blur-md rounded-xl px-1.5 py-0.5 shadow-xs border border-amber-300/80 shrink-0 select-none overflow-hidden transition-all duration-300"
         style={{ 
           height: `${adjustedHeight}px`,
           minWidth: `${adjustedHeight}px`,
@@ -532,7 +566,7 @@ export const VanjariJodiLogo: React.FC<LogoProps> = ({
     );
   };
 
-  const logoGraphic = (customLogoUrl && !imgError) ? renderCustomLogoImg(size) : renderSVGEmblem();
+  const logoGraphic = (customLogoUrl && !imgError) ? renderCustomLogoImg(effectiveSize) : renderSVGEmblem();
 
   // If set to hide text or variant is emblem, only render the image/graphic itself
   if (variant === 'emblem' || hideLogoText) {
