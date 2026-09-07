@@ -128,33 +128,74 @@ export const ProfileRemovalModal: React.FC = () => {
             {/* Marriage Details Form (if marriage fixed) */}
             {reason === 'marriage_fixed' && (
               <div className="space-y-3 bg-amber-50 p-3.5 sm:p-4 rounded-2xl border border-amber-300">
+                <div className="bg-amber-100/80 p-2.5 rounded-xl border border-amber-300 text-xs font-bold text-[#800C1E] flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>अभिनंदन! वंजारी जोडी अ‍ॅप प्रमोशनसाठी तुमची 'यशोगाथा' (Success Story) शेअर करा:</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-800 mb-1">
+                      वर (मुलाचे नाव / Groom Name):
+                    </label>
+                    <input
+                      type="text"
+                      value={partnerDetails.split('|')[0] || ''}
+                      onChange={(e) => {
+                        const parts = partnerDetails.split('|');
+                        setPartnerDetails(`${e.target.value}|${parts[1] || ''}|${parts[2] || ''}`);
+                      }}
+                      placeholder="उदा. राहुल रामराव आव्हाड"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-amber-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#A71930]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-800 mb-1">
+                      वधू (मुलीचे नाव / Bride Name):
+                    </label>
+                    <input
+                      type="text"
+                      value={partnerDetails.split('|')[1] || ''}
+                      onChange={(e) => {
+                        const parts = partnerDetails.split('|');
+                        setPartnerDetails(`${parts[0] || ''}|${e.target.value}|${parts[2] || ''}`);
+                      }}
+                      placeholder="उदा. स्नेहल विठ्ठल सानप"
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-amber-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#A71930]"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1">
-                    जोडीदाराचे नाव / स्थळाविषयी संक्षिप्त माहिती (Partner Details - Optional):
+                  <label className="block text-[11px] font-bold text-slate-800 mb-1">
+                    विवाह तारीख (Wedding Date):
                   </label>
                   <input
-                    type="text"
-                    value={partnerDetails}
-                    onChange={(e) => setPartnerDetails(e.target.value)}
-                    placeholder="उदा. विवाह निश्चित झाला किंवा संक्षिप्त माहिती..."
-                    className="w-full px-3.5 py-2 text-xs rounded-xl border border-amber-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#A71930]"
+                    type="date"
+                    value={partnerDetails.split('|')[2] || ''}
+                    onChange={(e) => {
+                      const parts = partnerDetails.split('|');
+                      setPartnerDetails(`${parts[0] || ''}|${parts[1] || ''}|${e.target.value}`);
+                    }}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-amber-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#A71930]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center gap-1">
+                  <label className="block text-[11px] font-bold text-slate-800 mb-1 flex items-center gap-1">
                     <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                    <span>वंजारी जोडी पोर्टलबद्दल तुमचा अभिप्राय / संदेश:</span>
+                    <span>वंजारी जोडी पोर्टलबद्दल तुमचा अनुभव व शुभसंदेश (Success Story Experience):</span>
                   </label>
                   <textarea
                     rows={3}
                     value={feedbackText}
                     onChange={(e) => setFeedbackText(e.target.value)}
-                    placeholder="वंजारी जोडी पोर्टलमुळे आमचा विवाह सहज व सुलभरीत्या जुळला. मनापासून धन्यवाद!"
+                    placeholder="वंजारी जोडी मॅट्रिमोनी पोर्टलमुळे आमचे लग्न अतिशय सोप्या आणि पारदर्शक पद्धतीने जुळले. अ‍ॅपच्या टीमचे मनापासून आभार!"
                     className="w-full px-3.5 py-2 text-xs rounded-xl border border-amber-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#A71930]"
                   />
-                  <p className="text-[10px] text-slate-500 mt-1">
-                    हा अभिप्राय प्रशासकाच्या मान्यतेनंतर मुख्य पानावर 'यशोगाथा' (Success Story) मध्ये प्रसिद्ध केला जाईल.
+                  <p className="text-[10px] text-slate-600 mt-1 font-medium">
+                    ✨ तुमचा हा संदेश वंजारी जोडी अ‍ॅपच्या मुख्य पानावर 'यशोगाथा' म्हणून इतर भावी वधू-वरांना प्रेरणा देण्यासाठी प्रसिद्ध केला जाईल.
                   </p>
                 </div>
               </div>
