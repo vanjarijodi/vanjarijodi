@@ -199,6 +199,16 @@ export interface UserProfile {
   freePlanGrantedAt?: string;
   freePlanAdminNote?: string;
   freePlanGrantedBy?: string;
+  specialPremiumAccess?: {
+    enabled: boolean;
+    grantedAt: string;
+    expiryDate?: string | null;
+    note?: string;
+  };
+  adminNotice?: string;
+  adminNoticeTitle?: string;
+  adminNoticeCreatedAt?: string;
+  adminNoticeRead?: boolean;
   unlockedContactsCount?: number;
   kundliCredits?: number;
   unlockedKundliProfileIds?: string[];
@@ -254,6 +264,9 @@ export interface SuccessStory {
   groomName?: string;
   brideName?: string;
   marriageDate?: string;
+  weddingDate?: string;
+  heading?: string;
+  description?: string;
   district?: string;
   image?: string;
   photoUrl?: string;
@@ -782,6 +795,7 @@ export interface SiteConfig {
   instamojoUrl?: string;
   enableUpiQr?: boolean;
   enableFullAccessForPaidMembers?: boolean;
+  isFestivalFreeModeActive?: boolean;
   upgradeRecommendedPlanId?: string;
   razorpayKeyId?: string;
   heroHeading: string;
@@ -908,6 +922,7 @@ export interface SiteConfig {
   requireMutualLikeForFullName?: boolean; // दोघांनी एकमेकांना लाईक (Mutual Like) केल्यावरच पहिलं व मधलं नाव अनलॉक करणे, अन्यथा फक्त आडनाव दिसणे
   requirePaidForLikes?: boolean;
   contactUnlockMode?: 'mutual_like_only' | 'all_paid_members' | 'both_allowed';
+  contactUnlockRule?: 'mutual_like_only' | 'paid_members' | 'paid_and_mutual' | 'paid_or_mutual';
   disablePlanContactLimit?: boolean;
   adminOverrideMemberPrivacy?: boolean;
   allowMembersToControlPrivacy?: boolean;

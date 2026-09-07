@@ -14,6 +14,13 @@ import {
 import { AIBioDataExtractor } from './AIBioDataExtractor';
 import { AdminEditProfileModal } from './AdminEditProfileModal';
 import { AdminMemberQuickSettingsModal } from './AdminMemberQuickSettingsModal';
+import { AdminMemberActionMenuModal } from './AdminMemberActionMenuModal';
+import { AdminSpecialPremiumModal } from './AdminSpecialPremiumModal';
+import { AdminWarningModal } from './AdminWarningModal';
+import { AdminSuccessStoryModal } from './AdminSuccessStoryModal';
+import { AdminReportsView } from './AdminReportsView';
+import { AdminStorageManager } from './AdminStorageManager';
+import { PrintBiodataModal } from './PrintBiodataModal';
 import { AdminMasterSettingsCenter } from './AdminMasterSettingsCenter';
 import { AdminPaymentApprovalPortal } from './AdminPaymentApprovalPortal';
 import { AdminPaymentSettings } from './AdminPaymentSettings';
@@ -51,6 +58,10 @@ import {
   Check,
   Zap,
   Bot,
+  AlertTriangle,
+  HardDrive,
+  MoreVertical,
+  Printer,
   CreditCard,
   MessageCircle,
   Share2,
@@ -120,6 +131,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     faceVerificationLogs,
     approveFaceVerification,
     rejectFaceVerification,
+    profileReports = [],
+    paymentRequests = []
   } = useApp();
 
   // Authentication State
@@ -134,13 +147,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     | 'profiles'
     | 'pending'
     | 'payments'
+    | 'reports'
+    | 'stories'
+    | 'special_premium'
+    | 'storage'
     | 'plans'
     | 'chats'
     | 'apk_manager'
     | 'broadcast_center'
     | 'ocr'
     | 'referrals'
-    | 'stories'
     | 'ads'
     | 'settings'
     | 'activity'
@@ -165,6 +181,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   const [editingCandidate, setEditingCandidate] = useState<UserProfile | null>(null);
   const [quickSettingsCandidate, setQuickSettingsCandidate] = useState<UserProfile | null>(null);
   const [customPlanCandidate, setCustomPlanCandidate] = useState<UserProfile | null>(null);
+  const [actionMenuCandidate, setActionMenuCandidate] = useState<UserProfile | null>(null);
+  const [specialPremiumCandidate, setSpecialPremiumCandidate] = useState<UserProfile | null>(null);
+  const [warningCandidate, setWarningCandidate] = useState<UserProfile | null>(null);
+  const [selectedSuccessStory, setSelectedSuccessStory] = useState<SuccessStory | null>(null);
+  const [printCandidate, setPrintCandidate] = useState<UserProfile | null>(null);
 
   // Sub Admin Modal State
   const [subAdminModalOpen, setSubAdminModalOpen] = useState(false);
@@ -538,21 +559,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   const pendingFaceLogs = faceVerificationLogs.filter((f) => f.status === 'pending');
   const totalPendingCount = pendingProfiles.length + pendingFaceLogs.length;
 
+  const pendingReportsCount = profileReports.filter((r) => r.status === 'pending').length;
+
   const adminNavTabs = [
     { id: 'overview', label: 'डॅशबोर्ड सारांश', icon: BarChart3, badge: null },
-    { id: 'profiles', label: 'सर्व सदस्य व्यवस्थापन', icon: Users, badge: approvedMembers.length },
+    { id: 'profiles', label: '👥 सदस्य व्यवस्थापन', icon: Users, badge: approvedMembers.length },
     { id: 'pending', label: 'प्रलंबित मंजुऱ्या', icon: Clock, badge: totalPendingCount || null, badgeColor: 'bg-amber-500' },
-    { id: 'payments', label: 'पेमेंट व व्यवहार', icon: CreditCard, badge: null },
-    { id: 'plans', label: 'प्लॅन्स व वेलकम ऑफर', icon: DollarSign, badge: '₹398', badgeColor: 'bg-emerald-600' },
+    { id: 'payments', label: '💳 पेमेंट व व्यवहार', icon: CreditCard, badge: null },
+    { id: 'reports', label: '🚩 तक्रारी व रिपोर्ट्स', icon: AlertTriangle, badge: pendingReportsCount || null, badgeColor: 'bg-rose-600' },
+    { id: 'stories', label: '💖 यशोगाथा', icon: Heart, badge: successStories.length },
+    { id: 'storage', label: '💾 स्टोरेज व क्लीनअप', icon: HardDrive, badge: null },
+    { id: 'plans', label: 'प्लॅन्स व ऑफर्स', icon: DollarSign, badge: '₹398', badgeColor: 'bg-emerald-600' },
     { id: 'apk_manager', label: '📱 APK ॲप मॅनेजर', icon: Smartphone, badge: 'APK', badgeColor: 'bg-emerald-600' },
-    { id: 'broadcast_center', label: '🔔 नोटिफिकेशन्स व ई-मेल', icon: Bell, badge: 'PUSH', badgeColor: 'bg-[#800C1E]' },
-    { id: 'chats', label: 'चॅट व थेट सपोर्ट', icon: MessageCircle, badge: unreadAdminChatCount || null, badgeColor: 'bg-rose-600' },
+    { id: 'broadcast_center', label: '🔔 नोटिफिकेशन्स', icon: Bell, badge: 'PUSH', badgeColor: 'bg-[#800C1E]' },
+    { id: 'chats', label: 'चॅट व सपोर्ट', icon: MessageCircle, badge: unreadAdminChatCount || null, badgeColor: 'bg-rose-600' },
     { id: 'ocr', label: 'AI बायोडाटा रीडर', icon: Bot, badge: 'AI', badgeColor: 'bg-indigo-600' },
-    { id: 'referrals', label: 'रेफरल व बक्षिसे', icon: Share2, badge: null },
-    { id: 'stories', label: 'यशोगाथा व्यवस्थापन', icon: Heart, badge: successStories.length },
-    { id: 'settings', label: 'मास्टर सेटिंग्स व APK', icon: Settings, badge: null },
+    { id: 'referrals', label: 'रेफरल प्रोग्राम', icon: Share2, badge: null },
+    { id: 'settings', label: '⚙️ मास्टर सेटिंग्स', icon: Settings, badge: null },
     { id: 'activity', label: 'ऑडिट लॉग्स', icon: Activity, badge: null },
-    { id: 'sub_admins', label: 'सब-ॲडमिन परवानग्या', icon: ShieldCheck, badge: subAdmins.length },
+    { id: 'sub_admins', label: 'सब-ॲडमिन', icon: ShieldCheck, badge: subAdmins.length },
     { id: 'recycle_bin', label: 'रिसायकल बिन', icon: Trash2, badge: recycleBin.length }
   ];
 
@@ -761,43 +786,119 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
-              {/* Quick Metrics Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="bg-white p-4 rounded-2xl border-2 border-amber-300 shadow-sm">
-                  <div className="flex items-center justify-between text-slate-500 mb-2">
-                    <span className="text-xs font-bold">एकूण सदस्य</span>
+              {/* Quick Metrics Grid (9 Cards) */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3.5">
+                <button
+                  onClick={() => setActiveTab('profiles')}
+                  className="bg-white p-4 rounded-2xl border-2 border-amber-300 shadow-xs hover:border-[#800C1E] transition cursor-pointer text-left group"
+                >
+                  <div className="flex items-center justify-between text-slate-500 mb-1.5">
+                    <span className="text-xs font-bold group-hover:text-[#800C1E]">1. एकूण सदस्य</span>
                     <Users className="w-4 h-4 text-[#A71930]" />
                   </div>
                   <div className="text-2xl font-black text-slate-900">{profiles.length}</div>
-                  <div className="text-[10px] text-emerald-600 font-bold mt-1">✓ सक्रिय समुदाय</div>
-                </div>
+                  <div className="text-[10px] text-emerald-600 font-bold mt-1">✓ सर्व नोंदणीकृत सदस्य</div>
+                </button>
 
-                <div className="bg-white p-4 rounded-2xl border-2 border-amber-300 shadow-sm">
-                  <div className="flex items-center justify-between text-slate-500 mb-2">
-                    <span className="text-xs font-bold">मंजूर प्रोफाईल्स</span>
+                <button
+                  onClick={() => setActiveTab('profiles')}
+                  className="bg-white p-4 rounded-2xl border-2 border-amber-300 shadow-xs hover:border-emerald-600 transition cursor-pointer text-left group"
+                >
+                  <div className="flex items-center justify-between text-slate-500 mb-1.5">
+                    <span className="text-xs font-bold group-hover:text-emerald-700">2. सक्रीय सदस्य (Approved)</span>
                     <CheckCircle className="w-4 h-4 text-emerald-600" />
                   </div>
                   <div className="text-2xl font-black text-slate-900">{approvedMembers.length}</div>
-                  <div className="text-[10px] text-slate-500 font-bold mt-1">प्रदर्शनासाठी उपलब्ध</div>
-                </div>
+                  <div className="text-[10px] text-emerald-700 font-bold mt-1">प्रदर्शनासाठी उपलब्ध</div>
+                </button>
 
-                <div className="bg-white p-4 rounded-2xl border-2 border-amber-300 shadow-sm">
-                  <div className="flex items-center justify-between text-slate-500 mb-2">
-                    <span className="text-xs font-bold">प्रीमियम सदस्य</span>
+                <button
+                  onClick={() => setActiveTab('profiles')}
+                  className="bg-white p-4 rounded-2xl border-2 border-amber-300 shadow-xs hover:border-amber-500 transition cursor-pointer text-left group"
+                >
+                  <div className="flex items-center justify-between text-slate-500 mb-1.5">
+                    <span className="text-xs font-bold group-hover:text-amber-800">3. Paid सदस्य</span>
                     <Crown className="w-4 h-4 text-amber-500" />
                   </div>
                   <div className="text-2xl font-black text-[#A71930]">{premiumMembers.length}</div>
-                  <div className="text-[10px] text-amber-700 font-bold mt-1">सशुल्क सदस्य</div>
-                </div>
+                  <div className="text-[10px] text-amber-700 font-bold mt-1">सशुल्क प्रीमियम सदस्य</div>
+                </button>
 
-                <div className="bg-white p-4 rounded-2xl border-2 border-amber-300 shadow-sm">
-                  <div className="flex items-center justify-between text-slate-500 mb-2">
-                    <span className="text-xs font-bold">प्रलंबित मंजुऱ्या</span>
-                    <Bell className="w-4 h-4 text-rose-600" />
+                <button
+                  onClick={() => setActiveTab('pending')}
+                  className="bg-white p-4 rounded-2xl border-2 border-amber-300 shadow-xs hover:border-amber-600 transition cursor-pointer text-left group"
+                >
+                  <div className="flex items-center justify-between text-slate-500 mb-1.5">
+                    <span className="text-xs font-bold group-hover:text-amber-800">4. प्रलंबित मंजुऱ्या</span>
+                    <Clock className="w-4 h-4 text-amber-600" />
                   </div>
-                  <div className="text-2xl font-black text-rose-600">{pendingProfiles.length}</div>
-                  <div className="text-[10px] text-rose-600 font-bold mt-1">तात्काळ मंजुरी आवश्यक</div>
-                </div>
+                  <div className="text-2xl font-black text-amber-600">{pendingProfiles.length}</div>
+                  <div className="text-[10px] text-amber-700 font-bold mt-1">नवीन प्रोफाइल पडताळणी</div>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('payments')}
+                  className="bg-white p-4 rounded-2xl border-2 border-amber-300 shadow-xs hover:border-indigo-600 transition cursor-pointer text-left group"
+                >
+                  <div className="flex items-center justify-between text-slate-500 mb-1.5">
+                    <span className="text-xs font-bold group-hover:text-indigo-800">5. प्रलंबित पेमेंट्स</span>
+                    <CreditCard className="w-4 h-4 text-indigo-600" />
+                  </div>
+                  <div className="text-2xl font-black text-indigo-900">
+                    {paymentRequests.filter((p) => p.status === 'pending').length}
+                  </div>
+                  <div className="text-[10px] text-indigo-700 font-bold mt-1">UPI स्क्रिनशॉट मंजुरी</div>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('reports')}
+                  className="bg-white p-4 rounded-2xl border-2 border-amber-300 shadow-xs hover:border-rose-600 transition cursor-pointer text-left group"
+                >
+                  <div className="flex items-center justify-between text-slate-500 mb-1.5">
+                    <span className="text-xs font-bold group-hover:text-rose-800">6. सदस्य तक्रारी (Reports)</span>
+                    <AlertTriangle className="w-4 h-4 text-rose-600" />
+                  </div>
+                  <div className="text-2xl font-black text-rose-600">{pendingReportsCount}</div>
+                  <div className="text-[10px] text-rose-600 font-bold mt-1">तक्रार निवारण आवश्यक</div>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('stories')}
+                  className="bg-white p-4 rounded-2xl border-2 border-amber-300 shadow-xs hover:border-rose-500 transition cursor-pointer text-left group"
+                >
+                  <div className="flex items-center justify-between text-slate-500 mb-1.5">
+                    <span className="text-xs font-bold group-hover:text-rose-700">7. यशोगाथा (Success Stories)</span>
+                    <Heart className="w-4 h-4 text-rose-500" />
+                  </div>
+                  <div className="text-2xl font-black text-rose-800">
+                    {successStories.filter((s) => s.status === 'pending').length}
+                  </div>
+                  <div className="text-[10px] text-rose-700 font-bold mt-1">नवीन विवाह कथा मंजुरी</div>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('storage')}
+                  className="bg-white p-4 rounded-2xl border-2 border-amber-300 shadow-xs hover:border-sky-600 transition cursor-pointer text-left group"
+                >
+                  <div className="flex items-center justify-between text-slate-500 mb-1.5">
+                    <span className="text-xs font-bold group-hover:text-sky-800">8. स्टोरेज व क्लीनअप</span>
+                    <HardDrive className="w-4 h-4 text-sky-600" />
+                  </div>
+                  <div className="text-2xl font-black text-sky-900">स्टोरेज</div>
+                  <div className="text-[10px] text-sky-700 font-bold mt-1">अवांछित फोटो स्वच्छता</div>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('broadcast_center')}
+                  className="bg-white p-4 rounded-2xl border-2 border-amber-300 shadow-xs hover:border-[#800C1E] transition cursor-pointer text-left group"
+                >
+                  <div className="flex items-center justify-between text-slate-500 mb-1.5">
+                    <span className="text-xs font-bold group-hover:text-[#800C1E]">9. नोटिफिकेशन्स केंद्र</span>
+                    <Bell className="w-4 h-4 text-[#800C1E]" />
+                  </div>
+                  <div className="text-2xl font-black text-[#800C1E]">Push/Sms</div>
+                  <div className="text-[10px] text-slate-600 font-bold mt-1">ब्रॉडकास्ट मेसेज पाठवा</div>
+                </button>
               </div>
 
               {/* Welcome Offer Banner */}
@@ -1017,40 +1118,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                             </span>
                           </td>
                           <td className="p-3 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <button
-                                onClick={() => setEditingCandidate(member)}
-                                className="p-1.5 bg-amber-100 hover:bg-amber-200 text-[#800C1E] rounded-lg cursor-pointer transition-colors"
-                                title="प्रोफाईल संपादित करा"
-                              >
-                                <Activity className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => setQuickSettingsCandidate(member)}
-                                className="p-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 rounded-lg cursor-pointer transition-colors"
-                                title="क्विक सेटिंग्स"
-                              >
-                                <Sliders className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => setCustomPlanCandidate(member)}
-                                className="p-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-lg cursor-pointer transition-colors"
-                                title="प्लॅन प्रदान करा"
-                              >
-                                <Gift className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  if (confirm(`खात्री आहे का? '${member.fullName}' यांची प्रोफाईल हटवायची आहे का?`)) {
-                                    deleteProfileDirect(member.id);
-                                  }
-                                }}
-                                className="p-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-lg cursor-pointer transition-colors"
-                                title="हटवा"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
+                            <button
+                              onClick={() => setActionMenuCandidate(member)}
+                              className="px-2.5 py-1.5 bg-amber-100 hover:bg-amber-200 text-[#800C1E] border border-amber-300 rounded-xl font-bold text-xs flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-2xs ml-auto"
+                              title="सदस्य ॲडमिन कृत्य मेनू"
+                            >
+                              <MoreVertical className="w-4 h-4 text-[#800C1E]" />
+                              <span className="hidden sm:inline text-[11px]">ॲक्शन मेनू</span>
+                            </button>
                           </td>
                         </tr>
                       ))}
@@ -1442,7 +1517,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {/* TAB 8: REFERRALS */}
+          {/* TAB: REPORTS */}
+          {activeTab === 'reports' && (
+            <div className="space-y-6">
+              <AdminReportsView />
+            </div>
+          )}
+
+          {/* TAB: STORAGE */}
+          {activeTab === 'storage' && (
+            <div className="space-y-6">
+              <AdminStorageManager />
+            </div>
+          )}
+
+          {/* TAB: REFERRALS */}
           {activeTab === 'referrals' && (
             <div className="space-y-6">
               <AdminReferralManagement />
@@ -1527,34 +1616,40 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
 
               {/* Stories List */}
               <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-amber-300 shadow-sm space-y-4">
-                <h3 className="text-base font-black text-slate-900">प्रकाशित यशोगाथा ({successStories.length})</h3>
+                <h3 className="text-base font-black text-slate-900">सर्व यशोगाथा ({successStories.length})</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {successStories.map((story) => (
-                    <div key={story.id} className="p-4 rounded-2xl border border-amber-200 bg-amber-50/30 space-y-2">
+                    <div
+                      key={story.id}
+                      onClick={() => setSelectedSuccessStory(story)}
+                      className="p-4 rounded-2xl border-2 border-amber-200 hover:border-[#800C1E] bg-amber-50/30 space-y-2 cursor-pointer transition shadow-2xs group"
+                    >
                       <img
-                        src={story.photoUrl}
+                        src={story.photoUrl || 'https://images.unsplash.com/photo-1519741497674-611481863552?w=500'}
                         alt={`${story.groomName} & ${story.brideName}`}
                         referrerPolicy="no-referrer"
                         className="w-full h-36 object-cover rounded-xl border border-amber-300"
                       />
                       <div className="flex items-center justify-between">
-                        <h4 className="font-black text-xs text-slate-900 truncate">
+                        <h4 className="font-black text-xs text-slate-900 truncate group-hover:text-[#800C1E]">
                           {story.groomName} ❤️ {story.brideName}
                         </h4>
-                        <button
-                          onClick={() => {
-                            if (confirm('यशोगाथा हटवायची आहे का?')) {
-                              deleteSuccessStory(story.id);
-                            }
-                          }}
-                          className="p-2 text-rose-600 hover:bg-rose-100 rounded-lg cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
-                          title="हटवा"
-                          aria-label="हटवा"
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                            story.status === 'approved'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : story.status === 'rejected'
+                              ? 'bg-rose-100 text-rose-800'
+                              : 'bg-amber-100 text-amber-900'
+                          }`}
                         >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                          {story.status === 'approved' ? '✓ मंजूर' : story.status === 'rejected' ? '❌ नामंजूर' : '⏳ प्रलंबित'}
+                        </span>
                       </div>
-                      <p className="text-[11px] text-slate-600 line-clamp-2">{story.story}</p>
+                      <p className="text-[11px] text-slate-600 line-clamp-2">{story.story || story.description}</p>
+                      <div className="text-[10px] font-bold text-[#800C1E] text-right pt-1 underline">
+                        शब्द-न-शब्द संपादन व मंजुरी पहा →
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -2113,6 +2208,126 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
             <AdminCustomPlanGrantModal
               profile={customPlanCandidate}
               onClose={() => setCustomPlanCandidate(null)}
+            />
+          )}
+
+          {/* Member 3-Dot Centralized Action Menu Modal */}
+          {actionMenuCandidate && (
+            <AdminMemberActionMenuModal
+              member={actionMenuCandidate}
+              isOpen={Boolean(actionMenuCandidate)}
+              onClose={() => setActionMenuCandidate(null)}
+              onViewProfile={(m) => {
+                setActionMenuCandidate(null);
+                setEditingCandidate(m);
+              }}
+              onEditProfile={(m) => {
+                setActionMenuCandidate(null);
+                setEditingCandidate(m);
+              }}
+              onGrantPlan={(m) => {
+                setActionMenuCandidate(null);
+                setCustomPlanCandidate(m);
+              }}
+              onSpecialPremium={(m) => {
+                setActionMenuCandidate(null);
+                setSpecialPremiumCandidate(m);
+              }}
+              onContactAccess={(m) => {
+                setActionMenuCandidate(null);
+                setQuickSettingsCandidate(m);
+              }}
+              onViewReports={() => {
+                setActionMenuCandidate(null);
+                setActiveTab('reports');
+              }}
+              onSendWarning={(m) => {
+                setActionMenuCandidate(null);
+                setWarningCandidate(m);
+              }}
+              onToggleSuspend={(m) => {
+                updateProfileDirect(m.id, { isSuspended: !m.isSuspended });
+                setActionMenuCandidate(null);
+              }}
+              onToggleBlock={(m) => {
+                updateProfileDirect(m.id, { isBlocked: !m.isBlocked });
+                setActionMenuCandidate(null);
+              }}
+              onViewHistory={() => {
+                setActionMenuCandidate(null);
+                setActiveTab('activity');
+              }}
+              onPrint={(m) => {
+                setActionMenuCandidate(null);
+                setPrintCandidate(m);
+              }}
+              onDelete={(m) => {
+                if (confirm(`खात्री आहे का? '${m.fullName}' यांची प्रोफाईल हटवायची आहे का?`)) {
+                  deleteProfileDirect(m.id);
+                  setActionMenuCandidate(null);
+                }
+              }}
+            />
+          )}
+
+          {/* Special Premium Modal */}
+          {specialPremiumCandidate && (
+            <AdminSpecialPremiumModal
+              member={specialPremiumCandidate}
+              isOpen={Boolean(specialPremiumCandidate)}
+              onClose={() => setSpecialPremiumCandidate(null)}
+              onSave={(memberId, specialData) => {
+                updateProfileDirect(memberId, { specialPremiumAccess: specialData });
+                setSpecialPremiumCandidate(null);
+              }}
+            />
+          )}
+
+          {/* Admin Warning / Notice Modal */}
+          {warningCandidate && (
+            <AdminWarningModal
+              member={warningCandidate}
+              isOpen={Boolean(warningCandidate)}
+              onClose={() => setWarningCandidate(null)}
+              onSendWarning={(memberId, title, message) => {
+                updateProfileDirect(memberId, {
+                  adminNotice: message,
+                  adminNoticeTitle: title,
+                  adminNoticeCreatedAt: new Date().toISOString(),
+                  adminNoticeRead: false,
+                });
+                setWarningCandidate(null);
+              }}
+            />
+          )}
+
+          {/* Success Story Word-by-Word Edit Modal */}
+          {selectedSuccessStory && (
+            <AdminSuccessStoryModal
+              story={selectedSuccessStory}
+              isOpen={Boolean(selectedSuccessStory)}
+              onClose={() => setSelectedSuccessStory(null)}
+              onApprove={(storyId, updated) => {
+                if (updated) {
+                  // update success story
+                }
+                setSelectedSuccessStory(null);
+              }}
+              onReject={(storyId) => {
+                setSelectedSuccessStory(null);
+              }}
+              onDelete={(storyId) => {
+                deleteSuccessStory(storyId);
+                setSelectedSuccessStory(null);
+              }}
+            />
+          )}
+
+          {/* Print Biodata Modal */}
+          {printCandidate && (
+            <PrintBiodataModal
+              profile={printCandidate}
+              onClose={() => setPrintCandidate(null)}
             />
           )}
         </main>

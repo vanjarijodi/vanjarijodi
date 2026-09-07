@@ -191,6 +191,16 @@ export function getStructuredProfessionInfo(profile: Partial<UserProfile>) {
 
   const allBadges = getProfessionBadges(profile);
 
+  const sectorBadges = allBadges.filter(b => 
+    b.includes('सरकारी') || b.includes('खाजगी') || b.includes('व्यवसाय') || b.includes('शेती') || b.includes('निबंधक') || b.includes('शासकीय')
+  );
+
+  const roleBadges = allBadges.filter(b => 
+    b.includes('डॉक्टर') || b.includes('इंजिनिअर') || b.includes('अधिकारी') || b.includes('वर्ग-') || b.includes('शिक्षक') || b.includes('पोलीस') || b.includes('वकील')
+  );
+
+  const otherBadges = allBadges.filter(b => !sectorBadges.includes(b) && !roleBadges.includes(b));
+
   return {
     isGovt,
     isDoctor,
@@ -200,6 +210,9 @@ export function getStructuredProfessionInfo(profile: Partial<UserProfile>) {
     isPolice,
     isBusiness,
     isFarmer,
+    sectorBadges: sectorBadges.length > 0 ? sectorBadges : allBadges.slice(0, 1),
+    roleBadges: roleBadges.length > 0 ? roleBadges : allBadges.slice(1, 2),
+    otherBadges: otherBadges.length > 0 ? otherBadges : allBadges.slice(2),
     allBadges
   };
 }

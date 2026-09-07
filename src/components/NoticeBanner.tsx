@@ -1,10 +1,54 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { Megaphone, ArrowRight, X, Sparkles } from 'lucide-react';
+import { Megaphone, ArrowRight, X, Sparkles, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 export const NoticeBanner: React.FC = () => {
-  const { siteConfig, setIsRegisterOpen, language, currentUser } = useApp();
+  const { siteConfig, setIsRegisterOpen, language, currentUser, updateProfileDirect } = useApp();
   const [dismissed, setDismissed] = useState(false);
+  const [showAdminNoticeModal, setShowAdminNoticeModal] = useState(true);
+
+  // Check if logged in member has an unread admin notice
+  const hasUnreadAdminNotice = Boolean(
+    currentUser && currentUser.adminNotice && !currentUser.adminNoticeRead && showAdminNoticeModal
+  );
+
+  const handleMarkNoticeAsRead = () => {
+    if (currentUser) {
+      updateProfileDirect(currentUser.id, { adminNoticeRead: true });
+      setShowAdminNoticeModal(false);
+    }
+  };
+
+  if (hasUnreadAdminNotice && currentUser) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="bg-white rounded-2xl max-w-md w-full p-5 border-2 border-amber-400 shadow-2xl space-y-4 text-slate-900">
+          <div className="flex items-center gap-3 border-b border-amber-200 pb-3 text-[#800C1E]">
+            <AlertTriangle className="w-6 h-6 text-amber-600 shrink-0 animate-bounce" />
+            <div>
+              <h3 className="font-black text-sm">⚠️ Important Notice (प्रशासकीय सूचना)</h3>
+              <p className="text-[11px] text-slate-500 font-bold">Admin कडून तुमच्या प्रोफाइल संदर्भात सूचना आहे</p>
+            </div>
+          </div>
+
+          <div className="p-3.5 bg-amber-50 rounded-xl border border-amber-300 text-xs text-slate-800 leading-relaxed font-semibold">
+            <p className="font-bold text-[#800C1E] mb-1">
+              {currentUser.adminNoticeTitle || 'प्रशासक संदेश (Message from Admin):'}
+            </p>
+            <p>{currentUser.adminNotice}</p>
+          </div>
+
+          <button
+            onClick={handleMarkNoticeAsRead}
+            className="w-full py-3 bg-[#800C1E] hover:bg-[#680918] text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+          >
+            <CheckCircle2 className="w-4 h-4 text-amber-300" />
+            <span>✓ Read (माहित आहे / संदेश वाचला)</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!siteConfig?.isNoticeBannerEnabled || !siteConfig?.noticeBannerText || dismissed || currentUser) {
     return null;
