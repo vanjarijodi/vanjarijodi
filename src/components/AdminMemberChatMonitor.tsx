@@ -18,6 +18,7 @@ import {
   Image as ImageIcon,
   Mic,
   ArrowRight,
+  ArrowLeft,
   Filter,
   UserCheck,
   X,
@@ -349,7 +350,11 @@ export const AdminMemberChatMonitor: React.FC<AdminMemberChatMonitorProps> = ({
       {/* Main 2-Column Chat Monitor Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 h-[650px]">
         {/* Left Column: Conversation Pairs List */}
-        <div className="lg:col-span-5 bg-white rounded-3xl border-2 border-amber-300 shadow-md flex flex-col h-full overflow-hidden">
+        <div
+          className={`${
+            selectedPairKey ? 'hidden lg:flex' : 'flex'
+          } lg:col-span-5 bg-white rounded-3xl border-2 border-amber-300 shadow-md flex-col h-full overflow-hidden`}
+        >
           {/* Header & Search */}
           <div className="p-3.5 border-b border-amber-200 bg-amber-50/50 space-y-2 shrink-0">
             <div className="relative">
@@ -469,25 +474,39 @@ export const AdminMemberChatMonitor: React.FC<AdminMemberChatMonitorProps> = ({
         </div>
 
         {/* Right Column: Full Conversation Transcript & Admin Controls */}
-        <div className="lg:col-span-7 bg-white rounded-3xl border-2 border-amber-300 shadow-md flex flex-col h-full overflow-hidden">
+        <div
+          className={`${
+            !selectedPairKey ? 'hidden lg:flex' : 'flex'
+          } lg:col-span-7 bg-white rounded-3xl border-2 border-amber-300 shadow-md flex-col h-full overflow-hidden`}
+        >
           {selectedConversation ? (
             <>
               {/* Transcript Header */}
               <div className="p-3.5 border-b border-amber-200 bg-amber-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
-                <div className="space-y-0.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-black text-[#A71930] text-xs sm:text-sm">
-                      {selectedConversation.user1Name}
-                    </span>
-                    <span className="text-slate-400 font-bold">↔</span>
-                    <span className="font-black text-[#A71930] text-xs sm:text-sm">
-                      {selectedConversation.user2Name}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3 text-[10px] text-slate-500 font-mono">
-                    <span>📞 {selectedConversation.user1Mobile || 'N/A'}</span>
-                    <span>•</span>
-                    <span>📞 {selectedConversation.user2Mobile || 'N/A'}</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPairKey(null)}
+                    className="lg:hidden p-1.5 bg-amber-200 hover:bg-amber-300 text-[#800C1E] rounded-lg text-xs font-bold flex items-center cursor-pointer"
+                    title="संभाषण यादीकडे परत"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+                  <div className="space-y-0.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-black text-[#A71930] text-xs sm:text-sm">
+                        {selectedConversation.user1Name}
+                      </span>
+                      <span className="text-slate-400 font-bold">↔</span>
+                      <span className="font-black text-[#A71930] text-xs sm:text-sm">
+                        {selectedConversation.user2Name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 text-[10px] text-slate-500 font-mono">
+                      <span>📞 {selectedConversation.user1Mobile || 'N/A'}</span>
+                      <span>•</span>
+                      <span>📞 {selectedConversation.user2Mobile || 'N/A'}</span>
+                    </div>
                   </div>
                 </div>
 

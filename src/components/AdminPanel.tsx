@@ -29,6 +29,8 @@ import { MAHARASHTRA_DISTRICTS } from '../data/initialData';
 import { uploadToCloudinary } from '../utils/cloudinary';
 import {
   X,
+  Menu,
+  Clock,
   ShieldCheck,
   Shield,
   Activity,
@@ -142,10 +144,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     | 'recycle_bin'
   >('overview');
 
-  // Sidebar & View Mode
+  // Mobile Drawer & Sidebar Navigation
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [adminViewMode, setAdminViewMode] = useState<'mobile' | 'desktop'>('mobile');
-  const [adminZoomScale, setAdminZoomScale] = useState<number>(100);
+  const contentScrollRef = useRef<HTMLDivElement>(null);
 
   // Filters & Search
   const [searchTerm, setSearchTerm] = useState('');
@@ -544,36 +546,71 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   }
 
   // Authenticated Admin Dashboard View
+  const adminNavTabs = [
+    { id: 'overview', label: 'डॅशबोर्ड सारांश', icon: BarChart3, badge: null },
+    { id: 'profiles', label: 'सर्व सदस्य व्यवस्थापन', icon: Users, badge: approvedMembers.length },
+    { id: 'pending', label: 'प्रलंबित मंजुऱ्या', icon: Clock, badge: pendingProfiles.length, badgeColor: 'bg-amber-500' },
+    { id: 'payments', label: 'पेमेंट व व्यवहार', icon: CreditCard, badge: null },
+    { id: 'plans', label: 'प्लॅन्स व वेलकम ऑफर', icon: DollarSign, badge: '₹398', badgeColor: 'bg-emerald-600' },
+    { id: 'apk_manager', label: '📱 APK ॲप मॅनेजर', icon: Smartphone, badge: 'APK', badgeColor: 'bg-emerald-600' },
+    { id: 'broadcast_center', label: '🔔 नोटिफिकेशन्स व ई-मेल', icon: Bell, badge: 'PUSH', badgeColor: 'bg-[#800C1E]' },
+    { id: 'chats', label: 'चॅट व थेट सपोर्ट', icon: MessageCircle, badge: unreadAdminChatCount || null, badgeColor: 'bg-rose-600' },
+    { id: 'ocr', label: 'AI बायोडाटा रीडर', icon: Bot, badge: 'AI', badgeColor: 'bg-indigo-600' },
+    { id: 'referrals', label: 'रेफरल व बक्षिसे', icon: Share2, badge: null },
+    { id: 'stories', label: 'यशोगाथा व्यवस्थापन', icon: Heart, badge: successStories.length },
+    { id: 'settings', label: 'मास्टर सेटिंग्स व APK', icon: Settings, badge: null },
+    { id: 'activity', label: 'ऑडिट लॉग्स', icon: Activity, badge: null },
+    { id: 'sub_admins', label: 'सब-ॲडमिन परवानग्या', icon: ShieldCheck, badge: subAdmins.length },
+    { id: 'recycle_bin', label: 'रिसायकल बिन', icon: Trash2, badge: recycleBin.length }
+  ];
+
+  const currentActiveTabObj = adminNavTabs.find((t) => t.id === activeTab) || adminNavTabs[0];
+
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-slate-900/80 backdrop-blur-md overflow-hidden animate-in fade-in">
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-900/80 backdrop-blur-md overflow-hidden animate-in fade-in h-[100dvh]">
       {/* Top Header Bar */}
-      <div className="bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] text-white px-4 py-3 border-b-2 border-amber-400 flex items-center justify-between shrink-0 shadow-lg select-none">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-300/40 flex items-center justify-center p-1">
-            <Crown className="w-6 h-6 text-amber-300" />
+      <header className="bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] text-white px-3 sm:px-4 py-2.5 sm:py-3 border-b-2 border-amber-400 flex items-center justify-between shrink-0 shadow-lg select-none z-30 pt-[max(0.6rem,env(safe-area-inset-top))]">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          {/* Mobile Hamburger Menu Toggle Button */}
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="lg:hidden p-2 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 border border-amber-300/30 flex items-center justify-center cursor-pointer min-w-[40px] min-h-[40px] transition-colors"
+            title="मेनू उघडा"
+            aria-label="मेनू उघडा"
+          >
+            <Menu className="w-5 h-5 text-amber-300" />
+          </button>
+
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-400/20 border border-amber-300/40 flex items-center justify-center p-1 shrink-0">
+            <Crown className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base sm:text-lg font-black text-amber-200 tracking-wide">
-                वंजारी जोडी प्रशासक नियंत्रण कक्ष
+
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <h1 className="text-sm sm:text-base font-black text-amber-200 tracking-wide truncate">
+                वंजारी जोडी प्रशासक
               </h1>
-              <span className="px-2 py-0.5 bg-amber-400 text-[#800C1E] text-[10px] font-black rounded-full uppercase">
-                {currentSubAdmin ? `Sub-Admin: ${currentSubAdmin.name}` : 'Super Admin'}
+              <span className="px-2 py-0.5 bg-amber-400 text-[#800C1E] text-[10px] font-black rounded-full uppercase shrink-0">
+                {currentSubAdmin ? `Sub: ${currentSubAdmin.name}` : 'Super Admin'}
               </span>
             </div>
-            <p className="text-[11px] text-amber-100/80 hidden sm:block">
+            {/* Active Tab indicator on mobile, subtitle on desktop */}
+            <p className="text-[11px] text-amber-100/90 truncate block sm:hidden font-bold">
+              {currentActiveTabObj.label}
+            </p>
+            <p className="text-[11px] text-amber-100/80 hidden sm:block truncate">
               नोंदणीकृत प्रोफाईल्स, पेमेंट्स, प्लॅन्स व चॅट व्यवस्थापन
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button
             onClick={() => {
               setIsAdminLoggedIn(false);
               setCurrentSubAdmin(null);
             }}
-            className="px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/40 text-amber-200 border border-amber-400/40 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+            className="px-2.5 sm:px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/40 text-amber-200 border border-amber-400/40 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors min-h-[36px]"
             title="लॉगआउट"
           >
             <LogOut className="w-3.5 h-3.5" />
@@ -581,51 +618,119 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
           </button>
           <button
             onClick={onClose}
-            className="p-2 bg-black/20 hover:bg-black/40 text-white rounded-xl cursor-pointer transition-colors"
+            className="p-2 bg-black/20 hover:bg-black/40 text-white rounded-xl cursor-pointer transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
             title="बंद करा"
+            aria-label="बंद करा"
           >
             <X className="w-5 h-5" />
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile Drawer Overlay Backdrop */}
+      {isMobileMenuOpen && (
+        <div
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-sm lg:hidden animate-in fade-in duration-200"
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Mobile Drawer Slide-in Sidebar */}
+      <div
+        className={`fixed inset-y-0 left-0 z-50 w-[85vw] max-w-[320px] bg-[#FFFDF5] border-r-2 border-amber-400 shadow-2xl flex flex-col justify-between transform transition-transform duration-300 ease-in-out lg:hidden pt-[max(0.5rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] ${
+          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="p-3.5 border-b border-amber-200 flex items-center justify-between bg-gradient-to-r from-[#800C1E] to-[#A71930] text-white rounded-b-xl mx-2 mt-2 shadow">
+          <div className="flex items-center gap-2">
+            <Crown className="w-5 h-5 text-amber-300" />
+            <span className="font-black text-xs text-amber-200">ॲडमिन मेनू पर्याय</span>
+          </div>
+          <button
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="p-1.5 bg-black/20 hover:bg-black/40 rounded-lg text-white cursor-pointer"
+            aria-label="मेनू बंद करा"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 p-3 space-y-1.5 overflow-y-auto">
+          {adminNavTabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id as any);
+                  setIsMobileMenuOpen(false);
+                  contentScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className={`w-full flex items-center justify-between p-3 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[44px] ${
+                  isActive
+                    ? 'bg-gradient-to-r from-[#A71930] to-[#800C1E] text-white shadow-md'
+                    : 'text-slate-800 hover:bg-amber-100/80 bg-white border border-amber-200/60'
+                }`}
+              >
+                <div className="flex items-center gap-3 truncate">
+                  <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-amber-300' : 'text-[#800C1E]'}`} />
+                  <span className="truncate">{tab.label}</span>
+                </div>
+                {tab.badge !== null && tab.badge !== undefined && (
+                  <span
+                    className={`px-2 py-0.5 text-[10px] font-black rounded-full text-white shrink-0 ${
+                      tab.badgeColor || 'bg-[#800C1E]'
+                    }`}
+                  >
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="p-3 border-t border-amber-200 bg-amber-50/50">
+          <button
+            onClick={() => {
+              setIsAdminLoggedIn(false);
+              setCurrentSubAdmin(null);
+            }}
+            className="w-full py-2.5 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>ॲडमिन लॉगआउट</span>
           </button>
         </div>
       </div>
 
       {/* Main Body */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Navigation Sidebar */}
-        <div
-          className={`${
-            isSidebarCollapsed ? 'w-16' : 'w-60'
-          } bg-[#FFFDF5] border-r-2 border-amber-300/80 flex flex-col justify-between shrink-0 transition-all duration-200 overflow-y-auto select-none`}
+      <div className="flex-1 flex overflow-hidden w-full">
+        {/* Desktop Left Navigation Sidebar - Hidden on mobile (<lg) */}
+        <aside
+          className={`hidden lg:flex ${
+            isSidebarCollapsed ? 'w-16' : 'w-64'
+          } bg-[#FFFDF5] border-r-2 border-amber-300/80 flex-col justify-between shrink-0 transition-all duration-200 overflow-y-auto select-none`}
         >
           <div className="p-3 space-y-1">
-            {[
-              { id: 'overview', label: 'डॅशबोर्ड सारांश', icon: BarChart3, badge: null },
-              { id: 'profiles', label: 'सर्व सदस्य व्यवस्थापन', icon: Users, badge: approvedMembers.length },
-              { id: 'pending', label: 'प्रलंबित मंजुऱ्या', icon: ClockIcon, badge: pendingProfiles.length, badgeColor: 'bg-amber-500' },
-              { id: 'payments', label: 'पेमेंट व व्यवहार', icon: CreditCard, badge: null },
-              { id: 'plans', label: 'प्लॅन्स व वेलकम ऑफर', icon: DollarSign, badge: '₹398', badgeColor: 'bg-emerald-600' },
-              { id: 'apk_manager', label: '📱 APK ॲप मॅनेजर', icon: Smartphone, badge: 'APK', badgeColor: 'bg-emerald-600' },
-              { id: 'broadcast_center', label: '🔔 नोटिफिकेशन्स व ई-मेल', icon: Bell, badge: 'PUSH', badgeColor: 'bg-[#800C1E]' },
-              { id: 'chats', label: 'चॅट व थेट सपोर्ट', icon: MessageCircle, badge: unreadAdminChatCount || null, badgeColor: 'bg-rose-600' },
-              { id: 'ocr', label: 'AI बायोडाटा रीडर', icon: Bot, badge: 'AI', badgeColor: 'bg-indigo-600' },
-              { id: 'referrals', label: 'रेफरल व बक्षिसे', icon: Share2, badge: null },
-              { id: 'stories', label: 'यशोगाथा व्यवस्थापन', icon: Heart, badge: successStories.length },
-              { id: 'settings', label: 'मास्टर सेटिंग्स व APK', icon: Settings, badge: null },
-              { id: 'activity', label: 'ऑडिट लॉग्स', icon: Activity, badge: null },
-              { id: 'sub_admins', label: 'सब-ॲडमिन परवानग्या', icon: ShieldCheck, badge: subAdmins.length },
-              { id: 'recycle_bin', label: 'रिसायकल बिन', icon: Trash2, badge: recycleBin.length }
-            ].map((tab) => {
+            {adminNavTabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => {
+                    setActiveTab(tab.id as any);
+                    contentScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
                   className={`w-full flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     isActive
                       ? 'bg-gradient-to-r from-[#A71930] to-[#800C1E] text-white shadow-md'
                       : 'text-slate-700 hover:bg-amber-100/70'
                   }`}
+                  title={isSidebarCollapsed ? tab.label : undefined}
                 >
                   <div className="flex items-center gap-2.5 truncate">
                     <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-amber-300' : 'text-[#800C1E]'}`} />
@@ -654,10 +759,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
               {!isSidebarCollapsed && <span>{isSidebarCollapsed ? 'विस्तार' : 'संक्षिप्त करा'}</span>}
             </button>
           </div>
-        </div>
+        </aside>
 
-        {/* Content Pane */}
-        <div className="flex-1 bg-[#FFFDF5] overflow-y-auto p-4 sm:p-6 space-y-6">
+        {/* Content Pane - 100% full width on mobile, fills remaining on desktop */}
+        <main
+          ref={contentScrollRef}
+          className="flex-1 w-full min-w-0 max-w-full overflow-x-hidden overflow-y-auto p-3 sm:p-5 lg:p-6 bg-[#FFFDF5] space-y-4 sm:space-y-6 pb-[max(1.5rem,env(safe-area-inset-bottom))]"
+        >
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
@@ -964,11 +1072,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
           {/* TAB 3: PENDING APPROVALS */}
           {activeTab === 'pending' && (
             <div className="space-y-4">
-              <div className="bg-white p-5 rounded-2xl border-2 border-amber-300 shadow-sm">
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-amber-300 shadow-sm">
                 <div className="flex items-center justify-between border-b border-amber-200 pb-3">
                   <div>
                     <h3 className="text-base font-black text-[#A71930] flex items-center gap-2">
-                      <ClockIcon className="w-5 h-5 text-amber-600" />
+                      <Clock className="w-5 h-5 text-amber-600" />
                       <span>प्रलंबित नोंदणी मंजुऱ्या ({pendingProfiles.length})</span>
                     </h3>
                     <p className="text-xs text-slate-600 font-medium">
@@ -1309,7 +1417,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                   <div className="sm:col-span-2 flex justify-end">
                     <button
                       type="submit"
-                      className="px-5 py-2.5 bg-[#A71930] hover:bg-[#800C1E] text-amber-100 font-black rounded-xl shadow cursor-pointer flex items-center gap-1.5"
+                      className="w-full sm:w-auto px-5 py-3 bg-[#A71930] hover:bg-[#800C1E] text-amber-100 font-black rounded-xl shadow cursor-pointer flex items-center justify-center gap-2 min-h-[44px]"
                     >
                       <Plus className="w-4 h-4 text-amber-300" />
                       <span>यशोगाथा प्रकाशित करा</span>
@@ -1319,7 +1427,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
               </div>
 
               {/* Stories List */}
-              <div className="bg-white p-5 rounded-2xl border-2 border-amber-300 shadow-sm space-y-4">
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-amber-300 shadow-sm space-y-4">
                 <h3 className="text-base font-black text-slate-900">प्रकाशित यशोगाथा ({successStories.length})</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {successStories.map((story) => (
@@ -1331,7 +1439,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                         className="w-full h-36 object-cover rounded-xl border border-amber-300"
                       />
                       <div className="flex items-center justify-between">
-                        <h4 className="font-black text-xs text-slate-900">
+                        <h4 className="font-black text-xs text-slate-900 truncate">
                           {story.groomName} ❤️ {story.brideName}
                         </h4>
                         <button
@@ -1340,9 +1448,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                               deleteSuccessStory(story.id);
                             }
                           }}
-                          className="p-1 text-rose-600 hover:bg-rose-100 rounded-lg cursor-pointer"
+                          className="p-2 text-rose-600 hover:bg-rose-100 rounded-lg cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
+                          title="हटवा"
+                          aria-label="हटवा"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                       <p className="text-[11px] text-slate-600 line-clamp-2">{story.story}</p>
@@ -1906,25 +2016,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
               onClose={() => setCustomPlanCandidate(null)}
             />
           )}
-        </div>
+        </main>
       </div>
     </div>
   );
 };
-
-// Simple Clock Icon fallback component
-const ClockIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <circle cx="12" cy="12" r="10" />
-    <polyline points="12 6 12 12 16 14" />
-  </svg>
-);

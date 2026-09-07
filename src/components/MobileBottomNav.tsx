@@ -19,7 +19,10 @@ export const MobileBottomNav: React.FC = () => {
     siteConfig,
     setIsKundaliModalOpen,
     setIsRightDrawerOpen,
+    isAdminOpen,
   } = useApp();
+
+  if (isAdminOpen) return null;
 
   const isEn = language === 'en';
 
