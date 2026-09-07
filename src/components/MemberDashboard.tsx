@@ -51,7 +51,6 @@ export const MemberDashboard: React.FC = () => {
     language,
     currentUser,
     setCurrentUser,
-    logout,
     profiles,
     interests,
     respondInterest,
@@ -581,14 +580,6 @@ export const MemberDashboard: React.FC = () => {
             >
               <HeartHandshake className="w-4 h-4 text-rose-600" />
               <span>💍 विवाह जुळला / प्रोफाईल काढा</span>
-            </button>
-
-            <button
-              onClick={logout}
-              className="px-4 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-slate-700 text-xs font-bold border border-amber-300 flex items-center gap-1 transition-all cursor-pointer"
-            >
-              <LogOut className="w-4 h-4 text-[#A71930]" />
-              <span>बाहेर पडा ({t('logout')})</span>
             </button>
           </div>
         </div>

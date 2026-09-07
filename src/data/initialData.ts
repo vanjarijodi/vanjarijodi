@@ -564,7 +564,7 @@ export const INITIAL_SITE_CONFIG: any = {
   paymentQrUrl: '',
   paymentUpiId: 'paytm.s3ms5x7@pty',
   paymentPayeeName: 'Usha Shivdas Hange',
-  paymentMobileNumber: '9623790916',
+  paymentMobileNumber: '',
   paymentNote: 'PhonePe / Google Pay / Paytm द्वारे १-क्लिकने किंवा क्यूआर कोड स्कॅन करून थेट पेमेंट करा.',
   paymentMode: 'upi_qr_only',
   enableRazorpay: false,

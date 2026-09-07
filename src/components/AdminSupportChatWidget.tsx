@@ -61,12 +61,23 @@ export const AdminSupportChatWidget: React.FC = () => {
     isMarketingAdModalOpen
   );
 
-  // Dragging State for Floating Widget (Default positioned at bottom-24 / 96px above bottom nav)
-  const [position, setPosition] = useState<{ x: number; y: number }>({ x: 16, y: 96 });
+  // Dragging State for Floating Widget (Positioned cleanly above bottom nav when logged in, or at bottom-safe corner when guest)
+  const [position, setPosition] = useState<{ x: number; y: number }>(() => ({
+    x: 16,
+    y: currentUser ? 84 : 20,
+  }));
   const [isDragging, setIsDragging] = useState(false);
   const dragStartPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const initialPos = useRef<{ x: number; y: number }>({ x: 16, y: 96 });
+  const initialPos = useRef<{ x: number; y: number }>({ x: 16, y: currentUser ? 84 : 20 });
   const hasDragged = useRef(false);
+
+  useEffect(() => {
+    if (!hasDragged.current) {
+      const newY = currentUser ? 84 : 20;
+      setPosition({ x: 16, y: newY });
+      initialPos.current = { x: 16, y: newY };
+    }
+  }, [currentUser]);
 
   // Visitor Guest ID
   const [visitorId] = useState<string>(() => {
@@ -199,7 +210,7 @@ export const AdminSupportChatWidget: React.FC = () => {
           ? undefined
           : {
               right: `${position.x}px`,
-              bottom: `${position.y}px`,
+              bottom: `calc(${position.y}px + env(safe-area-inset-bottom, 0px))`,
             }
       }
       className={`fixed z-[60] select-none ${

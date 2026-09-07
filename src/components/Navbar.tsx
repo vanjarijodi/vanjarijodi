@@ -23,6 +23,8 @@ import {
   User,
   Crown,
   Lock,
+  Share2,
+  Bell,
 } from 'lucide-react';
 import { VerifiedBadge } from './VerifiedBadge';
 import { NoticeBanner } from './NoticeBanner';
@@ -36,6 +38,8 @@ export const Navbar: React.FC<{
     language,
     setLanguage,
     currentUser,
+    notifications,
+    setIsNotificationCenterOpen,
     setIsLoginOpen,
     setIsRegisterOpen,
     setIsAdminOpen,
@@ -52,10 +56,17 @@ export const Navbar: React.FC<{
     isAdminLoggedIn,
     setIsPaymentOpen,
     setIsGitHubSyncOpen,
+    setIsAppShareOpen,
   } = useApp();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const isEn = language === 'en';
+
+  const unreadNotificationCount = notifications.filter(
+    (n) =>
+      !n.isRead &&
+      (n.userId === 'broadcast' || n.userId === 'all' || n.userId === currentUser?.id)
+  ).length;
 
   const handleApkDownload = () => {
     downloadApkFile(
@@ -67,21 +78,41 @@ export const Navbar: React.FC<{
 
   return (
     <header className="sticky top-0 z-50 w-full shadow-md bg-white/95 backdrop-blur-md border-b border-amber-200 text-slate-800 flex flex-col transition-all">
-      {/* 🏛️ TOP COMMUNITY TRUST & ADMIN RIBBON (Like Top Bar in Screenshot) */}
-      <div className="w-full bg-gradient-to-r from-[#0F4C81] via-[#1E5F99] to-[#0F4C81] text-white py-1 px-3 sm:px-6 flex items-center justify-between text-[11px] font-extrabold border-b border-sky-400/30 select-none shadow-xs">
+      {/* 🏛️ TOP COMMUNITY TRUST & ADMIN RIBBON (Visible on desktop only to keep mobile header clean) */}
+      <div className="hidden md:flex w-full bg-gradient-to-r from-[#0F4C81] via-[#1E5F99] to-[#0F4C81] text-white py-1 px-3 sm:px-6 items-center justify-between text-[11px] font-extrabold border-b border-sky-400/30 select-none shadow-xs">
         <div className="flex items-center gap-1.5 overflow-hidden">
           <span className="px-2 py-0.5 rounded-md bg-[#0066FF] text-white text-[10px] sm:text-[11px] font-black shadow-xs flex items-center gap-1 shrink-0">
             🚩 <span>{isEn ? 'Maharashtra - Vanjari Community' : 'महाराष्ट्र - वंजारी समाज सेवा'}</span>
           </span>
-          <span className="hidden md:inline text-sky-200 font-semibold text-[11px]">
+          <span className="text-sky-200 font-semibold text-[11px]">
             • अधिकृत व विश्वसनीय वधू-वर सूचक केंद्र
           </span>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Top Bar Share App Button */}
+          <button
+            onClick={() => setIsAppShareOpen(true)}
+            className="px-2 sm:px-2.5 py-0.5 rounded-md bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[10px] sm:text-[11px] flex items-center gap-1 transition active:scale-95 cursor-pointer shadow-xs border border-emerald-300/50"
+            title={isEn ? 'Share App' : 'ॲप शेअर करा'}
+          >
+            <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
+            <span>{isEn ? 'Share App' : 'ॲप शेअर करा'}</span>
+          </button>
+
+          {/* Top Bar Download App Button */}
+          <button
+            onClick={handleApkDownload}
+            className="px-2 sm:px-2.5 py-0.5 rounded-md bg-amber-400 hover:bg-amber-500 text-slate-900 font-black text-[10px] sm:text-[11px] flex items-center gap-1 transition active:scale-95 cursor-pointer shadow-xs border border-amber-300"
+            title={isEn ? 'Download App (APK)' : 'ॲप डाऊनलोड करा (APK)'}
+          >
+            <Download className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-900" />
+            <span>{isEn ? 'Download App' : 'ॲप डाऊनलोड'}</span>
+          </button>
+
           <button
             onClick={() => setIsAdminOpen(true)}
-            className="px-2.5 py-0.5 rounded-md bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 hover:text-white border border-amber-400/60 font-black text-[10px] sm:text-[11px] flex items-center gap-1 transition active:scale-95 cursor-pointer shadow-xs"
+            className="px-2 sm:px-2.5 py-0.5 rounded-md bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 hover:text-white border border-amber-400/60 font-black text-[10px] sm:text-[11px] flex items-center gap-1 transition active:scale-95 cursor-pointer shadow-xs"
             title="Admin Login"
           >
             <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
@@ -91,22 +122,22 @@ export const Navbar: React.FC<{
       </div>
 
       {/* Main Brand Logo & Navigation Bar */}
-      <div className="max-w-7xl w-full mx-auto px-2 sm:px-4 lg:px-8">
-        <div className="flex items-center justify-between h-13 sm:h-15 gap-1.5 sm:gap-3">
+      <div className="max-w-7xl w-full mx-auto px-3 sm:px-4 lg:px-8">
+        <div className="flex items-center justify-between h-13 sm:h-15 gap-2">
           
-          {/* Left section: Drawer Menu + Brand Logo */}
-          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
-            {/* Hamburger Menu Trigger */}
+          {/* Left section: Drawer Menu [☰] + Brand Logo */}
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            {/* Hamburger Menu Trigger [☰] */}
             <button
               onClick={() => setIsLeftDrawerOpen(true)}
-              className="flex p-1.5 sm:p-2 rounded-xl bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 transition-all text-slate-800 active:scale-95 cursor-pointer items-center justify-center shadow-2xs shrink-0"
+              className="flex p-2 rounded-xl bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 transition-all text-slate-800 active:scale-95 cursor-pointer items-center justify-center shadow-2xs shrink-0 min-h-[44px] min-w-[44px]"
               title={isEn ? 'Main Menu' : 'मुख्य मेनू'}
               aria-label="Toggle drawer menu"
             >
-              <Menu className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-[#800C1E]" />
+              <Menu className="w-5 h-5 text-[#800C1E]" />
             </button>
 
-            {/* BRAND LOGO with Object-Fit Contain and Dedicated Padding */}
+            {/* BRAND LOGO */}
             <div
               className="flex items-center cursor-pointer group min-w-0 shrink-0"
               onClick={() => {
@@ -123,85 +154,47 @@ export const Navbar: React.FC<{
             </div>
           </div>
 
-          {/* RIGHT SIDE CONTROLS (Designed exactly like screenshot's clean header pills) */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* RIGHT SIDE CONTROLS: Strictly [🔍] and [👤] on Mobile! Desktop gets extra badges */}
+          <div className="flex items-center gap-2 shrink-0">
             
-            {/* 1. QUICK SEARCH ICON BUTTON (Sleek rounded box with search) */}
+            {/* 1. QUICK SEARCH [🔍] */}
             <button
               onClick={() => {
                 if (onOpenSearch) onOpenSearch();
                 else setIsRightDrawerOpen(true);
               }}
-              className="p-2 rounded-xl bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 text-slate-700 active:scale-95 cursor-pointer flex items-center justify-center shadow-2xs transition"
+              className="p-2 rounded-xl bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 text-slate-700 active:scale-95 cursor-pointer flex items-center justify-center shadow-2xs transition min-h-[44px] min-w-[44px]"
               title={isEn ? 'Search Profiles' : 'वर-वधू शोध'}
               aria-label="Search"
             >
-              <Search className="w-4 h-4 text-slate-700" />
+              <Search className="w-5 h-5 text-slate-700" />
             </button>
 
-            {/* 2. DUAL LANGUAGE TOGGLE PILL (Dual / मराठी / EN Segmented switch like screenshot) */}
-            <div className="flex items-center p-0.5 bg-slate-100 border border-slate-200 rounded-xl text-[10px] sm:text-[11px] font-black shadow-inner">
-              <button
-                onClick={() => setLanguage('mr')}
-                className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
-                  language === 'mr'
-                    ? 'bg-[#0066FF] text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="मराठी भाषा"
-              >
-                मराठी
-              </button>
-              <button
-                onClick={() => setLanguage('en')}
-                className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
-                  language === 'en'
-                    ? 'bg-[#0066FF] text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-                title="English Language"
-              >
-                EN
-              </button>
-            </div>
-
-            {/* 3. PLAN / PRICING BADGE PILL (Golden badge like screenshot's ₹100 / PRO button) */}
+            {/* 2. NOTIFICATIONS BELL [🔔] */}
             <button
-              onClick={() => {
-                if (currentUser) {
-                  setIsPaymentOpen(true);
-                } else {
-                  setIsRegisterOpen(true);
-                }
-              }}
-              className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:brightness-110 text-white text-[10px] sm:text-xs font-black shadow-xs border border-amber-300/60 flex items-center gap-1 cursor-pointer transition active:scale-95 shrink-0"
-              title="मोफत नोंदणी / VIP Membership"
+              onClick={() => setIsNotificationCenterOpen(true)}
+              className="relative p-2 rounded-xl bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 text-slate-700 active:scale-95 cursor-pointer flex items-center justify-center shadow-2xs transition min-h-[44px] min-w-[44px]"
+              title={isEn ? 'Notification Center' : 'सूचना केंद्र'}
+              aria-label="Notifications"
             >
-              <Crown className="w-3.5 h-3.5 text-amber-200 fill-amber-200" />
-              <span>{currentUser?.membershipTier === 'free' || !currentUser ? '₹० मोफत' : 'VIP'}</span>
+              <Bell className="w-5 h-5 text-slate-700" />
+              {unreadNotificationCount > 0 && (
+                <span className="absolute -top-1 -right-1 px-1.5 py-0.2 min-w-[18px] h-[18px] text-[10px] font-black text-white bg-[#A71930] rounded-full flex items-center justify-center border-2 border-white shadow-xs animate-pulse">
+                  {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                </span>
+              )}
             </button>
 
-            {/* 4. DIRECT APK DOWNLOAD / APP ICON BUTTON */}
-            {siteConfig?.apkSettings?.isEnabled !== false && (
-              <button
-                onClick={handleApkDownload}
-                title={isEn ? 'Download Android App (APK)' : 'एंड्रॉइड ॲप (APK) डाउनलोड करा'}
-                className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] sm:text-xs font-black shadow-xs border border-emerald-400 flex items-center gap-1 cursor-pointer transition active:scale-95 shrink-0"
-              >
-                <Smartphone className="w-3.5 h-3.5 text-white" />
-                <span className="hidden sm:inline">ॲप डाऊनलोड (APK)</span>
-              </button>
-            )}
-
-            {/* 5. USER PROFILE / LOGIN */}
+            {/* 3. PROFILE / LOGIN [👤] */}
             {currentUser ? (
               <button
                 onClick={() => setCurrentView('dashboard')}
-                className="p-1.5 sm:px-2.5 sm:py-1 rounded-xl bg-rose-50 hover:bg-rose-100 text-[#800C1E] text-xs font-bold border border-rose-200 flex items-center gap-1 transition shadow-2xs cursor-pointer shrink-0"
+                className="p-2 sm:px-3 sm:py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-[#800C1E] text-xs font-bold border border-rose-200 flex items-center gap-1.5 transition shadow-2xs cursor-pointer min-h-[44px] min-w-[44px]"
                 title={isEn ? 'My Profile' : 'माझे प्रोफाईल'}
+                aria-label="Profile"
               >
-                <User className="w-3.5 h-3.5 text-[#800C1E]" />
-                <span className="hidden sm:inline-block truncate max-w-[70px]">{currentUser.fullName.split(' ')[0]}</span>
+                <User className="w-5 h-5 text-[#800C1E]" />
+                <span className="hidden sm:inline-block truncate max-w-[80px] font-black">{currentUser.fullName.split(' ')[0]}</span>
               </button>
             ) : (
               <button
@@ -209,18 +202,87 @@ export const Navbar: React.FC<{
                   setLoginModalMode('member_otp');
                   setIsLoginOpen(true);
                 }}
-                className="hidden sm:flex px-2.5 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-black border border-slate-300 items-center gap-1 transition shadow-2xs cursor-pointer shrink-0"
+                className="p-2 sm:px-3 sm:py-2 rounded-xl bg-[#800C1E] hover:bg-[#A71930] text-amber-100 text-xs font-black border border-amber-400/40 flex items-center gap-1.5 transition shadow-xs cursor-pointer min-h-[44px] min-w-[44px]"
+                title={isEn ? 'Login' : 'लॉगिन करा'}
+                aria-label="Login"
               >
-                <LogIn className="w-3.5 h-3.5 text-[#800C1E]" />
-                <span>{isEn ? 'Login' : 'लॉगिन'}</span>
+                <LogIn className="w-5 h-5 text-amber-300" />
+                <span className="hidden sm:inline-block">{isEn ? 'Login' : 'लॉगिन'}</span>
               </button>
             )}
 
-            {/* MENU TRIGGER & DROPDOWN */}
-            <div className="relative shrink-0 hidden sm:block">
+            {/* DESKTOP-ONLY EXTRA BADGES (Language, VIP, APK, Menu) */}
+            <div className="hidden md:flex items-center gap-2">
+              {/* Dual Language Toggle */}
+              <div className="flex items-center p-0.5 bg-slate-100 border border-slate-200 rounded-xl text-[11px] font-black shadow-inner">
+                <button
+                  onClick={() => setLanguage('mr')}
+                  className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
+                    language === 'mr'
+                      ? 'bg-[#0066FF] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="मराठी भाषा"
+                >
+                  मराठी
+                </button>
+                <button
+                  onClick={() => setLanguage('en')}
+                  className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
+                    language === 'en'
+                      ? 'bg-[#0066FF] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="English Language"
+                >
+                  EN
+                </button>
+              </div>
+
+              {/* VIP Badge */}
+              <button
+                onClick={() => {
+                  if (currentUser) {
+                    setIsPaymentOpen(true);
+                  } else {
+                    setIsRegisterOpen(true);
+                  }
+                }}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:brightness-110 text-white text-xs font-black shadow-xs border border-amber-300/60 flex items-center gap-1 cursor-pointer transition active:scale-95"
+                title="मोफत नोंदणी / VIP Membership"
+              >
+                <Crown className="w-3.5 h-3.5 text-amber-200 fill-amber-200" />
+                <span>{currentUser?.membershipTier === 'free' || !currentUser ? '₹० मोफत' : 'VIP'}</span>
+              </button>
+
+              {/* Direct APK Download Button */}
+              {siteConfig?.apkSettings?.isEnabled !== false && (
+                <button
+                  onClick={handleApkDownload}
+                  title={isEn ? 'Download Android App (APK)' : 'एंड्रॉइड ॲप (APK) डाउनलोड करा'}
+                  className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-xs border border-emerald-400 flex items-center gap-1 cursor-pointer transition active:scale-95 shrink-0"
+                >
+                  <Smartphone className="w-3.5 h-3.5 text-white" />
+                  <span>ॲप डाऊनलोड</span>
+                </button>
+              )}
+
+              {/* Share App Button */}
+              <button
+                onClick={() => setIsAppShareOpen(true)}
+                title={isEn ? 'Share App with Friends & Family' : 'नातेवाईक व मित्रांना ॲप शेअर करा'}
+                className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-sky-600 to-blue-700 hover:brightness-110 text-white text-xs font-black shadow-xs border border-sky-400 flex items-center gap-1 cursor-pointer transition active:scale-95 shrink-0"
+              >
+                <Share2 className="w-3.5 h-3.5 text-white" />
+                <span>ॲप शेअर</span>
+              </button>
+            </div>
+
+            {/* DESKTOP MENU TRIGGER & DROPDOWN */}
+            <div className="relative shrink-0 hidden md:block">
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="p-1.5 sm:p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 transition-all flex items-center justify-center cursor-pointer shadow-2xs"
+                className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 transition-all flex items-center justify-center cursor-pointer shadow-2xs min-h-[44px] min-w-[44px]"
                 aria-label="Menu"
               >
                 {menuOpen ? <X className="w-4 h-4 text-[#A71930]" /> : <Menu className="w-4 h-4 text-slate-700" />}

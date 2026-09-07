@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { useAndroidBackHandler } from './hooks/useAndroidBackHandler';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
+import { MobileHomeScreen } from './components/MobileHomeScreen';
 import { FeaturesSection } from './components/FeaturesSection';
 import { StatsSection } from './components/StatsSection';
 import { ProfilesGrid } from './components/ProfilesGrid';
@@ -14,39 +15,45 @@ import { AndroidAppBanner } from './components/AndroidAppBanner';
 import { Footer } from './components/Footer';
 import { ProfileDetailModal } from './components/ProfileDetailModal';
 import { SearchFiltersModal } from './components/SearchFiltersModal';
+import { NotificationCenterModal } from './components/NotificationCenterModal';
 import { RegisterModal } from './components/RegisterModal';
 import { LoginModal } from './components/LoginModal';
 import { MemberDashboard } from './components/MemberDashboard';
-import { AdminPanel } from './components/AdminPanel';
-import { ChatModal } from './components/ChatModal';
-import { VideoCallModal } from './components/VideoCallModal';
-import { PaymentModal } from './components/PaymentModal';
 import { AdminSupportChatWidget } from './components/AdminSupportChatWidget';
 import { ContactUnlockModal } from './components/ContactUnlockModal';
 import { GuestRestrictionModal } from './components/GuestRestrictionModal';
 import { ProfileRemovalModal } from './components/ProfileRemovalModal';
 import { SplashScreen } from './components/SplashScreen';
+import { WelcomeScreen } from './components/WelcomeScreen';
+import { MatchesScreen } from './components/MatchesScreen';
 import { BlessingsSection } from './components/BlessingsSection';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { LeftDrawer } from './components/LeftDrawer';
 import { RightFilterDrawer } from './components/RightFilterDrawer';
-import { BusinessVendorDirectoryModal } from './components/BusinessVendorDirectoryModal';
-import { BusinessVendorRegisterModal } from './components/BusinessVendorRegisterModal';
-import { BusinessVendorPortalModal } from './components/BusinessVendorPortalModal';
 import { FlashAdPopup } from './components/FlashAdPopup';
-import { BioDataMakerModal } from './components/BioDataMakerModal';
 import { DynamicActionDock } from './components/DynamicActionDock';
 import { DynamicSeoHead } from './components/DynamicSeoHead';
-import { ProgrammaticSeoModal } from './components/ProgrammaticSeoModal';
-import { UserSecurityPortalModal } from './components/UserSecurityPortalModal';
-import { AdminSecurityCenterModal } from './components/AdminSecurityCenterModal';
-import { TruecallerVerificationModal } from './components/TruecallerVerificationModal';
-import { DigitalMarketingAdModal } from './components/DigitalMarketingAdModal';
-import { KundaliMilanModal } from './components/KundaliMilanModal';
-import { SingleKundliReportModal } from './components/SingleKundliReportModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { PushNotificationBanner } from './components/PushNotificationBanner';
+
+// Code-split heavy modals to ensure lightning-fast initial mobile startup
+const AdminPanel = lazy(() => import('./components/AdminPanel').then(m => ({ default: m.AdminPanel })));
+const ChatModal = lazy(() => import('./components/ChatModal').then(m => ({ default: m.ChatModal })));
+const VideoCallModal = lazy(() => import('./components/VideoCallModal').then(m => ({ default: m.VideoCallModal })));
+const PaymentModal = lazy(() => import('./components/PaymentModal').then(m => ({ default: m.PaymentModal })));
+const BioDataMakerModal = lazy(() => import('./components/BioDataMakerModal').then(m => ({ default: m.BioDataMakerModal })));
+const KundaliMilanModal = lazy(() => import('./components/KundaliMilanModal').then(m => ({ default: m.KundaliMilanModal })));
+const SingleKundliReportModal = lazy(() => import('./components/SingleKundliReportModal').then(m => ({ default: m.SingleKundliReportModal })));
+const BusinessVendorDirectoryModal = lazy(() => import('./components/BusinessVendorDirectoryModal').then(m => ({ default: m.BusinessVendorDirectoryModal })));
+const BusinessVendorRegisterModal = lazy(() => import('./components/BusinessVendorRegisterModal').then(m => ({ default: m.BusinessVendorRegisterModal })));
+const BusinessVendorPortalModal = lazy(() => import('./components/BusinessVendorPortalModal').then(m => ({ default: m.BusinessVendorPortalModal })));
+const ProgrammaticSeoModal = lazy(() => import('./components/ProgrammaticSeoModal').then(m => ({ default: m.ProgrammaticSeoModal })));
+const UserSecurityPortalModal = lazy(() => import('./components/UserSecurityPortalModal').then(m => ({ default: m.UserSecurityPortalModal })));
+const AdminSecurityCenterModal = lazy(() => import('./components/AdminSecurityCenterModal').then(m => ({ default: m.AdminSecurityCenterModal })));
+const TruecallerVerificationModal = lazy(() => import('./components/TruecallerVerificationModal').then(m => ({ default: m.TruecallerVerificationModal })));
+const DigitalMarketingAdModal = lazy(() => import('./components/DigitalMarketingAdModal').then(m => ({ default: m.DigitalMarketingAdModal })));
+const AppShareModal = lazy(() => import('./components/AppShareModal').then(m => ({ default: m.AppShareModal })));
 
 const MainAppContent: React.FC = () => {
   const {
@@ -96,6 +103,10 @@ const MainAppContent: React.FC = () => {
     selectedKundaliCandidate,
     isSingleKundliModalOpen,
     setIsSingleKundliModalOpen,
+    isNotificationCenterOpen,
+    setIsNotificationCenterOpen,
+    isAppShareOpen,
+    setIsAppShareOpen,
     language,
   } = useApp();
 
@@ -122,41 +133,61 @@ const MainAppContent: React.FC = () => {
       {/* 🔔 Push Notification Permission Banner */}
       <PushNotificationBanner />
 
-      {/* Header with Sticky Container & Integrated Site-wide Notice Banner */}
-      <Navbar />
-
-      {/* Main Content Area */}
-      {currentView === 'home' && (
-        <main className="flex-1 pb-24 md:pb-0 w-full max-w-full overflow-x-hidden">
-          {/* Full Screen Hero with Auto Sliding Images & Dark Overlay & Quick Search */}
-          <Hero />
-
-          {/* Premium Paid Plans */}
-          <PremiumPlans />
+      {/* Guest Mode: Pristine Welcome & Login/Register Screen (Zero-Trust Policy: No Guest Browsing) */}
+      {!currentUser ? (
+        <main className="flex-1 w-full max-w-full overflow-x-hidden">
+          <WelcomeScreen />
         </main>
+      ) : (
+        <>
+          {/* Header with Sticky Container & Integrated Site-wide Notice Banner */}
+          <Navbar />
+
+          {/* Main Content Area for Authenticated Members */}
+          {currentView === 'home' && (
+            <main className="flex-1 pb-24 md:pb-0 w-full max-w-full overflow-x-hidden">
+              {/* Mobile-first compact Android home screen */}
+              <div className="block md:hidden pt-1">
+                <MobileHomeScreen />
+              </div>
+
+              {/* Desktop full hero & plans */}
+              <div className="hidden md:block">
+                <Hero />
+                <PremiumPlans />
+              </div>
+            </main>
+          )}
+
+          {currentView === 'matches' && (
+            <main className="flex-1 pb-24 md:pb-0 pt-2 w-full max-w-full overflow-x-hidden">
+              <MatchesScreen />
+            </main>
+          )}
+
+          {currentView === 'dashboard' && (
+            <main className="flex-1 pb-24 md:pb-0 w-full max-w-full overflow-x-hidden">
+              <MemberDashboard />
+            </main>
+          )}
+
+          {currentView === 'profiles' && (
+            <main className="flex-1 pb-24 md:pb-0 pt-4 w-full max-w-full overflow-x-hidden">
+              <ProfilesGrid />
+            </main>
+          )}
+
+          {/* Footer */}
+          <Footer />
+
+          {/* Drawers for Mobile Navigation & Filters */}
+          <LeftDrawer />
+          <RightFilterDrawer />
+
+          {/* Mobile Sticky Bottom Navigation Bar */}
+          <MobileBottomNav />
+        </>
       )}
-
-      {currentView === 'dashboard' && (
-        <main className="flex-1 pb-24 md:pb-0 w-full max-w-full overflow-x-hidden">
-          <MemberDashboard />
-        </main>
-      )}
-
-      {currentView === 'profiles' && (
-        <main className="flex-1 pb-24 md:pb-0 pt-4 w-full max-w-full overflow-x-hidden">
-          <ProfilesGrid />
-        </main>
-      )}
-
-      {/* Footer */}
-      <Footer />
-
-      {/* Drawers for Mobile Navigation & Filters */}
-      <LeftDrawer />
-      <RightFilterDrawer />
-
-      {/* Mobile Sticky Bottom Navigation Bar */}
-      <MobileBottomNav />
 
       {/* Android Exit Double Back Press Toast Notification */}
       {showExitToast && (
@@ -166,7 +197,7 @@ const MainAppContent: React.FC = () => {
         </div>
       )}
 
-      {/* Modals Container */}
+      {/* Core Fast Modals Container */}
       <ProfileDetailModal
         profile={selectedProfileForModal}
         onClose={() => setSelectedProfileForModal(null)}
@@ -187,26 +218,133 @@ const MainAppContent: React.FC = () => {
         onClose={() => setIsLoginOpen(false)}
       />
 
-      <AdminPanel
-        isOpen={isAdminOpen}
-        onClose={() => setIsAdminOpen(false)}
-      />
+      {/* Heavy Code-Split Lazy Modals (Wrapped with Suspense) */}
+      <Suspense fallback={null}>
+        {isAdminOpen && (
+          <AdminPanel
+            isOpen={isAdminOpen}
+            onClose={() => setIsAdminOpen(false)}
+          />
+        )}
 
-      <ChatModal
-        user={activeChatUser}
-        onClose={() => setActiveChatUser(null)}
-      />
+        {activeChatUser && (
+          <ChatModal
+            user={activeChatUser}
+            onClose={() => setActiveChatUser(null)}
+          />
+        )}
 
-      <VideoCallModal
-        user={activeVideoUser}
-        onClose={() => setActiveVideoUser(null)}
-      />
+        {activeVideoUser && (
+          <VideoCallModal
+            user={activeVideoUser}
+            onClose={() => setActiveVideoUser(null)}
+          />
+        )}
 
-      <PaymentModal
-        isOpen={isPaymentOpen}
-        onClose={() => setIsPaymentOpen(false)}
-        plan={selectedPlanForPayment}
-      />
+        {isPaymentOpen && (
+          <PaymentModal
+            isOpen={isPaymentOpen}
+            onClose={() => setIsPaymentOpen(false)}
+            plan={selectedPlanForPayment}
+          />
+        )}
+
+        {/* Real-time In-App Notification Center Modal */}
+        <NotificationCenterModal
+          isOpen={isNotificationCenterOpen}
+          onClose={() => setIsNotificationCenterOpen(false)}
+        />
+
+        {/* Business Vendor Directory, Registration & Portal Modals */}
+        {isBusinessVendorDirectoryOpen && (
+          <BusinessVendorDirectoryModal onClose={() => setIsBusinessVendorDirectoryOpen(false)} />
+        )}
+        {isBusinessVendorRegisterModalOpen && (
+          <BusinessVendorRegisterModal onClose={() => setIsBusinessVendorRegisterModalOpen(false)} />
+        )}
+        {isVendorPortalOpen && (
+          <BusinessVendorPortalModal onClose={() => setIsVendorPortalOpen(false)} />
+        )}
+
+        {/* Online Marathi BioData Maker Modal */}
+        {isBioDataMakerOpen && (
+          <BioDataMakerModal
+            isOpen={isBioDataMakerOpen}
+            onClose={() => setIsBioDataMakerOpen(false)}
+          />
+        )}
+
+        {/* Programmatic SEO Landing Pages Hub */}
+        {isSeoHubOpen && (
+          <ProgrammaticSeoModal
+            isOpen={isSeoHubOpen}
+            onClose={() => setIsSeoHubOpen(false)}
+            initialCommunitySlug={seoTargetCommunity}
+            initialCitySlug={seoTargetCity}
+          />
+        )}
+
+        {/* User Security & Active Device Sessions Portal */}
+        {isUserSecurityOpen && (
+          <UserSecurityPortalModal
+            isOpen={isUserSecurityOpen}
+            onClose={() => setIsUserSecurityOpen(false)}
+          />
+        )}
+
+        {/* Administrator Security & Threat Monitoring Center */}
+        {isAdminSecurityOpen && (
+          <AdminSecurityCenterModal
+            isOpen={isAdminSecurityOpen}
+            onClose={() => setIsAdminSecurityOpen(false)}
+          />
+        )}
+
+        {/* Truecaller & Mobile Number Verification Modal */}
+        {isPhoneAuthModalOpen && (
+          <TruecallerVerificationModal
+            isOpen={isPhoneAuthModalOpen}
+            onClose={() => setIsPhoneAuthModalOpen(false)}
+          />
+        )}
+
+        {/* Digital Ad & Marketing Creative / WhatsApp Poster Modal */}
+        {isMarketingAdModalOpen && (
+          <DigitalMarketingAdModal
+            isOpen={isMarketingAdModalOpen}
+            onClose={() => setIsMarketingAdModalOpen(false)}
+          />
+        )}
+
+        {/* Official Prokerala Vedic Kundali Milan (36 Gun Matching) Modal */}
+        {isKundaliModalOpen && (
+          <ErrorBoundary fallbackTitle="कुंडली जुळवणी लोड करताना समस्या आली">
+            <KundaliMilanModal
+              isOpen={isKundaliModalOpen}
+              onClose={() => setIsKundaliModalOpen(false)}
+              candidateProfile={selectedKundaliCandidate}
+            />
+          </ErrorBoundary>
+        )}
+
+        {/* Single Birth Horoscope / Kundli Report Generator Modal */}
+        {isSingleKundliModalOpen && (
+          <ErrorBoundary fallbackTitle="जन्म कुंडली अहवाल लोड करताना समस्या आली">
+            <SingleKundliReportModal
+              isOpen={isSingleKundliModalOpen}
+              onClose={() => setIsSingleKundliModalOpen(false)}
+            />
+          </ErrorBoundary>
+        )}
+
+        {/* Official Vanjari Jodi App Download & Share Modal */}
+        {isAppShareOpen && (
+          <AppShareModal
+            isOpen={isAppShareOpen}
+            onClose={() => setIsAppShareOpen(false)}
+          />
+        )}
+      </Suspense>
 
       {/* Manual Pay-Per-Contact Unlock Modal */}
       <ContactUnlockModal />
@@ -223,74 +361,8 @@ const MainAppContent: React.FC = () => {
       {/* Interactive Timed Flash / Popup Ad Banner */}
       <FlashAdPopup />
 
-      {/* Business Vendor Directory, Registration & Portal Modals */}
-      {isBusinessVendorDirectoryOpen && (
-        <BusinessVendorDirectoryModal onClose={() => setIsBusinessVendorDirectoryOpen(false)} />
-      )}
-      {isBusinessVendorRegisterModalOpen && (
-        <BusinessVendorRegisterModal onClose={() => setIsBusinessVendorRegisterModalOpen(false)} />
-      )}
-      {isVendorPortalOpen && (
-        <BusinessVendorPortalModal onClose={() => setIsVendorPortalOpen(false)} />
-      )}
-
       {/* Server-Driven Dynamic Action Dock (Speed-dial, Bottom Sheet, Side-Rail, Chip-Bar) */}
       <DynamicActionDock />
-
-      {/* Online Marathi BioData Maker Modal */}
-      <BioDataMakerModal
-        isOpen={isBioDataMakerOpen}
-        onClose={() => setIsBioDataMakerOpen(false)}
-      />
-
-      {/* Programmatic SEO Landing Pages Hub (Communities & Cities) */}
-      <ProgrammaticSeoModal
-        isOpen={isSeoHubOpen}
-        onClose={() => setIsSeoHubOpen(false)}
-        initialCommunitySlug={seoTargetCommunity}
-        initialCitySlug={seoTargetCity}
-      />
-
-      {/* User Security & Active Device Sessions Portal */}
-      <UserSecurityPortalModal
-        isOpen={isUserSecurityOpen}
-        onClose={() => setIsUserSecurityOpen(false)}
-      />
-
-      {/* Administrator Security & Threat Monitoring Center */}
-      <AdminSecurityCenterModal
-        isOpen={isAdminSecurityOpen}
-        onClose={() => setIsAdminSecurityOpen(false)}
-      />
-
-      {/* Truecaller & Mobile Number Verification Modal */}
-      <TruecallerVerificationModal
-        isOpen={isPhoneAuthModalOpen}
-        onClose={() => setIsPhoneAuthModalOpen(false)}
-      />
-
-      {/* Digital Ad & Marketing Creative / WhatsApp Poster Modal */}
-      <DigitalMarketingAdModal
-        isOpen={isMarketingAdModalOpen}
-        onClose={() => setIsMarketingAdModalOpen(false)}
-      />
-
-      {/* Official Prokerala Vedic Kundali Milan (36 Gun Matching) Modal */}
-      <ErrorBoundary fallbackTitle="कुंडली जुळवणी लोड करताना समस्या आली">
-        <KundaliMilanModal
-          isOpen={isKundaliModalOpen}
-          onClose={() => setIsKundaliModalOpen(false)}
-          candidateProfile={selectedKundaliCandidate}
-        />
-      </ErrorBoundary>
-
-      {/* Single Birth Horoscope / Kundli Report Generator Modal */}
-      <ErrorBoundary fallbackTitle="जन्म कुंडली अहवाल लोड करताना समस्या आली">
-        <SingleKundliReportModal
-          isOpen={isSingleKundliModalOpen}
-          onClose={() => setIsSingleKundliModalOpen(false)}
-        />
-      </ErrorBoundary>
 
       {/* Network Status & Offline Reconnect Indicator */}
       <NetworkStatusIndicator />

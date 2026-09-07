@@ -24,9 +24,25 @@ service cloud.firestore {
       allow read: if resource.data.isApproved == true || isOwner(profileId) || isAdmin();
       allow create: if (isAuthenticated() && request.auth.uid == profileId && request.resource.data.id == profileId) || isAdmin();
       allow update: if (isOwner(profileId) && 
-                       (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isApproved', 'isVerified']))) || 
+                       (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'isApproved', 'isVerified', 'isBlocked', 'isSuspended']))) || 
                     isAdmin();
       allow delete: if isOwner(profileId) || isAdmin();
+    }
+
+    // Likes Collection: Only authenticated members, strictly no self-likes, owner delete
+    match /likes/{likeId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+                    request.resource.data.fromUserId == request.auth.uid &&
+                    request.resource.data.toUserId != request.auth.uid;
+      allow delete: if isAuthenticated() && (resource.data.fromUserId == request.auth.uid || isAdmin());
+    }
+
+    // Profile Reports: Authenticated members can report; strictly Admin view and manage
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.reporterUserId == request.auth.uid;
+      allow update, delete: if isAdmin();
     }
 
     // Security Logs: Read by owner or admin, immutable (no update/delete)
@@ -48,10 +64,10 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Payment & System Settings: Read by all, editable by admins or pin-authorized admin
+    // Payment & System Settings: Read by all, strictly editable by admins only
     match /settings/{settingId} {
       allow read: if true;
-      allow write: if true;
+      allow write: if isAdmin();
     }
 
     // Chat Messages: Read and write restricted to participant sender/receiver
@@ -110,9 +126,30 @@ service cloud.firestore {
 
     // Notifications
     match /notifications/{notifId} {
-      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || resource.data.userId == 'all' || isAdmin());
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || resource.data.userId == 'all' || resource.data.userId == 'broadcast' || isAdmin());
       allow create: if isAuthenticated();
       allow update, delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Mutual Matches
+    match /matches/{matchId} {
+      allow read: if isAuthenticated() && (resource.data.user1Id == request.auth.uid || resource.data.user2Id == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && (resource.data.user1Id == request.auth.uid || resource.data.user2Id == request.auth.uid || isAdmin());
+    }
+
+    // Favourites / Shortlists
+    match /favourites/{favId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // FCM Device Tokens
+    match /deviceTokens/{tokenId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create, update: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
     }
   }
 }

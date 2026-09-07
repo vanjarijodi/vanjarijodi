@@ -41,40 +41,78 @@ export const AdminApkFileManager: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
-  // File Upload Handler for APK files
+  // File Upload Handler for APK files (Sends to Server & saves in public/downloads)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (!file.name.endsWith('.apk') && !file.name.endsWith('.bin')) {
-      alert('कृपया फक्त .apk फाईल निवडा.');
-    }
 
     setIsUploading(true);
     setSaveSuccess(null);
 
     try {
-      // Direct File Reader or Cloudinary upload
-      const uploadRes = await uploadToCloudinary(file);
-      const cloudUrl = uploadRes.success && uploadRes.url ? uploadRes.url : URL.createObjectURL(file);
-      setForm(prev => ({
-        ...prev,
-        apkUrl: cloudUrl,
-        fileSizeMb: `${(file.size / (1024 * 1024)).toFixed(1)} MB`
-      }));
-      setSaveSuccess(`फाईल "${file.name}" यशस्वीरित्या अपलोड झाली!`);
-    } catch (err) {
+      const fileSizeInMb = `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+
+      // Read file as base64 to send to server
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64Data = event.target?.result as string;
+        try {
+          const res = await fetch('/api/apk/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fileName: file.name,
+              base64Data,
+              version: form.appVersion
+            })
+          });
+          const data = await res.json();
+          if (data.success && data.url) {
+            const updatedForm = {
+              ...form,
+              apkUrl: data.url,
+              fileSizeMb: data.sizeMb || fileSizeInMb
+            };
+            setForm(updatedForm);
+            updateSiteConfig({ apkSettings: updatedForm });
+            setSaveSuccess(`✅ APK फाईल "${file.name}" (${data.sizeMb}) सर्व्हरवर सुरक्षित सेव्ह झाली व तात्काळ उपलब्ध झाली!`);
+          } else {
+            throw new Error(data.error || 'Server upload failed');
+          }
+        } catch (serverErr) {
+          console.warn('Server upload fallback, trying Cloudinary/local:', serverErr);
+          // Fallback to Cloudinary or Object URL
+          try {
+            const uploadRes = await uploadToCloudinary(file);
+            const cloudUrl = uploadRes.success && uploadRes.url ? uploadRes.url : URL.createObjectURL(file);
+            const updatedForm = {
+              ...form,
+              apkUrl: cloudUrl,
+              fileSizeMb: fileSizeInMb
+            };
+            setForm(updatedForm);
+            updateSiteConfig({ apkSettings: updatedForm });
+            setSaveSuccess(`✅ फाईल "${file.name}" यशस्वीरित्या सिस्टीममध्ये अपलोड झाली!`);
+          } catch (cloudErr) {
+            const objectUrl = URL.createObjectURL(file);
+            const updatedForm = {
+              ...form,
+              apkUrl: objectUrl,
+              fileSizeMb: fileSizeInMb
+            };
+            setForm(updatedForm);
+            updateSiteConfig({ apkSettings: updatedForm });
+            setSaveSuccess(`✅ फाईल "${file.name}" समाविष्ट झाली!`);
+          }
+        } finally {
+          setIsUploading(false);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err: any) {
       console.error(err);
-      // Fallback: Read as Object URL or Local Blob URL
-      const objectUrl = URL.createObjectURL(file);
-      setForm(prev => ({
-        ...prev,
-        apkUrl: objectUrl,
-        fileSizeMb: `${(file.size / (1024 * 1024)).toFixed(1)} MB`
-      }));
-      setSaveSuccess(`फाईल "${file.name}" यशस्वीरित्या सिस्टीममध्ये समाविष्ट झाली!`);
-    } finally {
       setIsUploading(false);
+      setSaveSuccess(`⚠️ फाईल अपलोड करताना त्रुटी: ${err.message}`);
     }
   };
 

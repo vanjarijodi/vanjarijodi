@@ -431,95 +431,86 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   if (!isAdminLoggedIn) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
-        <div className="relative w-full max-w-md bg-gradient-to-b from-[#1A0A0F] via-[#0F172A] to-[#0B132B] border-2 border-amber-500/40 rounded-3xl shadow-2xl p-5 sm:p-7 text-slate-100 animate-in fade-in zoom-in-95 duration-200">
+        <div className="relative w-full max-w-md max-h-[92dvh] overflow-y-auto bg-gradient-to-b from-[#1A0A0F] via-[#0F172A] to-[#0B132B] border-2 border-amber-500/40 rounded-3xl shadow-2xl p-4 sm:p-6 text-slate-100 animate-in fade-in zoom-in-95 duration-200 my-auto">
           {/* Header Row */}
-          <div className="flex items-start justify-between gap-3 pb-3 border-b border-amber-500/20">
-            <div className="flex items-start gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-[#A71930] to-[#800C1E] border border-amber-400/50 text-amber-300 flex items-center justify-center shrink-0 shadow-lg">
-                <Crown className="w-6 h-6 text-amber-300 fill-amber-300/30" />
+          <div className="flex items-center justify-between gap-3 pb-3 border-b border-amber-500/20">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#A71930] to-[#800C1E] border border-amber-400/50 text-amber-300 flex items-center justify-center shrink-0 shadow-md">
+                <Crown className="w-5 h-5 text-amber-300 fill-amber-300/30" />
               </div>
               <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-base font-bold text-amber-200">वंजारी जोडी ॲडमिन पॅनेल</h2>
-                  <span className="bg-amber-500/20 text-amber-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-amber-500/40">
-                    मुख्य प्रशासक
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-300 mt-0.5 leading-snug">
-                  वधू-वर प्रोफाईल्स, पेमेंट्स व सुरक्षा नियंत्रण कक्ष
-                </p>
+                <h2 className="text-sm sm:text-base font-bold text-amber-200">वंजारी जोडी ॲडमिन पॅनेल</h2>
+                <p className="text-[11px] text-slate-300">सुरक्षा नियंत्रण कक्ष</p>
               </div>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors shrink-0 cursor-pointer"
+              className="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors shrink-0 cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
               title="बंद करा"
+              aria-label="Close"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {/* Center Graphic */}
-          <div className="my-5 text-center">
-            <div className="w-18 h-18 bg-gradient-to-br from-amber-500/20 to-amber-900/30 border-2 border-amber-400/50 rounded-3xl flex items-center justify-center mx-auto text-amber-400 shadow-inner mb-3">
-              <Lock className="w-8 h-8 text-amber-300 stroke-[2.2]" />
+          <div className="my-3 text-center">
+            <div className="w-14 h-14 bg-gradient-to-br from-amber-500/20 to-amber-900/30 border-2 border-amber-400/50 rounded-2xl flex items-center justify-center mx-auto text-amber-400 shadow-inner mb-2">
+              <Lock className="w-6 h-6 text-amber-300 stroke-[2.2]" />
             </div>
-            <h3 className="text-lg sm:text-xl font-black text-amber-100 tracking-wide">
-              ॲडमिन सिक्युरिटी लॉगिन (Admin Login)
+            <h3 className="text-base sm:text-lg font-black text-amber-100 tracking-wide">
+              प्रशासक लॉगिन (Admin Login)
             </h3>
-            <p className="text-xs text-slate-300 mt-1 px-2 max-w-sm mx-auto leading-relaxed">
-              ॲडमिन पॅनेल उघडण्यासाठी तुमचा ॲडमिन पिन (आकडे) किंवा पासवर्ड (अक्षरे) प्रविष्ट करा.
+            <p className="text-[11px] text-slate-300 mt-0.5 px-2 max-w-sm mx-auto leading-relaxed">
+              ॲडमिन पॅनेल उघडण्यासाठी तुमचा ॲडमिन पिन किंवा पासवर्ड प्रविष्ट करा.
             </p>
           </div>
 
           {adminLoginError && (
-            <div className="mb-4 p-3 bg-rose-950/80 border border-rose-500/50 text-rose-300 text-xs rounded-xl font-medium leading-relaxed flex items-center gap-2">
+            <div className="mb-3 p-2.5 bg-rose-950/80 border border-rose-500/50 text-rose-300 text-xs rounded-xl font-medium leading-relaxed flex items-center gap-2">
               <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
               <span>{adminLoginError}</span>
             </div>
           )}
 
           {/* PIN / Password Form */}
-          <form onSubmit={handleAdminLoginSubmit} className="space-y-4">
+          <form onSubmit={handleAdminLoginSubmit} className="space-y-3">
             <div>
-              <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
-                <label className="text-slate-200">ॲडमिन पिन / पासवर्ड (PIN or Password):</label>
-                <span className="text-[11px] font-bold text-amber-400 tracking-wider">संख्या किंवा अक्षरे</span>
+              <div className="flex items-center justify-between text-xs font-semibold mb-1">
+                <label className="text-slate-200">ॲडमिन पिन / पासवर्ड:</label>
+                <span className="text-[11px] font-bold text-amber-400">1010 किंवा admin123</span>
               </div>
               <div className="relative">
                 <input
                   type={showPin ? 'text' : 'password'}
-                  placeholder="उदा. 1010, 1234 किंवा admin123"
+                  placeholder="उदा. 1010 किंवा admin123"
                   value={adminPin}
                   onChange={(e) => {
                     setAdminPin(e.target.value);
                     setAdminLoginError('');
                   }}
-                  className="w-full pl-4 pr-11 py-3.5 bg-slate-900/90 border-2 border-amber-500/40 rounded-xl text-amber-200 placeholder:text-slate-500 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-400 transition-all shadow-inner"
+                  className="w-full pl-3.5 pr-11 py-3 bg-slate-900/90 border-2 border-amber-500/40 rounded-xl text-amber-200 placeholder:text-slate-500 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-400 transition-all shadow-inner min-h-[44px]"
                   autoFocus
                 />
                 <button
                   type="button"
                   onClick={() => setShowPin(!showPin)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-300 transition-colors p-1 cursor-pointer"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-300 transition-colors p-2 cursor-pointer min-h-[40px] min-w-[40px] flex items-center justify-center"
                   title={showPin ? 'पिन लपवा' : 'पिन दाखवा'}
                 >
                   {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-              <p className="text-[11px] text-amber-300/80 mt-1.5 flex items-center gap-1">
-                <span>💡 सोपा पिन: <b className="text-amber-300 font-bold">1010</b> किंवा <b className="text-amber-300 font-bold">1234</b> किंवा <b className="text-amber-300 font-bold">admin123</b></span>
-              </p>
             </div>
 
             {/* Main Submit Button */}
             <button
               type="submit"
-              className="w-full py-3.5 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:brightness-110 active:scale-[0.98] text-slate-950 font-black rounded-xl shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 text-sm transition-all cursor-pointer"
+              className="w-full py-3 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:brightness-110 active:scale-[0.98] text-slate-950 font-black rounded-xl shadow-md text-xs sm:text-sm transition-all cursor-pointer min-h-[44px] flex items-center justify-center gap-2"
             >
               <ShieldCheck className="w-4 h-4 text-slate-950" />
-              <span>पिन पडताळणी करा व ॲडमिन पॅनेल उघडा</span>
+              <span>पडताळणी करा व लॉगिन करा</span>
             </button>
 
             {/* Quick 1-Click Fast Master PIN shortcut */}
@@ -529,25 +520,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                 setAdminPin('1010');
                 performAdminLogin('1010');
               }}
-              className="w-full py-2.5 bg-gradient-to-r from-[#800C1E]/60 to-[#A71930]/60 hover:from-[#800C1E] hover:to-[#A71930] border border-amber-500/40 text-amber-200 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
+              className="w-full py-2 bg-white/10 hover:bg-white/15 border border-amber-400/30 text-amber-300 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[40px]"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>थेट १-क्लिक जलद ॲक्सेस (Quick Unlock: 1010)</span>
+              <span>१-क्लिक जलद ॲक्सेस (Quick Unlock: 1010)</span>
             </button>
           </form>
 
-          {/* Footer Row */}
-          <div className="mt-5 pt-3.5 border-t border-slate-800 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-1.5 text-amber-400/90 font-medium">
-              <Shield className="w-3.5 h-3.5 text-amber-400" />
-              <span>वंजारी जोडी मॅट्रिमोनी ॲडमिन</span>
-            </div>
+          {/* Clean text link for forgot password / help */}
+          <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-xs">
+            <span className="text-slate-400 text-[11px]">डीफॉल्ट पिन: <strong className="text-amber-300">1010</strong></span>
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-1.5 bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+              className="text-slate-400 hover:text-slate-200 text-[11px] underline cursor-pointer p-1"
             >
-              पॅनेल बंद करा (Close)
+              पॅनेल बंद करा
             </button>
           </div>
         </div>

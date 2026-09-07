@@ -30,6 +30,12 @@ export async function downloadApkFile(
     return;
   }
 
+  // 2.5 Local Relative Server URL (e.g. /downloads/VanjariJodi.apk)
+  if (apkUrl && apkUrl.startsWith('/')) {
+    triggerLinkDownload(apkUrl, fileName);
+    return;
+  }
+
   // 3. Real External URL (Cloudinary, Firebase, custom HTTP host)
   const isDummyPlaceholder =
     !apkUrl ||

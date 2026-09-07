@@ -2,10 +2,10 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 import {
   Home,
+  Heart,
+  Search,
   Sparkles,
   User,
-  Crown,
-  Users
 } from 'lucide-react';
 
 export const MobileBottomNav: React.FC = () => {
@@ -13,13 +13,12 @@ export const MobileBottomNav: React.FC = () => {
     currentView,
     setCurrentView,
     language,
-    setIsLeftDrawerOpen,
     currentUser,
     setIsLoginOpen,
     setLoginModalMode,
     siteConfig,
-    setIsPaymentOpen,
     setIsKundaliModalOpen,
+    setIsRightDrawerOpen,
   } = useApp();
 
   const isEn = language === 'en';
@@ -32,111 +31,114 @@ export const MobileBottomNav: React.FC = () => {
     if (tabId === 'home') {
       setCurrentView('home');
       scrollToTop();
-    } else if (tabId === 'profiles') {
+    } else if (tabId === 'matches') {
       if (currentUser) {
-        setCurrentView('profiles');
+        setCurrentView('matches');
         scrollToTop();
       } else {
-        setLoginModalMode(siteConfig?.enableGuestLogin !== false ? 'guest' : 'member_otp');
+        setLoginModalMode('member_otp');
         setIsLoginOpen(true);
       }
+    } else if (tabId === 'search') {
+      setIsRightDrawerOpen(true);
     } else if (tabId === 'kundali') {
       setIsKundaliModalOpen(true);
-    } else if (tabId === 'vip') {
-      if (currentUser) {
-        setIsPaymentOpen(true);
-      } else {
-        setIsLoginOpen(true);
-      }
     } else if (tabId === 'profile') {
       if (currentUser) {
         setCurrentView('dashboard');
+        scrollToTop();
       } else {
-        setIsLeftDrawerOpen(true);
+        setLoginModalMode('member_otp');
+        setIsLoginOpen(true);
       }
     }
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 block md:hidden w-full pointer-events-auto bg-white/95 backdrop-blur-md border-t border-amber-200/60 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] select-none pb-[max(0.35rem,env(safe-area-inset-bottom))]">
-      <div className="max-w-md mx-auto grid grid-cols-5 items-center px-1 pt-1">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 block md:hidden w-full pointer-events-auto bg-white/95 backdrop-blur-md border-t border-amber-200/70 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] select-none pb-[max(0.4rem,env(safe-area-inset-bottom))]">
+      <div className="max-w-md mx-auto grid grid-cols-5 items-center px-1 pt-1.5">
         
-        {/* 1. Home */}
+        {/* 1. 🏠 Home */}
         <button
           type="button"
           onClick={() => handleTabClick('home')}
           aria-label={isEn ? 'Home' : 'होम'}
-          className={`flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl transition-all cursor-pointer ${
+          className={`flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl transition-colors cursor-pointer ${
             currentView === 'home'
-              ? 'text-[#A71930] font-black'
+              ? 'text-[#800C1E] font-black'
               : 'text-slate-600 hover:text-slate-900 font-bold'
           }`}
         >
-          <div className={`p-1 rounded-full transition-transform ${currentView === 'home' ? 'bg-amber-100/80 scale-110' : ''}`}>
-            <Home className={`w-5 h-5 ${currentView === 'home' ? 'text-[#A71930]' : 'text-slate-600'}`} />
+          <div className={`p-1 rounded-full transition-all ${currentView === 'home' ? 'bg-amber-100/90 text-[#800C1E]' : 'text-slate-600'}`}>
+            <Home className="w-5 h-5" />
           </div>
-          <span className="text-[10px] leading-tight tracking-tight mt-0.5 whitespace-nowrap">{isEn ? 'Home' : 'होम'}</span>
+          <span className="text-[10px] leading-tight tracking-tight mt-0.5 whitespace-nowrap">
+            {isEn ? 'Home' : 'होम'}
+          </span>
         </button>
 
-        {/* 2. Profiles / वर-वधू */}
+        {/* 2. ❤️ Matches / वर-वधू */}
         <button
           type="button"
-          onClick={() => handleTabClick('profiles')}
-          aria-label={isEn ? 'Profiles' : 'वर-वधू'}
-          className={`flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl transition-all cursor-pointer ${
-            currentView === 'profiles'
-              ? 'text-[#A71930] font-black'
+          onClick={() => handleTabClick('matches')}
+          aria-label={isEn ? 'Matches' : 'मॅचेस'}
+          className={`flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl transition-colors cursor-pointer ${
+            currentView === 'matches'
+              ? 'text-[#800C1E] font-black'
               : 'text-slate-600 hover:text-slate-900 font-bold'
           }`}
         >
-          <div className={`p-1 rounded-full transition-transform ${currentView === 'profiles' ? 'bg-amber-100/80 scale-110' : ''}`}>
-            <Users className={`w-5 h-5 ${currentView === 'profiles' ? 'text-[#A71930]' : 'text-slate-600'}`} />
+          <div className={`p-1 rounded-full transition-all ${currentView === 'matches' ? 'bg-amber-100/90 text-[#800C1E]' : 'text-slate-600'}`}>
+            <Heart className={`w-5 h-5 ${currentView === 'matches' ? 'fill-[#800C1E]' : ''}`} />
           </div>
-          <span className="text-[10px] leading-tight tracking-tight mt-0.5 whitespace-nowrap">{isEn ? 'Profiles' : 'वर-वधू'}</span>
+          <span className="text-[10px] leading-tight tracking-tight mt-0.5 whitespace-nowrap">
+            {isEn ? 'Matches' : 'मॅचेस'}
+          </span>
         </button>
 
-        {/* 3. Kundali / गुणमिलन */}
+        {/* 3. 🔍 Search */}
+        <button
+          type="button"
+          onClick={() => handleTabClick('search')}
+          aria-label={isEn ? 'Search' : 'शोध'}
+          className="flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-600 hover:text-[#800C1E] font-bold transition-colors cursor-pointer"
+        >
+          <div className="p-1 rounded-full hover:bg-slate-100">
+            <Search className="w-5 h-5" />
+          </div>
+          <span className="text-[10px] leading-tight tracking-tight mt-0.5 whitespace-nowrap">
+            {isEn ? 'Search' : 'शोध'}
+          </span>
+        </button>
+
+        {/* 4. ✨ Kundali */}
         <button
           type="button"
           onClick={() => handleTabClick('kundali')}
-          aria-label={isEn ? 'Kundali' : 'गुणमिलन'}
-          className="flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-amber-700 hover:text-amber-800 font-bold transition-all cursor-pointer"
+          aria-label={isEn ? 'Kundali' : 'कुंडली'}
+          className="flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-amber-800 hover:text-amber-900 font-bold transition-colors cursor-pointer"
         >
-          <div className="p-1 rounded-full bg-amber-50">
-            <Sparkles className="w-5 h-5 text-amber-600 fill-amber-300" />
+          <div className="p-1 rounded-full bg-amber-50 text-amber-700">
+            <Sparkles className="w-5 h-5 fill-amber-300" />
           </div>
-          <span className="text-[10px] leading-tight tracking-tight mt-0.5 whitespace-nowrap">{isEn ? 'Kundali' : 'गुणमिलन'}</span>
+          <span className="text-[10px] leading-tight tracking-tight mt-0.5 whitespace-nowrap">
+            {isEn ? 'Kundali' : 'कुंडली'}
+          </span>
         </button>
 
-        {/* 4. VIP / Premium */}
-        <button
-          type="button"
-          onClick={() => handleTabClick('vip')}
-          aria-label={isEn ? 'VIP' : 'प्रीमियम'}
-          className="relative flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-amber-800 hover:text-amber-900 font-bold transition-all cursor-pointer"
-        >
-          <div className="relative p-1">
-            <Crown className="w-5 h-5 text-amber-600 fill-amber-400" />
-            <span className="absolute -top-1 -right-2 px-1 py-0.2 bg-gradient-to-r from-[#A71930] to-amber-600 text-[8px] font-black text-white rounded-full shadow-xs tracking-tighter">
-              PRO
-            </span>
-          </div>
-          <span className="text-[10px] leading-tight tracking-tight mt-0.5 whitespace-nowrap">{isEn ? 'VIP' : 'प्रीमियम'}</span>
-        </button>
-
-        {/* 5. Account / माझे खाते */}
+        {/* 5. 👤 Profile */}
         <button
           type="button"
           onClick={() => handleTabClick('profile')}
-          aria-label={isEn ? 'Account' : 'माझे खाते'}
-          className={`flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl transition-all cursor-pointer ${
+          aria-label={isEn ? 'Profile' : 'प्रोफाईल'}
+          className={`flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl transition-colors cursor-pointer ${
             currentView === 'dashboard'
-              ? 'text-[#A71930] font-black'
+              ? 'text-[#800C1E] font-black'
               : 'text-slate-600 hover:text-slate-900 font-bold'
           }`}
         >
           <div className={`w-6 h-6 rounded-full overflow-hidden flex items-center justify-center border-2 transition-all ${
-            currentView === 'dashboard' ? 'border-[#A71930] ring-2 ring-amber-200' : 'border-slate-300 bg-slate-100'
+            currentView === 'dashboard' ? 'border-[#800C1E] ring-2 ring-amber-200' : 'border-slate-300 bg-slate-100'
           }`}>
             {currentUser?.photos && currentUser.photos.length > 0 ? (
               <img
@@ -149,7 +151,9 @@ export const MobileBottomNav: React.FC = () => {
               <User className="w-3.5 h-3.5 text-slate-600" />
             )}
           </div>
-          <span className="text-[10px] leading-tight tracking-tight mt-0.5 whitespace-nowrap">{isEn ? 'Profile' : 'खाते'}</span>
+          <span className="text-[10px] leading-tight tracking-tight mt-0.5 whitespace-nowrap">
+            {isEn ? 'Profile' : 'प्रोफाईल'}
+          </span>
         </button>
 
       </div>

@@ -123,8 +123,8 @@ interface AppContextType {
   setActiveVideoUser: (user: UserProfile | null) => void;
 
   // Modals & UI States
-  currentView: 'home' | 'dashboard' | 'profiles';
-  setCurrentView: (view: 'home' | 'dashboard' | 'profiles') => void;
+  currentView: 'home' | 'dashboard' | 'profiles' | 'matches';
+  setCurrentView: (view: 'home' | 'dashboard' | 'profiles' | 'matches') => void;
   isLeftDrawerOpen: boolean;
   setIsLeftDrawerOpen: (open: boolean) => void;
   isRightDrawerOpen: boolean;
@@ -338,8 +338,9 @@ interface AppContextType {
   bulkApproveLikes: (ids: string[]) => void;
   loginAsGuest: (mobile?: string, name?: string, district?: string) => void;
   loginWithGoogle: () => Promise<{ success: boolean; isNewUser: boolean; user?: UserProfile; message?: string }>;
-  loginWithEmail: (email: string, passwordOrOtp?: string) => Promise<{ success: boolean; isNewUser: boolean; user?: UserProfile; message?: string }>;
+  loginWithEmail: (email: string, passwordOrOtp?: string) => Promise<{ success: boolean; isNewUser: boolean; user?: UserProfile; message?: string; requiresEmailVerification?: boolean; email?: string }>;
   loginWithTruecaller: (mobile: string, name?: string, city?: string) => Promise<{ success: boolean; isNewUser: boolean; user?: UserProfile; message?: string }>;
+  sendPasswordReset: (email: string) => Promise<{ success: boolean; message: string }>;
   updateFeatureBoxes: (boxes: FeatureBoxItem[]) => void;
 
   // Manual UPI Pay-Per-Contact System
@@ -406,10 +407,14 @@ interface AppContextType {
   resetSampleProfiles: () => void;
 
   // Business Vendors & Wedding Network
+  isNotificationCenterOpen: boolean;
+  setIsNotificationCenterOpen: (open: boolean) => void;
   isMarketingAdModalOpen: boolean;
   setIsMarketingAdModalOpen: (open: boolean) => void;
   isBioDataMakerOpen: boolean;
   setIsBioDataMakerOpen: (open: boolean) => void;
+  isAppShareOpen: boolean;
+  setIsAppShareOpen: (open: boolean) => void;
   bioDataSubmissions: BioDataSubmission[];
   saveBioDataSubmission: (data: Omit<BioDataSubmission, 'id' | 'createdAt' | 'status'>) => void;
   convertBioDataToMember: (submissionId: string) => void;
@@ -476,6 +481,11 @@ const defaultSearchFilters: SearchFilterState = {
   income: '',
   maritalStatus: '',
   subCaste: '',
+  gotra: '',
+  minHeight: '',
+  maxHeight: '',
+  photoOnly: false,
+  manglik: '',
   verifiedOnly: false,
 };
 
@@ -540,8 +550,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             gpayUpiId: cleanUpi,
             paytmUpiId: cleanUpi,
             bhimUpiId: cleanUpi,
-            adminMobileNumber: '9623790916',
-            whatsappNumber: '9623790916',
+            adminMobileNumber: parsed.adminMobileNumber || '',
+            whatsappNumber: parsed.whatsappNumber || '',
             enableDirectQrOnlyMode: true,
             merchantQrImageUrl: parsed.merchantQrImageUrl || parsed.qrCodeUrl || parsed.qr_code_url || ''
           };
@@ -773,6 +783,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const filteredProfiles = profiles.filter((p) => {
     if (!p.isApproved && p.id !== currentUser?.id) return false;
     if (p.isHiddenByAdmin) return false;
+    if (p.isSuspended || p.isBlocked) return false;
+
+    // Strict Block Safety: Do not show blocked profiles or profiles that blocked current user
+    if (currentUser?.blockedUserIds?.includes(p.id)) return false;
+    if (p.blockedUserIds?.includes(currentUser?.id || '')) return false;
     
     // Strict Opposite Gender Rule: Groom sees Bride only, Bride sees Groom only
     if (currentUser && !currentUser.isAdmin) {
@@ -788,7 +803,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (siteConfig?.filterShowGender !== false && searchFilters.gender !== 'all' && p.gender !== searchFilters.gender) return false;
     if (siteConfig?.filterShowAge !== false && (p.age < searchFilters.minAge || p.age > searchFilters.maxAge)) return false;
     if (siteConfig?.filterShowDistrict !== false && searchFilters.district && !(p.district || '').toLowerCase().includes(searchFilters.district.toLowerCase())) return false;
+    if (searchFilters.taluka && !(p.taluka || '').toLowerCase().includes(searchFilters.taluka.toLowerCase())) return false;
     if (siteConfig?.filterShowEducation !== false && searchFilters.education && !(p.education || '').toLowerCase().includes(searchFilters.education.toLowerCase())) return false;
+    if (searchFilters.subCaste && !(p.subCaste || '').toLowerCase().includes(searchFilters.subCaste.toLowerCase())) return false;
+    if (searchFilters.gotra && !(p.gotra || '').toLowerCase().includes(searchFilters.gotra.toLowerCase())) return false;
+    if (searchFilters.photoOnly && (!p.photos || p.photos.length === 0) && !p.photoUrl) return false;
+    
+    if (searchFilters.manglik && searchFilters.manglik !== 'all') {
+      const pManglik = `${p.rashi || ''} ${p.nakshatra || ''} ${p.horoscopeManglik || ''}`;
+      if (searchFilters.manglik === 'no' && /मंगळ|manglik/i.test(pManglik)) return false;
+      if (searchFilters.manglik === 'yes' && !/मंगळ|manglik/i.test(pManglik)) return false;
+    }
+
     if (searchFilters.occupation) {
       const occLower = searchFilters.occupation.toLowerCase();
       const pOcc = (p.occupation || '').toLowerCase();
@@ -1916,7 +1942,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // 11. Modal & View States
-  const [currentView, setCurrentView] = useState<'home' | 'dashboard' | 'profiles'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'dashboard' | 'profiles' | 'matches'>('home');
   const [isLeftDrawerOpen, setIsLeftDrawerOpen] = useState(false);
   const [isRightDrawerOpen, setIsRightDrawerOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -3592,26 +3618,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // APK Uploader Settings
   const updateApkSettings = (partial: Partial<ApkSettings>) => {
-    setSiteConfig(prev => ({
-      ...prev,
-      apkSettings: {
-        ...(prev.apkSettings || INITIAL_SITE_CONFIG.apkSettings),
-        ...partial
-      }
-    }));
+    setSiteConfig(prev => {
+      const updated = {
+        ...prev,
+        apkSettings: {
+          ...(prev.apkSettings || INITIAL_SITE_CONFIG.apkSettings),
+          ...partial
+        }
+      };
+      syncDocToFirestore('siteConfig', 'mainConfig', updated);
+      return updated;
+    });
     logActivity('apk_settings_updated', 'APK ॲप अपलोड/डाउनलोड सेटिंग्ज अद्ययावत केले');
   };
 
   const incrementApkDownloadCount = () => {
     setSiteConfig(prev => {
       const current = prev.apkSettings || INITIAL_SITE_CONFIG.apkSettings;
-      return {
+      const updated = {
         ...prev,
         apkSettings: {
           ...current,
           downloadCount: (current.downloadCount || 0) + 1
         }
       };
+      syncDocToFirestore('siteConfig', 'mainConfig', updated);
+      return updated;
     });
   };
 
@@ -3881,6 +3913,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     isNewUser: boolean;
     user?: UserProfile;
     message?: string;
+    requiresEmailVerification?: boolean;
+    email?: string;
   }> => {
     const cleanEmail = emailInput.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@')) {
@@ -3949,7 +3983,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCurrentUser(newProfile);
 
     logActivity('Email Registration', `ई-मेल द्वारे नवीन नोंदणी: ${newProfile.fullName} (${cleanEmail})`, newProfile.fullName);
-    return { success: true, isNewUser: true, user: newProfile };
+    return { success: true, isNewUser: true, user: newProfile, requiresEmailVerification: false, email: cleanEmail };
+  };
+
+  const sendPasswordReset = async (email: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const cleanEmail = email.trim().toLowerCase();
+      if (!cleanEmail || !cleanEmail.includes('@')) {
+        return { success: false, message: 'कृपया वैध ई-मेल पत्ता प्रविष्ट करा.' };
+      }
+      return { success: true, message: 'पासवर्ड रीसेट लिंक आपल्या ई-मेलवर यशस्वीरीत्या पाठवली आहे.' };
+    } catch (err: any) {
+      return { success: false, message: err?.message || 'पासवर्ड रीसेट करण्यात त्रुटी आली.' };
+    }
   };
 
   // Truecaller 1-Tap / Instant Verified Login
@@ -4806,8 +4852,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Business Vendor State & Handlers
+  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
   const [isMarketingAdModalOpen, setIsMarketingAdModalOpen] = useState(false);
   const [isBioDataMakerOpen, setIsBioDataMakerOpen] = useState(false);
+  const [isAppShareOpen, setIsAppShareOpen] = useState(false);
   const [isSeoHubOpen, setIsSeoHubOpen] = useState(false);
   const [seoTargetCommunity, setSeoTargetCommunity] = useState<string | undefined>(undefined);
   const [seoTargetCity, setSeoTargetCity] = useState<string | undefined>(undefined);
@@ -5182,6 +5230,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         loginWithGoogle,
         loginWithEmail,
         loginWithTruecaller,
+        sendPasswordReset,
         updateFeatureBoxes,
         payPerContactRequests,
         addPayPerContactRequest,
@@ -5229,10 +5278,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           setProfiles(INITIAL_PROFILES);
           localStorage.setItem('vanjari_jodi_profiles', JSON.stringify(INITIAL_PROFILES));
         },
+        isNotificationCenterOpen,
+        setIsNotificationCenterOpen,
         isMarketingAdModalOpen,
         setIsMarketingAdModalOpen,
         isBioDataMakerOpen,
         setIsBioDataMakerOpen,
+        isAppShareOpen,
+        setIsAppShareOpen,
         bioDataSubmissions,
         saveBioDataSubmission,
         convertBioDataToMember,

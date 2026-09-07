@@ -20,11 +20,18 @@ android {
     }
     signingConfigs {
         release {
-            if (file("release.keystore").exists()) {
+            if (System.getenv("KEYSTORE_FILE") != null && file(System.getenv("KEYSTORE_FILE")).exists()) {
+                storeFile file(System.getenv("KEYSTORE_FILE"))
+                storePassword System.getenv("KEYSTORE_PASSWORD") ?: "vanjari123"
+                keyAlias System.getenv("KEY_ALIAS") ?: "vanjarijodi"
+                keyPassword System.getenv("KEY_PASSWORD") ?: (System.getenv("KEYSTORE_PASSWORD") ?: "vanjari123")
+                v1SigningEnabled true
+                v2SigningEnabled true
+            } else if (file("release.keystore").exists()) {
                 storeFile file("release.keystore")
-                storePassword "vanjari123"
-                keyAlias "vanjarijodi"
-                keyPassword "vanjari123"
+                storePassword System.getenv("KEYSTORE_PASSWORD") ?: "vanjari123"
+                keyAlias System.getenv("KEY_ALIAS") ?: "vanjarijodi"
+                keyPassword System.getenv("KEY_PASSWORD") ?: "vanjari123"
                 v1SigningEnabled true
                 v2SigningEnabled true
             }

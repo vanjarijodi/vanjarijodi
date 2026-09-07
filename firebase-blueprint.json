@@ -87,6 +87,87 @@
         "updated_at": { "type": "string" },
         "approved_at": { "type": "string" }
       }
+    },
+    "likes": {
+      "title": "Member Likes & Matches",
+      "description": "Real-time likes between matrimonial members",
+      "properties": {
+        "id": { "type": "string" },
+        "fromUserId": { "type": "string" },
+        "toUserId": { "type": "string" },
+        "fromUserName": { "type": "string" },
+        "toUserName": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "reports": {
+      "title": "Profile Safety Reports",
+      "description": "Member reports against suspicious or abusive profiles",
+      "properties": {
+        "id": { "type": "string" },
+        "reporterUserId": { "type": "string" },
+        "reportedProfileId": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "notifications": {
+      "title": "User Notifications",
+      "description": "In-app and push notifications for likes, matches, and system alerts",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string" },
+        "isRead": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "adminAuditLogs": {
+      "title": "Admin Audit Logs",
+      "description": "Immutable security logs of administrative actions",
+      "properties": {
+        "id": { "type": "string" },
+        "adminId": { "type": "string" },
+        "adminName": { "type": "string" },
+        "action": { "type": "string" },
+        "targetId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "matches": {
+      "title": "Mutual Matches",
+      "description": "Two-way mutual likes and connections",
+      "properties": {
+        "id": { "type": "string" },
+        "user1Id": { "type": "string" },
+        "user2Id": { "type": "string" },
+        "matchedAt": { "type": "string" }
+      }
+    },
+    "favourites": {
+      "title": "Favourite Profiles",
+      "description": "Shortlisted profiles bookmarked by users",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "profileId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "deviceTokens": {
+      "title": "FCM Device Tokens",
+      "description": "Device push tokens for real-time notification dispatch",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "fcmToken": { "type": "string" },
+        "platform": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
     }
   }
 }

@@ -63,9 +63,11 @@ export const DynamicActionDock: React.FC<DynamicActionDockProps> = ({
     isPhoneAuthModalOpen,
     isMarketingAdModalOpen,
     isKundaliModalOpen,
+    currentUser,
   } = useApp();
 
   const hasAnyModalOpen = Boolean(
+    !currentUser ||
     selectedProfileForModal ||
     activeChatUser ||
     activeVideoUser ||

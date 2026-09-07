@@ -31,7 +31,6 @@ export const LeftDrawer: React.FC = () => {
     language,
     currentUser,
     setCurrentUser,
-    logout,
     currentView,
     setCurrentView,
     setIsPaymentOpen,
@@ -83,12 +82,6 @@ export const LeftDrawer: React.FC = () => {
       console.error('LeftDrawer Google sign in error:', err);
     } finally {
       setIsGoogleLoading(false);
-    }
-  };
-
-  const handleLogout = () => {
-    if (confirm(isEn ? 'Are you sure you want to log out?' : 'तुम्हाला खरोखर लॉगआउट करायचे आहे का?')) {
-      logout();
     }
   };
 
@@ -516,13 +509,13 @@ export const LeftDrawer: React.FC = () => {
                 setIsAdminOpen(true);
                 setIsLeftDrawerOpen(false);
               }}
-              className="w-full flex items-center justify-between p-3.5 rounded-2xl text-[#800C1E] bg-gradient-to-r from-amber-100/80 to-amber-50 border border-amber-300 font-extrabold transition-all cursor-pointer shadow-xs hover:bg-amber-100"
+              className="w-full flex items-center justify-between p-3.5 rounded-2xl text-[#800C1E] bg-gradient-to-r from-amber-100/90 to-amber-50 border-2 border-amber-400 font-extrabold transition-all cursor-pointer shadow-sm hover:bg-amber-100 min-h-[50px] active:scale-98"
             >
               <div className="flex items-center gap-3">
-                <div className="p-1.5 rounded-xl bg-[#800C1E] text-amber-300 shadow-sm">
+                <div className="p-2 rounded-xl bg-[#800C1E] text-amber-300 shadow-sm shrink-0">
                   <ShieldCheck className="w-4 h-4 text-amber-300" />
                 </div>
-                <div>
+                <div className="text-left">
                   <span className="block text-xs font-black text-[#800C1E]">
                     {isEn ? 'Admin Panel Login' : 'प्रशासक प्रवेश (Admin Login)'}
                   </span>
@@ -531,23 +524,13 @@ export const LeftDrawer: React.FC = () => {
                   </span>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-[#800C1E]" />
+              <ChevronRight className="w-4 h-4 text-[#800C1E] shrink-0" />
             </button>
           </div>
 
-          {/* Footer of Left Drawer */}
-          <div className="p-4 bg-slate-50 border-t border-slate-100">
-            {currentUser ? (
-              <button
-                onClick={handleLogout}
-                className="w-full py-3.5 px-4 rounded-2xl bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 font-black text-xs flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
-              >
-                <LogOut className="w-4.5 h-4.5 text-rose-700" />
-                <span>{isEn ? 'Log Out' : 'बाहेर पडा (Log Out)'}</span>
-              </button>
-            ) : (
-              <p className="text-center text-[10px] text-slate-400 font-medium">VanjariJodi Android PWA App v2.4.0</p>
-            )}
+          {/* Footer of Left Drawer with Safe Area Padding */}
+          <div className="p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] bg-slate-50 border-t border-slate-100">
+            <p className="text-center text-[11px] text-slate-500 font-medium">VanjariJodi Matrimony App • v2.5.0</p>
           </div>
         </motion.div>
       </div>

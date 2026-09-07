@@ -513,7 +513,7 @@ export const FaceVerificationModal: React.FC<FaceVerificationModalProps> = ({ is
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-700 flex items-start gap-2">
                 <Lock className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
                 <span>
-                  <strong>सुरक्षा हमी:</strong> दुसऱ्या व्यक्तीचा किंवा इंटरनेटवरील फोटो वापरल्यास ॲडमिन तपासणीत
+                  <strong>सुरक्षा नियम:</strong> दुसऱ्या व्यक्तीचा किंवा इंटरनेटवरील फोटो वापरल्यास ॲडमिन तपासणीत
                   खाते तात्काळ बाद (Block) केले जाऊ शकते.
                 </span>
               </div>

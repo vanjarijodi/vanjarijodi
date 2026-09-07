@@ -144,6 +144,14 @@ export interface UserProfile {
   kuldaivat?: string;
   isFeatured: boolean;
   isApproved: boolean;
+  isEmailVerified?: boolean;
+  emailVerifiedAt?: string;
+  isSuspended?: boolean;
+  suspendedReason?: string;
+  rejectionReason?: string;
+  blockedUserIds?: string[];
+  biodataPdfUrl?: string;
+  biodataPdfName?: string;
   membership: MembershipTier;
   createdAt: string;
   lastActive: string;
@@ -341,6 +349,11 @@ export interface SearchFilterState {
   income: string;
   maritalStatus: string;
   subCaste: string;
+  gotra?: string;
+  minHeight?: string;
+  maxHeight?: string;
+  photoOnly?: boolean;
+  manglik?: string;
   verifiedOnly: boolean;
 }
 

@@ -35,14 +35,16 @@ export const VanjariJodiLogo: React.FC<LogoProps> = ({
   }, [customLogoUrl]);
 
   // SVG Emblem matching the Bride & Groom Heart-Circle Emblem
-  const renderSVGEmblem = (extraClass = '') => (
-    <svg
-      viewBox="0 0 240 240"
-      style={{ width: `${Math.min(size, 40)}px`, height: `${Math.min(size, 40)}px` }}
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={`inline-block shrink-0 max-h-[40px] object-contain ${extraClass}`}
-    >
+  const renderSVGEmblem = (extraClass = '') => {
+    const emblemSize = variant === 'full' ? Math.min(size, 44) : size;
+    return (
+      <svg
+        viewBox="0 0 240 240"
+        style={{ width: `${emblemSize}px`, height: `${emblemSize}px` }}
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className={`inline-block shrink-0 object-contain ${extraClass}`}
+      >
       <defs>
         {/* Soft Background Radial */}
         <radialGradient id="vjBgSoft" cx="50%" cy="50%" r="50%">
@@ -165,28 +167,29 @@ export const VanjariJodiLogo: React.FC<LogoProps> = ({
       />
     </svg>
   );
+};
 
   // If custom logo URL is provided by admin, wrap it inside a beautiful container
   // that provides perfect contrast on any background (light or dark) and maintains ratio.
   const renderCustomLogoImg = (imgHeight = size) => {
-    const adjustedHeight = Math.min(imgHeight, 40);
+    const adjustedHeight = variant === 'full' ? Math.min(imgHeight, 40) : imgHeight;
     return (
       <div 
-        className="flex items-center justify-center bg-white/95 backdrop-blur-md rounded-xl px-2 py-1 shadow-xs border border-amber-300/80 shrink-0 select-none overflow-hidden transition-all duration-300 max-h-[40px]"
+        className="flex items-center justify-center bg-white/95 backdrop-blur-md rounded-xl px-2 py-1 shadow-xs border border-amber-300/80 shrink-0 select-none overflow-hidden transition-all duration-300"
         style={{ 
           height: `${adjustedHeight}px`,
           minWidth: `${adjustedHeight}px`,
-          maxWidth: '180px',
+          maxWidth: `${adjustedHeight * 3}px`,
         }}
       >
         <img
           src={customLogoUrl}
           alt={logoTitle}
           style={{ 
-            maxHeight: '36px',
+            maxHeight: `${Math.round(adjustedHeight * 0.9)}px`,
             maxWidth: '100%',
           }}
-          className="object-contain max-h-[36px] shrink-0"
+          className="object-contain shrink-0"
           referrerPolicy="no-referrer"
           onError={() => {
             setImgError(true);
@@ -200,13 +203,13 @@ export const VanjariJodiLogo: React.FC<LogoProps> = ({
 
   // If set to hide text or variant is emblem, only render the image/graphic itself
   if (variant === 'emblem' || hideLogoText) {
-    return <div className={`inline-flex items-center justify-center shrink-0 max-h-[44px] ${className}`}>{logoGraphic}</div>;
+    return <div className={`inline-flex items-center justify-center shrink-0 ${className}`}>{logoGraphic}</div>;
   }
 
   if (variant === 'stacked') {
     return (
-      <div className={`flex flex-col items-center text-center space-y-1 px-3 ${className}`}>
-        <div className="relative transform hover:scale-105 transition-transform duration-300 max-h-[44px] flex items-center justify-center">
+      <div className={`flex flex-col items-center text-center space-y-1.5 px-2 ${className}`}>
+        <div className="relative transform hover:scale-105 transition-transform duration-300 flex items-center justify-center shrink-0">
           {logoGraphic}
         </div>
 

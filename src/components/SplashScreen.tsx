@@ -11,26 +11,26 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
   const [fade, setFade] = useState(false);
 
   useEffect(() => {
-    // Progress bar simulation
+    // Quick, smooth progress
     const progressInterval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
           clearInterval(progressInterval);
           return 100;
         }
-        return prev + 4;
+        return prev + 10;
       });
-    }, 70);
+    }, 80);
 
-    // Fade out trigger slightly before completion callback
+    // Fade out trigger
     const fadeTimeout = setTimeout(() => {
       setFade(true);
-    }, 2200);
+    }, 950);
 
     // Completion callback
     const completeTimeout = setTimeout(() => {
       onComplete();
-    }, 2500);
+    }, 1200);
 
     return () => {
       clearInterval(progressInterval);
