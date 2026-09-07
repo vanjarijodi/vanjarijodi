@@ -7,7 +7,7 @@ import {
   onSnapshot,
   getDocs
 } from 'firebase/firestore';
-import { UserProfile, SiteConfig, ChatMessage, SuccessStory, PaymentRequest, ContactRequest, AdminSupportMessage, NotificationItem, PaymentConfig, Plan } from '../types';
+import { UserProfile, SiteConfig, ChatMessage, SuccessStory, PaymentRequest, ContactRequest, AdminSupportMessage, NotificationItem, PaymentConfig, Plan, BusinessVendor } from '../types';
 
 export const DEFAULT_PAYMENT_CONFIG: PaymentConfig = {
   upiId: 'paytm.s3ms5x7@pty',
@@ -334,4 +334,41 @@ export const savePlansToFirestore = async (plans: Plan[]): Promise<boolean> => {
     return false;
   }
 };
+
+// Real-time Business Vendors & Mangal Karyalaya listener (Collection: business_vendors)
+export const listenToBusinessVendors = (
+  onUpdate: (vendors: BusinessVendor[]) => void,
+  initialSeed?: BusinessVendor[]
+) => {
+  try {
+    const colRef = collection(db, 'business_vendors');
+    return onSnapshot(colRef, async (snapshot) => {
+      if (snapshot.empty && initialSeed && initialSeed.length > 0) {
+        for (const v of initialSeed) {
+          if (v && v.id) {
+            syncDocToFirestore('business_vendors', v.id, v);
+          }
+        }
+        onUpdate(initialSeed);
+      } else {
+        const items: BusinessVendor[] = [];
+        snapshot.forEach((d) => {
+          const data = d.data() as BusinessVendor;
+          if (data && data.id) {
+            items.push(data);
+          }
+        });
+        if (items.length > 0) {
+          onUpdate(items);
+        }
+      }
+    }, (err) => {
+      console.warn('Firestore snapshot error for business_vendors:', err);
+    });
+  } catch (err) {
+    console.warn('Firestore listen error for business_vendors:', err);
+    return () => {};
+  }
+};
+
 

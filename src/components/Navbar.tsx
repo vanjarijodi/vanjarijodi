@@ -50,6 +50,7 @@ export const Navbar: React.FC<{
     setIsLeftDrawerOpen,
     setIsRightDrawerOpen,
     setIsBusinessVendorDirectoryOpen,
+    setIsBusinessVendorRegisterModalOpen,
     setIsBioDataMakerOpen,
     setIsUserSecurityOpen,
     setIsAdminSecurityOpen,
@@ -60,6 +61,7 @@ export const Navbar: React.FC<{
   } = useApp();
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isVendorStripDismissed, setIsVendorStripDismissed] = useState(false);
   const isEn = language === 'en';
 
   const unreadNotificationCount = notifications.filter(
@@ -90,6 +92,17 @@ export const Navbar: React.FC<{
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Wedding Vendor Registration Button (Catering, Decor, Flowers, Halls etc.) */}
+          <button
+            onClick={() => setIsBusinessVendorRegisterModalOpen(true)}
+            className="px-2.5 sm:px-3 py-0.5 rounded-md bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-300 hover:to-amber-200 text-slate-950 font-black text-[10px] sm:text-[11px] flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs border border-amber-200 shrink-0"
+            title={isEn ? 'Vendor Registration (Catering, Decoration, Florist, Hall)' : 'व्हेंडर नोंदणी — जेवण, डेकोरेशन, फुलवाले, हॉल (दर व माहिती भरा)'}
+          >
+            <Handshake className="w-3.5 h-3.5 text-slate-950" />
+            <span>{isEn ? '🤝 Vendor Registration' : '🤝 व्हेंडर नोंदणी (Vendor Registration)'}</span>
+            <span className="text-[9px] bg-[#800C1E] text-amber-200 px-1.5 py-0.2 rounded font-black">दर व माहिती</span>
+          </button>
+
           {/* Top Bar Share App Button */}
           <button
             onClick={() => setIsAppShareOpen(true)}
@@ -213,6 +226,17 @@ export const Navbar: React.FC<{
 
             {/* DESKTOP-ONLY EXTRA BADGES (Language, VIP, APK, Menu) */}
             <div className="hidden md:flex items-center gap-2">
+              {/* Vendor Registration Button (Catering, Decor, Florist, Hall etc.) */}
+              <button
+                onClick={() => setIsBusinessVendorRegisterModalOpen(true)}
+                className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-100 to-orange-100 hover:from-amber-200 hover:to-orange-200 text-[#800C1E] border border-amber-300 font-black text-xs transition-all shadow-xs cursor-pointer active:scale-95 shrink-0"
+                title="व्हेंडर नोंदणी — जेवण, डेकोरेशन, फुलवाले, मंगल कार्यालय (दर व माहिती भरा)"
+              >
+                <Handshake className="w-4 h-4 text-[#800C1E]" />
+                <span>🤝 व्हेंडर नोंदणी</span>
+                <span className="text-[9px] bg-[#800C1E] text-amber-100 px-1.5 py-0.5 rounded font-bold">दर व माहिती</span>
+              </button>
+
               {/* Dual Language Toggle */}
               <div className="flex items-center p-0.5 bg-slate-100 border border-slate-200 rounded-xl text-[11px] font-black shadow-inner">
                 <button
@@ -325,6 +349,24 @@ export const Navbar: React.FC<{
                         </div>
                         <span className="text-[9px] bg-[#A71930] text-amber-100 px-1.5 py-0.5 rounded font-bold">
                           10% OFF
+                        </span>
+                      </button>
+                    )}
+
+                    {siteConfig?.enableBusinessVendors !== false && (
+                      <button
+                        onClick={() => {
+                          setIsBusinessVendorRegisterModalOpen(true);
+                          setMenuOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 hover:from-amber-300 hover:to-orange-300 text-slate-950 font-black cursor-pointer border border-amber-300 shadow-sm"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Handshake className="w-4 h-4 text-slate-950" />
+                          <span>{isEn ? '🤝 Vendor Registration' : '🤝 व्हेंडर नोंदणी (Vendor Registration)'}</span>
+                        </div>
+                        <span className="text-[9px] bg-slate-950 text-amber-300 px-1.5 py-0.5 rounded font-black">
+                          दर नोंदवा
                         </span>
                       </button>
                     )}
@@ -464,6 +506,42 @@ export const Navbar: React.FC<{
 
         </div>
       </div>
+
+      {/* 🤝 PROMINENT WEDDING VENDOR CALLOUT STRIP */}
+      {!isVendorStripDismissed && siteConfig?.enableBusinessVendors !== false && (
+        <div className="w-full bg-gradient-to-r from-[#800C1E] via-[#9B1229] to-[#800C1E] text-amber-100 py-1.5 px-3 sm:px-6 flex items-center justify-between gap-2 border-b border-amber-400/40 shadow-xs z-30">
+          <div className="flex items-center gap-2 min-w-0 truncate">
+            <span className="p-1 rounded-lg bg-amber-400 text-slate-950 shadow-xs shrink-0 flex items-center justify-center font-black animate-pulse">
+              <Handshake className="w-3.5 h-3.5" />
+            </span>
+            <div className="min-w-0 truncate flex items-center gap-1.5">
+              <span className="font-black text-xs text-amber-300 truncate">
+                🤝 {isEn ? 'Vendor Registration:' : 'व्हेंडर नोंदणी (Vendor Registration):'}
+              </span>
+              <span className="text-[11px] font-semibold text-white hidden sm:inline truncate">
+                {isEn ? 'Catering, Decoration, Florists, Halls — Submit Rates & Details' : 'जेवण (कॅटरिंग), डेकोरेशन, फुलवाले, मंगल कार्यालय — आपले दर व माहिती भरा'}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setIsBusinessVendorRegisterModalOpen(true)}
+              className="px-3 py-1 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 text-slate-950 font-black text-xs shrink-0 active:scale-95 shadow-sm border border-amber-200 flex items-center gap-1 cursor-pointer transition-all"
+            >
+              <span>{isEn ? 'Register Rates & Info →' : 'दर व माहिती भरा →'}</span>
+            </button>
+            <button
+              onClick={() => setIsVendorStripDismissed(true)}
+              className="p-1 text-amber-200/70 hover:text-white hover:bg-black/20 rounded-full transition cursor-pointer"
+              title={isEn ? 'Close' : 'बंद करा'}
+              aria-label="Close"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Notice Banner strip rendered directly below the main white logo bar */}
       <NoticeBanner />

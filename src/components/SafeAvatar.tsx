@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Heart } from 'lucide-react';
+import { User, Heart, Lock } from 'lucide-react';
 
 interface SafeAvatarProps {
   src?: string | null;
@@ -8,6 +8,7 @@ interface SafeAvatarProps {
   gender?: string;
   className?: string;
   sizeClassName?: string;
+  isBlurred?: boolean;
   onClick?: () => void;
 }
 
@@ -18,6 +19,7 @@ export const SafeAvatar: React.FC<SafeAvatarProps> = ({
   gender = 'groom',
   className = '',
   sizeClassName = 'w-14 h-14',
+  isBlurred = false,
   onClick,
 }) => {
   const [hasError, setHasError] = useState(false);
@@ -48,14 +50,23 @@ export const SafeAvatar: React.FC<SafeAvatarProps> = ({
       } ${sizeClassName} ${className}`}
     >
       {!hasError && imageSrc ? (
-        <img
-          src={imageSrc}
-          alt={alt || name}
-          onError={() => setHasError(true)}
-          className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-          referrerPolicy="no-referrer"
-          loading="lazy"
-        />
+        <>
+          <img
+            src={imageSrc}
+            alt={alt || name}
+            onError={() => setHasError(true)}
+            className={`w-full h-full object-cover transition-transform duration-300 hover:scale-105 ${
+              isBlurred ? 'filter blur-md scale-110 opacity-70' : ''
+            }`}
+            referrerPolicy="no-referrer"
+            loading="lazy"
+          />
+          {isBlurred && (
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center">
+              <Lock className="w-4 h-4 text-amber-300 drop-shadow" />
+            </div>
+          )}
+        </>
       ) : (
         <div className="w-full h-full flex flex-col items-center justify-center font-black text-sm select-none">
           {initial ? (

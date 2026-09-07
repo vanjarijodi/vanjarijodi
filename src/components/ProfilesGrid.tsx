@@ -11,6 +11,7 @@ import { getProfessionBadges, getTagStyleClass } from '../utils/professionUtils'
 import { formatProfileDisplayName } from '../utils/nameFormatter';
 import { transliterateMarathiToEnglish } from '../utils/transliterate';
 import { calculateMatchScore } from '../utils/matchScore';
+import { getPhotoAccessStatus } from '../utils/photoAccess';
 import {
   ShieldCheck,
   Heart,
@@ -67,6 +68,8 @@ export const ProfilesGrid: React.FC<{
     setIsLoginOpen,
     setLoginModalMode,
     setIsRegisterOpen,
+    setIsPaymentOpen,
+    isProfilePlanExpired,
   } = useApp();
 
   // Smart Initial Gender Selection:
@@ -505,6 +508,14 @@ export const ProfilesGrid: React.FC<{
                 profile.id
               );
               const mainPhoto = profile.photos?.[0] || profile.photoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500';
+              const photoAccess = getPhotoAccessStatus({
+                currentUser,
+                targetProfile: profile,
+                isProfilePlanExpired,
+                isMutualMatch: Boolean(isMutualMatch),
+                siteConfig,
+              });
+              const isListPhotoBlurred = photoAccess.isBlurred;
 
               return (
                 <div
@@ -512,12 +523,21 @@ export const ProfilesGrid: React.FC<{
                   className="bg-white border border-amber-200 rounded-2xl p-3 shadow-xs hover:border-[#800C1E] transition flex flex-col sm:flex-row items-center justify-between gap-4"
                 >
                   <div className="flex items-center gap-3.5 w-full sm:w-auto">
-                    <img
-                      src={mainPhoto}
-                      alt={displayName}
-                      className="w-16 h-16 rounded-xl object-cover border border-amber-300 shrink-0 cursor-pointer"
+                    <div
+                      className="relative w-16 h-16 rounded-xl overflow-hidden border border-amber-300 shrink-0 cursor-pointer"
                       onClick={() => handleOpenProfileModal(profile)}
-                    />
+                    >
+                      <img
+                        src={mainPhoto}
+                        alt={displayName}
+                        className={`w-full h-full object-cover ${isListPhotoBlurred ? 'filter blur-md scale-110 opacity-70' : ''}`}
+                      />
+                      {isListPhotoBlurred && (
+                        <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center">
+                          <Lock className="w-5 h-5 text-amber-300 drop-shadow" />
+                        </div>
+                      )}
+                    </div>
                     <div>
                       <div className="flex items-center gap-2">
                         <h4
@@ -604,24 +624,23 @@ export const ProfilesGrid: React.FC<{
                 (interests.some((i) => i.fromUserId === profile.id && i.toUserId === currentUser.id) || (profile.shortlistedByUsers || []).includes(currentUser.id))
               );
 
+              const isUnapprovedUser = Boolean(currentUser && currentUser.isApproved === false && !currentUser.isAdmin);
+
               // Match score with logged-in user
               const matchScore = calculateMatchScore(currentUser, profile);
 
-              // Photo blurring logic
-              const isOverride = siteConfig?.adminOverrideMemberPrivacy === true;
-              const isGuest = !currentUser || currentUser?.id?.startsWith('guest') || currentUser?.isGuest;
-              const isUnapprovedUser = Boolean(currentUser && currentUser.isApproved === false && !currentUser.isAdmin);
-              const isPhotoBlurred = isAuthorized ? false : (
-                isGuest ||
-                isUnapprovedUser ||
-                (profile.privacy?.hidePhoto && !isOverride) ||
-                siteConfig?.blurPhotosForFreeUsers === true ||
-                siteConfig?.blurProfilePhotos === true ||
-                (!currentUser && siteConfig?.allowPublicVisitorsToViewPhotos === false)
-              );
+              // Strict Photo Access Verification (Paid members only)
+              const photoAccess = getPhotoAccessStatus({
+                currentUser,
+                targetProfile: profile,
+                isProfilePlanExpired,
+                isMutualMatch: Boolean(isMutualMatch),
+                siteConfig,
+              });
+              const isPhotoBlurred = photoAccess.isBlurred;
 
-              const blurPct = siteConfig?.photoBlurPercentage || 50;
-              const blurClass = blurPct >= 100 ? 'blur-2xl scale-125' : blurPct >= 75 ? 'blur-lg scale-110' : blurPct >= 50 ? 'blur-md scale-105' : 'blur-xs scale-102';
+              const blurPct = siteConfig?.photoBlurPercentage || 80;
+              const blurClass = blurPct >= 100 ? 'blur-2xl scale-125' : blurPct >= 75 ? 'blur-lg scale-110' : 'blur-md scale-105';
 
               const photosArray = profile.photos && profile.photos.length > 0
                 ? profile.photos
@@ -685,6 +704,15 @@ export const ProfilesGrid: React.FC<{
                       fullName={formatProfileDisplayName(profile.fullName, currentUser, false, isAuthorized || Boolean(isMutualMatch), siteConfig, language, Boolean(isMutualMatch), profile.id)}
                       isBlurred={isPhotoBlurred}
                       blurClass={blurClass}
+                      lockMessage={photoAccess.message}
+                      onLockClick={() => {
+                        if (!currentUser || currentUser.isGuest) {
+                          setLoginModalMode('member_otp');
+                          setIsLoginOpen(true);
+                        } else {
+                          setIsPaymentOpen(true);
+                        }
+                      }}
                       onPhotoClick={() => handleOpenProfileModal(profile)}
                       aspectRatioClass="w-full h-full"
                     />

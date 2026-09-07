@@ -36,6 +36,7 @@ import { formatProfileDisplayName } from '../utils/nameFormatter';
 import { transliterateMarathiToEnglish } from '../utils/transliterate';
 import { calculateMatchScore } from '../utils/matchScore';
 import { getProfessionBadges, getTagStyleClass } from '../utils/professionUtils';
+import { getPhotoAccessStatus } from '../utils/photoAccess';
 
 interface FullMobileInstaDeckProps {
   profiles: UserProfile[];
@@ -61,6 +62,10 @@ export const FullMobileInstaDeck: React.FC<FullMobileInstaDeckProps> = ({
     language,
     isContactAuthorizedForUser,
     t,
+    isProfilePlanExpired,
+    setIsLoginOpen,
+    setLoginModalMode,
+    setIsPaymentOpen,
   } = useApp();
 
   const isEn = language === 'en';
@@ -112,20 +117,18 @@ export const FullMobileInstaDeck: React.FC<FullMobileInstaDeckProps> = ({
 
   const matchScore = calculateMatchScore(currentUser, currentProfile);
 
-  // Blur photos logic
-  const isOverride = siteConfig?.adminOverrideMemberPrivacy === true;
-  const isGuest = !currentUser || currentUser?.id?.startsWith('guest') || currentUser?.isGuest;
-  const isPhotoBlurred = isAuthorized ? false : (
-    isGuest ||
-    isUnapprovedUser ||
-    (currentProfile.privacy?.hidePhoto && !isOverride) ||
-    siteConfig?.blurPhotosForFreeUsers === true ||
-    siteConfig?.blurProfilePhotos === true ||
-    (!currentUser && siteConfig?.allowPublicVisitorsToViewPhotos === false)
-  );
+  // Strict Photo Access Verification (Paid members only)
+  const photoAccess = getPhotoAccessStatus({
+    currentUser,
+    targetProfile: currentProfile,
+    isProfilePlanExpired,
+    isMutualMatch: Boolean(isMutualMatch),
+    siteConfig,
+  });
+  const isPhotoBlurred = photoAccess.isBlurred;
 
-  const blurPct = siteConfig?.photoBlurPercentage || 50;
-  const blurClass = blurPct >= 100 ? 'blur-2xl scale-125' : blurPct >= 75 ? 'blur-lg scale-110' : blurPct >= 50 ? 'blur-md scale-105' : 'blur-xs scale-102';
+  const blurPct = siteConfig?.photoBlurPercentage || 80;
+  const blurClass = blurPct >= 100 ? 'blur-2xl scale-125' : blurPct >= 75 ? 'blur-lg scale-110' : 'blur-md scale-105';
 
   const photosArray = currentProfile.photos && currentProfile.photos.length > 0
     ? currentProfile.photos
@@ -245,6 +248,15 @@ export const FullMobileInstaDeck: React.FC<FullMobileInstaDeckProps> = ({
                 fullName={currentProfile.fullName}
                 isBlurred={isPhotoBlurred}
                 blurClass={blurClass}
+                lockMessage={photoAccess.message}
+                onLockClick={() => {
+                  if (!currentUser || currentUser.isGuest) {
+                    setLoginModalMode('member_otp');
+                    setIsLoginOpen(true);
+                  } else {
+                    setIsPaymentOpen(true);
+                  }
+                }}
                 onDoubleTapLike={handleLike}
                 onPhotoClick={() => onSelectProfile(currentProfile)}
                 aspectRatioClass="w-full h-full"

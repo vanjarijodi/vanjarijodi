@@ -9,6 +9,8 @@ interface InstagramPhotoCarouselProps {
   fullName?: string;
   isBlurred?: boolean;
   blurClass?: string;
+  lockMessage?: string;
+  onLockClick?: () => void;
   onPhotoClick?: () => void;
   onDoubleTapLike?: () => void;
   className?: string;
@@ -21,7 +23,9 @@ export const InstagramPhotoCarousel: React.FC<InstagramPhotoCarouselProps> = ({
   defaultGender = 'bride',
   fullName = 'Profile',
   isBlurred = false,
-  blurClass = 'blur-md',
+  blurClass = 'blur-lg',
+  lockMessage,
+  onLockClick,
   onPhotoClick,
   onDoubleTapLike,
   className = '',
@@ -224,11 +228,26 @@ export const InstagramPhotoCarousel: React.FC<InstagramPhotoCarouselProps> = ({
                 }`}
               />
               {isBlurred && (
-                <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs flex flex-col items-center justify-center gap-1.5 p-4 text-center">
-                  <Lock className="w-7 h-7 text-amber-300 drop-shadow" />
-                  <span className="text-xs font-black text-amber-200 bg-slate-950/85 px-3 py-1 rounded-full border border-amber-300/40 shadow-lg">
-                    🔒 फोटो पाहण्यासाठी लॉगिन करा
+                <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 p-4 text-center z-10 select-none">
+                  <div className="p-2.5 rounded-full bg-slate-950/80 border border-amber-300/40 text-amber-300 shadow-xl">
+                    <Lock className="w-7 h-7 text-amber-300 drop-shadow" />
+                  </div>
+                  <span className="text-xs font-black text-amber-200 bg-slate-950/90 px-3.5 py-1.5 rounded-xl border border-amber-300/40 shadow-lg max-w-[85%] leading-snug">
+                    {lockMessage || '🔒 फोटो फक्त शुल्क भरलेल्या सदस्यांसाठीच (Paid Members Only)'}
                   </span>
+                  {onLockClick && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onLockClick();
+                      }}
+                      className="mt-1 px-4 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs rounded-full shadow-lg flex items-center gap-1.5 active:scale-95 cursor-pointer pointer-events-auto border border-amber-300/60"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-slate-950 fill-slate-950" />
+                      <span>शुल्क भरा / प्लॅन्स पहा</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>

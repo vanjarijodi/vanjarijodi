@@ -14,6 +14,7 @@ import { getProfessionBadges, getTagStyleClass } from '../utils/professionUtils'
 import { formatProfileDisplayName } from '../utils/nameFormatter';
 import { transliterateMarathiToEnglish } from '../utils/transliterate';
 import { uploadToCloudinary, compressAndResizeImage } from '../utils/cloudinary';
+import { getPhotoAccessStatus } from '../utils/photoAccess';
 import {
   X,
   ShieldCheck,
@@ -94,6 +95,10 @@ export const ProfileDetailModal: React.FC<{
     toggleBlockMemberAccess,
     toggleProfileVisibility,
     uploadAadhaarCard,
+    isProfilePlanExpired,
+    setIsLoginOpen,
+    setLoginModalMode,
+    setIsPaymentOpen,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'personal' | 'family' | 'horoscope' | 'expectations'>('personal');
@@ -244,6 +249,16 @@ export const ProfileDetailModal: React.FC<{
     (likedProfileIds.includes(profile.id) || !!interestObj) &&
     (interests.some((i) => i.fromUserId === profile.id && i.toUserId === currentUser.id) || (profile.shortlistedByUsers || []).includes(currentUser.id))
   );
+
+  // Strict Photo Access Verification (Paid members only)
+  const photoAccess = getPhotoAccessStatus({
+    currentUser,
+    targetProfile: profile,
+    isProfilePlanExpired,
+    isMutualMatch: Boolean(isMutualMatch),
+    siteConfig,
+  });
+  const isPhotoBlurred = photoAccess.isBlurred;
 
   const handleShareWhatsApp = () => {
     const text = `*वंजारीजोडी बायोडाटा:* ${profile.fullName} (${profile.age} वर्षे, ${profile.education}, ${profile.district})\nअधिक माहितीसाठी VanjariJodi App पहा.`;
@@ -1157,22 +1172,30 @@ export const ProfileDetailModal: React.FC<{
                     photos={profile.photos && profile.photos.length > 0 ? profile.photos : (profile.photoUrl ? [profile.photoUrl] : [])}
                     defaultGender={profile.gender}
                     fullName={profile.fullName}
-                    isBlurred={(() => {
-                      const isOverride = siteConfig?.adminOverrideMemberPrivacy === true;
-                      const isGuest = !currentUser || currentUser?.id?.startsWith('guest') || currentUser?.isGuest;
-                      const isUnapprovedUser = Boolean(currentUser && currentUser.isApproved === false && !currentUser.isAdmin);
-                      return isAuthorized ? false : (
-                        isGuest ||
-                        isUnapprovedUser ||
-                        (profile.privacy?.hidePhoto && !isOverride) ||
-                        siteConfig?.blurPhotosForFreeUsers === true ||
-                        siteConfig?.blurProfilePhotos === true ||
-                        (!currentUser && siteConfig?.allowPublicVisitorsToViewPhotos === false)
-                      );
-                    })()}
-                    blurClass="blur-lg scale-110"
+                    isBlurred={isPhotoBlurred}
+                    blurClass="blur-xl scale-110"
+                    lockMessage={photoAccess.message}
+                    onLockClick={() => {
+                      if (!currentUser || currentUser.isGuest) {
+                        setLoginModalMode('member_otp');
+                        setIsLoginOpen(true);
+                      } else {
+                        setIsPaymentOpen(true);
+                      }
+                    }}
                     aspectRatioClass="h-64 sm:h-76"
-                    onPhotoClick={() => setIsLightboxOpen(true)}
+                    onPhotoClick={() => {
+                      if (isPhotoBlurred) {
+                        if (!currentUser || currentUser.isGuest) {
+                          setLoginModalMode('member_otp');
+                          setIsLoginOpen(true);
+                        } else {
+                          setIsPaymentOpen(true);
+                        }
+                      } else {
+                        setIsLightboxOpen(true);
+                      }
+                    }}
                   />
                 </div>
 
@@ -1183,7 +1206,18 @@ export const ProfileDetailModal: React.FC<{
                   </span>
                   <button
                     type="button"
-                    onClick={() => setIsLightboxOpen(true)}
+                    onClick={() => {
+                      if (isPhotoBlurred) {
+                        if (!currentUser || currentUser.isGuest) {
+                          setLoginModalMode('member_otp');
+                          setIsLoginOpen(true);
+                        } else {
+                          setIsPaymentOpen(true);
+                        }
+                      } else {
+                        setIsLightboxOpen(true);
+                      }
+                    }}
                     className="text-[#A71930] hover:underline font-bold flex items-center gap-1 cursor-pointer"
                   >
                     <Maximize2 className="w-3 h-3" />
@@ -2266,13 +2300,40 @@ export const ProfileDetailModal: React.FC<{
 
           {/* Lightbox Main Image with Watermark */}
           <div className="relative flex-1 w-full max-w-4xl flex items-center justify-center my-2 overflow-hidden">
-            <SecurityWatermarkOverlay className="w-full h-full max-h-[75vh] flex items-center justify-center rounded-2xl overflow-hidden border-2 border-amber-400/30 shadow-2xl bg-black">
+            <SecurityWatermarkOverlay className="w-full h-full max-h-[75vh] flex items-center justify-center rounded-2xl overflow-hidden border-2 border-amber-400/30 shadow-2xl bg-black relative">
               <img
                 src={profile.photos?.[selectedPhotoIndex] || profile.photos?.[0] || profile.photoUrl || (profile.gender === 'bride' ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600' : 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600')}
                 alt="fullscreen profile photo"
                 referrerPolicy="no-referrer"
-                className="max-h-[75vh] max-w-full object-contain rounded-2xl shadow-2xl pointer-events-none"
+                className={`max-h-[75vh] max-w-full object-contain rounded-2xl shadow-2xl pointer-events-none ${
+                  isPhotoBlurred ? 'filter blur-2xl scale-110 opacity-60' : ''
+                }`}
               />
+              {isPhotoBlurred && (
+                <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-xs flex flex-col items-center justify-center gap-3 p-6 text-center z-30">
+                  <div className="p-3 rounded-full bg-black/80 border border-amber-300 text-amber-300 shadow-xl">
+                    <Lock className="w-8 h-8 text-amber-300" />
+                  </div>
+                  <p className="text-amber-200 font-bold text-sm max-w-sm drop-shadow">
+                    {photoAccess.message}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsLightboxOpen(false);
+                      if (!currentUser || currentUser.isGuest) {
+                        setLoginModalMode('member_otp');
+                        setIsLoginOpen(true);
+                      } else {
+                        setIsPaymentOpen(true);
+                      }
+                    }}
+                    className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs rounded-full shadow-lg border border-amber-300/60 cursor-pointer"
+                  >
+                    शुल्क भरा / सबस्क्रिप्शन प्लॅन निवडा
+                  </button>
+                </div>
+              )}
             </SecurityWatermarkOverlay>
           </div>
 

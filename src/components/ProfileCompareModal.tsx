@@ -1,9 +1,10 @@
 import React from 'react';
 import { UserProfile } from '../types';
 import { VerifiedBadge } from './VerifiedBadge';
-import { X, Scale, Heart, Sparkles, MapPin, Briefcase, GraduationCap, Calendar, Check, Scroll } from 'lucide-react';
+import { X, Scale, Heart, Sparkles, MapPin, Briefcase, GraduationCap, Calendar, Check, Scroll, Lock } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatProfileDisplayName } from '../utils/nameFormatter';
+import { getPhotoAccessStatus } from '../utils/photoAccess';
 
 interface ProfileCompareModalProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ export const ProfileCompareModal: React.FC<ProfileCompareModalProps> = ({
     isContactAuthorizedForUser,
     interests,
     isAdminLoggedIn,
+    isProfilePlanExpired,
   } = useApp();
 
   if (!isOpen || profilesToCompare.length === 0) return null;
@@ -89,6 +91,14 @@ export const ProfileCompareModal: React.FC<ProfileCompareModalProps> = ({
                 isMutualMatch,
                 profile.id
               );
+              const photoAccess = getPhotoAccessStatus({
+                currentUser,
+                targetProfile: profile,
+                isProfilePlanExpired,
+                isMutualMatch,
+                siteConfig,
+              });
+              const isPhotoBlurred = photoAccess.isBlurred;
 
               return (
                 <div
@@ -111,8 +121,13 @@ export const ProfileCompareModal: React.FC<ProfileCompareModalProps> = ({
                       <img
                         src={mainPhoto}
                         alt={displayName}
-                        className="w-full h-full object-cover"
+                        className={`w-full h-full object-cover ${isPhotoBlurred ? 'filter blur-md scale-110 opacity-70' : ''}`}
                       />
+                      {isPhotoBlurred && (
+                        <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center">
+                          <Lock className="w-6 h-6 text-amber-300 drop-shadow" />
+                        </div>
+                      )}
                       {profile.isVerified && (
                         <div className="absolute bottom-1 right-1 bg-emerald-500 text-white p-1 rounded-full shadow">
                           <VerifiedBadge profile={profile} size="sm" />

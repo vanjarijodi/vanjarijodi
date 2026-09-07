@@ -680,8 +680,21 @@ export interface BusinessVendor {
   address?: string;
   mobile: string;
   whatsapp?: string;
+  alternatePhone?: string;
   email?: string;
   ratesAndPackages: string; // उदा. रु. १५,००० प्रति दिवस / रु. २५० प्रति ताट
+  hallRentDay?: string; // एका दिवसाचे / १ शिफ्टचे हॉल भाडे
+  perPlateRate?: string; // प्रति ताट / जेवणाचे दर
+  packageRate?: string; // एकत्रित पॅकेज दर
+  advanceBookingAmount?: string; // ॲडव्हान्स बुकिंग रक्कम
+  cancellationPolicy?: string; // रद्द करण्याचे नियम
+  hallCapacity?: string; // बैठक क्षमता (उदा. ५००, १००० लोक)
+  hallType?: string; // AC / Non-AC / Open Lawn / दोन्ही
+  roomsCount?: string; // खोल्यांची संख्या
+  diningHallAvailable?: string; // जेवणाचा स्वतंत्र हॉल
+  parkingCapacity?: string; // पार्किंग क्षमता
+  amenities?: string[]; // जनरेटर, AC, CCTV, इ.
+  googleMapLocation?: string; // गुगल मॅप्स लिंक
   memberDiscount?: string; // उदा. वंजारी जोडी सदस्यांना ५% किंवा १०% डिस्काउंट
   commissionRate?: string; // उदा. ५% कमिशन, १०% कमिशन
   photoUrl?: string;

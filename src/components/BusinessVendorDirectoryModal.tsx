@@ -209,9 +209,9 @@ export const BusinessVendorDirectoryModal: React.FC<{
               onClose();
               setIsBusinessVendorRegisterModalOpen(true);
             }}
-            className="px-2.5 py-1 bg-amber-500 text-slate-950 font-bold rounded-lg text-[11px]"
+            className="px-2.5 py-1 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black rounded-lg text-[11px] shadow-xs cursor-pointer flex items-center gap-1"
           >
-            + व्यवसाय जोडा
+            <span>+ 🤝 व्हेंडर नोंदणी (दर नोंदवा)</span>
           </button>
         </div>
 

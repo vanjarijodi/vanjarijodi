@@ -74,6 +74,7 @@ import {
   savePaymentConfigToFirestore,
   listenToPlans,
   savePlansToFirestore,
+  listenToBusinessVendors,
   DEFAULT_PAYMENT_CONFIG
 } from '../utils/firestoreSync';
 
@@ -321,6 +322,7 @@ interface AppContextType {
   // Plan Expiry & Auto Paid Revocation
   isProfilePlanExpired: (p: UserProfile | null) => boolean;
   isCurrentUserPlanExpired: boolean;
+  isCurrentUserPaid: boolean;
 
   // APK Uploader & Download Link
   updateApkSettings: (settings: Partial<ApkSettings>) => void;
@@ -746,7 +748,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           heroSubheading: 'संत भगवान बाबा यांच्या आशीर्वादाने स्थापित - पवित्र नात्यांची सुंदर सुरुवात',
           heroDescription: 'हजारो विश्वासू वंजारी कुटुंब जोडणारा महाराष्ट्रातील नंबर १ विवाह मंच',
           logoSubtitle: parsed.logoSubtitle || 'वर-वधू शोध',
-          contactEmail: parsed.contactEmail || 'gitevijay123@gmail.com'
+          contactEmail: parsed.contactEmail || 'gitevijay123@gmail.com',
+          blurPhotosForFreeUsers: true,
+          photoBlurPercentage: parsed.photoBlurPercentage || 80,
         };
       } catch (e) {
         return {
@@ -1197,6 +1201,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const isCurrentUserPlanExpired = useMemo(() => {
     return isProfilePlanExpired(currentUser);
   }, [currentUser, plansList]);
+
+  const isCurrentUserPaid = useMemo(() => {
+    if (!currentUser) return false;
+    if (currentUser.isAdmin) return true;
+    if (currentUser.isGuest || currentUser.id?.startsWith('guest')) return false;
+    if (currentUser.isCustomAccessGranted) return true;
+    if (currentUser.membership && currentUser.membership !== 'free') {
+      return !isCurrentUserPlanExpired;
+    }
+    return false;
+  }, [currentUser, isCurrentUserPlanExpired]);
 
   // 7. Unlocked Contacts
   const [unlockedContacts, setUnlockedContacts] = useState<string[]>([]);
@@ -4895,6 +4910,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('vanjari_jodi_business_vendors', JSON.stringify(businessVendors));
   }, [businessVendors]);
 
+  // Real-time Firestore sync for Business Vendors & Mangal Karyalaya
+  useEffect(() => {
+    const unsubscribe = listenToBusinessVendors((remoteVendors) => {
+      if (remoteVendors && remoteVendors.length > 0) {
+        setBusinessVendors(remoteVendors);
+      }
+    }, INITIAL_BUSINESS_VENDORS);
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
   useEffect(() => {
     if (currentVendorUser) {
       localStorage.setItem('vanjari_jodi_current_vendor', JSON.stringify(currentVendorUser));
@@ -4918,6 +4945,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       pinPassword: vendorData.pinPassword || vendorData.mobile.slice(-4) || '1234'
     };
     setBusinessVendors((prev) => [newVendor, ...prev]);
+    syncDocToFirestore('business_vendors', newVendor.id, newVendor);
     logActivity('Business Vendor Registration', `नवीन व्यवसाय नोंदणी अर्ज: ${newVendor.businessName} (${newVendor.category}) (Status: ${newVendor.status})`);
   };
 
@@ -4925,11 +4953,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setBusinessVendors((prev) =>
       prev.map((v) => (v.id === id ? { ...v, status } : v))
     );
+    syncDocToFirestore('business_vendors', id, { status });
     logActivity('Update Vendor Status', `व्यवसाय स्टेटस बदलले: ID ${id} -> ${status}`);
   };
 
   const deleteBusinessVendor = (id: string) => {
     setBusinessVendors((prev) => prev.filter((v) => v.id !== id));
+    deleteDocFromFirestore('business_vendors', id);
     logActivity('Delete Vendor', `व्यवसाय नोंदणी हटवली: ID ${id}`);
   };
 
@@ -5217,6 +5247,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteMemberIdRequest,
         isProfilePlanExpired,
         isCurrentUserPlanExpired,
+        isCurrentUserPaid,
         updateApkSettings,
         incrementApkDownloadCount,
         updateSocialLinks,

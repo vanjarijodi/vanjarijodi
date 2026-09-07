@@ -37,6 +37,7 @@ export const LeftDrawer: React.FC = () => {
     setIsLoginOpen,
     setLoginModalMode,
     setIsBusinessVendorDirectoryOpen,
+    setIsBusinessVendorRegisterModalOpen,
     setIsBioDataMakerOpen,
     setIsUserSecurityOpen,
     setIsAdminSecurityOpen,
@@ -221,6 +222,32 @@ export const LeftDrawer: React.FC = () => {
                 <span>{isEn ? 'Home' : 'मुख्यपृष्ठ (Home)'}</span>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
+            </button>
+
+            {/* 🤝 WEDDING VENDOR REGISTRATION BUTTON */}
+            <button
+              onClick={() => {
+                setIsBusinessVendorRegisterModalOpen(true);
+                setIsLeftDrawerOpen(false);
+              }}
+              className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 hover:from-amber-300 hover:to-orange-300 text-slate-950 font-black border border-amber-300 transition-all cursor-pointer shadow-md active:scale-98"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-1.5 rounded-xl bg-slate-950 text-amber-300 shadow-xs shrink-0">
+                  <Handshake className="w-5 h-5 text-amber-300" />
+                </div>
+                <div className="text-left">
+                  <span className="block text-xs font-black text-slate-950">
+                    🤝 व्हेंडर नोंदणी (Vendor Registration)
+                  </span>
+                  <span className="block text-[10px] text-slate-900 font-extrabold">
+                    जेवण, डेकोरेशन, फुलवाले, हॉल — दर नोंदवा
+                  </span>
+                </div>
+              </div>
+              <span className="text-[10px] bg-slate-950 text-amber-300 px-2 py-0.5 rounded-full font-black shadow-xs shrink-0">
+                नोंदणी →
+              </span>
             </button>
 
             {/* WEDDING VENDORS & HALLS DIRECTORY */}

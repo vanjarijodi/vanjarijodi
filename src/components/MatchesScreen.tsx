@@ -20,6 +20,7 @@ import {
   Filter,
 } from 'lucide-react';
 import { SafeAvatar } from './SafeAvatar';
+import { getPhotoAccessStatus } from '../utils/photoAccess';
 
 export type MatchesSubTab = 'mutual' | 'you_liked' | 'liked_you' | 'contact_requests' | 'blocked';
 
@@ -42,6 +43,7 @@ export const MatchesScreen: React.FC = () => {
     setSelectedPlanForPayment,
     plansList,
     siteConfig,
+    isProfilePlanExpired,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<MatchesSubTab>('mutual');
@@ -275,6 +277,13 @@ export const MatchesScreen: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {mutualMatches.map((profile) => {
                   const isContactUnlocked = unlockedContacts.includes(profile.id);
+                  const isPhotoBlurred = getPhotoAccessStatus({
+                    currentUser,
+                    targetProfile: profile,
+                    isProfilePlanExpired,
+                    isMutualMatch: true,
+                    siteConfig,
+                  }).isBlurred;
                   return (
                     <div
                       key={profile.id}
@@ -287,6 +296,7 @@ export const MatchesScreen: React.FC = () => {
                           gender={profile.gender}
                           sizeClassName="w-14 h-14"
                           className="rounded-xl ring-2 ring-rose-400"
+                          isBlurred={isPhotoBlurred}
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
@@ -372,6 +382,13 @@ export const MatchesScreen: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {likedYouProfiles.map((profile) => {
                   const isAlreadyLikedByMe = likedProfileIds.includes(profile.id);
+                  const isPhotoBlurred = getPhotoAccessStatus({
+                    currentUser,
+                    targetProfile: profile,
+                    isProfilePlanExpired,
+                    isMutualMatch: isAlreadyLikedByMe,
+                    siteConfig,
+                  }).isBlurred;
                   return (
                     <div
                       key={profile.id}
@@ -384,6 +401,7 @@ export const MatchesScreen: React.FC = () => {
                           gender={profile.gender}
                           sizeClassName="w-14 h-14"
                           className="rounded-xl"
+                          isBlurred={isPhotoBlurred}
                         />
                         <div className="flex-1 min-w-0">
                           <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 text-[10px] font-bold">
@@ -446,7 +464,15 @@ export const MatchesScreen: React.FC = () => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {youLikedProfiles.map((profile) => (
+                {youLikedProfiles.map((profile) => {
+                  const isPhotoBlurred = getPhotoAccessStatus({
+                    currentUser,
+                    targetProfile: profile,
+                    isProfilePlanExpired,
+                    isMutualMatch: false,
+                    siteConfig,
+                  }).isBlurred;
+                  return (
                   <div
                     key={profile.id}
                     className="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-xs flex items-center justify-between"
@@ -458,6 +484,7 @@ export const MatchesScreen: React.FC = () => {
                         gender={profile.gender}
                         sizeClassName="w-10 h-10"
                         className="rounded-xl"
+                        isBlurred={isPhotoBlurred}
                       />
                       <div>
                         <h4 className="font-bold text-slate-900 text-sm truncate">
@@ -480,7 +507,8 @@ export const MatchesScreen: React.FC = () => {
                       पहा
                     </button>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

@@ -6,18 +6,30 @@ import { Printer, X, Download, FileImage, FileText, ChevronDown, ShieldCheck, Sp
 import { safeHtml2Canvas } from '../utils/safeHtml2Canvas';
 import { jsPDF } from 'jspdf';
 import { VerifiedBadge } from './VerifiedBadge';
+import { getPhotoAccessStatus } from '../utils/photoAccess';
 
 export const PrintBiodataModal: React.FC<{
   profile: UserProfile | null;
   onClose: () => void;
 }> = ({ profile, onClose }) => {
-  const { siteConfig, isContactAuthorizedForUser, currentUser, isAdminLoggedIn } = useApp();
+  const { siteConfig, isContactAuthorizedForUser, currentUser, isAdminLoggedIn, isProfilePlanExpired } = useApp();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const exportPrintRef = useRef<HTMLDivElement>(null);
 
   if (!profile) return null;
+
+  // Strict Photo Access Verification (Paid members only)
+  const isSelf = Boolean(currentUser && currentUser.id === profile.id);
+  const photoAccess = getPhotoAccessStatus({
+    currentUser,
+    targetProfile: profile,
+    isProfilePlanExpired,
+    isMutualMatch: false,
+    siteConfig,
+  });
+  const isPhotoBlurred = isSelf ? false : photoAccess.isBlurred;
 
   // Strict check for contact unlock / viewing authorization
   const isAuthorized = Boolean(
@@ -258,8 +270,14 @@ export const PrintBiodataModal: React.FC<{
                 <img
                   src={profile.photos?.[0] || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400'}
                   alt={profile.fullName}
-                  className="w-full h-full object-cover rounded-xl"
+                  className={`w-full h-full object-cover rounded-xl ${isPhotoBlurred ? 'filter blur-md scale-110 opacity-70' : ''}`}
                 />
+                {isPhotoBlurred && (
+                  <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex flex-col items-center justify-center p-1 text-center">
+                    <Lock className="w-6 h-6 text-amber-300 drop-shadow" />
+                    <span className="text-[9px] text-amber-200 font-bold mt-1 leading-tight">केवळ सशुल्क सदस्यांसाठी</span>
+                  </div>
+                )}
                 <div className="absolute bottom-1 right-1 text-[8px] bg-black/70 text-amber-300 font-bold px-1 rounded">
                   वंजारी जोडी
                 </div>
@@ -589,8 +607,20 @@ export const PrintBiodataModal: React.FC<{
                     alt={profile.fullName}
                     crossOrigin="anonymous"
                     referrerPolicy="no-referrer"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      borderRadius: '8px',
+                      filter: isPhotoBlurred ? 'blur(10px)' : 'none',
+                      opacity: isPhotoBlurred ? 0.65 : 1
+                    }}
                   />
+                  {isPhotoBlurred && (
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: '8px' }}>
+                      <span style={{ fontSize: '10px', color: '#fde047', fontWeight: 900 }}>🔒 फोटो लॉक</span>
+                    </div>
+                  )}
                 </div>
                 <span 
                   style={{ 

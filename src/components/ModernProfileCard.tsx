@@ -12,8 +12,11 @@ import {
   Lock,
   MessageCircle,
   Sparkles,
+  Crown,
 } from 'lucide-react';
 import { SafeAvatar } from './SafeAvatar';
+import { getPhotoAccessStatus } from '../utils/photoAccess';
+import { formatProfileDisplayName } from '../utils/nameFormatter';
 
 interface ModernProfileCardProps {
   profile: UserProfile;
@@ -40,6 +43,8 @@ export const ModernProfileCard: React.FC<ModernProfileCardProps> = ({
     unlockedContacts,
     setActiveChatUser,
     siteConfig,
+    isAdminLoggedIn,
+    isProfilePlanExpired,
   } = useApp();
 
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -64,18 +69,26 @@ export const ModernProfileCard: React.FC<ModernProfileCardProps> = ({
 
   const isContactUnlocked = Boolean(currentUser && unlockedContacts?.includes(profile.id));
 
-  // Name and Photo Privacy: If mutual match or owner, show full name.
-  const isPhotoPrivate = Boolean(
-    profile.privacy?.hidePhoto ||
-      profile.privacy?.photoVisibility === 'hidden' ||
-      (profile.privacy?.photoVisibility === 'visible_to_verified_only' && !currentUser?.aadhaarVerified)
-  );
-  const shouldMaskPhoto = isPhotoPrivate && !isMutualMatch;
+  // Photo Access Verification: Strict Paid Members rule
+  const photoAccess = getPhotoAccessStatus({
+    currentUser,
+    targetProfile: profile,
+    isProfilePlanExpired,
+    isMutualMatch,
+    siteConfig,
+  });
+  const isPhotoBlurred = photoAccess.isBlurred;
 
-  const displayName =
-    isMutualMatch || !shouldMaskPhoto
-      ? profile.fullName || `VJ-${profile.registrationId || profile.id.slice(0, 5)}`
-      : `VJ-${profile.registrationId || profile.id.slice(0, 5)}`;
+  const displayName = formatProfileDisplayName(
+    profile.fullName,
+    currentUser,
+    Boolean(currentUser?.isAdmin || isAdminLoggedIn),
+    isContactUnlocked || isMutualMatch,
+    siteConfig,
+    'mr',
+    isMutualMatch,
+    profile.id
+  );
 
   const defaultPhoto =
     profile.gender === 'bride'
@@ -168,22 +181,40 @@ export const ModernProfileCard: React.FC<ModernProfileCardProps> = ({
             setImageError(true);
           }}
           className={`w-full h-full object-cover object-top transition-transform duration-300 group-hover:scale-105 ${
-            shouldMaskPhoto ? 'filter blur-md scale-105 opacity-80' : ''
+            isPhotoBlurred ? 'filter blur-lg scale-110 opacity-70' : ''
           } ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
         />
 
         {/* Gradient Shadow Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/30 pointer-events-none" />
 
-        {/* Masked Photo Lock Overlay */}
-        {shouldMaskPhoto && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-3 text-center pointer-events-none bg-black/20">
-            <div className="p-2 rounded-full bg-black/60 backdrop-blur-xs text-amber-200 mb-1">
+        {/* Masked/Blurred Photo Lock Overlay */}
+        {isPhotoBlurred && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-center bg-black/45 backdrop-blur-[2px] z-10 select-none">
+            <div className="p-2 rounded-full bg-black/75 border border-amber-300/40 text-amber-300 mb-1.5 shadow-lg">
               <Lock className="w-5 h-5" />
             </div>
-            <span className="text-[10px] text-white font-bold px-2 py-0.5 rounded-md bg-black/50 backdrop-blur-xs">
-              फोटो परस्पर पसंतीनंतर दृश्यमान
+            <span className="text-[10px] sm:text-[11px] text-amber-200 font-black px-2.5 py-1 rounded-lg bg-black/85 border border-amber-300/40 leading-tight drop-shadow-md max-w-[95%]">
+              {photoAccess.message}
             </span>
+            {(photoAccess.reason === 'unpaid_free' || photoAccess.reason === 'plan_expired' || photoAccess.reason === 'guest') && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!currentUser || currentUser.isGuest) {
+                    setLoginModalMode('member_otp');
+                    setIsLoginOpen(true);
+                  } else {
+                    setIsPaymentOpen(true);
+                  }
+                }}
+                className="mt-2 px-3 py-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-[11px] rounded-full shadow-md flex items-center gap-1 active:scale-95 cursor-pointer pointer-events-auto border border-amber-300/60"
+              >
+                <Crown className="w-3.5 h-3.5 text-slate-950 fill-slate-950" />
+                <span>शुल्क भरा / प्लॅन निवडा</span>
+              </button>
+            )}
           </div>
         )}
 
@@ -216,7 +247,7 @@ export const ModernProfileCard: React.FC<ModernProfileCardProps> = ({
             <h3 className="font-black text-sm sm:text-base leading-snug drop-shadow-md truncate">
               {displayName}
             </h3>
-            {!isMutualMatch && shouldMaskPhoto && (
+            {isPhotoBlurred && (
               <Lock className="w-3.5 h-3.5 text-amber-300 shrink-0" />
             )}
           </div>

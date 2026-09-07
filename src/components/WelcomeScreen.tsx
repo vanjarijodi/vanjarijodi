@@ -15,6 +15,9 @@ import {
   MessageCircle,
   ShieldCheck,
   Mail,
+  Building2,
+  Sparkles,
+  Handshake,
 } from 'lucide-react';
 import { LegalPoliciesModal, PolicyTabType } from './LegalPoliciesModal';
 
@@ -22,6 +25,7 @@ export const WelcomeScreen: React.FC = () => {
   const {
     setIsLoginOpen,
     setIsRegisterOpen,
+    setIsBusinessVendorRegisterModalOpen,
     setLoginModalMode,
     setIsAdminOpen,
     paymentConfig,
@@ -133,6 +137,35 @@ export const WelcomeScreen: React.FC = () => {
               <UserPlus className="w-5 h-5 text-amber-800 shrink-0" />
               <span>नवीन नोंदणी करा (मोफत)</span>
             </button>
+
+            {/* F2. Wedding Vendor Registration Button (Catering, Decoration, Florists, Halls etc.) */}
+            {siteConfig?.enableBusinessVendors !== false && (
+              <button
+                type="button"
+                onClick={() => setIsBusinessVendorRegisterModalOpen(true)}
+                className="w-full min-h-[52px] p-3 rounded-xl bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 hover:from-amber-300 hover:to-orange-300 text-slate-950 font-black shadow-md hover:shadow-lg active:scale-[0.98] transition-all flex items-center justify-between gap-2.5 cursor-pointer border-2 border-amber-300"
+              >
+                <div className="flex items-center gap-2.5 text-left min-w-0">
+                  <div className="p-2 rounded-xl bg-slate-950 text-amber-300 shadow-xs shrink-0">
+                    <Handshake className="w-5 h-5 text-amber-300" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-sm font-black text-slate-950">
+                        🤝 व्हेंडर नोंदणी (Vendor Registration)
+                      </span>
+                      <span className="text-[10px] bg-slate-950 text-amber-300 px-1.5 py-0.2 rounded-full font-black">
+                        नवीन
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-bold text-slate-900 leading-tight">
+                      जेवण (कॅटरिंग), डेकोरेशन, फुलवाले, हॉल — दर व माहिती भरा
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-5 h-5 text-slate-950 shrink-0" />
+              </button>
+            )}
 
             {/* G. Clean Access Notice */}
             <div className="pt-1 flex items-center justify-center gap-1.5 text-[11px] text-slate-500 text-center">
