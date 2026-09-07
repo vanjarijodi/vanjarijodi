@@ -10,7 +10,7 @@ import { KundaliMilanModal } from './KundaliMilanModal';
 import { ErrorBoundary } from './ErrorBoundary';
 import { SecurityWatermarkOverlay } from './SecurityWatermarkOverlay';
 import { calculateAshtakootMilan } from '../utils/kundaliCalculator';
-import { getProfessionBadges, getTagStyleClass } from '../utils/professionUtils';
+import { getProfessionBadges, getTagStyleClass, getStructuredProfessionInfo } from '../utils/professionUtils';
 import { formatProfileDisplayName } from '../utils/nameFormatter';
 import { transliterateMarathiToEnglish } from '../utils/transliterate';
 import { uploadToCloudinary, compressAndResizeImage } from '../utils/cloudinary';
@@ -1276,21 +1276,63 @@ export const ProfileDetailModal: React.FC<{
                       <span>शिक्षण/पात्रता: <strong className="text-[#800C1E] font-black">{profile.education || 'उच्चशिक्षित'}</strong></span>
                     </div>
 
-                    {/* Profession & Govt Job Tags */}
+                    {/* Profession & Govt Job Tags - Stacked & Visually Attractive */}
                     {(() => {
-                      const badges = getProfessionBadges(profile);
-                      if (badges.length === 0) return null;
+                      const structured = getStructuredProfessionInfo(profile);
+                      if (structured.allBadges.length === 0) return null;
                       return (
-                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                          <span className="text-[11px] font-bold text-slate-600">विशेष:</span>
-                          {badges.map((tag, idx) => (
-                            <span
-                              key={idx}
-                              className={`px-2.5 py-0.5 rounded-lg text-xs font-bold border shadow-2xs ${getTagStyleClass(tag)}`}
-                            >
-                              {tag}
+                        <div className="p-2.5 bg-gradient-to-r from-amber-50/80 via-white to-amber-50/80 rounded-xl border border-amber-200/90 shadow-2xs space-y-1.5 mt-1">
+                          <div className="flex items-center justify-between text-[11px] font-black text-slate-700">
+                            <span className="flex items-center gap-1 text-[#800C1E]">
+                              <Briefcase className="w-3.5 h-3.5 text-[#A71930]" />
+                              <span>नोकरी व प्रोफेशन हायलाईट्स:</span>
                             </span>
-                          ))}
+                          </div>
+                          
+                          {/* Stacked Tags: Sector first, Role second, Highlights third */}
+                          <div className="flex flex-col gap-1.5">
+                            {/* Line 1: Primary Employment Sector (e.g., Govt Job, Private Job, Business) */}
+                            {structured.sectorBadges.length > 0 && (
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {structured.sectorBadges.map((tag, idx) => (
+                                  <span
+                                    key={idx}
+                                    className={`px-3 py-1 rounded-lg text-xs font-black border shadow-xs flex items-center gap-1 ${getTagStyleClass(tag)}`}
+                                  >
+                                    <span>{tag}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Line 2: Specific Designation/Profession (e.g., Doctor, Engineer, Officer) */}
+                            {structured.roleBadges.length > 0 && (
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {structured.roleBadges.map((tag, idx) => (
+                                  <span
+                                    key={idx}
+                                    className={`px-3 py-1 rounded-lg text-xs font-black border shadow-xs flex items-center gap-1 ${getTagStyleClass(tag)}`}
+                                  >
+                                    <span>{tag}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Line 3: Other Highlight Badges */}
+                            {structured.otherBadges.length > 0 && (
+                              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                                {structured.otherBadges.map((tag, idx) => (
+                                  <span
+                                    key={idx}
+                                    className={`px-2.5 py-0.5 rounded-md text-[11px] font-extrabold border shadow-2xs ${getTagStyleClass(tag)}`}
+                                  >
+                                    {tag}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       );
                     })()}

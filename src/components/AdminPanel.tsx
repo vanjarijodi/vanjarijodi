@@ -69,7 +69,8 @@ import {
   Calendar,
   Gift,
   FileText,
-  DollarSign
+  DollarSign,
+  ScanFace
 } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -116,6 +117,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     authorizeAllContactRequests,
     sendPushNotification,
     setIsGitHubSyncOpen,
+    faceVerificationLogs,
+    approveFaceVerification,
+    rejectFaceVerification,
   } = useApp();
 
   // Authentication State
@@ -531,10 +535,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   }
 
   // Authenticated Admin Dashboard View
+  const pendingFaceLogs = faceVerificationLogs.filter((f) => f.status === 'pending');
+  const totalPendingCount = pendingProfiles.length + pendingFaceLogs.length;
+
   const adminNavTabs = [
     { id: 'overview', label: 'डॅशबोर्ड सारांश', icon: BarChart3, badge: null },
     { id: 'profiles', label: 'सर्व सदस्य व्यवस्थापन', icon: Users, badge: approvedMembers.length },
-    { id: 'pending', label: 'प्रलंबित मंजुऱ्या', icon: Clock, badge: pendingProfiles.length, badgeColor: 'bg-amber-500' },
+    { id: 'pending', label: 'प्रलंबित मंजुऱ्या', icon: Clock, badge: totalPendingCount || null, badgeColor: 'bg-amber-500' },
     { id: 'payments', label: 'पेमेंट व व्यवहार', icon: CreditCard, badge: null },
     { id: 'plans', label: 'प्लॅन्स व वेलकम ऑफर', icon: DollarSign, badge: '₹398', badgeColor: 'bg-emerald-600' },
     { id: 'apk_manager', label: '📱 APK ॲप मॅनेजर', icon: Smartphone, badge: 'APK', badgeColor: 'bg-emerald-600' },
@@ -1056,7 +1063,114 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
 
           {/* TAB 3: PENDING APPROVALS */}
           {activeTab === 'pending' && (
-            <div className="space-y-4">
+            <div className="space-y-6">
+              
+              {/* SECTION A: PENDING FACE VERIFICATION AUDITS */}
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-blue-400 shadow-sm space-y-4">
+                <div className="flex items-center justify-between border-b border-blue-200 pb-3">
+                  <div>
+                    <h3 className="text-base font-black text-blue-900 flex items-center gap-2">
+                      <ScanFace className="w-5 h-5 text-blue-600" />
+                      <span>प्रलंबित चेहरा पडताळणी विनंत्या ({pendingFaceLogs.length})</span>
+                      {pendingFaceLogs.length > 0 && (
+                        <span className="px-2 py-0.5 bg-blue-600 text-white text-[10px] font-black rounded-full">
+                          AI Liveness
+                        </span>
+                      )}
+                    </h3>
+                    <p className="text-xs text-slate-600 font-medium">
+                      सदस्यांनी थेट कॅमेऱ्यातून सादर केलेल्या लाईव्ह सेल्फी व मूळ बायोडाटा फोटोची तुलना करून Verified Blue Badge मंजूर करा.
+                    </p>
+                  </div>
+                </div>
+
+                {pendingFaceLogs.length === 0 ? (
+                  <div className="text-center py-6 text-slate-500 font-bold text-xs bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    सध्या कोणतीही प्रलंबित चेहरा पडताळणी विनंती बाकी नाही.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-blue-100">
+                    {pendingFaceLogs.map((f) => {
+                      const memberProfile = profiles.find((p) => p.id === f.userId);
+                      return (
+                        <div key={f.id} className="py-4 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                          {/* Photos Comparison */}
+                          <div className="flex items-center gap-4 flex-wrap sm:flex-nowrap">
+                            {/* Profile Photo */}
+                            <div className="text-center">
+                              <span className="text-[10px] font-bold text-slate-500 block mb-1">मूळ प्रोफाईल फोटो</span>
+                              <img
+                                src={f.profilePhotoUrl || memberProfile?.photoUrl || memberProfile?.photos?.[0] || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}
+                                alt="Original Profile"
+                                referrerPolicy="no-referrer"
+                                className="w-20 h-20 rounded-xl object-cover border-2 border-slate-300 shadow-xs"
+                              />
+                            </div>
+
+                            <div className="text-slate-400 font-black text-xs hidden sm:block">VS</div>
+
+                            {/* Live Camera Captured Selfie */}
+                            <div className="text-center">
+                              <span className="text-[10px] font-bold text-blue-600 block mb-1">📸 लाईव्ह कॅमेरा सेल्फी</span>
+                              <img
+                                src={f.capturedPhotoUrl}
+                                alt="Live Selfie"
+                                referrerPolicy="no-referrer"
+                                className="w-20 h-20 rounded-xl object-cover border-2 border-blue-500 shadow-md"
+                              />
+                            </div>
+
+                            {/* Member & Liveness Details */}
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-black text-slate-900 text-sm">{f.userName}</h4>
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 text-blue-800 border border-blue-300">
+                                  साम्य: {f.matchScore || 94}% जुळले
+                                </span>
+                              </div>
+                              <p className="text-xs text-slate-600 font-medium">
+                                मोबाईल: <span className="font-bold font-mono">{f.userMobile || memberProfile?.mobile || 'N/A'}</span>
+                              </p>
+                              <p className="text-[11px] text-slate-500">
+                                Liveness ॲक्शन: <span className="font-bold text-slate-700">{f.livenessAction || 'डोळे मिचकावणे / हलके हास्य'}</span> • सादर: {new Date(f.submittedAt).toLocaleString('mr-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-2 shrink-0 self-end lg:self-center">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                approveFaceVerification(f.id);
+                                alert(`✅ '${f.userName}' यांची चेहरा पडताळणी मंजूर करण्यात आली असून Blue Badge सक्रिय झाला!`);
+                              }}
+                              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow-sm cursor-pointer flex items-center gap-1.5 transition active:scale-95"
+                            >
+                              <Check className="w-4 h-4" />
+                              <span>चेहरा पडताळणी मंजूर करा (Approve)</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm(`खात्री आहे का? '${f.userName}' यांची चेहरा पडताळणी नाकारायची आहे का?`)) {
+                                  rejectFaceVerification(f.id);
+                                }
+                              }}
+                              className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold cursor-pointer flex items-center gap-1.5 transition active:scale-95"
+                            >
+                              <X className="w-4 h-4" />
+                              <span>नाकारा (Reject)</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* SECTION B: PENDING PROFILE REGISTRATIONS */}
               <div className="bg-white p-4 sm:p-5 rounded-2xl border-2 border-amber-300 shadow-sm">
                 <div className="flex items-center justify-between border-b border-amber-200 pb-3">
                   <div>

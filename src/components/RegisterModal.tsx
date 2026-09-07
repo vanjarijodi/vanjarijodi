@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { MAHARASHTRA_DISTRICTS } from '../data/initialData';
 import { UserProfile, Gender, MaritalStatus } from '../types';
-import { PROFESSION_PRESETS } from '../utils/professionUtils';
+import { PROFESSION_PRESETS, EMPLOYMENT_SECTORS, PROFESSION_ROLES, PROFILE_TAG_PRESETS, getTagStyleClass } from '../utils/professionUtils';
 import { AIBioDataExtractor } from './AIBioDataExtractor';
 import { uploadToCloudinary } from '../utils/cloudinary';
 import { compressAndResizeImage } from '../utils/imageCompressor';
@@ -1110,42 +1110,166 @@ export const RegisterModal: React.FC<{
                         />
                       </div>
 
-                      {/* Multi-Profession Badges Selection */}
-                      <div className="col-span-full pt-2">
-                        <label className="block text-slate-800 font-extrabold text-xs mb-1.5 flex flex-wrap items-center justify-between gap-1">
-                          <span>प्रोफेशन / नोकरी श्रेणी निवडा (Profession Badges):</span>
-                          <span className="text-[10px] text-amber-900 bg-amber-100 px-2 py-0.5 rounded-full font-bold border border-amber-300">
-                            लागू असणारे निवडा (उदा. डॉक्टर + सरकारी नोकरी)
+                      {/* Multi-Profession Badges Selection - Categorized and Stacked */}
+                      <div className="col-span-full pt-2 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-1.5 border-b border-amber-200 pb-1.5">
+                          <label className="text-slate-900 font-black text-xs sm:text-sm flex items-center gap-1.5">
+                            <Briefcase className="w-4 h-4 text-[#A71930]" />
+                            <span>नोकरीचे क्षेत्र व पद टॅग्ज (Profession & Job Sector Tags):</span>
+                          </label>
+                          <span className="text-[11px] text-amber-950 bg-amber-200/90 px-2.5 py-0.5 rounded-full font-black border border-amber-400">
+                            एकापेक्षा जास्त टॅग्ज निवडू शकता (उदा. सरकारी नोकरी + डॉक्टर)
                           </span>
-                        </label>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                          {PROFESSION_PRESETS.map((preset) => {
-                            const isSelected = regProfessionTags.includes(preset.label);
-                            return (
-                              <button
-                                type="button"
-                                key={preset.id}
-                                onClick={() => {
-                                  setRegProfessionTags((prev) =>
-                                    prev.includes(preset.label)
-                                      ? prev.filter((t) => t !== preset.label)
-                                      : [...prev, preset.label]
-                                  );
-                                }}
-                                className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all cursor-pointer ${
-                                  isSelected
-                                    ? 'bg-[#800C1E] text-amber-100 border-[#800C1E] shadow-sm'
-                                    : 'bg-white text-slate-700 border-amber-200 hover:bg-amber-50'
-                                }`}
-                              >
-                                <span className="font-extrabold text-xs flex items-center justify-between">
-                                  <span>{preset.label}</span>
-                                  {isSelected && <CheckCircle className="w-3.5 h-3.5 text-amber-300 shrink-0" />}
-                                </span>
-                              </button>
-                            );
-                          })}
                         </div>
+
+                        {/* PART 1: EMPLOYMENT SECTORS */}
+                        <div className="bg-amber-50/70 p-3 rounded-2xl border border-amber-300/80 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black text-[#800C1E] flex items-center gap-1">
+                              <span>१. नोकरीचे मुख्य क्षेत्र (Employment Sector)</span>
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-bold">शासकीय / खाजगी / व्यवसाय</span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            {EMPLOYMENT_SECTORS.map((sector) => {
+                              const isSelected = regProfessionTags.includes(sector.label);
+                              return (
+                                <button
+                                  type="button"
+                                  key={sector.id}
+                                  onClick={() => {
+                                    setRegProfessionTags((prev) =>
+                                      prev.includes(sector.label)
+                                        ? prev.filter((t) => t !== sector.label)
+                                        : [...prev, sector.label]
+                                    );
+                                  }}
+                                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                                    isSelected
+                                      ? 'bg-[#800C1E] text-amber-100 border-[#800C1E] shadow-sm ring-2 ring-amber-400'
+                                      : 'bg-white text-slate-800 border-amber-200 hover:bg-amber-100/60'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between font-black text-xs">
+                                    <span>{sector.label}</span>
+                                    {isSelected ? (
+                                      <CheckCircle2 className="w-4 h-4 text-amber-300 shrink-0" />
+                                    ) : (
+                                      <span className="w-3.5 h-3.5 rounded-full border border-slate-300" />
+                                    )}
+                                  </div>
+                                  <span className={`text-[10px] mt-1 line-clamp-1 ${isSelected ? 'text-amber-200/90' : 'text-slate-500'}`}>
+                                    {sector.description}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* PART 2: DESIGNATIONS & SPECIFIC ROLES */}
+                        <div className="bg-teal-50/50 p-3 rounded-2xl border border-teal-200 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-black text-teal-950 flex items-center gap-1">
+                              <span>२. विशिष्ट पद / प्रोफेशन रोल (Designation / Profession Role)</span>
+                            </span>
+                            <span className="text-[10px] text-teal-700 font-bold">डॉक्टर, इंजिनिअर, अधिकारी, शिक्षक, इ.</span>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                            {PROFESSION_ROLES.map((role) => {
+                              const isSelected = regProfessionTags.includes(role.label);
+                              return (
+                                <button
+                                  type="button"
+                                  key={role.id}
+                                  onClick={() => {
+                                    setRegProfessionTags((prev) =>
+                                      prev.includes(role.label)
+                                        ? prev.filter((t) => t !== role.label)
+                                        : [...prev, role.label]
+                                    );
+                                  }}
+                                  className={`p-2 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                                    isSelected
+                                      ? 'bg-teal-900 text-teal-100 border-teal-900 shadow-sm ring-2 ring-teal-400 font-black'
+                                      : 'bg-white text-slate-800 border-teal-200 hover:bg-teal-100/50 font-bold'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between text-xs font-black">
+                                    <span className="truncate">{role.label}</span>
+                                    {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-teal-300 shrink-0 ml-1" />}
+                                  </div>
+                                  <span className={`text-[9px] mt-0.5 truncate ${isSelected ? 'text-teal-200' : 'text-slate-500'}`}>
+                                    {role.description}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* PART 3: OTHER SPECIAL HIGHLIGHT TAGS */}
+                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 space-y-2">
+                          <span className="text-xs font-black text-slate-800 block">
+                            ३. इतर कौटुंबिक व जीवनशैली टॅग्ज (Lifestyle & Highlights):
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {PROFILE_TAG_PRESETS.filter(p => p.category === 'education' || p.category === 'marital').map((preset) => {
+                              const isSelected = regProfessionTags.includes(preset.label);
+                              return (
+                                <button
+                                  type="button"
+                                  key={preset.id}
+                                  onClick={() => {
+                                    setRegProfessionTags((prev) =>
+                                      prev.includes(preset.label)
+                                        ? prev.filter((t) => t !== preset.label)
+                                        : [...prev, preset.label]
+                                    );
+                                  }}
+                                  className={`px-3 py-1.5 rounded-xl border text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                                    isSelected
+                                      ? 'bg-slate-900 text-amber-300 border-slate-900 shadow-sm ring-2 ring-amber-400'
+                                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                                  }`}
+                                >
+                                  <span>{preset.label}</span>
+                                  {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-amber-300" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* PART 4: LIVE STACKED PREVIEW */}
+                        {regProfessionTags.length > 0 && (
+                          <div className="p-3 bg-gradient-to-r from-amber-100 via-amber-50 to-amber-100 rounded-2xl border-2 border-amber-400 shadow-xs space-y-1.5">
+                            <span className="text-[11px] font-black text-[#800C1E] flex items-center gap-1">
+                              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                              <span>प्रोफाईलवर अशा प्रकारे एकाखाली एक आकर्षक टॅग्ज दिसतील (Live Stack Preview):</span>
+                            </span>
+                            <div className="flex flex-wrap items-center gap-2 pt-0.5">
+                              {regProfessionTags.map((tag, idx) => (
+                                <span
+                                  key={idx}
+                                  className={`px-3 py-1 rounded-full text-xs font-black border shadow-xs flex items-center gap-1 ${getTagStyleClass(tag)}`}
+                                >
+                                  <span>{tag}</span>
+                                  <span
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setRegProfessionTags(prev => prev.filter(t => t !== tag));
+                                    }}
+                                    className="ml-1 hover:text-rose-600 cursor-pointer font-bold"
+                                    title="टॅग काढा"
+                                  >
+                                    ✕
+                                  </span>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 

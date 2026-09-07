@@ -747,25 +747,57 @@ export const BioDataMakerModal: React.FC<{
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-slate-400 font-medium">नोकरी (Job):</label>
+                  <label className="text-slate-400 font-medium">नोकरी (Job / Occupation):</label>
                   <input
                     type="text"
                     value={formData.jobTitle}
                     onChange={(e) => handleChange('jobTitle', e.target.value)}
-                    placeholder="उदा. सॉफ्टवेअर इंजिनिअर (पुणे)"
+                    placeholder="उदा. सरकारी नोकरी - डॉक्टर / वर्ग १ अधिकारी"
                     className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
                   />
+                  {/* Quick Sector Tags for Job */}
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {['🏛️ सरकारी नोकरी (वर्ग १/२)', '🏛️ शासकीय सेवा', '💼 खाजगी कंपनी (MNC)', '🩺 शासकीय / खाजगी डॉक्टर', '💻 सॉफ्टवेअर इंजिनिअर', '👨‍🏫 प्राध्यापक / शिक्षक'].map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => {
+                          const current = formData.jobTitle ? `${formData.jobTitle}, ${tag}` : tag;
+                          handleChange('jobTitle', current);
+                        }}
+                        className="px-2 py-0.5 bg-slate-900 hover:bg-amber-950/50 text-amber-300 border border-slate-700 rounded-lg text-[10px] font-semibold transition cursor-pointer"
+                      >
+                        + {tag}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-slate-400 font-medium">व्यवसाय (Business):</label>
+                  <label className="text-slate-400 font-medium">व्यवसाय (Business / Practice):</label>
                   <input
                     type="text"
                     value={formData.businessTitle}
                     onChange={(e) => handleChange('businessTitle', e.target.value)}
-                    placeholder="उदा. कृषी उद्योग / स्वतःचा व्यवसाय"
+                    placeholder="उदा. स्वतःचे हॉस्पिटल / उद्योग / कृषी"
                     className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-white"
                   />
+                  {/* Quick Sector Tags for Business */}
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {['🩺 स्वतःचे क्लिनिक / हॉस्पिटल', '🏢 स्वतःचा उद्योग / कंपनी', '🌾 कृषी व बागायतदार', '🏪 रिटेल / होलसेल ट्रेड'].map((tag) => (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => {
+                          const current = formData.businessTitle ? `${formData.businessTitle}, ${tag}` : tag;
+                          handleChange('businessTitle', current);
+                        }}
+                        className="px-2 py-0.5 bg-slate-900 hover:bg-teal-950/50 text-teal-300 border border-slate-700 rounded-lg text-[10px] font-semibold transition cursor-pointer"
+                      >
+                        + {tag}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="col-span-2 space-y-1">

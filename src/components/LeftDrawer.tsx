@@ -32,6 +32,7 @@ export const LeftDrawer: React.FC = () => {
     language,
     currentUser,
     setCurrentUser,
+    logout,
     currentView,
     setCurrentView,
     setIsPaymentOpen,
@@ -166,6 +167,30 @@ export const LeftDrawer: React.FC = () => {
                       {currentUser.membership === 'free' ? (isEn ? 'FREE MEMBER' : 'नॉर्मल') : `VIP - ${currentUser.membership}`}
                     </span>
                   </div>
+                </div>
+
+                {/* Quick Home & Logout Action Buttons in Drawer Header */}
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleNavigate('home')}
+                    className="py-1.5 px-2.5 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 border border-amber-400/40 text-[11px] font-black flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
+                  >
+                    <Home className="w-3.5 h-3.5 text-amber-300" />
+                    <span>{isEn ? 'Home' : 'मुख्यपृष्ठ'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm(isEn ? 'Are you sure you want to log out?' : 'तुम्हाला खात्यातून लॉग आऊट करायचे आहे का?')) {
+                        logout();
+                      }
+                    }}
+                    className="py-1.5 px-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-400/40 text-[11px] font-black flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5 text-rose-300" />
+                    <span>{isEn ? 'Log Out' : 'लॉग आऊट'}</span>
+                  </button>
                 </div>
               </div>
             ) : (
@@ -532,6 +557,34 @@ export const LeftDrawer: React.FC = () => {
               </div>
               <ChevronRight className="w-4 h-4 text-slate-400" />
             </button>
+            {/* Member Logout Button */}
+            {currentUser && (
+              <button
+                onClick={() => {
+                  if (window.confirm(isEn ? 'Are you sure you want to log out?' : 'तुम्हाला खात्यातून सुरक्षितपणे लॉग आऊट करायचे आहे का?')) {
+                    logout();
+                    setIsLeftDrawerOpen(false);
+                  }
+                }}
+                className="w-full flex items-center justify-between p-3.5 rounded-2xl text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 font-extrabold transition-all cursor-pointer shadow-xs active:scale-98"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-rose-600 text-white shadow-xs shrink-0">
+                    <LogOut className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <span className="block text-xs font-black text-rose-800">
+                      {isEn ? '🚪 Log Out Account' : '🚪 खात्यातून लॉग आऊट करा (Log Out)'}
+                    </span>
+                    <span className="block text-[10px] text-rose-600 font-semibold">
+                      {isEn ? 'Safely exit current profile' : 'सुरक्षितपणे बाहेर पडा व होमवर जा'}
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-rose-400 shrink-0" />
+              </button>
+            )}
+
             {/* 9. Administrator Portal */}
             <button
               onClick={() => {

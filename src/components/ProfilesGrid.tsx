@@ -37,6 +37,7 @@ import {
   Ruler,
   Scale,
   List,
+  Home
 } from 'lucide-react';
 
 export const ProfilesGrid: React.FC<{
@@ -62,6 +63,7 @@ export const ProfilesGrid: React.FC<{
     isContactAuthorizedForUser,
     siteConfig,
     currentView,
+    setCurrentView,
     checkGuestPermission,
     unlockContact,
     profiles,
@@ -227,46 +229,61 @@ export const ProfilesGrid: React.FC<{
             </p>
           </div>
 
-          {/* View Mode Switcher Pill (Grid vs Compact vs Reels) */}
-          <div className="flex items-center gap-1 bg-amber-100/90 p-1 rounded-2xl border border-amber-300 shadow-2xs self-start md:self-auto">
+          {/* View Mode Switcher Pill (Grid vs Compact vs Reels) + Home Button */}
+          <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
             <button
               type="button"
-              onClick={() => setViewMode('grid')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                viewMode === 'grid'
-                  ? 'bg-[#800C1E] text-amber-200 shadow-sm scale-102'
-                  : 'text-slate-700 hover:text-[#800C1E] hover:bg-amber-200/50'
-              }`}
+              onClick={() => {
+                setCurrentView('home');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-200 hover:bg-amber-300 text-[#800C1E] text-xs font-black border border-amber-400/50 shadow-2xs transition-all cursor-pointer active:scale-95"
+              title="मुख्यपृष्ठावर परत जा"
             >
-              <LayoutGrid className="w-3 h-3" />
-              <span>{language === 'en' ? 'Grid Cards' : '🎴 ग्रिड व्ह्यू'}</span>
+              <Home className="w-3.5 h-3.5 text-[#800C1E]" />
+              <span>{language === 'mr' ? '🏠 मुख्यपृष्ठ' : 'Home'}</span>
             </button>
 
-            <button
-              type="button"
-              onClick={() => setViewMode('compact')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                viewMode === 'compact'
-                  ? 'bg-[#800C1E] text-amber-200 shadow-sm scale-102'
-                  : 'text-slate-700 hover:text-[#800C1E] hover:bg-amber-200/50'
-              }`}
-            >
-              <List className="w-3 h-3" />
-              <span>{language === 'en' ? 'Compact List' : '📋 पट्टी व्ह्यू'}</span>
-            </button>
+            <div className="flex items-center gap-1 bg-amber-100/90 p-1 rounded-2xl border border-amber-300 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  viewMode === 'grid'
+                    ? 'bg-[#800C1E] text-amber-200 shadow-sm scale-102'
+                    : 'text-slate-700 hover:text-[#800C1E] hover:bg-amber-200/50'
+                }`}
+              >
+                <LayoutGrid className="w-3 h-3" />
+                <span>{language === 'en' ? 'Grid Cards' : '🎴 ग्रिड व्ह्यू'}</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setViewMode('reels')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                viewMode === 'reels'
-                  ? 'bg-[#800C1E] text-amber-200 shadow-sm scale-102'
-                  : 'text-slate-700 hover:text-[#800C1E] hover:bg-amber-200/50'
-              }`}
-            >
-              <Smartphone className="w-3 h-3" />
-              <span>{language === 'en' ? 'Reels Swipe' : '📱 स्वाइप'}</span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('compact')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  viewMode === 'compact'
+                    ? 'bg-[#800C1E] text-amber-200 shadow-sm scale-102'
+                    : 'text-slate-700 hover:text-[#800C1E] hover:bg-amber-200/50'
+                }`}
+              >
+                <List className="w-3 h-3" />
+                <span>{language === 'en' ? 'Compact List' : '📋 पट्टी व्ह्यू'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode('reels')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                  viewMode === 'reels'
+                    ? 'bg-[#800C1E] text-amber-200 shadow-sm scale-102'
+                    : 'text-slate-700 hover:text-[#800C1E] hover:bg-amber-200/50'
+                }`}
+              >
+                <Smartphone className="w-3 h-3" />
+                <span>{language === 'en' ? 'Reels Swipe' : '📱 स्वाइप'}</span>
+              </button>
+            </div>
           </div>
 
         </div>

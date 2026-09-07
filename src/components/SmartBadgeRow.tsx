@@ -1,7 +1,8 @@
 import React from 'react';
-import { ShieldCheck, Award, Briefcase, Heart, Sparkles, MapPin, GraduationCap, IndianRupee, Sun, Camera, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Award, Briefcase, Heart, Sparkles, MapPin, GraduationCap, IndianRupee, Sun, Camera, CheckCircle2, Stethoscope, Code2, Landmark } from 'lucide-react';
 import { UserProfile } from '../types';
 import { useApp } from '../context/AppContext';
+import { getStructuredProfessionInfo, getTagStyleClass } from '../utils/professionUtils';
 
 interface SmartBadgeRowProps {
   profile: UserProfile;
@@ -31,14 +32,14 @@ export const SmartBadgeRow: React.FC<SmartBadgeRowProps> = ({
         );
       case 'divorced':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-slate-100 text-slate-800 border border-slate-300 shadow-xs">
-            <span>{isEn ? 'Divorced' : 'घटस्फोटित'}</span>
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-rose-100 text-rose-950 border border-rose-300 shadow-xs">
+            <span>{isEn ? 'Divorced' : '💔 घटस्फोटित'}</span>
           </span>
         );
       case 'widowed':
         return (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-purple-100 text-purple-900 border border-purple-300 shadow-xs">
-            <span>{isEn ? 'Widowed' : 'विधवा / विधुर'}</span>
+            <span>{isEn ? 'Widowed' : '🕊️ विधवा / विधुर'}</span>
           </span>
         );
       case 'separated':
@@ -52,30 +53,18 @@ export const SmartBadgeRow: React.FC<SmartBadgeRowProps> = ({
     }
   };
 
-  // 2. Determine Profession Capsule Badge
-  const isGovtJob =
-    profile.professionCategory === 'govt_job' ||
-    /सरकारी|शासकीय|govt|government|officer|class-1|class-2|पोलीस|तलाठी|शिक्षक|mpsc|upsc/i.test(
-      `${profile.occupation} ${profile.companyName || ''} ${profile.professionTags?.join(' ') || ''}`
-    );
-
-  const isDoctorOrEngineer =
-    profile.professionCategory === 'doctor_engineer' ||
-    /doctor|dr|mbbs|bams|bhms|md|engineer|b\.tech|m\.tech|software|developer|it/i.test(
-      `${profile.occupation} ${profile.education} ${profile.companyName || ''}`
-    );
-
-  const isBusiness =
-    profile.professionCategory === 'business_self' ||
-    /business|उद्योग|व्यापार|दुकान|self-employed|entrepreneur/i.test(
-      `${profile.occupation} ${profile.companyName || ''}`
-    );
-
-  const isAgri =
-    profile.professionCategory === 'agriculture_business' ||
-    /शेतकरी|शेती|कृषी|farmer|agriculture/i.test(
-      `${profile.occupation} ${profile.professionTags?.join(' ') || ''}`
-    );
+  // 2. Extract Structured Profession Info
+  const {
+    isGovt,
+    isDoctor,
+    isEngineer,
+    isOfficer,
+    isTeacher,
+    isPolice,
+    isBusiness,
+    isFarmer,
+    allBadges
+  } = getStructuredProfessionInfo(profile);
 
   // 3. Manglik / Horoscope Info
   const getHoroscopeLabel = () => {
@@ -89,11 +78,14 @@ export const SmartBadgeRow: React.FC<SmartBadgeRowProps> = ({
 
   const horoscopeLabel = getHoroscopeLabel();
 
+  // Custom tags from profile (excluding ones already rendered in main roles if duplicate)
+  const additionalTags = (profile.professionTags || []).filter(t => t && t.trim().length > 0);
+
   return (
     <div className={`space-y-2 ${className}`}>
-      {/* Capsule Badges (Pill Tags) Row */}
+      {/* Primary Badges (Verification, Govt, Doctor, Profession) */}
       <div className="flex flex-wrap items-center gap-1.5">
-        {/* Phone Verified Badge (📱 मोबाईल व्हेरिफाइड / Truecaller) */}
+        {/* Phone Verified Badge */}
         {(profile.isPhoneVerified || profile.truecallerVerified) && (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-gradient-to-r from-blue-600 to-cyan-600 text-white border border-blue-300 shadow-xs" title={profile.truecallerName ? `Truecaller व्हेरिफाइड: ${profile.truecallerName}` : "मोबाईल नंबर पडताळणी पूर्ण"}>
             <CheckCircle2 className="w-3 h-3 text-cyan-100" />
@@ -101,7 +93,7 @@ export const SmartBadgeRow: React.FC<SmartBadgeRowProps> = ({
           </span>
         )}
 
-        {/* Face Verified Badge (📸 फेस व्हेरिफाइड) */}
+        {/* Face Verified Badge */}
         {profile.isFaceVerified && (
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-gradient-to-r from-teal-500 to-emerald-600 text-white border border-teal-300 shadow-xs">
             <Camera className="w-3 h-3 text-teal-100" />
@@ -125,27 +117,89 @@ export const SmartBadgeRow: React.FC<SmartBadgeRowProps> = ({
           </span>
         )}
 
-        {/* Government Job / Class-1 Dark Emerald Capsule */}
-        {isGovtJob ? (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-800 text-emerald-100 border border-emerald-600 shadow-xs">
-            <Briefcase className="w-3 h-3 text-emerald-300" />
+        {/* 🏛️ 1. Government Job / Sector Badge */}
+        {isGovt && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-slate-950 border border-amber-600 shadow-xs">
+            <Landmark className="w-3.5 h-3.5 text-slate-950" />
             <span>{isEn ? '🏛️ Govt. Job / Officer' : '🏛️ शासकीय / सरकारी नोकरी'}</span>
           </span>
-        ) : isDoctorOrEngineer ? (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-indigo-700 text-indigo-100 border border-indigo-500 shadow-xs">
-            <GraduationCap className="w-3 h-3 text-indigo-300" />
-            <span>{isEn ? '🩺 Doctor / Engineer' : '🩺 डॉक्टर / इंजिनिअर'}</span>
+        )}
+
+        {/* 🏛️ 2. Class 1 / Class 2 Officer Badge */}
+        {isOfficer && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-gradient-to-r from-amber-700 to-yellow-800 text-amber-100 border border-amber-400 shadow-xs">
+            <Award className="w-3.5 h-3.5 text-amber-300" />
+            <span>{isEn ? '🏛️ Class-1 / Class-2 Officer' : '🏛️ वर्ग-१ / वर्ग-२ अधिकारी'}</span>
           </span>
-        ) : isBusiness ? (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-700 text-amber-100 border border-amber-500 shadow-xs">
-            <Briefcase className="w-3 h-3 text-amber-200" />
-            <span>{isEn ? '💼 Business / Self-Employed' : '💼 व्यवसाय / बिझनेस'}</span>
+        )}
+
+        {/* 🩺 3. Doctor / Medical Officer Badge */}
+        {isDoctor && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-gradient-to-r from-teal-700 to-emerald-800 text-teal-100 border border-teal-400 shadow-xs">
+            <Stethoscope className="w-3.5 h-3.5 text-teal-300" />
+            <span>{isEn ? '🩺 Doctor / Medical' : '🩺 डॉक्टर / मेडिकल ऑफिसर'}</span>
           </span>
-        ) : isAgri ? (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-teal-800 text-teal-100 border border-teal-600 shadow-xs">
-            <span>{isEn ? '🌾 Agriculture & Business' : '🌾 शेती + व्यवसाय'}</span>
+        )}
+
+        {/* 💻 4. Engineer / IT Badge */}
+        {isEngineer && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-gradient-to-r from-cyan-800 to-blue-900 text-cyan-100 border border-cyan-400 shadow-xs">
+            <Code2 className="w-3.5 h-3.5 text-cyan-300" />
+            <span>{isEn ? '💻 Engineer / IT' : '💻 इंजिनिअर / IT'}</span>
           </span>
-        ) : null}
+        )}
+
+        {/* 👨‍🏫 5. Teacher / Professor Badge */}
+        {isTeacher && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-indigo-800 text-indigo-100 border border-indigo-400 shadow-xs">
+            <GraduationCap className="w-3.5 h-3.5 text-indigo-300" />
+            <span>{isEn ? '👨‍🏫 Professor / Teacher' : '👨‍🏫 प्राध्यापक / शिक्षक'}</span>
+          </span>
+        )}
+
+        {/* 👮 6. Police / Defence Badge */}
+        {isPolice && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-blue-900 text-blue-100 border border-blue-400 shadow-xs">
+            <span>{isEn ? '👮 Police / Defence' : '👮 पोलीस / सैन्यदल'}</span>
+          </span>
+        )}
+
+        {/* 🏢 7. Business Badge (if not govt) */}
+        {!isGovt && isBusiness && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-purple-800 text-purple-100 border border-purple-400 shadow-xs">
+            <Briefcase className="w-3.5 h-3.5 text-purple-300" />
+            <span>{isEn ? '🏢 Business / Self-Employed' : '🏢 व्यावसायिक / उद्योगपती'}</span>
+          </span>
+        )}
+
+        {/* 🌾 8. Farmer / Agriculture Badge */}
+        {!isGovt && isFarmer && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-emerald-900 text-emerald-100 border border-emerald-500 shadow-xs">
+            <span>{isEn ? '🌾 Agriculture & Farming' : '🌾 शेतकरी / बागायतदार'}</span>
+          </span>
+        )}
+
+        {/* Additional Custom Profile Tags (deduplicated) */}
+        {additionalTags.map((tag, idx) => {
+          // Avoid duplicating tags already rendered above
+          if (
+            (isGovt && tag.includes('सरकारी')) ||
+            (isDoctor && tag.includes('डॉक्टर')) ||
+            (isEngineer && (tag.includes('इंजिनिअर') || tag.includes('आयटी'))) ||
+            (isTeacher && tag.includes('शिक्षक')) ||
+            (isPolice && tag.includes('पोलीस'))
+          ) {
+            return null;
+          }
+          return (
+            <span
+              key={idx}
+              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black border shadow-xs ${getTagStyleClass(tag)}`}
+            >
+              {tag}
+            </span>
+          );
+        })}
 
         {/* Marital Status Tag */}
         {getMaritalBadge()}
@@ -194,3 +248,4 @@ export const SmartBadgeRow: React.FC<SmartBadgeRowProps> = ({
     </div>
   );
 };
+

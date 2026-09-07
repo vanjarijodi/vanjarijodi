@@ -3385,14 +3385,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const log = faceVerificationLogs.find(l => l.id === logId);
     if (!log) return;
 
+    const updatedLog = { ...log, status: 'approved' as const, reviewedAt: new Date().toISOString() };
     setFaceVerificationLogs(prev =>
-      prev.map(l => (l.id === logId ? { ...l, status: 'approved', reviewedAt: new Date().toISOString() } : l))
+      prev.map(l => (l.id === logId ? updatedLog : l))
     );
+    syncDocToFirestore('face_verifications', logId, updatedLog);
 
     setProfiles(prev =>
       prev.map(p => {
         if (p.id === log.userId) {
-          const updated = { ...p, isFaceVerified: true, isVerified: true };
+          const updated = { ...p, isFaceVerified: true, isVerified: true, faceVerifiedAt: new Date().toISOString() };
           syncDocToFirestore('profiles', updated.id, updated);
           return updated;
         }
@@ -3401,16 +3403,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 
     if (currentUser && currentUser.id === log.userId) {
-      setCurrentUser(prev => (prev ? { ...prev, isFaceVerified: true, isVerified: true } : null));
+      setCurrentUser(prev => (prev ? { ...prev, isFaceVerified: true, isVerified: true, faceVerifiedAt: new Date().toISOString() } : null));
     }
 
-    logActivity('face_verification_approved', `चेहरा पडताळणी मंजूर केली: ${log.userName}`);
+    // Send push notification to the member
+    addNotification({
+      userId: log.userId,
+      title: '🎉 Face Verification Approved!',
+      titleMr: '🎉 चेहरा पडताळणी मंजूर झाली!',
+      message: 'Congratulations! Your live face verification is approved. Verified Blue Badge is now active on your biodata.',
+      messageMr: 'अभिनंदन! तुमची थेट चेहरा पडताळणी मंजूर झाली असून बायोडाटावर Verified Blue Badge सक्रिय करण्यात आला आहे.',
+      type: 'system',
+    });
+
+    logActivity('face_verification_approved', `चेहरा पडताळणी मंजूर केली: ${log.userName} (${log.userId})`);
   };
 
-  const rejectFaceVerification = (logId: string) => {
+  const rejectFaceVerification = (logId: string, reasonMr?: string) => {
+    const log = faceVerificationLogs.find(l => l.id === logId);
+    const updatedLog = { ...log, status: 'rejected' as const, reviewedAt: new Date().toISOString() };
     setFaceVerificationLogs(prev =>
-      prev.map(l => (l.id === logId ? { ...l, status: 'rejected', reviewedAt: new Date().toISOString() } : l))
+      prev.map(l => (l.id === logId ? updatedLog : l))
     );
+    syncDocToFirestore('face_verifications', logId, updatedLog);
+
+    if (log) {
+      addNotification({
+        userId: log.userId,
+        title: '⚠️ Face Verification Rejected',
+        titleMr: '⚠️ चेहरा पडताळणी नाकारण्यात आली',
+        message: 'Your live face verification was rejected. Please take a clear photo in good lighting.',
+        messageMr: reasonMr || 'तुमचा चेहरा पडताळणी फोटो स्पष्ट नसल्याने नाकारण्यात आला. कृपया पुरेशा प्रकाशात पुन्हा थेट सेल्फी घ्या.',
+        type: 'system',
+      });
+    }
+
     logActivity('face_verification_rejected', `चेहरा पडताळणी नाकारली ID: ${logId}`);
   };
 

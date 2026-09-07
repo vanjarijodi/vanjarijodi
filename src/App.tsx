@@ -36,6 +36,7 @@ import { DynamicSeoHead } from './components/DynamicSeoHead';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { NetworkStatusIndicator } from './components/NetworkStatusIndicator';
 import { PushNotificationBanner } from './components/PushNotificationBanner';
+import { LivePushNotificationToast } from './components/LivePushNotificationToast';
 
 // Code-split heavy modals to ensure lightning-fast initial mobile startup
 const AdminPanel = lazy(() => import('./components/AdminPanel').then(m => ({ default: m.AdminPanel })));
@@ -130,8 +131,9 @@ const MainAppContent: React.FC = () => {
       {/* 🚀 Dynamic Technical SEO Meta, Title & Schema.org JSON-LD Injector */}
       <DynamicSeoHead />
       
-      {/* 🔔 Push Notification Permission Banner */}
+      {/* 🔔 Push Notification Permission Banner & Live Dropdown Toast */}
       <PushNotificationBanner />
+      <LivePushNotificationToast />
 
       {/* Guest Mode: Pristine Welcome & Login/Register Screen (Zero-Trust Policy: No Guest Browsing) */}
       {!currentUser ? (

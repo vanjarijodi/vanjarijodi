@@ -48,6 +48,17 @@ export function playNotificationSound() {
   }
 }
 
+// Trigger device physical vibration pattern on mobile phones
+export function triggerDeviceVibration(pattern: number[] = [200, 100, 200]) {
+  try {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate(pattern);
+    }
+  } catch (e) {
+    // Vibration not supported or allowed
+  }
+}
+
 export function isPushNotificationSupported(): boolean {
   return typeof window !== 'undefined' && 'Notification' in window;
 }
@@ -63,6 +74,7 @@ export async function requestPushPermission(): Promise<'granted' | 'denied' | 'd
     const perm = await Notification.requestPermission();
     if (perm === 'granted') {
       playNotificationSound();
+      triggerDeviceVibration([150, 80, 150]);
     }
     return perm;
   } catch (err) {
@@ -77,20 +89,41 @@ export interface PushOptions {
   tag?: string;
   url?: string;
   playSound?: boolean;
+  avatarUrl?: string;
+  type?: 'interest' | 'match' | 'chat' | 'payment' | 'system';
 }
 
 export function triggerBrowserPushNotification(
   title: string,
   options: PushOptions
 ): boolean {
-  if (!isPushNotificationSupported()) return false;
-
+  // 1. Play sound & vibrate
   if (options.playSound !== false) {
     playNotificationSound();
+    triggerDeviceVibration([180, 90, 180]);
   }
 
+  // 2. Dispatch custom in-app top drop-down toast event
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('vanjari_new_notification_toast', {
+        detail: {
+          title,
+          body: options.body,
+          icon: options.icon || '/icon-192.png',
+          avatarUrl: options.avatarUrl,
+          url: options.url,
+          type: options.type || 'system',
+          timestamp: Date.now()
+        }
+      })
+    );
+  }
+
+  if (!isPushNotificationSupported()) return false;
+
   if (Notification.permission === 'granted') {
-    // 1. Try Service Worker showNotification first (Required for Android Chrome, PWA & Mobile Web)
+    // 3. Try Service Worker showNotification first (Required for Android Chrome, PWA & Mobile Web)
     if ('serviceWorker' in navigator && navigator.serviceWorker.ready) {
       navigator.serviceWorker.ready
         .then((reg) => {
@@ -99,8 +132,9 @@ export function triggerBrowserPushNotification(
               body: options.body,
               icon: options.icon || '/icon-192.png',
               badge: '/icon-192.png',
-              tag: options.tag || 'vanjari-jodi-push',
+              tag: options.tag || `vanjari-push-${Date.now()}`,
               data: { url: options.url || '/' },
+              vibrate: [200, 100, 200],
             } as any);
           }
         })
@@ -109,12 +143,12 @@ export function triggerBrowserPushNotification(
         });
     }
 
-    // 2. Desktop Notification fallback
+    // 4. Desktop / Browser Notification fallback
     try {
       const n = new Notification(title, {
         body: options.body,
         icon: options.icon || '/icon-192.png',
-        tag: options.tag || 'vanjari-jodi-push',
+        tag: options.tag || `vanjari-push-${Date.now()}`,
         badge: '/icon-192.png',
       });
 
@@ -128,10 +162,11 @@ export function triggerBrowserPushNotification(
       };
       return true;
     } catch (err) {
-      // Ignored if handled by service worker or desktop permission constraints
+      // Handled by service worker or top in-app toast
     }
     return true;
   }
 
   return false;
 }
+

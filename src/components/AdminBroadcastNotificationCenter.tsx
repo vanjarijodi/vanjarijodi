@@ -28,7 +28,7 @@ import {
 } from '../utils/pushNotificationHelper';
 
 export const AdminBroadcastNotificationCenter: React.FC = () => {
-  const { siteConfig, updateSiteConfig, profiles, addSystemNotification, logActivity } = useApp();
+  const { siteConfig, updateSiteConfig, profiles, addNotification, addBroadcastNotification, logActivity } = useApp();
 
   const [notificationType, setNotificationType] = useState<'both' | 'push' | 'email'>('both');
   const [targetAudience, setTargetAudience] = useState<'all' | 'unverified' | 'vip' | 'brides' | 'grooms'>('all');
@@ -130,13 +130,12 @@ export const AdminBroadcastNotificationCenter: React.FC = () => {
     setSentSuccess(null);
 
     try {
-      // 1. Trigger Web Push Notification if browser supports
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(title, {
-          body: message,
-          icon: '/favicon.ico'
-        });
-      }
+      // 1. Trigger Web Browser Push Notification & sound immediately
+      triggerBrowserPushNotification(title, {
+        body: message,
+        url: actionUrl || '/profiles',
+        playSound: siteConfig?.enableSoundNotifications !== false,
+      });
 
       // 2. Add System Notifications to targeted profiles in database state
       const targetProfiles = profiles.filter(p => {
@@ -147,20 +146,21 @@ export const AdminBroadcastNotificationCenter: React.FC = () => {
         return true;
       });
 
-      targetProfiles.slice(0, 100).forEach(p => {
-        if (typeof addSystemNotification === 'function') {
-          addSystemNotification({
+      if (targetAudience === 'all') {
+        addBroadcastNotification(title, message);
+      } else {
+        targetProfiles.forEach(p => {
+          addNotification({
             userId: p.id,
             title: title,
             titleMr: title,
             message: message,
             messageMr: message,
             type: 'system',
-            createdAt: new Date().toISOString(),
-            isRead: false
+            actionUrl: actionUrl || undefined
           });
-        }
-      });
+        });
+      }
 
       // 3. Log Admin Activity
       logActivity(
@@ -169,7 +169,7 @@ export const AdminBroadcastNotificationCenter: React.FC = () => {
         `Target: ${targetAudience}, Sender: ${senderEmail}`
       );
 
-      setSentSuccess(`यशस्वी! ${targetProfiles.length} सदस्यांना पुश नोटिफिकेशन्स व ई-मेल ब्रॉडकास्ट (Sender: ${senderEmail}) द्वारे सूचना पाठवली गेली.`);
+      setSentSuccess(`यशस्वी! ${targetProfiles.length} सदस्यांना पुश नोटिफिकेशन्स व ई-मेल ब्रॉडकास्ट द्वारे सूचना त्वरित पाठवली गेली.`);
       setTitle('');
       setMessage('');
       setActionUrl('');

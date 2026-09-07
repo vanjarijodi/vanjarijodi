@@ -41,7 +41,8 @@ import {
   Share2,
   Scroll,
   CheckCircle,
-  ArrowRight
+  ArrowRight,
+  Home
 } from 'lucide-react';
 import { requestPushPermission, getPushPermissionState, triggerBrowserPushNotification } from '../utils/pushNotificationHelper';
 
@@ -51,6 +52,8 @@ export const MemberDashboard: React.FC = () => {
     language,
     currentUser,
     setCurrentUser,
+    setCurrentView,
+    logout,
     profiles,
     interests,
     respondInterest,
@@ -421,6 +424,19 @@ export const MemberDashboard: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
+              onClick={() => {
+                setCurrentView('home');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#800C1E] to-[#A71930] hover:from-[#A71930] hover:to-[#800C1E] text-amber-100 text-xs font-black shadow-md flex items-center gap-1.5 border border-amber-400/40 transition-all cursor-pointer active:scale-95"
+              title="मुख्यपृष्ठ / होम स्क्रीनवर जा"
+            >
+              <Home className="w-4 h-4 text-amber-300" />
+              <span>🏠 मुख्यपृष्ठ (Home)</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setIsShareModalOpen(true)}
               className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black shadow-md flex items-center gap-1.5 border border-emerald-300 transition-all cursor-pointer active:scale-95"
             >
@@ -435,6 +451,20 @@ export const MemberDashboard: React.FC = () => {
             >
               <Edit className="w-4 h-4 text-slate-950" />
               <span>✍️ माहिती बदला</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm('तुम्हाला खात्यातून लॉग आऊट करायचे आहे का?')) {
+                  logout();
+                }
+              }}
+              className="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-black shadow-sm flex items-center gap-1.5 border border-rose-300 transition-all cursor-pointer active:scale-95"
+              title="खात्यातून सुरक्षितपणे बाहेर पडा (Logout)"
+            >
+              <LogOut className="w-4 h-4 text-rose-700" />
+              <span>🚪 लॉग आऊट (Logout)</span>
             </button>
           </div>
 
@@ -514,6 +544,18 @@ export const MemberDashboard: React.FC = () => {
           )}
 
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentView('home');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#800C1E] to-[#A71930] hover:from-[#A71930] hover:to-[#800C1E] text-amber-100 text-xs font-black shadow-md flex items-center gap-1.5 border border-amber-400/40 transition-all cursor-pointer active:scale-95"
+            >
+              <Home className="w-4 h-4 text-amber-300" />
+              <span>🏠 मुख्यपृष्ठ (Home)</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setIsEditProfileModalOpen(true)}

@@ -14,13 +14,16 @@ import {
   Filter,
   UserCheck,
   CheckCircle2,
-  Users
+  Users,
+  User,
+  LogOut
 } from 'lucide-react';
 
 export const MobileHomeScreen: React.FC = () => {
   const {
     profiles,
     currentUser,
+    logout,
     setSearchFilters,
     setCurrentView,
     setIsLoginOpen,
@@ -106,7 +109,35 @@ export const MobileHomeScreen: React.FC = () => {
           </div>
         </div>
 
-        {!currentUser && (
+        {currentUser ? (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setCurrentView('dashboard');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-2.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-[11px] transition active:scale-95 shadow-xs flex items-center gap-1"
+              title="माझे प्रोफाईल उघडा"
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>प्रोफाईल</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm('तुम्हाला खात्यातून लॉग आऊट करायचे आहे का?')) {
+                  logout();
+                }
+              }}
+              className="px-2.5 py-1.5 rounded-xl bg-black/30 hover:bg-black/40 text-amber-200 font-black text-[11px] transition active:scale-95 border border-amber-300/30 flex items-center gap-1"
+              title="खात्यातून बाहेर पडा (Logout)"
+            >
+              <LogOut className="w-3.5 h-3.5 text-rose-300" />
+              <span>लॉग आऊट</span>
+            </button>
+          </div>
+        ) : (
           <button
             type="button"
             onClick={() => {

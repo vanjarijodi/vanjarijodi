@@ -83,7 +83,10 @@ export const FaceVerificationModal: React.FC<FaceVerificationModalProps> = ({ is
   const fileInputRef = useRef<HTMLInputElement>(null);
   const livenessTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const hasProfilePhoto = Boolean(currentUser?.photos && currentUser.photos.length > 0 && currentUser.photos[0]);
+  const hasProfilePhoto = Boolean(
+    (currentUser?.photos && currentUser.photos.length > 0 && currentUser.photos[0]) ||
+    currentUser?.photoUrl
+  );
 
   // Pick random challenge on open
   useEffect(() => {

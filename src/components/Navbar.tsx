@@ -26,6 +26,8 @@ import {
   Lock,
   Share2,
   Bell,
+  LogOut,
+  Home,
 } from 'lucide-react';
 import { VerifiedBadge } from './VerifiedBadge';
 import { NoticeBanner } from './NoticeBanner';
@@ -39,6 +41,7 @@ export const Navbar: React.FC<{
     language,
     setLanguage,
     currentUser,
+    logout,
     notifications,
     setIsNotificationCenterOpen,
     setIsLoginOpen,
@@ -237,15 +240,46 @@ export const Navbar: React.FC<{
 
             {/* 3. PROFILE / LOGIN [👤] */}
             {currentUser ? (
-              <button
-                onClick={() => setCurrentView('dashboard')}
-                className="p-2 sm:px-3 sm:py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-[#800C1E] text-xs font-bold border border-rose-200 flex items-center gap-1.5 transition shadow-2xs cursor-pointer min-h-[44px] min-w-[44px]"
-                title={isEn ? 'My Profile' : 'माझे प्रोफाईल'}
-                aria-label="Profile"
-              >
-                <User className="w-5 h-5 text-[#800C1E]" />
-                <span className="hidden sm:inline-block truncate max-w-[80px] font-black">{currentUser.fullName.split(' ')[0]}</span>
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => {
+                    setCurrentView('home');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-100/90 hover:bg-amber-200 text-[#800C1E] text-xs font-black border border-amber-300 transition shadow-2xs cursor-pointer min-h-[44px]"
+                  title={isEn ? 'Go to Home' : 'मुख्यपृष्ठावर जा'}
+                >
+                  <Home className="w-4 h-4 text-[#800C1E]" />
+                  <span>{isEn ? 'Home' : 'मुख्यपृष्ठ'}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setCurrentView('dashboard');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="p-2 sm:px-3 sm:py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-[#800C1E] text-xs font-bold border border-rose-200 flex items-center gap-1.5 transition shadow-2xs cursor-pointer min-h-[44px] min-w-[44px]"
+                  title={isEn ? 'My Profile' : 'माझे प्रोफाईल'}
+                  aria-label="Profile"
+                >
+                  <User className="w-5 h-5 text-[#800C1E]" />
+                  <span className="hidden sm:inline-block truncate max-w-[80px] font-black">{currentUser.fullName.split(' ')[0]}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (window.confirm(isEn ? 'Are you sure you want to log out?' : 'तुम्हाला खात्यातून लॉग आऊट करायचे आहे का?')) {
+                      logout();
+                    }
+                  }}
+                  className="hidden md:flex items-center gap-1 p-2 sm:px-2.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-rose-100 text-slate-700 hover:text-rose-800 text-xs font-bold border border-slate-200 hover:border-rose-300 transition shadow-2xs cursor-pointer min-h-[44px]"
+                  title={isEn ? 'Log Out' : 'लॉग आऊट'}
+                  aria-label="Log Out"
+                >
+                  <LogOut className="w-4 h-4 text-rose-600" />
+                  <span className="hidden xl:inline-block font-black">{isEn ? 'Log Out' : 'लॉग आऊट'}</span>
+                </button>
+              </div>
             ) : (
               <button
                 onClick={() => {
