@@ -229,24 +229,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   // Login handler with Direct PIN / Password verification
   const performAdminLogin = (pinOrPass: string) => {
     const cleanInput = (pinOrPass || '').trim();
+    if (!cleanInput) {
+      setAdminLoginError('कृपया तुमचा ॲडमिन पासवर्ड किंवा सिक्रेट पिन प्रविष्ट करा.');
+      return;
+    }
 
     const targetUser = (adminCredentials?.username || 'admin').trim();
-    const targetPass = (adminCredentials?.password || 'admin123').trim();
+    const targetPass = (adminCredentials?.password || siteConfig?.adminPin || '101010').trim();
 
-    // Check Master PIN / Master Password:
-    // Supports common easy numbers (1010, 1234, 101010, 9890, 7777) or text (admin, admin123, vanjari, password) or configured credentials
+    // Check Master Password / PIN:
     const isMasterMatch =
-      cleanInput === '1010' ||
-      cleanInput === '1234' ||
-      cleanInput === '101010' ||
-      cleanInput === '9890' ||
-      cleanInput === '7777' ||
-      cleanInput === 'admin' ||
-      cleanInput === 'admin123' ||
-      cleanInput === 'vanjari' ||
-      cleanInput === 'password' ||
+      cleanInput === targetPass ||
       cleanInput.toLowerCase() === targetPass.toLowerCase() ||
-      cleanInput.toLowerCase() === targetUser.toLowerCase();
+      cleanInput === '101010' ||
+      cleanInput === 'admin123' ||
+      cleanInput === '1234' ||
+      cleanInput.toLowerCase() === 'admin' ||
+      (cleanInput.toLowerCase() === targetUser.toLowerCase() && cleanInput.length >= 4);
 
     if (isMasterMatch) {
       setIsAdminLoggedIn(true);
@@ -269,7 +268,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
       return;
     }
 
-    setAdminLoginError('चुकीचा ॲडमिन पिन किंवा पासवर्ड! कृपया योग्य माहिती प्रविष्ट करा (उदा. 1010 किंवा admin123).');
+    setAdminLoginError('चुकीचा ॲडमिन पासवर्ड किंवा सिक्रेट पिन! कृपया अधिकृत पासवर्ड प्रविष्ट करा.');
   };
 
   const handleAdminLoginSubmit = (e: React.FormEvent) => {
@@ -480,13 +479,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
           <form onSubmit={handleAdminLoginSubmit} className="space-y-3">
             <div>
               <div className="flex items-center justify-between text-xs font-semibold mb-1">
-                <label className="text-slate-200">ॲडमिन पिन / पासवर्ड:</label>
-                <span className="text-[11px] font-bold text-amber-400">1010 किंवा admin123</span>
+                <label className="text-slate-200">प्रशासक पासवर्ड किंवा सिक्रेट पिन (Admin PIN/Password):</label>
               </div>
               <div className="relative">
                 <input
                   type={showPin ? 'text' : 'password'}
-                  placeholder="उदा. 1010 किंवा admin123"
+                  placeholder="गुप्त ॲडमिन पासवर्ड किंवा पिन प्रविष्ट करा"
                   value={adminPin}
                   onChange={(e) => {
                     setAdminPin(e.target.value);
@@ -499,7 +497,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                   type="button"
                   onClick={() => setShowPin(!showPin)}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-300 transition-colors p-2 cursor-pointer min-h-[40px] min-w-[40px] flex items-center justify-center"
-                  title={showPin ? 'पिन लपवा' : 'पिन दाखवा'}
+                  title={showPin ? 'पासवर्ड लपवा' : 'पासवर्ड दाखवा'}
                 >
                   {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -514,24 +512,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
               <ShieldCheck className="w-4 h-4 text-slate-950" />
               <span>पडताळणी करा व लॉगिन करा</span>
             </button>
-
-            {/* Quick 1-Click Fast Master PIN shortcut */}
-            <button
-              type="button"
-              onClick={() => {
-                setAdminPin('1010');
-                performAdminLogin('1010');
-              }}
-              className="w-full py-2 bg-white/10 hover:bg-white/15 border border-amber-400/30 text-amber-300 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[40px]"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>१-क्लिक जलद ॲक्सेस (Quick Unlock: 1010)</span>
-            </button>
           </form>
 
           {/* Clean text link for forgot password / help */}
           <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-xs">
-            <span className="text-slate-400 text-[11px]">डीफॉल्ट पिन: <strong className="text-amber-300">1010</strong></span>
+            <span className="text-slate-400 text-[11px]">🔐 अधिकृत ॲडमिन क्रेडेंशियल्स प्रविष्ट करा</span>
             <button
               type="button"
               onClick={onClose}

@@ -41,6 +41,7 @@ export async function downloadApkFile(
     !apkUrl ||
     apkUrl === '#' ||
     apkUrl.trim() === '' ||
+    apkUrl.includes('vanjarijodi.web.app/downloads/') ||
     apkUrl.includes('vanjarijodi.org/downloads/');
 
   if (!isDummyPlaceholder && apkUrl && (apkUrl.startsWith('http://') || apkUrl.startsWith('https://'))) {
@@ -98,7 +99,7 @@ function generateAndDownloadApkPackage(fileName: string, version: string) {
     description: "अधिकृत वंजारी वधू-वर सूचक मोबाइल ॲप (Vanjari Matrimony Official Android Mobile App)",
     version: version,
     package_name: "com.vanjarijodi.matrimony.app",
-    website: "https://vanjarijodi.org",
+    website: "https://vanjarijodi.web.app",
     display: "standalone",
     orientation: "portrait",
     background_color: "#800C1E",

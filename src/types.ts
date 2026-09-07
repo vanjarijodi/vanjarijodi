@@ -120,9 +120,10 @@ export interface UserProfile {
   faceVerifiedAt?: string;
   isPhoneVerified?: boolean;
   phoneVerifiedAt?: string;
-  phoneVerificationMethod?: 'truecaller' | 'otp' | 'admin';
+  phoneVerificationMethod?: 'truecaller' | 'otp' | 'admin' | 'mobile_otp';
   truecallerName?: string;
   truecallerVerified?: boolean;
+  telegramUsername?: string;
   idProofUrl?: string;
   aadhaarCardUrl?: string;
   aadhaarFrontUrl?: string;
@@ -611,9 +612,9 @@ export interface SocialLinkItem {
 }
 
 export interface ApkSettings {
-  apkUrl: string;
-  appVersion: string;
-  isEnabled: boolean;
+  apkUrl?: string;
+  appVersion?: string;
+  isEnabled?: boolean;
   releaseNotes?: string;
   downloadCount?: number;
   fileSizeMb?: string;
@@ -686,6 +687,12 @@ export interface BusinessVendor {
   hallRentDay?: string; // एका दिवसाचे / १ शिफ्टचे हॉल भाडे
   perPlateRate?: string; // प्रति ताट / जेवणाचे दर
   packageRate?: string; // एकत्रित पॅकेज दर
+  cateringServiceType?: 'cooking_only' | 'full_catering' | 'both' | string; // फक्त स्वयंपाक मजुरी / साहित्यासह कॅटरिंग / दोन्ही
+  cookingLaborRate?: string; // स्वयंपाक मजुरी दर (उदा. ₹४० प्रति ताट किंवा ₹२,००० प्रति क्विंटल)
+  cookingLaborType?: string; // मजुरी पद्धत (उदा. प्रति पंगत, प्रति क्विंटल, एकरकमी)
+  cookingTeamSize?: string; // स्वयंपाकी + मदतनीस संख्या
+  cookingServingStaff?: string; // पंगत वाढण्याची सोय (होय / नाही)
+  specialDishes?: string; // खास डिशेस व मेनू स्पेशालिटी
   advanceBookingAmount?: string; // ॲडव्हान्स बुकिंग रक्कम
   cancellationPolicy?: string; // रद्द करण्याचे नियम
   hallCapacity?: string; // बैठक क्षमता (उदा. ५००, १००० लोक)
@@ -918,6 +925,8 @@ export interface SiteConfig {
   metaTitle: string;
   metaDescription: string;
   metaKeywords: string;
+  showSupportFloatingWidget?: boolean;
+  enableSupportChatWidget?: boolean;
   // Grievance Officer & Statutory Compliance (IT Act 2000 & DPDP Act 2023)
   grievanceOfficerName?: string;
   grievanceOfficerEmail?: string;
@@ -951,6 +960,9 @@ export interface SiteConfig {
     password: string;
   };
   apkSettings?: ApkSettings;
+  showApkDownloadButton?: boolean;
+  apkDownloadUrl?: string;
+  apkVersion?: string;
   socialLinks?: SocialLinkItem[];
   featureBoxes?: FeatureBoxItem[];
   enableBusinessVendors?: boolean;

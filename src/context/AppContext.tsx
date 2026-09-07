@@ -342,6 +342,7 @@ interface AppContextType {
   loginWithGoogle: () => Promise<{ success: boolean; isNewUser: boolean; user?: UserProfile; message?: string }>;
   loginWithEmail: (email: string, passwordOrOtp?: string) => Promise<{ success: boolean; isNewUser: boolean; user?: UserProfile; message?: string; requiresEmailVerification?: boolean; email?: string }>;
   loginWithTruecaller: (mobile: string, name?: string, city?: string) => Promise<{ success: boolean; isNewUser: boolean; user?: UserProfile; message?: string }>;
+  loginWithMobile: (mobile: string, otpOrPin?: string) => Promise<{ success: boolean; isNewUser: boolean; user?: UserProfile; message?: string }>;
   sendPasswordReset: (email: string) => Promise<{ success: boolean; message: string }>;
   updateFeatureBoxes: (boxes: FeatureBoxItem[]) => void;
 
@@ -749,6 +750,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           heroDescription: 'हजारो विश्वासू वंजारी कुटुंब जोडणारा महाराष्ट्रातील नंबर १ विवाह मंच',
           logoSubtitle: parsed.logoSubtitle || 'वर-वधू शोध',
           contactEmail: parsed.contactEmail || 'gitevijay123@gmail.com',
+          telegramGroupUrl: (parsed.telegramGroupUrl && parsed.telegramGroupUrl !== 'https://t.me/VanjariJodiOfficial') ? parsed.telegramGroupUrl : 'https://t.me/+LcV24fm6QboxZWM1',
+          telegramUsername: (parsed.telegramUsername && parsed.telegramUsername !== 'VanjariJodiSupport') ? parsed.telegramUsername : 'Primemultiservice',
           blurPhotosForFreeUsers: true,
           photoBlurPercentage: parsed.photoBlurPercentage || 80,
         };
@@ -4138,6 +4141,125 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { success: true, isNewUser: true, user: newProfile };
   };
 
+  // Simple, direct Mobile Number Login (no password hurdle for non-tech users)
+  const loginWithMobile = async (
+    mobileInput: string,
+    otpOrPin?: string
+  ): Promise<{
+    success: boolean;
+    isNewUser: boolean;
+    user?: UserProfile;
+    message?: string;
+  }> => {
+    const rawClean = (mobileInput || '').replace(/\D/g, '');
+    if (!rawClean || rawClean.length < 10) {
+      return { success: false, isNewUser: false, message: 'कृपया १० अंकी योग्य मोबाईल नंबर टाका.' };
+    }
+    const cleanMobile = rawClean.slice(-10);
+
+    const existing = profiles.find((p) => {
+      const pClean = (p.mobile || '').replace(/\D/g, '');
+      return pClean.includes(cleanMobile);
+    });
+
+    const timestamp = new Date().toISOString();
+
+    if (existing) {
+      if (existing.isBlocked) {
+        return { success: false, isNewUser: false, user: existing, message: 'हे खाते ॲडमिनद्वारे तात्पुरते बंद (Block) केलेले आहे.' };
+      }
+
+      const updated: UserProfile = {
+        ...existing,
+        isPhoneVerified: true,
+        phoneVerifiedAt: timestamp,
+        phoneVerificationMethod: 'mobile_otp',
+        lastActive: 'सध्या ऑनलाईन (मोबाईल लॉगिन)',
+      };
+
+      setProfiles((prev) =>
+        prev.map((p) => (p.id === existing.id ? updated : p))
+      );
+      syncDocToFirestore('profiles', updated.id, updated);
+      setCurrentUser(updated);
+
+      logActivity(
+        'Mobile Login',
+        `मोबाईल क्रमांकाद्वारे थेट लॉगिन: ${updated.fullName} (${cleanMobile})`,
+        updated.fullName
+      );
+
+      return { success: true, isNewUser: false, user: updated, message: 'आपले सहर्ष स्वागत आहे! मोबाईल लॉगिन यशस्वी.' };
+    }
+
+    // New Profile Created with Mobile Number
+    const newUserId = `vj-m-${Date.now().toString().slice(-6)}`;
+    const newProfile: UserProfile = {
+      id: newUserId,
+      fullName: 'वंजारी सदस्य',
+      gender: 'groom',
+      dob: '1998-01-01',
+      age: 26,
+      mobile: `+91 ${cleanMobile}`,
+      email: `user_${cleanMobile}@vanjarijodi.web.app`,
+      district: 'बीड (Beed)',
+      taluka: 'परळी',
+      city: 'परळी वैजनाथ',
+      education: 'माहिती भरा',
+      occupation: 'माहिती भरा',
+      income: 'माहिती भरा',
+      height: "5'7\"",
+      weight: '65',
+      bloodGroup: 'B+',
+      maritalStatus: 'never_married',
+      religion: 'हिंदू (Hindu)',
+      subCaste: 'वंजारी',
+      fatherOccupation: 'शेतकरी',
+      motherOccupation: 'गृहिणी',
+      brothers: 0,
+      sisters: 0,
+      familyType: 'कुटुंब',
+      expectations: 'सुसंस्कृत वंजारी जोडीदार',
+      photos: ['https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=400'],
+      aadhaarVerified: false,
+      isVerified: true,
+      isPhoneVerified: true,
+      phoneVerifiedAt: timestamp,
+      phoneVerificationMethod: 'mobile_otp',
+      isFeatured: false,
+      isApproved: true,
+      membership: 'free',
+      authProvider: 'mobile',
+      createdAt: timestamp.split('T')[0],
+      lastActive: 'सध्या ऑनलाईन (नवीन मोबाईल सदस्य)',
+      privacy: { hideContact: false, hidePhoto: false },
+      completionPercentage: 40,
+      registrationType: 'manual',
+      bio: 'मोबाईलद्वारे नोंदणीकृत अधिकृत वंजारी जोडी प्रोफाइल'
+    };
+
+    setProfiles((prev) => [newProfile, ...prev]);
+    syncDocToFirestore('profiles', newProfile.id, newProfile);
+    setCurrentUser(newProfile);
+
+    logActivity(
+      'Mobile Registration',
+      `मोबाईल नंबरद्वारे नवीन सदस्य नोंदणी: ${cleanMobile}`,
+      newProfile.fullName
+    );
+
+    addNotification({
+      userId: 'admin',
+      title: 'New Mobile User Registered',
+      titleMr: '📱 मोबाईल नंबरद्वारे नवीन सदस्य नोंदणी!',
+      message: `New user with mobile ${cleanMobile} registered.`,
+      messageMr: `नवीन सदस्य (मोबाईल: +91 ${cleanMobile}) यांनी मोबाईल लॉगिनद्वारे नोंदणी केली आहे.`,
+      type: 'system'
+    });
+
+    return { success: true, isNewUser: true, user: newProfile, message: 'आपले वंजारी जोडीवर सहर्ष स्वागत आहे! नवीन खाते तयार झाले.' };
+  };
+
   const updateFeatureBoxes = (boxes: any[]) => {
     setSiteConfig(prev => ({ ...prev, featureBoxes: boxes }));
     logActivity('Index Features Updated', 'इंडेक्स ४ मुख्य कप्पे माहिती व आयकॉन सुधारले');
@@ -4885,7 +5007,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem('vanjari_jodi_business_vendors');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed: BusinessVendor[] = JSON.parse(saved);
+        // Merge missing seed vendors or update ven-2/ven-5 if older version had no catering info
+        const updated = parsed.map(v => {
+          const match = INITIAL_BUSINESS_VENDORS.find(iv => iv.id === v.id);
+          if (match && !v.cateringServiceType && match.cateringServiceType) {
+            return { ...match, ...v, cateringServiceType: match.cateringServiceType, cookingLaborRate: match.cookingLaborRate, specialDishes: match.specialDishes };
+          }
+          return v;
+        });
+        for (const seed of INITIAL_BUSINESS_VENDORS) {
+          if (!updated.some(v => v.id === seed.id)) {
+            updated.push(seed);
+          }
+        }
+        return updated;
       } catch (e) {
         return INITIAL_BUSINESS_VENDORS;
       }
@@ -5261,6 +5397,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         loginWithGoogle,
         loginWithEmail,
         loginWithTruecaller,
+        loginWithMobile,
         sendPasswordReset,
         updateFeatureBoxes,
         payPerContactRequests,

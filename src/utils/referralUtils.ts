@@ -22,7 +22,7 @@ export function getCleanReferralCode(profile: Partial<UserProfile>): string {
 }
 
 export function getReferralShareLink(referralCode: string): string {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://vanjarijodi.com';
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://vanjarijodi.web.app';
   return `${origin}/?ref=${encodeURIComponent(referralCode)}`;
 }
 
@@ -49,7 +49,7 @@ export function getPlanGrantWhatsAppMessage(
   expiryDateStr: string,
   adminNote?: string
 ): string {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://vanjarijodi.com';
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://vanjarijodi.web.app';
   
   let formattedDate = expiryDateStr;
   try {

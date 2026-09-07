@@ -5,6 +5,7 @@ import { MessageCircle, X, Send, Paperclip, ShieldCheck, CheckCheck, Loader2, Mo
 
 export const AdminSupportChatWidget: React.FC = () => {
   const {
+    siteConfig,
     adminSupportMessages,
     sendAdminSupportMessage,
     markAdminSupportMessagesRead,
@@ -201,6 +202,11 @@ export const AdminSupportChatWidget: React.FC = () => {
     setAttachedFile(null);
   };
 
+  // If Admin disabled the floating support/headphone chat widget in Admin Settings
+  if (siteConfig?.showSupportFloatingWidget === false || siteConfig?.enableSupportChatWidget === false) {
+    return null;
+  }
+
   if (hasOtherModalOpen && !isOpen) return null;
 
   return (
@@ -324,10 +330,32 @@ export const AdminSupportChatWidget: React.FC = () => {
             className="flex-1 p-2.5 sm:p-3 overflow-y-auto space-y-2.5 bg-[#FAF6EF] touch-pan-y min-h-0"
             style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}
           >
-            <div className="text-center my-0.5">
-              <span className="px-2.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 text-[9px] sm:text-[10px] font-black rounded-full shadow-xs">
+            <div className="text-center my-0.5 space-y-1.5">
+              <span className="px-2.5 py-0.5 bg-amber-100 text-amber-900 border border-amber-300 text-[9px] sm:text-[10px] font-black rounded-full shadow-xs inline-block">
                 ॥ श्री संत भगवान बाबा प्रसन्न ॥
               </span>
+
+              {/* Quick Telegram Shortcuts */}
+              <div className="grid grid-cols-2 gap-1.5 px-1 pt-0.5">
+                <a
+                  href={`https://t.me/Primemultiservice`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-1 px-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-[10px] rounded-lg shadow-2xs border border-amber-300 flex items-center justify-center gap-1 transition"
+                >
+                  <MessageCircle className="w-3 h-3 text-slate-950" />
+                  <span>💬 थेट ॲडमिन चॅट</span>
+                </a>
+                <a
+                  href={`https://t.me/+LcV24fm6QboxZWM1`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-1 px-2 bg-sky-600 hover:bg-sky-500 text-white font-black text-[10px] rounded-lg shadow-2xs border border-sky-400 flex items-center justify-center gap-1 transition"
+                >
+                  <Send className="w-3 h-3 text-white" />
+                  <span>📢 ग्रुप जॉईन करा</span>
+                </a>
+              </div>
             </div>
 
             {userMessages.length === 0 ? (

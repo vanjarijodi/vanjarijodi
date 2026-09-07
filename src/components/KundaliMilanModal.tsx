@@ -469,7 +469,7 @@ export const KundaliMilanModal: React.FC<KundaliMilanModalProps> = ({
     if (!result) return;
     const isNadiDosha = Boolean(result.doshaAnalysis?.nadiDosha?.present);
     const isManglikCompat = result.doshaAnalysis?.manglikCompatibility?.compatible !== false;
-    const msg = `🚩 *वंजारी जोडी मॅट्रिमोनी - वैदिक ३६ गुणमेलन अहवाल* 🚩\n\n🤵 *वर:* ${groomName} (${groomCity})\n👰 *वधू:* ${brideName} (${brideCity})\n\n⭐ *एकूण प्राप्त गुण:* *${result.totalScore} / ३६ गुण (${result.percentage}%)*\n🎯 *निकाल:* ${result.compatibilityVerdict}\n📜 *मार्गदर्शन:* ${result.recommendationMr || 'वैदिक अष्टकूट अहवाल'}\n\n🛡️ *दोष विश्लेषण:* ${isNadiDosha ? '⚠️ नाडी दोष' : '✅ नाडी निर्दोष'} | ${isManglikCompat ? '✅ मंगळ सुसंगत' : '⚠️ मंगळ विचार'}\n\n🌐 सविस्तर पत्रिका जुळवणी पाहण्यासाठी: https://vanjarijodi.org\n॥ श्री संत भगवान बाबा प्रसन्न ॥`;
+    const msg = `🚩 *वंजारी जोडी मॅट्रिमोनी - वैदिक ३६ गुणमेलन अहवाल* 🚩\n\n🤵 *वर:* ${groomName} (${groomCity})\n👰 *वधू:* ${brideName} (${brideCity})\n\n⭐ *एकूण प्राप्त गुण:* *${result.totalScore} / ३६ गुण (${result.percentage}%)*\n🎯 *निकाल:* ${result.compatibilityVerdict}\n📜 *मार्गदर्शन:* ${result.recommendationMr || 'वैदिक अष्टकूट अहवाल'}\n\n🛡️ *दोष विश्लेषण:* ${isNadiDosha ? '⚠️ नाडी दोष' : '✅ नाडी निर्दोष'} | ${isManglikCompat ? '✅ मंगळ सुसंगत' : '⚠️ मंगळ विचार'}\n\n🌐 सविस्तर पत्रिका जुळवणी पाहण्यासाठी: https://vanjarijodi.web.app\n॥ श्री संत भगवान बाबा प्रसन्न ॥`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
   };
 

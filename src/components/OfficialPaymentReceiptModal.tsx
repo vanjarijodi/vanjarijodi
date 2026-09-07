@@ -55,7 +55,7 @@ export const OfficialPaymentReceiptModal: React.FC<OfficialPaymentReceiptProps> 
 
   const senderEmail = data.adminSenderEmail || siteConfig?.contactEmail || 'gitevijay123@gmail.com';
   const founderName = 'वंजारी जोडी टीम';
-  const telegramHandle = (siteConfig?.telegramUsername || 'VanjariJodiSupport').replace(/^@/, '');
+  const telegramHandle = (siteConfig?.telegramUsername || 'Primemultiservice').replace(/^@/, '');
   const supportContactText = `ई-मेल सपोर्ट: ${senderEmail}`;
   const displayAmount = data.amount || 398;
 

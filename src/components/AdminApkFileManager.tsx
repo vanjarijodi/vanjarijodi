@@ -21,7 +21,7 @@ export const AdminApkFileManager: React.FC = () => {
   const { siteConfig, updateSiteConfig, incrementApkDownloadCount } = useApp();
 
   const apk = siteConfig?.apkSettings || {
-    apkUrl: 'https://vanjarijodi.org/downloads/VanjariJodi_v2.5.0.apk',
+    apkUrl: 'https://vanjarijodi.web.app/downloads/VanjariJodi_v2.5.0.apk',
     appVersion: 'v2.5.0',
     isEnabled: true,
     releaseNotes: 'नवीन अपडेट: Android 14 सुसंगतता, वेगवान सिस्टीम व सुधारित UI.',
@@ -200,7 +200,7 @@ export const AdminApkFileManager: React.FC = () => {
               type="text"
               value={form.apkUrl}
               onChange={(e) => setForm(prev => ({ ...prev, apkUrl: e.target.value }))}
-              placeholder="https://vanjarijodi.com/app/vanjarijodi_v2.4.apk"
+              placeholder="https://vanjarijodi.web.app/downloads/VanjariJodi_v2.5.0.apk"
               className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
               required
             />

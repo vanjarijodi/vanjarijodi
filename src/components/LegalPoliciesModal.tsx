@@ -25,7 +25,7 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
   const tradeName = siteConfig?.tradeName || 'Vanjari Jodi';
   const appName = isEn ? 'Vanjari Jodi Matrimony' : (siteConfig?.logoTitle || 'वंजारी जोडी मॅट्रिमोनी');
   const contactEmail = siteConfig?.contactEmail || 'gitevijay123@gmail.com';
-  const telegramUsername = siteConfig?.telegramUsername || 'VanjariJodiSupport';
+  const telegramUsername = siteConfig?.telegramUsername || 'Primemultiservice';
   const contactAddress = siteConfig?.contactAddress || 'At Post Padali, Taluka Shirur (Kasar), District Beed, Maharashtra - 413249';
   const operatingHours = siteConfig?.operatingHours || 'Monday to Saturday | 10:00 AM – 06:00 PM';
 

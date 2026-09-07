@@ -20,7 +20,7 @@ export async function downloadSingleKundliPdfReport(data: NormalizedSingleKundli
     // Generate 100% offline Data URL QR code (prevents canvas tainting & CORS errors)
     let qrDataUrl = '';
     try {
-      qrDataUrl = await QRCode.toDataURL(`https://vanjarijodi.org/verify-kundli?id=${data.id}`, {
+      qrDataUrl = await QRCode.toDataURL(`https://vanjarijodi.web.app/verify-kundli?id=${data.id}`, {
         width: 150,
         margin: 1,
         color: {

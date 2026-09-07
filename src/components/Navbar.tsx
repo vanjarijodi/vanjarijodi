@@ -19,6 +19,7 @@ import {
   Scroll,
   Headphones,
   Send,
+  MessageCircle,
   Search,
   User,
   Crown,
@@ -92,6 +93,17 @@ export const Navbar: React.FC<{
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Top Bar PDF BioData Maker Button */}
+          <button
+            onClick={() => setIsBioDataMakerOpen(true)}
+            className="px-2.5 sm:px-3 py-0.5 rounded-md bg-gradient-to-r from-rose-700 via-[#800C1E] to-rose-800 hover:from-rose-600 hover:to-rose-700 text-amber-200 font-black text-[10px] sm:text-[11px] flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs border border-amber-400/40 shrink-0"
+            title={isEn ? 'Create Free PDF BioData' : 'मोफत PDF बायोडाटा बनवा'}
+          >
+            <Scroll className="w-3.5 h-3.5 text-amber-300" />
+            <span>{isEn ? '📄 Create PDF BioData' : '📄 मोफत PDF बायोडाटा बनवा'}</span>
+            <span className="text-[9px] bg-amber-400 text-slate-950 px-1.5 py-0.2 rounded font-black">Free</span>
+          </button>
+
           {/* Wedding Vendor Registration Button (Catering, Decor, Flowers, Halls etc.) */}
           <button
             onClick={() => setIsBusinessVendorRegisterModalOpen(true)}
@@ -102,6 +114,20 @@ export const Navbar: React.FC<{
             <span>{isEn ? '🤝 Vendor Registration' : '🤝 व्हेंडर नोंदणी (Vendor Registration)'}</span>
             <span className="text-[9px] bg-[#800C1E] text-amber-200 px-1.5 py-0.2 rounded font-black">दर व माहिती</span>
           </button>
+
+          {/* Top Ribbon Official Telegram Support */}
+          {siteConfig?.showTelegramBanner !== false && (
+            <a
+              href={`https://t.me/${(siteConfig?.telegramUsername || 'Primemultiservice').replace(/^@/, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2.5 sm:px-3 py-0.5 rounded-md bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 text-white font-black text-[10px] sm:text-[11px] flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs border border-sky-400"
+              title="टेलिग्रामद्वारे थेट ॲडमिन संपर्क व मदत"
+            >
+              <Send className="w-3.5 h-3.5 text-white animate-pulse" />
+              <span>{isEn ? 'Telegram Support' : 'टेलिग्राम सपोर्ट'}</span>
+            </a>
+          )}
 
           {/* Top Bar Share App Button */}
           <button
@@ -170,6 +196,17 @@ export const Navbar: React.FC<{
           {/* RIGHT SIDE CONTROLS: Strictly [🔍] and [👤] on Mobile! Desktop gets extra badges */}
           <div className="flex items-center gap-2 shrink-0">
             
+            {/* 0. QUICK PDF BIODATA BUTTON (VISIBLE ON MOBILE & DESKTOP) */}
+            <button
+              onClick={() => setIsBioDataMakerOpen(true)}
+              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-50 to-amber-50 hover:bg-rose-100 border border-rose-300 text-[#800C1E] font-black text-xs flex items-center gap-1 active:scale-95 cursor-pointer shadow-2xs transition shrink-0 min-h-[44px]"
+              title={isEn ? 'Create Free PDF BioData' : 'मोफत PDF बायोडाटा बनवा'}
+            >
+              <Scroll className="w-4 h-4 text-[#800C1E]" />
+              <span className="hidden sm:inline">📄 PDF बायोडाटा</span>
+              <span className="sm:hidden">📄 बायोडाटा</span>
+            </button>
+
             {/* 1. QUICK SEARCH [🔍] */}
             <button
               onClick={() => {
@@ -327,6 +364,20 @@ export const Navbar: React.FC<{
 
                   {/* Quick Action Links inside Dropdown Menu */}
                   <div className="space-y-1.5 pt-1">
+                    {/* Free PDF BioData Maker in Menu */}
+                    <button
+                      onClick={() => { setIsBioDataMakerOpen(true); setMenuOpen(false); }}
+                      className="w-full flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-rose-100 via-amber-50 to-rose-50 hover:from-rose-200 hover:to-amber-100 text-[#800C1E] font-black cursor-pointer border border-rose-300 shadow-xs"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Scroll className="w-4 h-4 text-[#A71930]" />
+                        <span>{isEn ? 'Create PDF BioData' : '📄 मोफत PDF बायोडाटा बनवा'}</span>
+                      </div>
+                      <span className="text-[9px] bg-[#A71930] text-amber-100 px-1.5 py-0.5 rounded font-bold">
+                        १००% मोफत
+                      </span>
+                    </button>
+
                     <button
                       onClick={() => { setIsRegisterOpen(true); setMenuOpen(false); }}
                       className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-gradient-to-r from-[#A71930] to-[#800C1E] text-amber-100 font-extrabold cursor-pointer shadow-sm"
@@ -439,29 +490,19 @@ export const Navbar: React.FC<{
                       </button>
                     )}
 
-                    {siteConfig?.telegramUsername && (
+                    {siteConfig?.showTelegramBanner !== false && (
                       <a
-                        href={`https://t.me/${siteConfig.telegramUsername.replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '')}`}
+                        href={siteConfig?.telegramGroupUrl || 'https://t.me/+LcV24fm6QboxZWM1'}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         onClick={() => setMenuOpen(false)}
-                        className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white font-black cursor-pointer border border-sky-300 shadow-sm"
+                        className="w-full flex items-center gap-2.5 p-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 text-white font-black cursor-pointer border border-sky-400 shadow-xs"
                       >
-                        <Send className="w-4 h-4 text-white animate-pulse" />
-                        <span>{isEn ? `💬 Chat on Telegram Support` : `💬 टेलिग्रामवर चॅट करा (@${siteConfig.telegramUsername.replace(/^@/, '')})`}</span>
-                      </a>
-                    )}
-
-                    {siteConfig?.showTelegramBanner !== false && siteConfig?.telegramGroupUrl && siteConfig.telegramGroupUrl.trim() !== '' && (
-                      <a
-                        href={siteConfig.telegramGroupUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={() => setMenuOpen(false)}
-                        className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-extrabold cursor-pointer border border-sky-400 shadow-xs"
-                      >
-                        <Send className="w-4 h-4 text-white animate-bounce" />
-                        <span>{isEn ? '📢 Join Telegram Group' : '📢 टेलिग्राम ग्रुप जॉईन करा'}</span>
+                        <Send className="w-4 h-4 text-white animate-pulse shrink-0" />
+                        <div className="text-left">
+                          <div className="text-xs font-black">{isEn ? '📢 Official Telegram Group' : '📢 अधिकृत टेलिग्राम ग्रुप जॉईन करा'}</div>
+                          <div className="text-[10px] text-sky-100 font-medium">{isEn ? 'Get daily new match updates' : 'मोफत स्थळे व दैनंदिन अपडेट्स मिळवा'}</div>
+                        </div>
                       </a>
                     )}
 

@@ -58,6 +58,7 @@ import {
   Home,
   ChevronDown,
   ChevronUp,
+  Send,
   Layers,
   LayoutList,
   Building2,
@@ -2153,6 +2154,15 @@ export const ProfileDetailModal: React.FC<{
                     <MessageCircle className="w-4 h-4" />
                     <span>चॅट करा</span>
                   </button>
+                  <a
+                    href={`https://t.me/${profile.telegramUsername || siteConfig?.telegramUsername || 'Primemultiservice'}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span>टेलिग्राम संपर्क (@{profile.telegramUsername || siteConfig?.telegramUsername || 'Primemultiservice'})</span>
+                  </a>
                   {isMutualMatch && (
                     <span className="px-3 py-1 rounded-xl bg-rose-100 text-rose-800 border border-rose-300 text-xs font-black flex items-center gap-1">
                       💞 म्युचुअल लाईक (मॅच) + Truecaller मुळे मोबाईल नंबर अनलॉक!
@@ -2169,17 +2179,28 @@ export const ProfileDetailModal: React.FC<{
                         💞 तुमचे एकमेकांना म्युचुअल लाईक (Match) झाले आहे!
                       </p>
                       <p className="text-[11px] text-slate-700 font-bold">
-                        मोबाईल नंबर पाहण्यासाठी कृपया Truecaller पडताळणी पूर्ण करा.
+                        मोबाईल नंबर पाहण्यासाठी कृपया Truecaller पडताळणी पूर्ण करा किंवा टेलिग्राम सपोर्टशी संपर्क करा.
                       </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsTruecallerModalOpen(true)}
-                    className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs font-black rounded-xl shadow border border-blue-400 flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-                  >
-                    <span>⚡ Truecaller व्हेरिफाय करा</span>
-                  </button>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setIsTruecallerModalOpen(true)}
+                      className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs font-black rounded-xl shadow border border-blue-400 flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                    >
+                      <span>⚡ Truecaller व्हेरिफाय करा</span>
+                    </button>
+                    <a
+                      href={`https://t.me/${siteConfig?.telegramUsername || 'Primemultiservice'}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl flex items-center gap-1"
+                    >
+                      <Send className="w-3.5 h-3.5" />
+                      <span>टेलिग्राम</span>
+                    </a>
+                  </div>
                 </div>
               ) : pendingReq ? (
                 <div className="px-4 py-2 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold flex items-center gap-1.5 cursor-default">
@@ -2187,51 +2208,70 @@ export const ProfileDetailModal: React.FC<{
                   <span>मान्यतेसाठी प्रलंबित (प्रशासकीय पडताळणी सुरु आहे)</span>
                 </div>
               ) : (
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* Message when user hasn't mutual-liked or requires strict verification */}
-                  {siteConfig?.requireMutualLikeAndVerificationToView && (
-                    <div className="w-full text-xs font-extrabold text-[#A71930] bg-amber-50 p-2.5 rounded-xl border border-amber-300 flex items-center gap-1.5">
-                      <span>🔒</span>
-                      <span>एकमेकांना लाईक केल्याच्या नंतर आणि ट्रू कॉलर व्हेरिफिकेशन झाले तरच नंबर अनलॉक होईल.</span>
+                <div className="flex flex-col gap-2 w-full sm:w-auto">
+                  {/* Privacy notice banner replacing direct public phone display */}
+                  <div className="bg-amber-50/95 border border-amber-300 rounded-xl p-2.5 flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2 text-slate-700 font-bold">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>गोपनीयता सुरक्षा: थेट नंबर सार्वजनिक उपलब्ध नाही. परस्पर पसंती किंवा टेलिग्राम सपोर्ट आयडी वापरा.</span>
                     </div>
-                  )}
+                    <a
+                      href={`https://t.me/${siteConfig?.telegramUsername || 'Primemultiservice'}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white font-black rounded-lg text-[11px] flex items-center gap-1 shrink-0"
+                    >
+                      <Send className="w-3 h-3" />
+                      <span>टेलिग्राम सपोर्ट</span>
+                    </a>
+                  </div>
 
-                  {/* Pay Per Contact Button - Hidden if isPayPerContactEnabled is false */}
-                  {siteConfig?.isPayPerContactEnabled !== false && !siteConfig?.requireMutualLikeAndVerificationToView && (
-                    <button
-                      onClick={() => {
-                        if (checkGuestPermission('viewProfiles', 'संपर्क अन-लॉक')) {
-                          if (siteConfig?.isOfferModeEnabled || siteConfig?.disableAllPaymentsInOfferMode) {
-                            unlockContact(profile.id);
-                            alert('🎁 विशेष सण ऑफर: संपर्क क्रमांक विनामूल्य अन-लॉक झाला आहे!');
-                          } else {
-                            setSelectedProfileForUnlock(profile);
-                            setIsContactUnlockModalOpen(true);
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Message when user hasn't mutual-liked or requires strict verification */}
+                    {siteConfig?.requireMutualLikeAndVerificationToView && (
+                      <div className="w-full text-xs font-extrabold text-[#A71930] bg-amber-50 p-2.5 rounded-xl border border-amber-300 flex items-center gap-1.5">
+                        <span>🔒</span>
+                        <span>एकमेकांना लाईक केल्याच्या नंतर आणि ट्रू कॉलर व्हेरिफिकेशन झाले तरच नंबर अनलॉक होईल.</span>
+                      </div>
+                    )}
+
+                    {/* Pay Per Contact Button - Hidden if isPayPerContactEnabled is false */}
+                    {siteConfig?.isPayPerContactEnabled !== false && !siteConfig?.requireMutualLikeAndVerificationToView && (
+                      <button
+                        onClick={() => {
+                          if (checkGuestPermission('viewProfiles', 'संपर्क अन-लॉक')) {
+                            if (siteConfig?.isOfferModeEnabled || siteConfig?.disableAllPaymentsInOfferMode) {
+                              unlockContact(profile.id);
+                              alert('🎁 विशेष सण ऑफर: संपर्क क्रमांक विनामूल्य अन-लॉक झाला आहे!');
+                            } else {
+                              setSelectedProfileForUnlock(profile);
+                              setIsContactUnlockModalOpen(true);
+                            }
                           }
-                        }
-                      }}
-                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-700 to-emerald-800 text-amber-100 text-xs font-black flex items-center gap-1.5 shadow-md hover:brightness-110 cursor-pointer border border-emerald-400"
-                    >
-                      <Lock className="w-4 h-4 text-amber-300" />
-                      <span>
-                        {siteConfig?.isOfferModeEnabled
-                          ? '🎁 मोफत संपर्क अन-लॉक करा (Offer)'
-                          : 'संपर्क अन-लॉक करा (Pay-Per-Contact)'}
-                      </span>
-                    </button>
-                  )}
+                        }}
+                        className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-700 to-emerald-800 text-amber-100 text-xs font-black flex items-center gap-1.5 shadow-md hover:brightness-110 cursor-pointer border border-emerald-400"
+                      >
+                        <Lock className="w-4 h-4 text-amber-300" />
+                        <span>
+                          {siteConfig?.isOfferModeEnabled
+                            ? '🎁 मोफत संपर्क अन-लॉक करा (Offer)'
+                            : 'संपर्क अन-लॉक करा (Pay-Per-Contact)'}
+                        </span>
+                      </button>
+                    )}
 
-                  {!siteConfig?.requireMutualLikeAndVerificationToView && (
-                    <button
-                      onClick={() => {
-                        requestContactAuthorization(profile.id);
-                      }}
-                      className="px-4 py-2.5 rounded-xl bg-[#A71930] hover:bg-[#800C1E] text-amber-100 text-xs font-black flex items-center gap-1.5 shadow-md transition cursor-pointer"
-                    >
-                      <PhoneCall className="w-4 h-4" />
-                      <span>मोफत विनंती करा</span>
-                    </button>
-                  )}
+                    {!siteConfig?.requireMutualLikeAndVerificationToView && (
+                      <button
+                        onClick={() => {
+                          requestContactAuthorization(profile.id);
+                        }}
+                        className="px-4 py-2.5 rounded-xl bg-[#A71930] hover:bg-[#800C1E] text-amber-100 text-xs font-black flex items-center gap-1.5 shadow-md transition cursor-pointer"
+                      >
+                        <PhoneCall className="w-4 h-4" />
+                        <span>मोफत विनंती करा</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 

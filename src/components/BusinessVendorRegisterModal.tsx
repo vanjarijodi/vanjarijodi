@@ -34,7 +34,9 @@ export const BusinessVendorRegisterModal: React.FC<{
   const { siteConfig, addBusinessVendor, addCustomVendorCategory } = useApp();
 
   const defaultCategories = siteConfig.customVendorCategories || [
-    'जेवण व कॅटरिंग / स्वयंपाकी (Catering & Food)',
+    '🍽️ जेवण व कॅटरिंग (साहित्यासह संपूर्ण जेवण)',
+    '👨‍🍳 फक्त स्वयंपाकी / आचारी / महाराज (केवळ स्वयंपाक मजुरी)',
+    '🍲 कॅटरिंग व स्वयंपाकी (दोन्ही सुविधा उपलब्ध)',
     'मंडप व स्टेज डेकोरेशन (Decoration)',
     'फुलवाले व पुष्प सजावट (Florist & Flowers)',
     'मंगल कार्यालय व विवाह लॉन्स (Halls & Lawns)',
@@ -66,9 +68,20 @@ export const BusinessVendorRegisterModal: React.FC<{
 
   // Category Specific Flags
   const isMangalKaryalaya = category.includes('मंगल कार्यालय') || category.includes('लॉन्स');
-  const isCatering = category.includes('कॅटरिंग') || category.includes('स्वयंपाकी') || category.includes('जेवण');
+  const isCatering = category.includes('कॅटरिंग') || category.includes('स्वयंपाकी') || category.includes('जेवण') || category.includes('आचारी') || category.includes('महाराज');
   const isDecoration = category.includes('डेकोरेशन') || category.includes('मंडप');
   const isFlorist = category.includes('फुल') || category.includes('पुष्प');
+
+  // Catering & Cooking Labor Specific State
+  const isOnlyCookCategory = category.includes('फक्त स्वयंपाकी') || category.includes('आचारी') || category.includes('महाराज');
+  const [cateringServiceType, setCateringServiceType] = useState<'cooking_only' | 'full_catering' | 'both'>(
+    isOnlyCookCategory ? 'cooking_only' : 'both'
+  );
+  const [cookingLaborRate, setCookingLaborRate] = useState('');
+  const [cookingLaborType, setCookingLaborType] = useState('प्रति माणूस / ताट मजुरी');
+  const [cookingTeamSize, setCookingTeamSize] = useState('१ मुख्य महाराज + ४ मदतनीस');
+  const [cookingServingStaff, setCookingServingStaff] = useState('होय - आमचे वाढपी पंगत वाढून देतील');
+  const [specialDishes, setSpecialDishes] = useState('');
   
   const [hallType, setHallType] = useState('AC हॉल व लॉन दोन्ही');
   const [hallCapacity, setHallCapacity] = useState('५०० ते १००० लोक');
@@ -149,9 +162,30 @@ export const BusinessVendorRegisterModal: React.FC<{
     }
 
     // Clean rates string
-    const combinedRates = isMangalKaryalaya
-      ? `हॉल भाडे: ${hallRentDay || 'चर्चेनुसार'} | प्रति ताट: ${perPlateRate || 'लागू नाही'} | पॅकेज: ${packageRate || 'उपलब्ध'}`
-      : (hallRentDay || perPlateRate || packageRate || 'दर फोनवर किंवा चर्चेनुसार उपलब्ध');
+    let combinedRates = '';
+    if (isMangalKaryalaya) {
+      combinedRates = `हॉल भाडे: ${hallRentDay || 'चर्चेनुसार'} | प्रति ताट: ${perPlateRate || 'लागू नाही'} | पॅकेज: ${packageRate || 'उपलब्ध'}`;
+    } else if (isCatering) {
+      const parts: string[] = [];
+      if (cateringServiceType === 'cooking_only' || cateringServiceType === 'both') {
+        if (cookingLaborRate.trim()) {
+          parts.push(`फक्त स्वयंपाक मजुरी: ${cookingLaborRate.trim()} (${cookingLaborType})`);
+        } else {
+          parts.push(`फक्त स्वयंपाक मजुरी उपलब्ध (सामान पार्टीचे)`);
+        }
+      }
+      if (cateringServiceType === 'full_catering' || cateringServiceType === 'both') {
+        if (perPlateRate.trim() || hallRentDay.trim()) {
+          parts.push(`साहित्यासह जेवण: ${perPlateRate.trim() || hallRentDay.trim()}`);
+        }
+      }
+      if (packageRate.trim()) {
+        parts.push(`लग्न पॅकेज: ${packageRate.trim()}`);
+      }
+      combinedRates = parts.join(' | ') || hallRentDay || perPlateRate || 'दर फोनवर किंवा चर्चेनुसार उपलब्ध';
+    } else {
+      combinedRates = hallRentDay || perPlateRate || packageRate || 'दर फोनवर किंवा चर्चेनुसार उपलब्ध';
+    }
 
     let finalCategory = category;
     if (isAddingNewCategory && newCategoryName.trim()) {
@@ -173,6 +207,12 @@ export const BusinessVendorRegisterModal: React.FC<{
       hallRentDay: hallRentDay.trim(),
       perPlateRate: perPlateRate.trim(),
       packageRate: packageRate.trim(),
+      cateringServiceType: isCatering ? cateringServiceType : undefined,
+      cookingLaborRate: isCatering ? cookingLaborRate.trim() : undefined,
+      cookingLaborType: isCatering ? cookingLaborType : undefined,
+      cookingTeamSize: isCatering ? cookingTeamSize.trim() : undefined,
+      cookingServingStaff: isCatering ? cookingServingStaff : undefined,
+      specialDishes: isCatering ? specialDishes.trim() : undefined,
       advanceBookingAmount: advanceBookingAmount.trim(),
       cancellationPolicy: cancellationPolicy.trim(),
       hallCapacity: isMangalKaryalaya ? hallCapacity : undefined,
@@ -195,6 +235,14 @@ export const BusinessVendorRegisterModal: React.FC<{
   const handleSendToAdminWhatsapp = () => {
     const adminPhone = siteConfig.contactWhatsapp || siteConfig.contactPhone || '919822000000';
     const cleanPhone = (adminPhone || '').replace(/[^0-9]/g, '');
+    const serviceTypeDesc = isCatering
+      ? (cateringServiceType === 'cooking_only'
+          ? 'फक्त स्वयंपाक मजुरी (किराणा पार्टीचा)'
+          : cateringServiceType === 'full_catering'
+            ? 'साहित्यासह संपूर्ण कॅटरिंग'
+            : 'स्वयंपाक मजुरी व कॅटरिंग दोन्ही')
+      : '';
+
     const msg = encodeURIComponent(
       `*🏛️ नवीन मंगल कार्यालय / विवाह सेवा नोंदणी तपशील*\n\n` +
       `*कार्यालयाचे / व्यवसायाचे नाव:* ${businessName}\n` +
@@ -203,6 +251,9 @@ export const BusinessVendorRegisterModal: React.FC<{
       `*मोबाईल:* ${mobile}\n` +
       `*व्हॉट्सॲप:* ${whatsapp || mobile}\n` +
       `*जिल्हा व तालुका:* ${district}, ${taluka}\n` +
+      (isCatering && serviceTypeDesc ? `*सेवा प्रकार:* ${serviceTypeDesc}\n` : '') +
+      (isCatering && cookingLaborRate ? `*स्वयंपाक मजुरी दर:* ${cookingLaborRate} (${cookingLaborType})\n` : '') +
+      (isCatering && perPlateRate ? `*प्रति ताट दर:* ${perPlateRate}\n` : '') +
       (isMangalKaryalaya ? `*हॉल भाडे:* ${hallRentDay || 'माहिती दिलेली नाही'}\n*प्रति ताट दर:* ${perPlateRate || 'नाही'}\n*बैठक क्षमता:* ${hallCapacity}\n` : `*दर व पॅकेज:* ${hallRentDay || perPlateRate || packageRate}\n`) +
       `*सवलत:* ${memberDiscount}\n\n` +
       `कृपया आमची माहिती तपासून वंजारी जोडी विवाह डिरेक्टरीवर लाइव्ह करावी.`
@@ -319,7 +370,17 @@ export const BusinessVendorRegisterModal: React.FC<{
                   <div className="flex gap-2">
                     <select
                       value={category}
-                      onChange={(e) => setCategory(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setCategory(val);
+                        if (val.includes('फक्त स्वयंपाकी') || val.includes('आचारी') || val.includes('महाराज')) {
+                          setCateringServiceType('cooking_only');
+                        } else if (val.includes('साहित्यासह संपूर्ण जेवण')) {
+                          setCateringServiceType('full_catering');
+                        } else if (val.includes('दोन्ही सुविधा')) {
+                          setCateringServiceType('both');
+                        }
+                      }}
                       className="flex-1 bg-slate-950 border border-amber-500/40 focus:border-amber-400 rounded-xl px-3 py-2.5 text-white outline-none font-bold text-xs sm:text-sm shadow-inner"
                     >
                       {defaultCategories.map((cat) => (
@@ -369,7 +430,7 @@ export const BusinessVendorRegisterModal: React.FC<{
                   <input
                     type="text"
                     required
-                    placeholder={isMangalKaryalaya ? 'उदा. श्री गणेश मंगल कार्यालय व लॉन्स' : 'उदा. राजहंस कॅटरर्स / स्वरा बँड'}
+                    placeholder={isMangalKaryalaya ? 'मंगल कार्यालय किंवा लॉनचे नाव प्रविष्ट करा' : 'व्यवसाय / फर्मचे नाव प्रविष्ट करा'}
                     value={businessName}
                     onChange={(e) => setBusinessName(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-white outline-none"
@@ -384,7 +445,7 @@ export const BusinessVendorRegisterModal: React.FC<{
                   <input
                     type="text"
                     required
-                    placeholder="उदा. रमेश मारुती हंगे (मालक)"
+                    placeholder="मालक किंवा व्यवस्थापकाचे नाव प्रविष्ट करा"
                     value={ownerName}
                     onChange={(e) => setOwnerName(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-white outline-none"
@@ -429,7 +490,7 @@ export const BusinessVendorRegisterModal: React.FC<{
                   </label>
                   <input
                     type="tel"
-                    placeholder="उदा. लँडलाईन किंवा पर्यायी मोबाईल"
+                    placeholder="पर्यायी फोन नंबर प्रविष्ट करा"
                     value={alternatePhone}
                     onChange={(e) => setAlternatePhone(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-white outline-none font-mono"
@@ -464,7 +525,7 @@ export const BusinessVendorRegisterModal: React.FC<{
                   <input
                     type="text"
                     required
-                    placeholder="उदा. बीड / आष्टी / परळी"
+                    placeholder="तालुका किंवा शहर प्रविष्ट करा"
                     value={taluka}
                     onChange={(e) => setTaluka(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-white outline-none"
@@ -492,7 +553,7 @@ export const BusinessVendorRegisterModal: React.FC<{
                 <input
                   type="text"
                   required
-                  placeholder="उदा. बायपास रोड, शासकीय रुग्णालयाजवळ, तालुका..."
+                  placeholder="पत्ता व लँडमार्क प्रविष्ट करा"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-white outline-none"
@@ -640,77 +701,284 @@ export const BusinessVendorRegisterModal: React.FC<{
                   कृपया आपले दर स्पष्टपणे लिहा जेणेकरून लग्नकार्यासाठी विचारणाऱ्या ग्राहकांना अचूक कल्पना येईल:
                 </p>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* 🍲 CATERING & COOK SERVICE TYPE SELECTOR (फक्त स्वयंपाक मजुरी vs साहित्यासह कॅटरिंग) */}
+                {isCatering && (
+                  <div className="p-3.5 bg-gradient-to-r from-amber-950/80 via-slate-900 to-amber-950/80 border border-amber-500/40 rounded-2xl space-y-2.5">
+                    <label className="block text-amber-300 font-bold text-xs flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <span>🍲</span>
+                        <span>जेवण / स्वयंपाक सेवेचा प्रकार निवडा (Service Option) *</span>
+                      </span>
+                      <span className="text-[10px] text-amber-200/80 font-normal">
+                        आपण कोणती सुविधा देता?
+                      </span>
+                    </label>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {/* Option 1: Cooking Labor Only */}
+                      <button
+                        type="button"
+                        onClick={() => setCateringServiceType('cooking_only')}
+                        className={`p-2.5 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                          cateringServiceType === 'cooking_only'
+                            ? 'bg-gradient-to-br from-amber-400 to-amber-500 text-slate-950 border-amber-300 font-black shadow-md'
+                            : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-amber-400/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <span className="text-base">👨‍🍳</span>
+                          <span className="truncate">फक्त स्वयंपाक मजुरी</span>
+                        </div>
+                        <p className={`text-[10px] mt-1.5 leading-snug ${cateringServiceType === 'cooking_only' ? 'text-slate-950 font-bold' : 'text-slate-400'}`}>
+                          किराणा साहित्य व भाजीपाला ग्राहकांचे, आम्ही फक्त जेवण बनवतो (कुकिंग मजुरी).
+                        </p>
+                      </button>
+
+                      {/* Option 2: Full Catering with Material */}
+                      <button
+                        type="button"
+                        onClick={() => setCateringServiceType('full_catering')}
+                        className={`p-2.5 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                          cateringServiceType === 'full_catering'
+                            ? 'bg-gradient-to-br from-amber-400 to-amber-500 text-slate-950 border-amber-300 font-black shadow-md'
+                            : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-amber-400/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <span className="text-base">🍽️</span>
+                          <span className="truncate">साहित्यासह संपूर्ण कॅटरिंग</span>
+                        </div>
+                        <p className={`text-[10px] mt-1.5 leading-snug ${cateringServiceType === 'full_catering' ? 'text-slate-950 font-bold' : 'text-slate-400'}`}>
+                          धान्य, किराणा, स्वयंपाक व वाढपी सर्व आमचे (प्रति ताट/प्लेट दर).
+                        </p>
+                      </button>
+
+                      {/* Option 3: Both Options */}
+                      <button
+                        type="button"
+                        onClick={() => setCateringServiceType('both')}
+                        className={`p-2.5 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                          cateringServiceType === 'both'
+                            ? 'bg-gradient-to-br from-amber-400 to-amber-500 text-slate-950 border-amber-300 font-black shadow-md'
+                            : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-amber-400/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <span className="text-base">✨</span>
+                          <span className="truncate">दोन्ही पर्याय उपलब्ध</span>
+                        </div>
+                        <p className={`text-[10px] mt-1.5 leading-snug ${cateringServiceType === 'both' ? 'text-slate-950 font-bold' : 'text-slate-400'}`}>
+                          ग्राहकांच्या मागणीनुसार फक्त स्वयंपाक मजुरी किंवा साहित्यासह जेवण दोन्ही करतो.
+                        </p>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 👨‍🍳 DEDICATED COOKING LABOR FIELDS (दिसणार जर फक्त स्वयंपाक मजुरी किंवा दोन्ही निवडले असेल) */}
+                {isCatering && (cateringServiceType === 'cooking_only' || cateringServiceType === 'both') && (
+                  <div className="p-3.5 bg-amber-500/10 border border-amber-400/40 rounded-2xl space-y-3">
+                    <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
+                      <span className="text-xs font-black text-amber-300 flex items-center gap-1.5">
+                        <span>👨‍🍳</span>
+                        <span>फक्त स्वयंपाक मजुरीचे तपशील (Cooking Labor Rates):</span>
+                      </span>
+                      <span className="text-[10px] bg-amber-400 text-slate-950 px-2 py-0.5 rounded-full font-black">
+                        किराणा ग्राहकांचा
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-slate-300 font-bold text-xs mb-1">
+                          मजुरी आकारण्याची पद्धत (Labor Type)
+                        </label>
+                        <select
+                          value={cookingLaborType}
+                          onChange={(e) => setCookingLaborType(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl px-3 py-2 text-white outline-none text-xs font-bold"
+                        >
+                          <option value="प्रति माणूस / ताट मजुरी">प्रति माणूस / ताट मजुरी (उदा. ₹३५ ते ₹५० / माणूस)</option>
+                          <option value="प्रति क्विंटल धान्य मजुरी">प्रति क्विंटल धान्य मजुरी (उदा. ₹१,५०० ते ₹२,५०० / क्विंटल)</option>
+                          <option value="एकरकमी लग्न स्वयंपाक मजुरी">एकरकमी लग्न स्वयंपाक मजुरी (उदा. ₹२०,००० ते ₹३५,०००)</option>
+                          <option value="प्रति दिवस आचारी मजुरी">प्रति दिवस आचारी मजुरी (उदा. ₹३,००० / दिवस)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-200 font-bold text-xs mb-1">
+                          स्वयंपाक मजुरी दर (रु. मध्ये) *
+                        </label>
+                        <input
+                          type="text"
+                          required={cateringServiceType === 'cooking_only'}
+                          placeholder="उदा. ₹४० प्रति ताट किंवा ₹२,००० प्रति क्विंटल / एकरकमी ₹२५,०००"
+                          value={cookingLaborRate}
+                          onChange={(e) => setCookingLaborRate(e.target.value)}
+                          className="w-full bg-slate-950 border border-amber-500/60 focus:border-amber-400 rounded-xl px-3 py-2 text-white outline-none font-bold text-xs"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 font-bold text-xs mb-1">
+                          आचारी व मदतनीस टीम (Maharaj & Helpers Team)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="उदा. १ मुख्य आचारी (महाराज) + ४ मदतनीस"
+                          value={cookingTeamSize}
+                          onChange={(e) => setCookingTeamSize(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl px-3 py-2 text-white outline-none text-xs"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 font-bold text-xs mb-1">
+                          पंगत वाढण्याची सोय (Serving Arrangement)
+                        </label>
+                        <select
+                          value={cookingServingStaff}
+                          onChange={(e) => setCookingServingStaff(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-700 focus:border-amber-400 rounded-xl px-3 py-2 text-white outline-none text-xs"
+                        >
+                          <option value="होय - आमचे वाढपी पंगत वाढून देतील">होय - आमचे वाढपी पंगत वाढून देतील</option>
+                          <option value="केवळ स्वयंपाक बनवणे (वाढपी ग्राहकांचे)">केवळ स्वयंपाक बनवणे (वाढपी ग्राहकांचे)</option>
+                          <option value="वाढप्यांसाठी नाममात्र स्वतंत्र शुल्क राहील">वाढप्यांसाठी नाममात्र स्वतंत्र शुल्क राहील</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 🍽️ FULL CATERING RATES (जर साहित्यासह कॅटरिंग किंवा दोन्ही निवडले असेल) */}
+                {isCatering && (cateringServiceType === 'full_catering' || cateringServiceType === 'both') && (
+                  <div className="p-3.5 bg-emerald-500/10 border border-emerald-400/30 rounded-2xl space-y-3">
+                    <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
+                      <span className="text-xs font-black text-emerald-300 flex items-center gap-1.5">
+                        <span>🍽️</span>
+                        <span>साहित्यासह संपूर्ण कॅटरिंग दर (Full Catering - Per Plate):</span>
+                      </span>
+                      <span className="text-[10px] bg-emerald-400 text-slate-950 px-2 py-0.5 rounded-full font-black">
+                        किराणा व वाढपी आमचे
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-slate-200 font-bold text-xs mb-1">
+                          प्रति ताट / प्रति प्लेट दर (Per Plate Rate) *
+                        </label>
+                        <input
+                          type="text"
+                          required={cateringServiceType === 'full_catering'}
+                          placeholder="उदा. साधे व्हेज ₹२२०, स्पेशल व्हेज ₹३५०, नॉनव्हेज ₹४५०"
+                          value={perPlateRate}
+                          onChange={(e) => setPerPlateRate(e.target.value)}
+                          className="w-full bg-slate-950 border border-emerald-500/60 focus:border-emerald-400 rounded-xl px-3 py-2 text-white outline-none font-bold text-xs"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-300 font-bold text-xs mb-1">
+                          किमान ऑर्डर क्षमता (Min Order Capacity)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="उदा. किमान २०० ते २००० लोकांचे जेवण"
+                          value={hallRentDay}
+                          onChange={(e) => setHallRentDay(e.target.value)}
+                          className="w-full bg-slate-950 border border-slate-700 focus:border-emerald-400 rounded-xl px-3 py-2 text-white outline-none text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* 🍛 SPECIAL DISHES (फक्त कॅटरिंग व आचारी साठी) */}
+                {isCatering && (
                   <div>
                     <label className="block text-slate-200 font-bold text-xs mb-1">
-                      {isMangalKaryalaya
-                        ? 'कार्यालयाचे / हॉलचे भाडे (प्रति दिवस / १ शिफ्ट) *'
-                        : isCatering
-                          ? 'जेवण दर: प्रति ताट / प्रति प्लेट दर (Per Plate Rate) *'
+                      🍲 खास डिशेस व मेनू स्पेशालिटी (Menu Specialties):
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="उदा. पुरणपोळी, श्रीखंड, गुलाबजाम, बासुंदी, वांग्याची भाजी, डाळभात, मटण/चिकन स्पेशल"
+                      value={specialDishes}
+                      onChange={(e) => setSpecialDishes(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-white outline-none text-xs"
+                    />
+                  </div>
+                )}
+
+                {/* OTHER VENDORS (MANGAL KARYALAYA, DECORATION, FLORIST ETC.) */}
+                {!isCatering && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-slate-200 font-bold text-xs mb-1">
+                        {isMangalKaryalaya
+                          ? 'कार्यालयाचे / हॉलचे भाडे (प्रति दिवस / १ शिफ्ट) *'
                           : isDecoration
                             ? 'स्टेज व मंडप डेकोरेशन मूळ दर (Rates) *'
                             : isFlorist
                               ? 'वरमाला व ताजी फुले सजावट मूळ दर (Rates) *'
                               : 'कामाचे / सेवेचे मूळ दर (Rates) *'}
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder={
-                        isMangalKaryalaya
-                          ? 'उदा. रु. ३५,००० / १ दिवस (किंवा ₹५०,००० / शिफ्ट)'
-                          : isCatering
-                            ? 'उदा. व्हेज ₹२२० ते ₹३५० / ताट, नॉनव्हेज ₹४५० / ताट'
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder={
+                          isMangalKaryalaya
+                            ? 'उदा. रु. ३५,००० / १ दिवस (किंवा ₹५०,००० / शिफ्ट)'
                             : isDecoration
                               ? 'उदा. स्टेज डेकोरेशन ₹१५,००० ते ₹५०,०००'
                               : isFlorist
                                 ? 'उदा. वरमाला जोडी ₹१,५००, लग्न गाडी ₹२,५००'
                                 : 'उदा. रु. १५,००० / लग्न किंवा दिवस'
-                      }
-                      value={hallRentDay}
-                      onChange={(e) => setHallRentDay(e.target.value)}
-                      className="w-full bg-slate-950 border border-amber-500/50 focus:border-amber-400 rounded-xl px-3 py-2 text-white outline-none font-bold"
-                    />
-                  </div>
+                        }
+                        value={hallRentDay}
+                        onChange={(e) => setHallRentDay(e.target.value)}
+                        className="w-full bg-slate-950 border border-amber-500/50 focus:border-amber-400 rounded-xl px-3 py-2 text-white outline-none font-bold"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-slate-200 font-bold text-xs mb-1">
-                      {isCatering
-                        ? 'किमान क्षमता व मेनू तपशील (Min Order / Menu)'
-                        : isDecoration
+                    <div>
+                      <label className="block text-slate-200 font-bold text-xs mb-1">
+                        {isDecoration
                           ? 'संपूर्ण लग्न मंडप पॅकेज दर (Full Mandap Package)'
                           : isFlorist
                             ? 'स्टेज व मंडप संपूर्ण फुले पॅकेज दर'
                             : isMangalKaryalaya
                               ? 'जेवण दर (प्रति ताट - लागू असल्यास)'
                               : 'अतिरिक्त पॅकेज दर'}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder={
-                        isCatering
-                          ? 'उदा. किमान २०० ते २००० लोकांचे जेवण, पंगत/बुफे'
-                          : isDecoration
+                      </label>
+                      <input
+                        type="text"
+                        placeholder={
+                          isDecoration
                             ? 'उदा. संपूर्ण लग्न पॅकेज रु. ७५,००० (स्टेज, गेट, विधी मंडप)'
                             : isFlorist
                               ? 'उदा. संपूर्ण फुले पॅकेज रु. २५,००० (वरमाला, स्टेज फुले, गाडी)'
                               : isMangalKaryalaya
                                 ? 'उदा. रु. २२० ते ३५० प्रति ताट'
                                 : 'उदा. रु. ५०,००० संपूर्ण लग्न'
-                      }
-                      value={perPlateRate}
-                      onChange={(e) => setPerPlateRate(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-white outline-none"
-                    />
+                        }
+                        value={perPlateRate}
+                        onChange={(e) => setPerPlateRate(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-white outline-none"
+                      />
+                    </div>
                   </div>
+                )}
 
+                {/* Additional Packages & Advance Booking */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-slate-200 font-bold text-xs mb-1">
-                      एकत्रित संपूर्ण पॅकेज दर (Full Wedding Package)
+                      {isCatering ? 'संपूर्ण लग्न जेवण एकत्रित बजेट (Full Catering Budget)' : 'एकत्रित संपूर्ण पॅकेज दर (Full Wedding Package)'}
                     </label>
                     <input
                       type="text"
-                      placeholder="उदा. रु. १,५०,००० (हॉल + जेवण + मंडप)"
+                      placeholder={isCatering ? 'उदा. ५०० लोकांचे जेवण रु. १,२०,०००' : 'उदा. रु. १,५०,००० (हॉल + जेवण + मंडप)'}
                       value={packageRate}
                       onChange={(e) => setPackageRate(e.target.value)}
                       className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-white outline-none"

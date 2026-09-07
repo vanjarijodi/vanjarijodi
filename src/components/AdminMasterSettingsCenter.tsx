@@ -34,7 +34,11 @@ import {
   Tag,
   Crown,
   ExternalLink,
-  Send
+  Send,
+  Headphones,
+  Download,
+  Upload,
+  Scroll
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { uploadToCloudinary } from '../utils/cloudinary';
@@ -194,6 +198,16 @@ export const AdminMasterSettingsCenter: React.FC = () => {
               }`}
             >
               📱 टेलिग्राम सपोर्ट
+            </button>
+            <button
+              onClick={() => setSelectedCategory('apk')}
+              className={`px-3 py-2 rounded-xl whitespace-nowrap cursor-pointer transition ${
+                selectedCategory === 'apk'
+                  ? 'bg-indigo-400 text-indigo-950 font-black'
+                  : 'bg-white/10 text-amber-100 hover:bg-white/20'
+              }`}
+            >
+              📲 Android APK ॲप
             </button>
             <button
               onClick={() => setSelectedCategory('registration')}
@@ -1303,7 +1317,7 @@ export const AdminMasterSettingsCenter: React.FC = () => {
               </h3>
             </div>
             <a
-              href={`https://t.me/${(siteConfig.telegramUsername || 'VanjariJodiSupport').replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '')}`}
+              href={`https://t.me/${(siteConfig.telegramUsername || 'Primemultiservice').replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '')}`}
               target="_blank"
               rel="noopener noreferrer"
               className="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-black shadow flex items-center gap-1.5 transition active:scale-95 cursor-pointer self-start sm:self-auto"
@@ -1361,7 +1375,7 @@ export const AdminMasterSettingsCenter: React.FC = () => {
                   <input
                     type="text"
                     value={(siteConfig.telegramUsername || '').replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '')}
-                    placeholder="VanjariJodiSupport"
+                    placeholder="Primemultiservice"
                     onChange={(e) => {
                       let val = e.target.value.trim().replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '');
                       updateSiteConfig({ telegramUsername: val });
@@ -1370,28 +1384,49 @@ export const AdminMasterSettingsCenter: React.FC = () => {
                   />
                 </div>
                 <p className="text-[11px] text-slate-500">
-                  💡 युझरने क्लीक करताच थेट <code className="bg-slate-100 px-1 py-0.5 rounded text-sky-700 font-bold">https://t.me/{(siteConfig.telegramUsername || 'VanjariJodiSupport').replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '')}</code> वर टेलिग्राम उघडून चॅट सुरू होईल.
+                  💡 युझरने क्लीक करताच थेट <code className="bg-slate-100 px-1 py-0.5 rounded text-sky-700 font-bold">https://t.me/{(siteConfig.telegramUsername || 'Primemultiservice').replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '')}</code> वर टेलिग्राम उघडून चॅट सुरू होईल.
                 </p>
               </div>
 
               {/* Telegram Group Link */}
               <div className="space-y-1.5 bg-white p-3.5 rounded-2xl border border-sky-200 shadow-2xs">
-                <label className="font-black text-slate-800 text-xs flex items-center gap-1.5">
-                  <Users className="w-4 h-4 text-sky-600" />
-                  <span>टेलिग्राम ग्रुप / चॅनेल लिंक (Telegram Channel / Group Link):</span>
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="font-black text-slate-800 text-xs flex items-center gap-1.5">
+                    <Users className="w-4 h-4 text-sky-600" />
+                    <span>टेलिग्राम ग्रुप / चॅनेल लिंक (Telegram Group Link):</span>
+                  </label>
+                  {siteConfig.telegramGroupUrl && (
+                    <a
+                      href={siteConfig.telegramGroupUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-black text-sky-700 bg-sky-100 hover:bg-sky-200 px-2 py-0.5 rounded-lg border border-sky-300 inline-flex items-center gap-1 transition cursor-pointer"
+                    >
+                      <span>ग्रुप उघडा ↗</span>
+                    </a>
+                  )}
+                </div>
                 <input
                   type="text"
                   value={siteConfig.telegramGroupUrl || ''}
-                  placeholder="उदा. https://t.me/VanjariJodiOfficial"
+                  placeholder="उदा. https://t.me/+LcV24fm6QboxZWM1"
                   onChange={(e) => {
                     updateSiteConfig({ telegramGroupUrl: e.target.value.trim() });
                   }}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 font-bold outline-none focus:bg-white focus:border-sky-600 focus:ring-1 focus:ring-sky-600"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-xs text-slate-900 font-bold outline-none focus:bg-white focus:border-sky-600 focus:ring-1 focus:ring-sky-600 font-mono"
                 />
-                <p className="text-[11px] text-slate-500">
-                  💡 वेबसाईटवरील टेलिग्राम ग्रुप जॉईन बटण या लिंकवर रिडायरेक्ट करेल.
-                </p>
+                <div className="flex items-center justify-between pt-1">
+                  <p className="text-[11px] text-slate-500">
+                    💡 वेबसाईटवरील सर्व टेलिग्राम बटणे या लिंकवर रिडायरेक्ट करतात.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => updateSiteConfig({ telegramGroupUrl: 'https://t.me/+LcV24fm6QboxZWM1' })}
+                    className="text-[10px] font-extrabold text-slate-700 hover:text-sky-700 bg-slate-100 hover:bg-sky-50 px-2 py-0.5 rounded border border-slate-300 cursor-pointer shrink-0"
+                  >
+                    + अधिकृत लिंक सेट करा
+                  </button>
+                </div>
               </div>
 
               {/* Telegram Bot Link (Optional) */}
@@ -1428,6 +1463,185 @@ export const AdminMasterSettingsCenter: React.FC = () => {
                     updateSiteConfig({ telegramSupportNote: e.target.value });
                   }}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 text-xs text-slate-900 font-medium outline-none focus:bg-white focus:border-sky-600"
+                />
+              </div>
+
+              {/* Floating Headphone Support Chat Icon On/Off Switch */}
+              <div className="md:col-span-2 p-4 rounded-2xl bg-amber-50/80 border-2 border-amber-300 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="p-2 rounded-xl bg-[#800C1E] text-amber-300">
+                      <Headphones className="w-4 h-4" />
+                    </span>
+                    <span className="font-black text-slate-900 text-xs sm:text-sm">
+                      स्क्रीनवरील हेडफोन सपोर्ट चॅट आयकॉन (Floating Headphone Chat Icon)
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 font-medium pl-8">
+                    स्क्रीनच्या खाली कोपऱ्यात दिसणारे हेडफोन चिन्ह व चॅट बॉक्स ॲडमिन चालू किंवा बंद करू शकतात.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2.5 self-end sm:self-center">
+                  <span className={`text-xs font-black ${siteConfig.showSupportFloatingWidget !== false ? 'text-emerald-700' : 'text-slate-500'}`}>
+                    {siteConfig.showSupportFloatingWidget !== false ? '✅ चालू (Active)' : '❌ बंद (Hidden)'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextVal = siteConfig.showSupportFloatingWidget === false;
+                      updateSiteConfig({ 
+                        showSupportFloatingWidget: nextVal,
+                        enableSupportChatWidget: nextVal
+                      });
+                    }}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      siteConfig.showSupportFloatingWidget !== false ? 'bg-emerald-600' : 'bg-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                        siteConfig.showSupportFloatingWidget !== false ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CATEGORY: ANDROID APK APP MANAGEMENT */}
+      {(selectedCategory === 'all' || selectedCategory === 'apk') && (
+        <div className="bg-white rounded-3xl p-5 border-2 border-indigo-300 shadow-md space-y-4">
+          <div className="flex items-center justify-between border-b border-indigo-200 pb-3">
+            <h3 className="font-black text-indigo-900 text-base flex items-center gap-2">
+              <Smartphone className="w-5 h-5 text-indigo-600" />
+              <span>Android ॲप (APK) व्यवस्थापन व थेट डाउनलोड (Android App / APK Management)</span>
+            </h3>
+            <span className="text-[10px] font-black bg-indigo-100 text-indigo-900 px-3 py-1 rounded-full border border-indigo-300">
+              APK सेंटर 📲
+            </span>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-4">
+            {/* 1. Toggle Show "ॲप डाऊनलोड करा" Button on Frontend */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 bg-white rounded-xl border border-indigo-200 shadow-2xs">
+              <div>
+                <span className="font-black text-slate-900 text-xs sm:text-sm block">
+                  होमपेज व हेडरवर "ॲप डाऊनलोड करा" बटन दाखवा (Show Download Button)
+                </span>
+                <span className="text-[11px] text-slate-600 font-medium block">
+                  हे चालू ठेवल्यास वेलकम स्क्रीन आणि हेडरमध्ये युझर्सना थेट ॲप डाऊनलोड करण्याचे बटन दिसेल.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const currentVal = siteConfig.showApkDownloadButton !== false;
+                  updateSiteConfig({ showApkDownloadButton: !currentVal });
+                  notifyChange(`ॲप डाउनलोड बटन ${!currentVal ? 'चालू' : 'बंद'} केले!`);
+                }}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  siteConfig.showApkDownloadButton !== false ? 'bg-indigo-600' : 'bg-slate-300'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                    siteConfig.showApkDownloadButton !== false ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* 2. Direct APK Download URL input */}
+            <div className="space-y-1.5 bg-white p-3.5 rounded-xl border border-indigo-200 shadow-2xs">
+              <label className="text-xs font-black text-slate-900 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <LinkIcon className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>थेट Android APK फाईल डाउनलोड लिंक (Direct APK Download URL):</span>
+                </span>
+                <span className="text-[10px] text-indigo-600 font-bold">Google Drive / Cloudinary / Direct APK</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={siteConfig.apkDownloadUrl || siteConfig?.apkSettings?.apkUrl || ''}
+                  onChange={(e) => {
+                    const val = e.target.value.trim();
+                    updateSiteConfig({
+                      apkDownloadUrl: val,
+                      apkSettings: {
+                        ...(siteConfig.apkSettings || {}),
+                        apkUrl: val,
+                      }
+                    });
+                  }}
+                  placeholder="https://.../VanjariJodi.apk किंवा /downloads/VanjariJodi.apk"
+                  className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 font-mono outline-none focus:bg-white focus:border-indigo-600"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const testUrl = siteConfig.apkDownloadUrl || siteConfig?.apkSettings?.apkUrl;
+                    if (testUrl) {
+                      window.open(testUrl, '_blank');
+                    } else {
+                      alert('कृपया आधी APK डाउनलोड लिंक प्रविष्ट करा.');
+                    }
+                  }}
+                  className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-black flex items-center gap-1 shadow-2xs cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>टेस्ट डाऊनलोड</span>
+                </button>
+              </div>
+              <p className="text-[10.5px] text-slate-500">
+                💡 तुम्ही तयार केलेली कोणतीही Android APK फाईल गुगल ड्राईव्ह, मीडियाफायर, क्लाउडिनरी किंवा थेट सर्व्हरवर अपलोड करून त्याची थेट डाउनलोड लिंक येथे टाकू शकता.
+              </p>
+            </div>
+
+            {/* 3. APK Version and File Size */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-white p-3 rounded-xl border border-indigo-200 shadow-2xs space-y-1">
+                <label className="text-xs font-bold text-slate-800 block">
+                  ॲप आवृत्ती (App Version):
+                </label>
+                <input
+                  type="text"
+                  value={siteConfig.apkVersion || siteConfig?.apkSettings?.appVersion || 'v2.4.0'}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    updateSiteConfig({
+                      apkVersion: val,
+                      apkSettings: {
+                        ...(siteConfig.apkSettings || {}),
+                        appVersion: val,
+                      }
+                    });
+                  }}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs text-slate-900 font-bold outline-none focus:border-indigo-600"
+                />
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-indigo-200 shadow-2xs space-y-1">
+                <label className="text-xs font-bold text-slate-800 block">
+                  एकूण डाऊनलोड्स काउंटर (Downloads Count):
+                </label>
+                <input
+                  type="number"
+                  value={siteConfig?.apkSettings?.downloadCount || 14800}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10) || 0;
+                    updateSiteConfig({
+                      apkSettings: {
+                        ...(siteConfig.apkSettings || {}),
+                        downloadCount: val,
+                      }
+                    });
+                  }}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs text-slate-900 font-bold outline-none focus:border-indigo-600"
                 />
               </div>
             </div>

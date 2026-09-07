@@ -202,7 +202,7 @@ export function generatePaymentInvoicePDF(data: InvoiceData): jsPDF {
   doc.text('1. This is a computer-generated tax invoice verified with banking UTR.', 18, yPos + 12);
   doc.text('2. Membership fee is non-refundable and non-transferable.', 18, yPos + 17);
   doc.text('3. Account access is active immediately across Web and Android Mobile App.', 18, yPos + 22);
-  doc.text('4. For any billing questions, contact support@vanjarijodi.org / WhatsApp.', 18, yPos + 27);
+  doc.text('4. For any billing questions, contact support@vanjarijodi.web.app / Telegram @Primemultiservice.', 18, yPos + 27);
 
   // 6. Signature & Seal
   yPos += 38;
@@ -228,7 +228,7 @@ export function generatePaymentInvoicePDF(data: InvoiceData): jsPDF {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.text('Thank you for choosing Vanjari Jodi Matrimony - Connecting Vanjari Community Worldwide', pageWidth / 2, 289, { align: 'center' });
-  doc.text('Website: https://vanjarijodi.org | Helpline: +91 9800000000', pageWidth / 2, 294, { align: 'center' });
+  doc.text('Website: https://vanjarijodi.web.app | Telegram: @Primemultiservice', pageWidth / 2, 294, { align: 'center' });
 
   return doc;
 }

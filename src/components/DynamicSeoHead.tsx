@@ -132,7 +132,7 @@ export const DynamicSeoHead: React.FC<DynamicSeoHeadProps> = ({
       siteNameEn: 'Vanjari Jodi Matrimony',
       logoUrl: siteConfig?.logoUrl || `${siteDomain}/logo.png`,
       supportPhone: siteConfig?.contactPhone || '+91 9800000000',
-      supportEmail: siteConfig?.contactEmail || 'support@vanjarijodi.org',
+      supportEmail: siteConfig?.contactEmail || 'support@vanjarijodi.web.app',
       address: siteConfig?.contactAddress || 'Maharashtra, India',
     });
 

@@ -8,7 +8,8 @@ import {
   ShieldCheck,
   FileText,
   Crown,
-  PhoneCall,
+  MessageCircle,
+  Send,
   ChevronRight,
   Filter,
   UserCheck,
@@ -360,7 +361,7 @@ export const MobileHomeScreen: React.FC = () => {
             <h4 className="font-black text-xs text-white">VIP सभासद योजना</h4>
           </div>
           <p className="text-[11px] text-amber-100">
-            अमर्यादित संपर्क क्रमांक व वैयक्तिक स्थळ सहाय्य
+            सर्वोत्तम स्थळ जुळवणी व सुरक्षित चॅट सहाय्य
           </p>
         </div>
 
@@ -382,22 +383,23 @@ export const MobileHomeScreen: React.FC = () => {
       {/* 13. HELP & SUPPORT */}
       <div className="bg-slate-100 rounded-2xl p-3 flex items-center justify-between text-xs">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-            <PhoneCall className="w-4 h-4" />
+          <div className="w-8 h-8 rounded-full bg-amber-100 text-[#800C1E] flex items-center justify-center shrink-0">
+            <MessageCircle className="w-4 h-4" />
           </div>
           <div>
             <p className="font-black text-slate-800 text-[11px]">काही अडचण किंवा मदत हवी आहे?</p>
-            <p className="text-[10px] text-slate-500">अधिकृत वंजारी समाज सहाय्यता केंद्र</p>
+            <p className="text-[10px] text-slate-500">अधिकृत वंजारी समाज टेलिग्राम सहाय्यता केंद्र</p>
           </div>
         </div>
 
         <a
-          href="https://wa.me/918080808080?text=नमस्कार,%20मला%20वंजारी%20जोडी%20ॲप%20बद्दल%20माहिती%20हवी%20आहे."
+          href={`https://t.me/${(siteConfig?.telegramUsername || 'Primemultiservice').replace(/^@/, '')}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-[11px] flex items-center gap-1 transition active:scale-95 min-h-[40px]"
+          className="px-3 py-1.5 bg-[#800C1E] hover:bg-[#A71930] text-amber-200 font-bold rounded-xl text-[11px] flex items-center gap-1.5 transition active:scale-95 min-h-[40px]"
         >
-          WhatsApp मदत
+          <Send className="w-3 h-3 text-amber-300" />
+          <span>चॅट मदत</span>
         </a>
       </div>
 

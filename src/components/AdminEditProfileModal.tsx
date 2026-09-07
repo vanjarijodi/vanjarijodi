@@ -327,7 +327,7 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
       `वंजारी जोडी मॅट्रिमोनी टिमकडून नम्र संदेश:\n` +
       `आपल्या बायोडाटावर सध्या फक्त ${currentCount} फोटो आहे(त).\n` +
       `इतर सदस्यांकडून १००% उत्तम प्रतिसाद मिळण्यासाठी व बायोडाटा परिपूर्ण दिसण्यासाठी कृपया किमान ५ सुंदर फोटो आपल्या प्रोफाइलवर नक्की अपलोड करावेत.\n\n` +
-      `फोटो अपलोड करण्यासाठी लिंक: https://vanjarijodi.com/dashboard`
+      `फोटो अपलोड करण्यासाठी लिंक: https://vanjarijodi.web.app/dashboard`
     );
     window.open(`https://wa.me/91${cleanMobile}?text=${text}`, '_blank');
     setPhotoReqSentMsg('✅ सदस्याच्या व्हॉट्सॲपवर फोटो मागणीचा मेसेज उघडला आहे!');

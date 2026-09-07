@@ -85,7 +85,7 @@ export async function downloadKundliPdfReport(data: PDFKundliData): Promise<bool
     // Generate 100% offline Data URL QR code (prevents canvas tainting & CORS errors)
     let qrDataUrl = '';
     try {
-      qrDataUrl = await QRCode.toDataURL(`https://vanjarijodi.org/verify-kundli?id=${data.reportId}`, {
+      qrDataUrl = await QRCode.toDataURL(`https://vanjarijodi.web.app/verify-kundli?id=${data.reportId}`, {
         width: 150,
         margin: 1,
         color: {
@@ -371,10 +371,10 @@ export async function downloadKundliPdfReport(data: PDFKundliData): Promise<bool
         <!-- Footer / Signature -->
         <div style="border-top: 2px dashed #cbd5e1; padding-top: 12px; text-align: center; font-size: 10px; color: #64748b; line-height: 1.5;">
           <p style="margin: 0 0 3px 0; font-weight: 700; color: #800C1E;">
-            ॥ श्री संत भगवान बाबा प्रसन्न ॥ | वंजारी समाज अधिकृत वधू-वर सूचक केंद्र (VanjariJodi.org)
+            ॥ श्री संत भगवान बाबा प्रसन्न ॥ | वंजारी समाज अधिकृत वधू-वर सूचक केंद्र (vanjarijodi.web.app)
           </p>
           <p style="margin: 0;">
-            हा अहवाल वैदिक अष्टकूट नियमांवर आधारित आहे. सविस्तर माहितीसाठी https://vanjarijodi.org ला भेट द्या.
+            हा अहवाल वैदिक अष्टकूट नियमांवर आधारित आहे. सविस्तर माहितीसाठी https://vanjarijodi.web.app ला भेट द्या.
           </p>
         </div>
 

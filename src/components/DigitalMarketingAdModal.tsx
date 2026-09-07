@@ -38,7 +38,7 @@ export const DigitalMarketingAdModal: React.FC<DigitalMarketingAdModalProps> = (
 
   if (!isOpen) return null;
 
-  const tgUsername = (siteConfig?.telegramUsername || 'VanjariJodiSupport').replace(/^@/, '');
+  const tgUsername = (siteConfig?.telegramUsername || 'Primemultiservice').replace(/^@/, '');
   const supportEmail = siteConfig?.contactEmail || 'gitevijay123@gmail.com';
   const websiteUrl = window.location.origin;
   const welcomePlan = plansList?.find((p) => p.id === 'welcome_offer') || plansList?.[0];

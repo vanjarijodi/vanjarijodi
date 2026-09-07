@@ -51,6 +51,12 @@ export const BusinessVendorPortalModal: React.FC<{
   const [editDiscount, setEditDiscount] = useState(currentVendorUser?.memberDiscount || '');
   const [editPhoto, setEditPhoto] = useState(currentVendorUser?.photoUrl || '');
   const [editPdf, setEditPdf] = useState(currentVendorUser?.pdfUrl || '');
+  const [editCateringType, setEditCateringType] = useState<string>(currentVendorUser?.cateringServiceType || 'cooking_only');
+  const [editCookingLaborRate, setEditCookingLaborRate] = useState<string>(currentVendorUser?.cookingLaborRate || '');
+  const [editCookingLaborType, setEditCookingLaborType] = useState<string>(currentVendorUser?.cookingLaborType || 'प्रति माणूस / ताट मजुरी');
+  const [editCookingTeamSize, setEditCookingTeamSize] = useState<string>(currentVendorUser?.cookingTeamSize || '');
+  const [editCookingServingStaff, setEditCookingServingStaff] = useState<string>(currentVendorUser?.cookingServingStaff || '');
+  const [editSpecialDishes, setEditSpecialDishes] = useState<string>(currentVendorUser?.specialDishes || '');
 
   // Handle Login
   const handleVendorLogin = (e: React.FormEvent) => {
@@ -84,6 +90,12 @@ export const BusinessVendorPortalModal: React.FC<{
     setEditDiscount(foundVendor.memberDiscount || '');
     setEditPhoto(foundVendor.photoUrl || '');
     setEditPdf(foundVendor.pdfUrl || '');
+    setEditCateringType(foundVendor.cateringServiceType || 'cooking_only');
+    setEditCookingLaborRate(foundVendor.cookingLaborRate || '');
+    setEditCookingLaborType(foundVendor.cookingLaborType || 'प्रति माणूस / ताट मजुरी');
+    setEditCookingTeamSize(foundVendor.cookingTeamSize || '');
+    setEditCookingServingStaff(foundVendor.cookingServingStaff || '');
+    setEditSpecialDishes(foundVendor.specialDishes || '');
   };
 
   const handleAddBookedDate = (e: React.FormEvent) => {
@@ -461,16 +473,149 @@ export const BusinessVendorPortalModal: React.FC<{
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
+                    const isCateringVendor =
+                      currentVendorUser.category?.includes('कॅटरिंग') ||
+                      currentVendorUser.category?.includes('स्वयंपाकी') ||
+                      Boolean(currentVendorUser.cateringServiceType);
+
                     updateVendorDetails(currentVendorUser.id, {
                       ratesAndPackages: editRates,
                       memberDiscount: editDiscount,
                       photoUrl: editPhoto,
-                      pdfUrl: editPdf
+                      pdfUrl: editPdf,
+                      cateringServiceType: isCateringVendor ? (editCateringType as any) : undefined,
+                      cookingLaborRate: editCookingLaborRate,
+                      cookingLaborType: editCookingLaborType,
+                      cookingTeamSize: editCookingTeamSize,
+                      cookingServingStaff: editCookingServingStaff,
+                      specialDishes: editSpecialDishes
                     });
                     alert('तुमचे दर व प्रोफाईल यशस्वीरित्या अद्ययावत केले!');
                   }}
                   className="space-y-4 bg-slate-800/80 p-5 rounded-2xl border border-amber-500/20"
                 >
+                  {/* Catering / Cooking Only Specific Configuration */}
+                  {(currentVendorUser.category?.includes('कॅटरिंग') ||
+                    currentVendorUser.category?.includes('स्वयंपाकी') ||
+                    Boolean(currentVendorUser.cateringServiceType)) && (
+                    <div className="p-3.5 bg-amber-950/40 border border-amber-500/30 rounded-2xl space-y-3">
+                      <h5 className="text-xs font-black text-amber-300 flex items-center gap-1.5">
+                        <span>🍲</span>
+                        <span>जेवण / स्वयंपाक सेवेचे पर्याय (Catering / Cook Settings):</span>
+                      </h5>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditCateringType('cooking_only')}
+                          className={`p-2 rounded-xl border text-xs font-bold text-left transition cursor-pointer ${
+                            editCateringType === 'cooking_only'
+                              ? 'bg-amber-400 text-slate-950 border-amber-300'
+                              : 'bg-slate-900 border-slate-700 text-slate-300'
+                          }`}
+                        >
+                          👨‍🍳 फक्त स्वयंपाक मजुरी
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditCateringType('full_catering')}
+                          className={`p-2 rounded-xl border text-xs font-bold text-left transition cursor-pointer ${
+                            editCateringType === 'full_catering'
+                              ? 'bg-amber-400 text-slate-950 border-amber-300'
+                              : 'bg-slate-900 border-slate-700 text-slate-300'
+                          }`}
+                        >
+                          🍽️ साहित्यासह कॅटरिंग
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditCateringType('both')}
+                          className={`p-2 rounded-xl border text-xs font-bold text-left transition cursor-pointer ${
+                            editCateringType === 'both'
+                              ? 'bg-amber-400 text-slate-950 border-amber-300'
+                              : 'bg-slate-900 border-slate-700 text-slate-300'
+                          }`}
+                        >
+                          ✨ दोन्ही पर्याय उपलब्ध
+                        </button>
+                      </div>
+
+                      {(editCateringType === 'cooking_only' || editCateringType === 'both') && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-amber-500/20">
+                          <div>
+                            <label className="block text-[11px] font-bold text-amber-200 mb-1">
+                              स्वयंपाक मजुरी दर (Cooking Labor Rate):
+                            </label>
+                            <input
+                              type="text"
+                              value={editCookingLaborRate}
+                              onChange={(e) => setEditCookingLaborRate(e.target.value)}
+                              placeholder="उदा. ₹४० प्रति ताट किंवा ₹२,००० / क्विंटल"
+                              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white outline-none focus:border-amber-400 font-bold"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-amber-200 mb-1">
+                              मजुरी पद्धत (Labor Type):
+                            </label>
+                            <select
+                              value={editCookingLaborType}
+                              onChange={(e) => setEditCookingLaborType(e.target.value)}
+                              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white outline-none focus:border-amber-400"
+                            >
+                              <option value="प्रति माणूस / ताट मजुरी">प्रति माणूस / ताट मजुरी</option>
+                              <option value="प्रति क्विंटल धान्य मजुरी">प्रति क्विंटल धान्य मजुरी</option>
+                              <option value="एकरकमी लग्न स्वयंपाक मजुरी">एकरकमी लग्न स्वयंपाक मजुरी</option>
+                              <option value="प्रति दिवस आचारी मजुरी">प्रति दिवस आचारी मजुरी</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                              आचारी व टीम (Maharaj & Team):
+                            </label>
+                            <input
+                              type="text"
+                              value={editCookingTeamSize}
+                              onChange={(e) => setEditCookingTeamSize(e.target.value)}
+                              placeholder="उदा. १ महाराज + ४ मदतनीस"
+                              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white outline-none focus:border-amber-400"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                              पंगत वाढण्याची सोय (Serving Staff):
+                            </label>
+                            <select
+                              value={editCookingServingStaff}
+                              onChange={(e) => setEditCookingServingStaff(e.target.value)}
+                              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white outline-none focus:border-amber-400"
+                            >
+                              <option value="होय - आमचे वाढपी पंगत वाढून देतील">होय - आमचे वाढपी पंगत वाढून देतील</option>
+                              <option value="केवळ स्वयंपाक बनवणे (वाढपी ग्राहकांचे)">केवळ स्वयंपाक बनवणे (वाढपी ग्राहकांचे)</option>
+                              <option value="वाढप्यांसाठी नाममात्र स्वतंत्र शुल्क राहील">वाढप्यांसाठी नाममात्र स्वतंत्र शुल्क राहील</option>
+                            </select>
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                          खास डिशेस / मेनू स्पेशालिटी:
+                        </label>
+                        <input
+                          type="text"
+                          value={editSpecialDishes}
+                          onChange={(e) => setEditSpecialDishes(e.target.value)}
+                          placeholder="उदा. पुरणपोळी, श्रीखंड, गुलाबजाम, मटण/चिकन स्पेशल"
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-xs font-black text-amber-300 mb-1">
                       दर व पॅकेजेस (Rates & Packages):

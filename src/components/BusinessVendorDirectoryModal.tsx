@@ -40,6 +40,7 @@ export const BusinessVendorDirectoryModal: React.FC<{
   const [selectedDistrict, setSelectedDistrict] = useState<string>('all');
   const [selectedWeddingDate, setSelectedWeddingDate] = useState<string>('');
   const [onlyAvailableOnDate, setOnlyAvailableOnDate] = useState<boolean>(false);
+  const [cateringFilter, setCateringFilter] = useState<'all' | 'cooking_only' | 'full_catering'>('all');
   const [selectedVendorForDetails, setSelectedVendorForDetails] = useState<BusinessVendor | null>(null);
 
   // Booking Inquiry Modal State
@@ -87,6 +88,22 @@ export const BusinessVendorDirectoryModal: React.FC<{
 
     if (onlyAvailableOnDate && isBookedOnSelectedDate) {
       return false;
+    }
+
+    // Catering filter (फक्त स्वयंपाक मजुरी vs साहित्यासह कॅटरिंग)
+    const isCateringVendor =
+      vendor.category?.includes('कॅटरिंग') ||
+      vendor.category?.includes('स्वयंपाकी') ||
+      Boolean(vendor.cateringServiceType);
+
+    if (cateringFilter !== 'all' && isCateringVendor) {
+      if (cateringFilter === 'cooking_only') {
+        const isCookOnly = vendor.cateringServiceType === 'cooking_only' || vendor.cateringServiceType === 'both' || Boolean(vendor.cookingLaborRate);
+        if (!isCookOnly) return false;
+      } else if (cateringFilter === 'full_catering') {
+        const isFull = vendor.cateringServiceType === 'full_catering' || vendor.cateringServiceType === 'both' || !vendor.cateringServiceType;
+        if (!isFull) return false;
+      }
     }
 
     return matchesCategory && matchesDistrict && matchesSearch;
@@ -343,6 +360,50 @@ export const BusinessVendorDirectoryModal: React.FC<{
               );
             })}
           </div>
+
+          {/* Quick Cooking Labor vs Full Catering Toggle */}
+          {(selectedCategory === 'all' || selectedCategory.includes('कॅटरिंग') || selectedCategory.includes('स्वयंपाकी')) && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px]">
+              <span className="text-slate-400 font-bold flex items-center gap-1">
+                <span>🍲 जेवण सेवा प्रकार:</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setCateringFilter('all')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer ${
+                  cateringFilter === 'all'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                    : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
+                }`}
+              >
+                सर्व पर्याय
+              </button>
+              <button
+                type="button"
+                onClick={() => setCateringFilter('cooking_only')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 ${
+                  cateringFilter === 'cooking_only'
+                    ? 'bg-amber-400 text-slate-950 border border-amber-300 shadow'
+                    : 'bg-slate-900 text-amber-300/90 border border-amber-500/30 hover:bg-amber-500/10'
+                }`}
+              >
+                <span>👨‍🍳</span>
+                <span>फक्त स्वयंपाक मजुरी (महाराज/आचारी)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCateringFilter('full_catering')}
+                className={`px-2.5 py-1 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 ${
+                  cateringFilter === 'full_catering'
+                    ? 'bg-emerald-400 text-slate-950 border border-emerald-300 shadow'
+                    : 'bg-slate-900 text-emerald-300/90 border border-emerald-500/30 hover:bg-emerald-500/10'
+                }`}
+              >
+                <span>🍽️</span>
+                <span>साहित्यासह कॅटरिंग</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Vendors Grid / List Body */}
@@ -399,10 +460,27 @@ export const BusinessVendorDirectoryModal: React.FC<{
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-1 mb-1">
-                            <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-full text-[10px] font-bold truncate">
-                              {vendor.category}
-                            </span>
+                          <div className="flex flex-wrap items-center justify-between gap-1 mb-1">
+                            <div className="flex flex-wrap items-center gap-1">
+                              <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-full text-[10px] font-bold truncate">
+                                {vendor.category}
+                              </span>
+                              {vendor.cateringServiceType === 'cooking_only' && (
+                                <span className="px-2 py-0.5 bg-amber-400 text-slate-950 font-black rounded-full text-[10px]">
+                                  👨‍🍳 फक्त स्वयंपाक मजुरी
+                                </span>
+                              )}
+                              {vendor.cateringServiceType === 'full_catering' && (
+                                <span className="px-2 py-0.5 bg-emerald-400 text-slate-950 font-black rounded-full text-[10px]">
+                                  🍽️ साहित्यासह कॅटरिंग
+                                </span>
+                              )}
+                              {vendor.cateringServiceType === 'both' && (
+                                <span className="px-2 py-0.5 bg-sky-400 text-slate-950 font-black rounded-full text-[10px]">
+                                  ✨ मजुरी व कॅटरिंग दोन्ही
+                                </span>
+                              )}
+                            </div>
                             {vendor.status === 'approved' && (
                               <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                                 <ShieldCheck className="w-3 h-3" />
@@ -465,6 +543,18 @@ export const BusinessVendorDirectoryModal: React.FC<{
                             <strong className="text-amber-300">दर:</strong> {vendor.ratesAndPackages}
                           </span>
                         </div>
+
+                        {vendor.cookingLaborRate && (
+                          <div className="flex items-center gap-1.5 text-amber-300 font-bold text-[11px] bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20">
+                            <span>👨‍🍳 स्वयंपाक मजुरी: {vendor.cookingLaborRate} ({vendor.cookingLaborType || 'मजुरी'})</span>
+                          </div>
+                        )}
+
+                        {vendor.specialDishes && (
+                          <p className="text-[11px] text-amber-200/90 truncate">
+                            🍲 <strong className="text-amber-300">स्पेशल:</strong> {vendor.specialDishes}
+                          </p>
+                        )}
 
                         {vendor.memberDiscount && (
                           <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-[11px] bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
@@ -685,9 +775,49 @@ export const BusinessVendorDirectoryModal: React.FC<{
 
                 <div className="flex items-start gap-2 pt-2 border-t border-slate-800">
                   <Tag className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                  <div>
+                  <div className="w-full">
                     <strong className="text-amber-300">दर व पॅकेज तपशील:</strong>
                     <p className="text-slate-200">{selectedVendorForDetails.ratesAndPackages}</p>
+
+                    {/* Dedicated Catering & Cook Labor Details */}
+                    {(selectedVendorForDetails.cateringServiceType || selectedVendorForDetails.cookingLaborRate) && (
+                      <div className="mt-2.5 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-1.5 text-[11px]">
+                        <div className="flex items-center justify-between font-bold text-amber-300 border-b border-amber-500/20 pb-1">
+                          <span>🍲 जेवण व स्वयंपाक सेवा तपशील:</span>
+                          <span className="bg-amber-400 text-slate-950 px-2 py-0.2 rounded-full text-[10px]">
+                            {selectedVendorForDetails.cateringServiceType === 'cooking_only'
+                              ? 'फक्त स्वयंपाक मजुरी'
+                              : selectedVendorForDetails.cateringServiceType === 'full_catering'
+                              ? 'साहित्यासह संपूर्ण कॅटरिंग'
+                              : 'मजुरी व कॅटरिंग दोन्ही'}
+                          </span>
+                        </div>
+
+                        {selectedVendorForDetails.cookingLaborRate && (
+                          <p className="text-slate-200">
+                            <strong className="text-amber-300">स्वयंपाक मजुरी:</strong> {selectedVendorForDetails.cookingLaborRate} ({selectedVendorForDetails.cookingLaborType || 'मजुरी पद्धत'})
+                          </p>
+                        )}
+
+                        {selectedVendorForDetails.cookingTeamSize && (
+                          <p className="text-slate-200">
+                            <strong className="text-amber-300">आचारी व मदतनीस टीम:</strong> {selectedVendorForDetails.cookingTeamSize}
+                          </p>
+                        )}
+
+                        {selectedVendorForDetails.cookingServingStaff && (
+                          <p className="text-slate-200">
+                            <strong className="text-amber-300">पंगत वाढण्याची सोय:</strong> {selectedVendorForDetails.cookingServingStaff}
+                          </p>
+                        )}
+
+                        {selectedVendorForDetails.specialDishes && (
+                          <p className="text-amber-200 font-medium">
+                            <strong className="text-amber-300">खास डिशेस / मेनू:</strong> {selectedVendorForDetails.specialDishes}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 

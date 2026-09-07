@@ -11,7 +11,7 @@ import { UserProfile, SiteConfig, ChatMessage, SuccessStory, PaymentRequest, Con
 
 export const DEFAULT_PAYMENT_CONFIG: PaymentConfig = {
   upiId: 'paytm.s3ms5x7@pty',
-  payeeName: 'Usha Shivdas Hange',
+  payeeName: 'Vanjari Jodi Matrimony',
   amount: '398.00',
   transactionNote: 'Vanjari Jodi Membership',
   phonepeUpiId: 'paytm.s3ms5x7@pty',

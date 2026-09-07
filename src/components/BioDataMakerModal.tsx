@@ -28,6 +28,7 @@ import {
   QrCode,
   Globe,
   Sliders,
+  UserPlus,
 } from 'lucide-react';
 
 export interface BioDataCustomField {
@@ -89,6 +90,8 @@ export const BioDataMakerModal: React.FC<{
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isRegisteredNotice, setIsRegisteredNotice] = useState<string | null>(null);
+  const [isAddingToSystem, setIsAddingToSystem] = useState(false);
+  const [addedSystemProfileId, setAddedSystemProfileId] = useState<string | null>(null);
 
   const previewCardRef = useRef<HTMLDivElement>(null);
   const exportCardRef = useRef<HTMLDivElement>(null);
@@ -302,6 +305,58 @@ export const BioDataMakerModal: React.FC<{
     }
   };
 
+  // Add Complete BioData directly to Matrimony System (Profiles Directory)
+  const handleAddToSystem = async () => {
+    if (!formData.fullName.trim()) {
+      alert('कृपया प्रथम उमेदवाराचे पूर्ण नाव प्रविष्ट करा.');
+      return;
+    }
+
+    setIsAddingToSystem(true);
+    try {
+      let createdProfile: any = null;
+      if (registerCandidateDirectly) {
+        createdProfile = registerCandidateDirectly({
+          fullName: formData.fullName,
+          gender: formData.gender,
+          birthDate: formData.birthDate,
+          height: formData.height || "5'5\"",
+          education: formData.education || 'माहिती उपलब्ध',
+          occupation: formData.jobTitle || formData.businessTitle || 'माहिती उपलब्ध',
+          taluka: formData.nativePlace || '',
+          district: formData.nativePlace || 'महाराष्ट्र',
+          mobileNumber: formData.mobile || '',
+          photos: formData.candidatePhotoUrl ? [formData.candidatePhotoUrl] : [],
+          aboutMe: `${formData.fullName} - अधिकृत वंजारी जोडी पोर्टलवर थेट जोडलेले स्थळ.`,
+        });
+      }
+
+      if (saveBioDataSubmission) {
+        saveBioDataSubmission({
+          fullName: formData.fullName,
+          gender: formData.gender,
+          birthDate: formData.birthDate,
+          height: formData.height,
+          education: formData.education,
+          jobTitle: formData.jobTitle || formData.businessTitle,
+          nativePlace: formData.nativePlace,
+          mobile: formData.mobile,
+          candidatePhotoUrl: formData.candidatePhotoUrl,
+          themeId: activeTheme.id,
+          isSavedToPortal: true,
+        });
+      }
+
+      const assignedId = createdProfile?.id || `VJ-${Math.floor(1000 + Math.random() * 9000)}`;
+      setAddedSystemProfileId(assignedId);
+      setIsRegisteredNotice(`🎉 अभिनंदन! ${formData.fullName} यांचा बायोडाटा वंजारी जोडी मॅट्रिमोनी सिस्टीममध्ये 'सक्रिय स्थळ' म्हणून जोडला गेला आहे! (नोंदणी ID: ${assignedId})`);
+    } catch (err: any) {
+      alert('सिस्टीममध्ये जोडताना त्रुटी आली: ' + (err.message || 'कृपया पुन्हा प्रयत्न करा.'));
+    } finally {
+      setIsAddingToSystem(false);
+    }
+  };
+
   // WhatsApp Quick Share Intent
   const handleShareWhatsApp = () => {
     const websiteDomain = siteConfig?.canonicalDomain || 'https://vanjarijodi.web.app';
@@ -387,6 +442,27 @@ export const BioDataMakerModal: React.FC<{
               <span>🔒 अधिकृत वॉटरमार्क २५%</span>
             </div>
 
+            {/* Add to System Quick Button */}
+            <button
+              type="button"
+              onClick={handleAddToSystem}
+              disabled={isAddingToSystem || Boolean(addedSystemProfileId)}
+              className={`px-3 py-1.5 rounded-xl shadow-md cursor-pointer flex items-center gap-1.5 transition-all text-xs font-black border ${
+                addedSystemProfileId
+                  ? 'bg-emerald-950 text-emerald-300 border-emerald-500/50'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-400'
+              }`}
+            >
+              {isAddingToSystem ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : addedSystemProfileId ? (
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
+              ) : (
+                <UserPlus className="w-3.5 h-3.5 text-amber-300" />
+              )}
+              <span>{addedSystemProfileId ? 'सिस्टीममध्ये जोडले' : 'सिस्टीमला जोडा'}</span>
+            </button>
+
             {/* WhatsApp Share */}
             <button
               type="button"
@@ -462,39 +538,14 @@ export const BioDataMakerModal: React.FC<{
           {/* LEFT COLUMN: BioData Form Inputs */}
           <div className={`lg:col-span-6 p-4 sm:p-5 space-y-4 bg-slate-950 border-r border-slate-800 text-xs overflow-y-auto ${mobileTab === 'form' ? 'block' : 'hidden lg:block'}`}>
             
-            {/* PORTAL LINK CHECKBOX */}
-            <div className="p-3.5 bg-slate-900/90 rounded-2xl border border-amber-500/30 space-y-2">
-              <label className="flex items-start gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.linkToPortal}
-                  onChange={(e) => handleChange('linkToPortal', e.target.checked)}
-                  className="w-4 h-4 rounded border-amber-500 text-amber-500 focus:ring-amber-400 mt-0.5 cursor-pointer shrink-0"
-                />
-                <div>
-                  <span className="font-black text-amber-300 text-xs block">
-                    🔗 हा बायोडाटा वंजारी जोडी मॅट्रिमोनी पोर्टलवर जोडायचा आहे का?
-                  </span>
-                  <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
-                    {formData.linkToPortal ? (
-                      <span className="text-emerald-400 font-bold">
-                        ✅ होय! डाऊनलोड करण्यासोबत हा बायोडाटा पोर्टलवर नवीन प्रोफाइल म्हणून सेव्ह होईल.
-                      </span>
-                    ) : (
-                      <span className="text-slate-400">
-                        🔒 नाही (डिफॉल्ट) — हा बायोडाटा खाजगी राहील व फक्त तुमच्या फोनवर डाउनलोड होईल.
-                      </span>
-                    )}
-                  </p>
-                </div>
-              </label>
-
-              {isRegisteredNotice && (
-                <div className="p-2 bg-emerald-950/80 border border-emerald-500/50 rounded-xl text-emerald-300 text-xs font-bold flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>{isRegisteredNotice}</span>
-                </div>
-              )}
+            {/* Quick Guidance Note */}
+            <div className="p-3 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-transparent rounded-2xl border border-amber-500/30 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Scroll className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="text-amber-200 font-bold text-[11px]">
+                  सर्व माहिती भरा. उजव्या बाजूला सुंदर लाईव्ह प्रीव्ह्यू दिसेल आणि खाली HD PDF डाऊनलोड व सिस्टीमला जोडण्याचा पर्याय उपलब्ध आहे.
+                </span>
+              </div>
             </div>
 
             {/* Photo Upload Box */}
@@ -1556,6 +1607,101 @@ export const BioDataMakerModal: React.FC<{
                   </div>
                 </div>
 
+              </div>
+            </div>
+
+            {/* LUXURY ACTION CONSOLE (RIGHT WHERE BIODATA IS PREVIEWED AND DOWNLOADED) */}
+            <div className="w-full max-w-lg mt-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 border-2 border-amber-500/40 shadow-2xl space-y-3.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-amber-400" />
+                  <h4 className="font-black text-amber-200 text-sm sm:text-base">
+                    बायोडाटा डाऊनलोड व स्थळ पर्याय
+                  </h4>
+                </div>
+                <span className="text-[11px] font-black px-2.5 py-0.5 rounded-md bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                  100% मोफत HD
+                </span>
+              </div>
+
+              {/* Celebratory Banner if Added to System */}
+              {isRegisteredNotice && (
+                <div className="p-3.5 bg-gradient-to-r from-emerald-950 to-teal-950 border-2 border-emerald-400 rounded-xl text-emerald-200 text-xs font-bold space-y-1 animate-fadeIn">
+                  <div className="flex items-center gap-2 font-black text-emerald-300 text-xs sm:text-sm">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>{isRegisteredNotice}</span>
+                  </div>
+                  {addedSystemProfileId && (
+                    <p className="text-[11px] text-emerald-400 pl-6">
+                      अधिकृत नोंदणी क्रमांक: <span className="font-mono font-black text-white bg-emerald-900/80 px-2 py-0.5 rounded border border-emerald-500/50">{addedSystemProfileId}</span>
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Main Download Action Buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {/* 1. Download PDF Button */}
+                <button
+                  type="button"
+                  onClick={handleDownloadPDF}
+                  disabled={isExportingPdf || isExportingJpg}
+                  className="py-3 px-4 bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] hover:from-[#A71930] hover:to-[#800C1E] text-white rounded-xl font-black text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 cursor-pointer transition active:scale-98 border border-amber-400/40 disabled:opacity-50"
+                >
+                  {isExportingPdf ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Printer className="w-4 h-4 text-amber-300" />
+                  )}
+                  <span>📥 PDF डाऊनलोड (A4 Print)</span>
+                </button>
+
+                {/* 2. Download HD JPG Button */}
+                <button
+                  type="button"
+                  onClick={handleDownloadJPG}
+                  disabled={isExportingPdf || isExportingJpg}
+                  className="py-3 px-4 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-xl font-black text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 cursor-pointer transition active:scale-98 border border-amber-300 disabled:opacity-50"
+                >
+                  {isExportingJpg ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4 text-slate-950" />
+                  )}
+                  <span>🖼️ HD JPG डाऊनलोड (फोटो)</span>
+                </button>
+              </div>
+
+              {/* 3. Add to System Option */}
+              <div className="pt-2.5 border-t border-slate-800 space-y-1.5">
+                <button
+                  type="button"
+                  onClick={handleAddToSystem}
+                  disabled={isAddingToSystem || Boolean(addedSystemProfileId)}
+                  className={`w-full py-3 px-4 rounded-xl font-black text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 cursor-pointer transition active:scale-98 border ${
+                    addedSystemProfileId
+                      ? 'bg-emerald-950 text-emerald-300 border-emerald-500/50 cursor-default'
+                      : 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white border-emerald-300 shadow-emerald-900/30'
+                  }`}
+                >
+                  {isAddingToSystem ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : addedSystemProfileId ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  ) : (
+                    <UserPlus className="w-4 h-4 text-amber-300" />
+                  )}
+                  <span>
+                    {addedSystemProfileId
+                      ? '✅ सिस्टीममध्ये स्थळ जोडले गेले आहे!'
+                      : '✨ सिस्टीमला जोडा (वंजारी जोडीवर मोफत स्थळ प्रसिद्ध करा)'}
+                  </span>
+                </button>
+                <p className="text-[11px] text-slate-400 text-center leading-tight">
+                  {addedSystemProfileId
+                    ? 'तुमचा बायोडाटा वंजारी जोडीवर सक्रिय झाला आहे. इतर वंजारी कुटुंबे हा बायोडाटा पाहू शकतील.'
+                    : 'फक्त स्वतःसाठी डाऊनलोड करायचे असल्यास वरील बटणे वापरा, अथवा वंजारी जोडीवर इतर कुटुंबांना दिसण्यासाठी "सिस्टीमला जोडा" दाबा.'}
+                </p>
               </div>
             </div>
 

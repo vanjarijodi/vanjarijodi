@@ -42,7 +42,7 @@ export const AppShareModal: React.FC<AppShareModalProps> = ({ isOpen, onClose })
   const fileSize = apk.fileSizeMb || '12.8 MB';
 
   // Construct absolute APK download link and website URL
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://vanjarijodi.org';
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://vanjarijodi.web.app';
   const fullApkDownloadUrl = apk.apkUrl?.startsWith('http')
     ? apk.apkUrl
     : `${origin}${apk.apkUrl?.startsWith('/') ? apk.apkUrl : `/${apk.apkUrl || 'downloads/VanjariJodi_v2.5.0.apk'}`}`;

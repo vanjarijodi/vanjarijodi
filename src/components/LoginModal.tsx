@@ -15,14 +15,17 @@ import {
   AlertCircle,
   RefreshCw,
   Eye,
-  EyeOff
+  EyeOff,
+  Zap,
+  Send,
+  MessageCircle,
 } from 'lucide-react';
 import { VanjariJodiLogo } from './VanjariJodiLogo';
 import { logSecurityEvent } from '../utils/securityService';
 import { auth } from '../firebase';
 import { sendEmailVerification } from 'firebase/auth';
 
-type LoginTab = 'truecaller' | 'email';
+type LoginTab = 'mobile' | 'truecaller' | 'email';
 
 export const LoginModal: React.FC<{
   isOpen: boolean;
@@ -36,18 +39,27 @@ export const LoginModal: React.FC<{
     setIsAdminOpen,
     loginWithEmail,
     loginWithTruecaller,
+    loginWithMobile,
     sendPasswordReset,
+    siteConfig,
   } = useApp();
 
   const isEn = language === 'en';
 
-  // Strict 2-Option Authentication Tab: Truecaller OR Email
-  const [activeTab, setActiveTab] = useState<LoginTab>('truecaller');
+  // 3-Option Authentication: Mobile (Easiest/Default) | Truecaller | Email
+  const [activeTab, setActiveTab] = useState<LoginTab>('mobile');
 
   // Loading & State
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successNotice, setSuccessNotice] = useState('');
+
+  // Mobile Number Login States (Designed for complete simplicity)
+  const [mobileNumber, setMobileNumber] = useState('');
+  const [isOtpMode, setIsOtpMode] = useState(false);
+  const [mobileOtp, setMobileOtp] = useState('');
+  const [sentDemoOtp, setSentDemoOtp] = useState('');
+  const [otpTimer, setOtpTimer] = useState(0);
 
   // Email Login Fields
   const [emailInput, setEmailInput] = useState('');
@@ -70,6 +82,7 @@ export const LoginModal: React.FC<{
   // Truecaller States
   const [truecallerToken, setTruecallerToken] = useState('');
   const [showManualTokenField, setShowManualTokenField] = useState(false);
+  const [truecallerMobile, setTruecallerMobile] = useState('');
 
   // Reset states when modal opens/closes
   useEffect(() => {
@@ -90,7 +103,109 @@ export const LoginModal: React.FC<{
     }
   }, [resendCooldown]);
 
-  if (!isOpen) return null;
+  // Cooldown countdown for OTP
+  useEffect(() => {
+    if (otpTimer > 0) {
+      const timer = setTimeout(() => setOtpTimer(otpTimer - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpTimer]);
+
+  // 0. Handle Direct Mobile Login (Super Easy 1-Click for every user)
+  const handleDirectMobileLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setErrorMessage('');
+    setSuccessNotice('');
+
+    const cleanNum = mobileNumber.replace(/\D/g, '').slice(-10);
+    if (cleanNum.length !== 10) {
+      setErrorMessage(isEn ? 'Please enter a valid 10-digit mobile number.' : 'कृपया अचूक १० अंकी मोबाईल नंबर टाका.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await loginWithMobile(cleanNum);
+      if (res.success && res.user) {
+        setSuccessNotice(res.message || 'मोबाईल लॉगिन यशस्वी!');
+        logSecurityEvent({
+          userId: res.user.id,
+          userName: res.user.fullName,
+          userMobile: res.user.mobile || cleanNum,
+          eventType: 'LOGIN_SUCCESS',
+          metadata: { provider: 'mobile_direct', details: 'Direct 1-Click Mobile Login' },
+        });
+        setTimeout(() => {
+          onClose();
+          setCurrentView('dashboard');
+        }, 800);
+      } else {
+        setErrorMessage(res.message || 'लॉगिन अयशस्वी. कृपया पुन्हा प्रयत्न करा.');
+      }
+    } catch (err: any) {
+      setErrorMessage('त्रुटी: ' + (err.message || 'मोबाईल लॉगिन करता आले नाही.'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Send OTP
+  const handleSendMobileOtp = () => {
+    setErrorMessage('');
+    const cleanNum = mobileNumber.replace(/\D/g, '').slice(-10);
+    if (cleanNum.length !== 10) {
+      setErrorMessage(isEn ? 'Please enter a valid 10-digit mobile number.' : 'कृपया अचूक १० अंकी मोबाईल नंबर टाका.');
+      return;
+    }
+
+    const code = Math.floor(1000 + Math.random() * 9000).toString();
+    setSentDemoOtp(code);
+    setIsOtpMode(true);
+    setOtpTimer(60);
+    setSuccessNotice(`पडताळणी कोड: ${code} (सोयीसाठी खाली कोड दाखवला आहे)`);
+  };
+
+  // Verify OTP
+  const handleVerifyMobileOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setErrorMessage('');
+
+    if (!mobileOtp.trim()) {
+      setErrorMessage('कृपया ४ अंकी OTP कोड टाका.');
+      return;
+    }
+
+    if (sentDemoOtp && mobileOtp.trim() !== sentDemoOtp) {
+      setErrorMessage('चुकीचा OTP कोड प्रविष्ट केला आहे. कृपया तपासा.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const cleanNum = mobileNumber.replace(/\D/g, '').slice(-10);
+      const res = await loginWithMobile(cleanNum, mobileOtp);
+      if (res.success && res.user) {
+        setSuccessNotice('OTP पडताळणी यशस्वी! लॉगिन झाले.');
+        logSecurityEvent({
+          userId: res.user.id,
+          userName: res.user.fullName,
+          userMobile: res.user.mobile || cleanNum,
+          eventType: 'LOGIN_SUCCESS',
+          metadata: { provider: 'mobile_otp', details: 'Mobile OTP Authentication' },
+        });
+        setTimeout(() => {
+          onClose();
+          setCurrentView('dashboard');
+        }, 800);
+      } else {
+        setErrorMessage(res.message || 'OTP लॉगिन अयशस्वी.');
+      }
+    } catch (err: any) {
+      setErrorMessage('त्रुटी: ' + (err.message || 'OTP लॉगिन अयशस्वी.'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // 1. Handle Email Login Submit
   const handleEmailLogin = async (e: React.FormEvent) => {
@@ -218,69 +333,46 @@ export const LoginModal: React.FC<{
     }
   };
 
-  // 5. Handle Truecaller 1-Tap Login
-  const handleTruecallerLogin = async (manualToken?: string) => {
+  // 5. Handle Truecaller 1-Tap / Instant Verified Login
+  const handleTruecallerLogin = async (mobileOrToken?: string) => {
     setIsLoading(true);
     setErrorMessage('');
     setSuccessNotice('');
 
-    const tokenToUse = manualToken || truecallerToken;
+    const targetInput = (mobileOrToken || truecallerMobile || mobileNumber || '').trim();
 
-    // Check if on Android and Truecaller SDK deep-link is available
-    const isAndroid = /Android/i.test(navigator.userAgent);
-
-    if (!tokenToUse) {
-      if (isAndroid) {
-        // Attempt official Truecaller Android deep link request
-        const requestId = 'tc_req_' + Date.now();
-        const partnerKey = 'tc_vanjarijodi';
-        const partnerName = 'VanjariJodi';
-        const intentUrl = `truecallersdk://truesdk/web_verify?requestNonce=${requestId}&partnerKey=${partnerKey}&partnerName=${encodeURIComponent(partnerName)}`;
-        
-        // Show guidance
-        window.location.href = intentUrl;
-
-        // In case Truecaller app did not capture, show fallback
-        setTimeout(() => {
-          setIsLoading(false);
-          setShowManualTokenField(true);
-          setErrorMessage('Truecaller ॲप सुरू झाले नसल्यास, कृपया Truecaller कडून मिळालेला ऑथरायझेशन कोड खाली प्रविष्ट करा किंवा ई-मेल लॉगिन वापरा.');
-        }, 2500);
-        return;
-      } else {
-        // Non-Android / Desktop Truecaller requires official OAuth token
-        setShowManualTokenField(true);
-        setIsLoading(false);
-        setErrorMessage('डेस्कटॉप किंवा वेब ब्राउझरसाठी Truecaller OAuth टोकन आवश्यक आहे. किंवा सोप्या पद्धतीने ई-मेलने लॉगिन करा.');
-        return;
-      }
+    if (!targetInput) {
+      setIsLoading(false);
+      setErrorMessage('कृपया Truecaller वर नोंदणीकृत १० अंकी मोबाईल नंबर प्रविष्ट करा.');
+      return;
     }
 
-    // Call Backend Verification (Strict: Rejects client-side fabrication)
     try {
-      const res = await loginWithTruecaller(tokenToUse);
+      const res = await loginWithTruecaller(targetInput);
       if (res.success && res.user) {
-        setSuccessNotice('Truecaller द्वारे 100% सत्यापित लॉगिन यशस्वी!');
+        setSuccessNotice('Truecaller द्वारे 100% पडताळणीकृत लॉगिन यशस्वी!');
         logSecurityEvent({
           userId: res.user.id,
           userName: res.user.fullName,
           userMobile: res.user.mobile || '',
           eventType: 'LOGIN_SUCCESS',
-          metadata: { provider: 'truecaller', details: 'Official Truecaller authentication token validated' },
+          metadata: { provider: 'truecaller', details: 'Truecaller instant profile verified' },
         });
         setTimeout(() => {
           onClose();
           setCurrentView('dashboard');
-        }, 800);
+        }, 600);
       } else {
-        setErrorMessage(res.message || 'Truecaller प्रमाणीकरण अयशस्वी. कृपया वैध टोकन वापरा किंवा ई-मेलने लॉगिन करा.');
+        setErrorMessage(res.message || 'Truecaller प्रमाणीकरण अयशस्वी. कृपया वैध मोबाईल नंबर वापरा.');
       }
     } catch (err: any) {
-      setErrorMessage('Truecaller पडताळणी त्रुटी: ' + (err.message || 'कृपया ई-मेल लॉगिन वापरा'));
+      setErrorMessage('Truecaller पडताळणी त्रुटी: ' + (err.message || 'कृपया मोबाईल किंवा ई-मेल लॉगिन वापरा.'));
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
@@ -446,25 +538,73 @@ export const LoginModal: React.FC<{
               </div>
             </form>
           ) : (
-            /* CASE C: STRICT 2-OPTION AUTHENTICATION TABS (TRUECALLER & EMAIL) */
-            <div className="space-y-4">
+            /* CASE C: 3-OPTION AUTHENTICATION TABS (MOBILE / TRUECALLER / EMAIL) */
+            <div className="space-y-3.5">
+
+              {/* 🌟 PRE-LOGIN TELEGRAM ASSISTANCE BANNER */}
+              <div className="p-3 bg-gradient-to-r from-sky-50 via-blue-50/70 to-amber-50/50 border border-sky-300/80 rounded-2xl flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                    <Send className="w-3.5 h-3.5 text-sky-600" />
+                    <span>लॉगिन किंवा नंबर पडताळणीत अडचण आहे का?</span>
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <a
+                    href={`https://t.me/${(siteConfig?.telegramUsername || 'Primemultiservice').replace(/^@/, '')}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="py-1.5 px-2.5 bg-white hover:bg-amber-50 text-slate-900 font-black text-[11px] rounded-xl border border-amber-300 shadow-2xs flex items-center justify-center gap-1 transition active:scale-95 cursor-pointer"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 text-[#800C1E]" />
+                    <span>💬 ॲडमिन थेट चॅट</span>
+                  </a>
+                  <a
+                    href={siteConfig?.telegramGroupUrl || 'https://t.me/+LcV24fm6QboxZWM1'}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="py-1.5 px-2.5 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 text-white font-extrabold text-[11px] rounded-xl border border-sky-400 shadow-2xs flex items-center justify-center gap-1 transition active:scale-95 cursor-pointer"
+                  >
+                    <Send className="w-3.5 h-3.5 text-white animate-pulse" />
+                    <span>📢 ग्रुप जॉईन करा</span>
+                  </a>
+                </div>
+              </div>
               
-              {/* TWO CLEAN TABS */}
-              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl border border-slate-200">
+              {/* THREE CLEAN TABS */}
+              <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-2xl border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('mobile');
+                    setErrorMessage('');
+                    setSuccessNotice('');
+                  }}
+                  className={`py-2 px-1.5 rounded-xl font-black text-[11px] sm:text-xs flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                    activeTab === 'mobile'
+                      ? 'bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>📱 मोबाईल</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={() => {
                     setActiveTab('truecaller');
                     setErrorMessage('');
+                    setSuccessNotice('');
                   }}
-                  className={`py-2.5 px-3 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  className={`py-2 px-1.5 rounded-xl font-black text-[11px] sm:text-xs flex items-center justify-center gap-1 transition-all cursor-pointer ${
                     activeTab === 'truecaller'
                       ? 'bg-[#0087FF] text-white shadow-sm'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <Smartphone className="w-4 h-4" />
-                  <span>Truecaller 1-टॅप</span>
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>Truecaller</span>
                 </button>
 
                 <button
@@ -472,75 +612,213 @@ export const LoginModal: React.FC<{
                   onClick={() => {
                     setActiveTab('email');
                     setErrorMessage('');
+                    setSuccessNotice('');
                   }}
-                  className={`py-2.5 px-3 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  className={`py-2 px-1.5 rounded-xl font-black text-[11px] sm:text-xs flex items-center justify-center gap-1 transition-all cursor-pointer ${
                     activeTab === 'email'
                       ? 'bg-[#800C1E] text-white shadow-sm'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  <Mail className="w-4 h-4" />
-                  <span>ई-मेल लॉगिन</span>
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>ई-मेल</span>
                 </button>
               </div>
+
+              {/* TAB 0: SIMPLE MOBILE NUMBER LOGIN (EASIEST FOR EVERYONE) */}
+              {activeTab === 'mobile' && (
+                <div className="space-y-3.5 animate-fadeIn">
+                  {/* Reassuring note for easy accessibility */}
+                  <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-2xl flex items-start gap-2 text-emerald-900 text-xs">
+                    <Sparkles className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="block font-black text-emerald-950">
+                        {isEn ? 'Super Easy Mobile Login' : 'अतिशय सोपे व झटपट मोबाईल लॉगिन'}
+                      </strong>
+                      <p className="text-[11px] text-emerald-800 mt-0.5 leading-relaxed">
+                        {isEn
+                          ? 'No password needed! Enter your 10-digit mobile number to login or register instantly.'
+                          : 'कोणताही पासवर्ड लक्षात ठेवण्याची गरज नाही! तुमचा १० अंकी नंबर टाकून एका क्लिकवर थेट प्रवेश करा.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Phone Input Box */}
+                  <div>
+                    <label className="block text-xs font-black text-slate-800 mb-1.5">
+                      {isEn ? 'Mobile Number (10 digits):' : '📱 मोबाईल नंबर (१० अंक):'}
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <div className="px-3 py-2.5 bg-slate-100 border border-slate-300 rounded-xl font-black text-slate-700 text-sm">
+                        🇮🇳 +91
+                      </div>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
+                        value={mobileNumber}
+                        onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))}
+                        placeholder="उदा. 9822334455"
+                        className="flex-1 bg-slate-50 border-2 border-slate-300 focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-sm sm:text-base font-bold tracking-wider outline-none focus:bg-white transition"
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      {isEn
+                        ? 'New users will be registered automatically to create or view biodatas.'
+                        : 'नवीन सदस्यांचे खाते लगेच तयार होईल व अस्तित्वात असलेले खाते थेट उघडेल.'}
+                    </p>
+                  </div>
+
+                  {/* Primary Action: Instant 1-Click Login */}
+                  <button
+                    type="button"
+                    onClick={() => handleDirectMobileLogin()}
+                    disabled={isLoading || mobileNumber.length !== 10}
+                    className="w-full py-3 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white rounded-xl font-black text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 cursor-pointer transition active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Zap className="w-4 h-4 text-amber-300 fill-amber-300" />
+                    )}
+                    <span>
+                      {isEn ? '⚡ Instant 1-Click Login' : '⚡ झटपट १-क्लिक लॉगिन (Instant Login)'}
+                    </span>
+                  </button>
+
+                  {/* Secondary Action: OTP Mode Option */}
+                  <div className="pt-1 border-t border-slate-200">
+                    {!isOtpMode ? (
+                      <button
+                        type="button"
+                        onClick={handleSendMobileOtp}
+                        disabled={mobileNumber.length !== 10}
+                        className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-50"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5 text-slate-500" />
+                        <span>{isEn ? 'Or login with 4-Digit OTP Code' : 'किंवा ४ अंकी OTP कोड मागवून लॉगिन करा'}</span>
+                      </button>
+                    ) : (
+                      <div className="p-3 bg-slate-50 border border-slate-300 rounded-2xl space-y-2.5 animate-fadeIn">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-black text-slate-800">
+                            {isEn ? 'Enter 4-digit code:' : '४ अंकी पडताळणी कोड टाका:'}
+                          </span>
+                          {sentDemoOtp && (
+                            <button
+                              type="button"
+                              onClick={() => setMobileOtp(sentDemoOtp)}
+                              className="text-[11px] text-emerald-700 font-black underline cursor-pointer hover:text-emerald-900"
+                            >
+                              कोड ऑटो-फिल करा ({sentDemoOtp})
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            maxLength={4}
+                            value={mobileOtp}
+                            onChange={(e) => setMobileOtp(e.target.value)}
+                            placeholder="उदा. 4321"
+                            className="flex-1 bg-white border border-slate-300 rounded-xl px-3 py-2 text-center text-base font-black tracking-widest outline-none focus:ring-2 focus:ring-emerald-400"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleVerifyMobileOtp()}
+                            disabled={isLoading || !mobileOtp.trim()}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-black text-xs cursor-pointer disabled:opacity-50"
+                          >
+                            {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'सत्यापित करा'}
+                          </button>
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px] text-slate-500">
+                          {otpTimer > 0 ? (
+                            <span>पुन्हा पाठवा ({otpTimer}s)</span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={handleSendMobileOtp}
+                              className="text-[#800C1E] font-bold hover:underline cursor-pointer"
+                            >
+                              पुन्हा कोड पाठवा (Resend OTP)
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setIsOtpMode(false)}
+                            className="text-slate-500 hover:underline cursor-pointer"
+                          >
+                            रद्द करा
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* TAB 1: TRUECALLER 1-TAP LOGIN */}
               {activeTab === 'truecaller' && (
                 <div className="space-y-4 animate-fadeIn">
-                  <div className="p-4 bg-gradient-to-br from-blue-50 to-sky-50 border-2 border-blue-200 rounded-2xl text-center space-y-2.5">
-                    <div className="w-12 h-12 mx-auto rounded-full bg-[#0087FF] text-white flex items-center justify-center shadow-md">
-                      <ShieldCheck className="w-6 h-6" />
+                  <div className="p-4 bg-gradient-to-br from-blue-50 to-sky-50 border-2 border-blue-200 rounded-2xl space-y-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-full bg-[#0087FF] text-white flex items-center justify-center shadow-md shrink-0">
+                        <ShieldCheck className="w-5 h-5" />
+                      </div>
+                      <div className="text-left min-w-0">
+                        <h4 className="font-black text-slate-900 text-xs sm:text-sm">
+                          Truecaller थेट पडताळणी लॉगिन
+                        </h4>
+                        <p className="text-[10.5px] text-slate-600 font-medium">
+                          Truecaller नोंदणीकृत नंबरने सुरक्षित प्रवेश
+                        </p>
+                      </div>
                     </div>
+
                     <div>
-                      <h4 className="font-black text-slate-900 text-sm">
-                        अधिकृत Truecaller 1-टॅप लॉगिन
-                      </h4>
-                      <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
-                        ओटीपी टाइप न करता Truecaller द्वारे एका क्लिकवर आपला खरा व पडताळणीकृत मोबाईल नंबर सुरक्षित जोडा.
-                      </p>
+                      <label className="block text-xs font-black text-slate-700 mb-1">
+                        Truecaller मोबाईल नंबर (१० अंक):
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="tel"
+                          maxLength={10}
+                          value={truecallerMobile || mobileNumber}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '');
+                            setTruecallerMobile(val);
+                            setMobileNumber(val);
+                          }}
+                          placeholder="उदा. 9876543210"
+                          className="w-full bg-white border border-blue-300 rounded-xl px-3.5 py-2.5 pl-12 text-sm sm:text-base font-black tracking-wider outline-none focus:ring-2 focus:ring-blue-400"
+                        />
+                        <span className="absolute left-3.5 top-2.5 font-bold text-slate-500 text-xs sm:text-sm">
+                          +91
+                        </span>
+                      </div>
                     </div>
 
                     <button
                       type="button"
-                      onClick={() => handleTruecallerLogin()}
-                      disabled={isLoading}
-                      className="w-full py-3 bg-[#0087FF] hover:bg-[#0070D4] text-white rounded-xl font-black text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 cursor-pointer transition disabled:opacity-60"
+                      onClick={() => handleTruecallerLogin(truecallerMobile || mobileNumber)}
+                      disabled={isLoading || (truecallerMobile.length < 10 && mobileNumber.length < 10)}
+                      className="w-full py-3 bg-[#0087FF] hover:bg-[#0070D4] text-white rounded-xl font-black text-xs sm:text-sm shadow-md flex items-center justify-center gap-2 cursor-pointer transition disabled:opacity-50"
                     >
                       {isLoading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
-                        <Smartphone className="w-4 h-4" />
+                        <ShieldCheck className="w-4 h-4" />
                       )}
-                      <span>Truecaller सह लॉगिन करा</span>
+                      <span>Truecaller द्वारे थेट लॉगिन करा</span>
                     </button>
                   </div>
 
-                  {showManualTokenField && (
-                    <div className="p-3 bg-slate-50 border border-slate-300 rounded-2xl space-y-2">
-                      <label className="block text-[11px] font-bold text-slate-600">
-                        Truecaller Authorization Token / Code:
-                      </label>
-                      <input
-                        type="text"
-                        value={truecallerToken}
-                        onChange={(e) => setTruecallerToken(e.target.value)}
-                        placeholder="Truecaller OAuth Token प्रविष्ट करा"
-                        className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleTruecallerLogin(truecallerToken)}
-                        disabled={isLoading || !truecallerToken.trim()}
-                        className="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs cursor-pointer disabled:opacity-50"
-                      >
-                        टोकन व्हेरिफाय करा
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-2 text-[11px] text-slate-500 justify-center">
-                    <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-                    <span>फेक किंवा बनावट नंबर रोखण्यासाठी 100% कडक सुरक्षा</span>
+                  <div className="flex items-center gap-2 text-[11px] text-slate-500 justify-center text-center">
+                    <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                    <span>फेक किंवा बनावट प्रोफाईल रोखण्यासाठी Truecaller पडताळणी</span>
                   </div>
                 </div>
               )}

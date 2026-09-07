@@ -27,7 +27,7 @@ export const AdminPaymentSettings: React.FC = () => {
 
   const [formData, setFormData] = useState<PaymentConfig>({
     upiId: paymentConfig?.upiId || siteConfig?.paymentUpiId || 'paytm.s3ms5x7@pty',
-    payeeName: paymentConfig?.payeeName || siteConfig?.paymentPayeeName || 'Usha Shivdas Hange',
+    payeeName: paymentConfig?.payeeName || siteConfig?.paymentPayeeName || 'Vanjari Jodi Matrimony',
     amount: paymentConfig?.amount || '398.00',
     transactionNote: paymentConfig?.transactionNote || 'Vanjari Jodi Membership',
     phonepeUpiId: paymentConfig?.phonepeUpiId || paymentConfig?.upiId || siteConfig?.paymentUpiId || 'paytm.s3ms5x7@pty',
@@ -49,7 +49,7 @@ export const AdminPaymentSettings: React.FC = () => {
     if (paymentConfig) {
       setFormData({
         upiId: paymentConfig.upiId || siteConfig?.paymentUpiId || 'paytm.s3ms5x7@pty',
-        payeeName: paymentConfig.payeeName || siteConfig?.paymentPayeeName || 'Usha Shivdas Hange',
+        payeeName: paymentConfig.payeeName || siteConfig?.paymentPayeeName || 'Vanjari Jodi Matrimony',
         amount: paymentConfig.amount || '398.00',
         transactionNote: paymentConfig.transactionNote || 'Vanjari Jodi Membership',
         phonepeUpiId: paymentConfig.phonepeUpiId || paymentConfig.upiId || siteConfig?.paymentUpiId || 'paytm.s3ms5x7@pty',
@@ -69,22 +69,13 @@ export const AdminPaymentSettings: React.FC = () => {
 
   const handleAdminAuth = (e: React.FormEvent) => {
     e.preventDefault();
-    const clean = (adminPinInput || '').trim().toLowerCase();
-    const targetPass = (adminCredentials?.password || 'admin123').trim().toLowerCase();
-    if (
-      clean === '1010' ||
-      clean === '1234' ||
-      clean === '7083' ||
-      clean === '9800' ||
-      clean === 'admin' ||
-      clean === 'admin123' ||
-      clean === 'vanjari' ||
-      clean === targetPass
-    ) {
+    const clean = (adminPinInput || '').trim();
+    const targetPass = (adminCredentials?.password || siteConfig?.adminPin || '101010').trim();
+    if (clean && (clean === targetPass || clean.toLowerCase() === targetPass.toLowerCase())) {
       setIsAdminLoggedIn(true);
       setPinError('');
     } else {
-      setPinError('चुकीचा ॲडमिन पिन कोड! कृपया योग्य पिन टाका (उदा. 1010 किंवा admin123).');
+      setPinError('चुकीचा ॲडमिन पासवर्ड किंवा सिक्रेट पिन! कृपया अधिकृत प्रशासक पासवर्ड प्रविष्ट करा.');
     }
   };
 
@@ -213,13 +204,13 @@ export const AdminPaymentSettings: React.FC = () => {
 
         <form onSubmit={handleAdminAuth} className="space-y-4">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">ॲडमिन पिन कोड (PIN):</label>
+            <label className="block text-xs font-bold text-slate-700 mb-1">प्रशासक सिक्रेट पासवर्ड / पिन (Admin Password/PIN):</label>
             <input
               type="password"
               value={adminPinInput}
               onChange={(e) => setAdminPinInput(e.target.value)}
-              placeholder="पिन कोड टाका"
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-center font-mono text-lg font-bold text-slate-900 focus:bg-white focus:border-[#800C1E] focus:outline-none"
+              placeholder="गुप्त ॲडमिन पासवर्ड किंवा पिन प्रविष्ट करा"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-center font-mono text-base font-bold text-slate-900 focus:bg-white focus:border-[#800C1E] focus:outline-none"
               required
             />
           </div>

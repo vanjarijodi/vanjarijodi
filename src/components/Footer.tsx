@@ -88,13 +88,28 @@ export const Footer: React.FC = () => {
                 <span>
                   <strong>Official Support:</strong>{' '}
                   <a
-                    href={`https://t.me/${(siteConfig?.telegramUsername || 'VanjariJodiSupport').replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '')}`}
+                    href={`https://t.me/${(siteConfig?.telegramUsername || 'Primemultiservice').replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hover:underline text-sky-300 font-extrabold bg-sky-900/60 px-2 py-0.5 rounded border border-sky-400/40 inline-flex items-center gap-1"
                   >
-                    <span>@{siteConfig?.telegramUsername || 'VanjariJodiSupport'}</span>
-                    <span className="text-[10px] bg-sky-400 text-sky-950 px-1 rounded font-black">चॅट करा ↗</span>
+                    <span>@{siteConfig?.telegramUsername || 'Primemultiservice'}</span>
+                    <span className="text-[10px] bg-sky-400 text-sky-950 px-1 rounded font-black">थेट चॅट करा ↗</span>
+                  </a>
+                </span>
+              </p>
+              <p className="flex items-center gap-1.5 text-sky-200">
+                <Send className="w-3.5 h-3.5 text-sky-300 shrink-0" />
+                <span>
+                  <strong>Telegram Community Group:</strong>{' '}
+                  <a
+                    href={siteConfig?.telegramGroupUrl || 'https://t.me/+LcV24fm6QboxZWM1'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline text-sky-200 font-extrabold bg-sky-800/60 px-2 py-0.5 rounded border border-sky-300/40 inline-flex items-center gap-1"
+                  >
+                    <span>📢 Join Telegram Group</span>
+                    <span className="text-[10px] bg-amber-400 text-slate-950 px-1 rounded font-black">जॉईन व्हा ↗</span>
                   </a>
                 </span>
               </p>

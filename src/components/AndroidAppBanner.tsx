@@ -234,7 +234,7 @@ export const AndroidAppBanner: React.FC = () => {
             <div className="p-4 bg-white rounded-2xl border-2 border-amber-300 inline-block shadow-inner">
               <img
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-                  apk.apkUrl || 'https://vanjarijodi.org'
+                  apk.apkUrl || 'https://vanjarijodi.web.app'
                 )}`}
                 alt="APK Download QR Code"
                 className="w-48 h-48 mx-auto rounded-lg"

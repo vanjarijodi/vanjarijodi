@@ -445,7 +445,7 @@ export const AdminBroadcastNotificationCenter: React.FC = () => {
               type="text"
               value={actionUrl}
               onChange={(e) => setActionUrl(e.target.value)}
-              placeholder="उदा. /membership किंवा https://vanjarijodi.com"
+              placeholder="उदा. /membership किंवा https://vanjarijodi.web.app"
               className="w-full px-4 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-white focus:ring-2 focus:ring-[#800C1E] outline-none"
             />
           </div>

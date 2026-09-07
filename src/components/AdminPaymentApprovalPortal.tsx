@@ -430,7 +430,7 @@ export const AdminPaymentApprovalPortal: React.FC = () => {
       approvePaymentRequest(reqItem.id);
 
       const matchedProfile = profiles.find((p) => p.id === reqItem.userId || p.mobileNumber === reqItem.userMobile);
-      const recipientEmail = matchedProfile?.email || reqItem.userEmail || `${reqItem.userMobile}@vanjarijodi.org`;
+      const recipientEmail = matchedProfile?.email || reqItem.userEmail || `${reqItem.userMobile}@vanjarijodi.web.app`;
 
       logActivity(
         'Payment Request Approved',
@@ -548,7 +548,7 @@ export const AdminPaymentApprovalPortal: React.FC = () => {
     if (isDup) {
       message = `नमस्कार *${reqItem.userName}*,\n\nवंजारी जोडी मॅट्रिमोनी वरून संपर्क करत आहोत. तुम्ही सबमिट केलेला UTR क्रमांक (*${reqItem.utrNumber}*) आधीच वापरलेला दिसत आहे. कृपया तुमच्या बँक पावतीचा खरा आणि स्पष्ट फोटो किंवा योग्य UTR क्रमांक पाठवा.\n\nधन्यवाद,\n*वंजारी जोडी मॅट्रिमोनी टीम*`;
     } else if (reqItem.status === 'approved') {
-      message = `🎉 *वंजारी जोडी मॅट्रिमोनी - पेमेंट मंजूर!* 🎉\n\nनमस्कार *${reqItem.userName}*,\nतुमचे ₹${reqItem.amount} चे पेमेंट (UTR: ${reqItem.utrNumber}) यशस्वीरीत्या मंजूर झाले आहे.\n\n📋 *प्लॅन:* ${reqItem.planName}\n🔐 *स्टेटस:* ॲक्टिव्ह मेंबर\n\n🌐 लॉगिन: https://vanjarijodi.org\n📞 मदत: ${settingsForm.support_mobile}`;
+      message = `🎉 *वंजारी जोडी मॅट्रिमोनी - पेमेंट मंजूर!* 🎉\n\nनमस्कार *${reqItem.userName}*,\nतुमचे ₹${reqItem.amount} चे पेमेंट (UTR: ${reqItem.utrNumber}) यशस्वीरीत्या मंजूर झाले आहे.\n\n📋 *प्लॅन:* ${reqItem.planName}\n🔐 *स्टेटस:* ॲक्टिव्ह मेंबर\n\n🌐 लॉगिन: https://vanjarijodi.web.app\n📞 मदत: ${settingsForm.support_mobile}`;
     } else {
       message = `नमस्कार *${reqItem.userName}*,\n\nवंजारी जोडी मॅट्रिमोनीवर तुमच्या ₹${reqItem.amount} च्या पेमेंट पावतीची (UTR: ${reqItem.utrNumber}) पडताळणी चालू आहे. काही शंका असल्यास कृपया या नंबरवर संपर्क साधा.\n\n- वंजारी जोडी मॅनेजमेंट`;
     }

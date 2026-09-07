@@ -1447,7 +1447,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                   <span className="text-emerald-400 text-[10px] bg-emerald-950 px-2 py-0.5 rounded border border-emerald-500/40">Verified PayU Merchant</span>
                 </div>
                 <div className="text-[10px] text-slate-300 space-y-0.5 font-medium">
-                  <p>📍 <strong>Address:</strong> Bhagwan Baba Chowk, Beed, Maharashtra - 431122</p>
+                  <p>📍 <strong>Address:</strong> {siteConfig?.contactAddress || 'At Post Padali, Taluka Shirur (Kasar), District Beed, Maharashtra - 413249'}</p>
                   <p>📧 <strong>Official Support Email:</strong> {siteConfig?.contactEmail || 'gitevijay123@gmail.com'}</p>
                   <p>⏱️ <strong>Operating Hours:</strong> Mon - Sat, 10:00 AM to 5:00 PM</p>
                   <p className="text-amber-200 font-semibold pt-0.5">⚡ <strong>Refund Policy:</strong> Duplicate payments are automatically refunded within 5-7 working days to original payment source.</p>

@@ -21,6 +21,7 @@ import {
   Building2,
   Scroll,
   Send,
+  MessageCircle,
 } from 'lucide-react';
 import { VerifiedBadge } from './VerifiedBadge';
 
@@ -459,54 +460,55 @@ export const LeftDrawer: React.FC = () => {
             {/* Divider */}
             <hr className="border-slate-100 my-4" />
 
-            {/* Telegram Support Chat Option */}
-            {siteConfig?.telegramUsername && (
-              <a
-                href={`https://t.me/${siteConfig.telegramUsername.replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '')}`}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full flex items-center justify-between p-3.5 rounded-2xl text-white bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-700 font-extrabold shadow-sm hover:opacity-95 transition-all cursor-pointer mb-2"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-1.5 rounded-xl bg-white/20 text-white">
-                    <Send className="w-4 h-4" />
+            {/* Telegram Options: 1. Official Group & 2. Admin Direct Chat */}
+            {siteConfig?.showTelegramBanner !== false && (
+              <div className="space-y-1.5 mb-2">
+                {/* 1. Official Telegram Group */}
+                <a
+                  href={siteConfig?.telegramGroupUrl || 'https://t.me/+LcV24fm6QboxZWM1'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-between p-3 rounded-2xl text-white bg-gradient-to-r from-sky-600 via-sky-500 to-sky-600 font-extrabold shadow-xs hover:brightness-105 transition-all cursor-pointer border border-sky-400"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 rounded-xl bg-white/20 text-white">
+                      <Send className="w-4 h-4 text-white animate-pulse" />
+                    </div>
+                    <div className="text-left">
+                      <span className="block text-xs font-black">
+                        {isEn ? '📢 Official Telegram Group' : '📢 अधिकृत टेलिग्राम ग्रुप'}
+                      </span>
+                      <span className="block text-[10px] text-sky-100 font-medium">
+                        {isEn ? 'Daily new bio-data & updates' : 'नवीन स्थळे व महत्त्वाच्या सूचनांसाठी'}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="block text-xs font-black">
-                      {isEn ? '💬 Telegram Support Chat' : '💬 टेलिग्रामवर थेट चॅट करा'}
-                    </span>
-                    <span className="block text-[10px] text-sky-100 font-bold">
-                      @{siteConfig.telegramUsername.replace(/^@/, '')} • त्वरित मदत
-                    </span>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-white" />
-              </a>
-            )}
+                  <ChevronRight className="w-4 h-4 text-sky-100 shrink-0" />
+                </a>
 
-            {/* Telegram Group option */}
-            {siteConfig?.showTelegramBanner !== false && siteConfig?.telegramGroupUrl && siteConfig.telegramGroupUrl.trim() !== '' && (
-              <a
-                href={siteConfig.telegramGroupUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full flex items-center justify-between p-3.5 rounded-2xl text-white bg-gradient-to-r from-sky-600 to-sky-500 font-extrabold shadow-sm hover:from-sky-500 hover:to-sky-600 transition-all cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-1.5 rounded-xl bg-white/20 text-white">
-                    <Send className="w-4 h-4 animate-bounce" />
+                {/* 2. Admin Direct Telegram Chat */}
+                <a
+                  href={`https://t.me/${(siteConfig?.telegramUsername || 'Primemultiservice').replace(/^@/, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-between p-3 rounded-2xl text-slate-950 bg-gradient-to-r from-amber-300 via-amber-200 to-amber-300 font-black shadow-xs hover:brightness-105 transition-all cursor-pointer border border-amber-400"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 rounded-xl bg-slate-950 text-amber-300">
+                      <MessageCircle className="w-4 h-4 text-amber-300" />
+                    </div>
+                    <div className="text-left">
+                      <span className="block text-xs font-black text-slate-950">
+                        {isEn ? '💬 Direct Admin Chat (@Primemultiservice)' : '💬 ॲडमिन थेट चॅट (@Primemultiservice)'}
+                      </span>
+                      <span className="block text-[10px] text-amber-900 font-semibold">
+                        {isEn ? 'Instant help on Telegram' : 'टेलिग्रामवर थेट ॲडमिनशी बोला'}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="block text-xs font-black">
-                      {isEn ? '📢 Join Telegram Group' : '📢 टेलिग्राम ग्रुप जॉईन करा'}
-                    </span>
-                    <span className="block text-[9px] text-sky-100 font-medium">
-                      {isEn ? 'Free Vadhu-Var updates' : 'मोफत वधू-वर अपडेट्ससाठी'}
-                    </span>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-white" />
-              </a>
+                  <ChevronRight className="w-4 h-4 text-slate-950 shrink-0" />
+                </a>
+              </div>
             )}
 
             {/* 8. Help & Customer Support */}

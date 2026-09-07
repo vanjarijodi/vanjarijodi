@@ -165,7 +165,7 @@ export const AdminReferralManagement: React.FC<AdminReferralManagementProps> = (
 वंजारी जोडी परिवाराकडून तुम्हाला *विशेष मोफत प्लॅन व अतिरिक्त संपर्क अनलॉक* देण्यात येत आहे.
 
 🔗 आत्ताच लॉगिन करा:
-https://vanjarijodi.com
+https://vanjarijodi.web.app
 
 - *वंजारी जोडी मॅट्रिमोनी परिवार*
 _PRIME MULTI SERVICES AND SUPPLIERS_`;
