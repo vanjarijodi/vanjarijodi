@@ -558,7 +558,7 @@ export const INITIAL_SITE_CONFIG: any = {
   topBarText: '॥ श्री संत भगवान बाबा प्रसन्न ॥',
   logoTitle: 'वंजारी जोडी',
   logoSubtitle: 'वर-वधू शोध',
-  logoUrl: '/logo.png',
+  logoUrl: '/vanjari-jodi-official-logo.png',
   logoHeight: 52,
   logoScalePercent: 100,
   logoSize: 110,

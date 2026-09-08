@@ -737,6 +737,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return {
           ...INITIAL_SITE_CONFIG,
           ...parsed,
+          logoUrl: (!parsed.logoUrl || parsed.logoUrl === '/logo.png' || parsed.logoUrl === '/vanjari-jodi-logo.svg' || parsed.logoUrl.endsWith('logo.png')) ? '/vanjari-jodi-official-logo.png' : parsed.logoUrl,
           adminCredentials: {
             name: parsed.adminCredentials?.name || 'मुख्य मास्टर ॲडमिन',
             username: parsed.adminCredentials?.username || 'admin',
