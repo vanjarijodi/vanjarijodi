@@ -1,102 +1,258 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
-    <!-- Rich Crimson Red Royal Background Gradient -->
-    <radialGradient id="bgGradient" cx="50%" cy="40%" r="60%">
-      <stop offset="0%" stop-color="#B21E35" />
-      <stop offset="60%" stop-color="#800C1E" />
-      <stop offset="100%" stop-color="#540511" />
+    <!-- Background Gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#800C1E"/>
+      <stop offset="55%" stop-color="#540813"/>
+      <stop offset="85%" stop-color="#30030A"/>
+      <stop offset="100%" stop-color="#1A0105"/>
     </radialGradient>
 
-    <!-- Royal Gold Metallic Gradient -->
-    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FFF099" />
-      <stop offset="25%" stop-color="#F1C40F" />
-      <stop offset="50%" stop-color="#E67E22" />
-      <stop offset="75%" stop-color="#F39C12" />
-      <stop offset="100%" stop-color="#B7950B" />
+    <!-- Gold Foil Gradient -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE082"/>
+      <stop offset="20%" stop-color="#FFB300"/>
+      <stop offset="40%" stop-color="#FFF8E1"/>
+      <stop offset="60%" stop-color="#FFC107"/>
+      <stop offset="80%" stop-color="#FF8F00"/>
+      <stop offset="100%" stop-color="#FFD54F"/>
     </linearGradient>
 
-    <linearGradient id="brightGold" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#FFE066" />
-      <stop offset="50%" stop-color="#FFF" />
-      <stop offset="100%" stop-color="#FFD700" />
+    <!-- Light Gold Gradient -->
+    <linearGradient id="goldLight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFDE7"/>
+      <stop offset="50%" stop-color="#FFE082"/>
+      <stop offset="100%" stop-color="#FFB300"/>
     </linearGradient>
 
-    <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="6" result="blur" />
-      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    <!-- Halo Glow Gradient -->
+    <radialGradient id="haloGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFE082" stop-opacity="0.9"/>
+      <stop offset="40%" stop-color="#FFB300" stop-opacity="0.6"/>
+      <stop offset="70%" stop-color="#FF8F00" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#800C1E" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Banner Gradient -->
+    <linearGradient id="bannerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFE57F"/>
+      <stop offset="15%" stop-color="#FFF8E1"/>
+      <stop offset="50%" stop-color="#FFFFFF"/>
+      <stop offset="85%" stop-color="#FFF8E1"/>
+      <stop offset="100%" stop-color="#FFE57F"/>
+    </linearGradient>
+
+    <!-- Drop Shadow Filter -->
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#000000" flood-opacity="0.6"/>
     </filter>
 
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000" flood-opacity="0.6"/>
+    <!-- Soft Glow Filter -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
     </filter>
   </defs>
 
-  
-  <!-- Base Background Box with Smooth Rounded Corners for App Icon -->
-  <rect width="512" height="512" rx="108" fill="url(#bgGradient)" />
-  
+  <!-- Outer Canvas Base -->
+  <rect width="1024" height="1024" fill="#120104" />
 
-  <!-- Outer Ornate Gold Circular Crest Frame -->
-  <g filter="url(#shadow)">
-    <!-- Outer Gold Ring -->
-    <circle cx="256" cy="256" r="220" fill="none" stroke="url(#goldGradient)" stroke-width="12" />
-    <circle cx="256" cy="256" r="210" fill="none" stroke="#FFD700" stroke-width="2" stroke-dasharray="6,6" opacity="0.8" />
-    <circle cx="256" cy="256" r="202" fill="none" stroke="url(#goldGradient)" stroke-width="3" />
+  <!-- Outer Ornate Gold Border -->
+  <circle cx="512" cy="512" r="496" fill="url(#goldGrad)" />
+  <circle cx="512" cy="512" r="482" fill="#260207" />
+  <circle cx="512" cy="512" r="472" fill="url(#goldGrad)" />
+  
+  <!-- Outer Beaded Pattern Ring -->
+  <circle cx="512" cy="512" r="460" fill="none" stroke="#FFE082" stroke-width="4" stroke-dasharray="8 8" />
+
+  <!-- Main Crimson Background Circle -->
+  <circle cx="512" cy="512" r="452" fill="url(#bgGrad)" />
+
+  <!-- Subtle Radial Ray Pattern -->
+  <g opacity="0.15">
+    <path d="M 512 512 L 0 0 L 1024 0 Z" fill="#FFE082"/>
+    <path d="M 512 512 L 1024 0 L 1024 1024 Z" fill="#FFE082"/>
+    <path d="M 512 512 L 1024 1024 L 0 1024 Z" fill="#FFE082"/>
+    <path d="M 512 512 L 0 1024 L 0 0 Z" fill="#FFE082"/>
   </g>
 
-  <!-- Traditional Top Mantra Header -->
-  <g text-anchor="middle">
-    <!-- Mantra Ribbon Background -->
-    <path d="M 140,88 Q 256,70 372,88 L 360,118 Q 256,100 152,118 Z" fill="#42040B" stroke="url(#goldGradient)" stroke-width="1.5" />
-    <text x="256" y="106" font-family="'Sanskrit', 'Noto Sans Devanagari', 'Arial', sans-serif" font-size="18" font-weight="900" fill="url(#brightGold)" text-anchor="middle" letter-spacing="1">
-      ॥ श्री संत भगवान बाबा प्रसन्न ॥
-    </text>
-  </g>
+  <!-- Inner Gold Frame Ring -->
+  <circle cx="512" cy="512" r="436" fill="none" stroke="url(#goldGrad)" stroke-width="6" />
+  <circle cx="512" cy="512" r="428" fill="none" stroke="#FFD54F" stroke-width="2" opacity="0.6" />
 
-  <!-- Central Auspicious Marriage Icon (Shubh Kalash & Tilak) -->
-  <g transform="translate(256, 235)" filter="url(#shadow)">
-    <!-- Shubh Kalash Base & Pot -->
-    <!-- Mango Leaves -->
-    <path d="M -45,-30 Q -70,-60 -30,-75 Q 0,-40 -5,-25 Z" fill="#2E7D32" stroke="#FFD700" stroke-width="1.5"/>
-    <path d="M 45,-30 Q 70,-60 30,-75 Q 0,-40 5,-25 Z" fill="#2E7D32" stroke="#FFD700" stroke-width="1.5"/>
-    <path d="M -25,-35 Q -35,-80 0,-95 Q 10,-50 0,-30 Z" fill="#388E3C" stroke="#FFD700" stroke-width="1.5"/>
-    <path d="M 25,-35 Q 35,-80 0,-95 Q -10,-50 0,-30 Z" fill="#388E3C" stroke="#FFD700" stroke-width="1.5"/>
+  <!-- TOP CENTER: Sant Shri Bhagwan Baba Portrait Aureole / Halo -->
+  <circle cx="512" cy="235" r="150" fill="url(#haloGlow)"/>
+  <circle cx="512" cy="235" r="125" fill="url(#goldGrad)" filter="url(#dropShadow)"/>
+  <circle cx="512" cy="235" r="118" fill="#FFF8E1" />
+
+  <!-- Sant Bhagwan Baba Illustration Art -->
+  <g transform="translate(512, 235)">
+    <!-- Aura Rays behind Baba -->
+    <circle cx="0" cy="0" r="112" fill="#FFF176" opacity="0.4"/>
     
-    <!-- Coconut / Nariyal with Tilak -->
-    <circle cx="0" cy="-60" r="32" fill="#6D4C41" stroke="url(#goldGradient)" stroke-width="3" />
-    <path d="M 0,-76 L 0,-44 M -16,-60 L 16,-60" stroke="#E53935" stroke-width="4" stroke-linecap="round" />
-    <circle cx="0" cy="-60" r="5" fill="#FFD700" />
+    <!-- Orange Saffron Turban (फेटा) -->
+    <path d="M -75 -25 C -75 -85, 75 -85, 75 -25 C 75 -15, 65 15, 0 20 C -65 15, -75 -15, -75 -25 Z" fill="#FF6F00"/>
+    <path d="M -70 -20 C -60 -75, 60 -75, 70 -20 C 65 0, 40 12, 0 15 C -40 12, -65 0, -70 -20 Z" fill="#FF8F00"/>
+    <path d="M -50 -45 C -20 -70, 20 -70, 50 -45 C 35 -30, -35 -30, -50 -45 Z" fill="#FFA000"/>
+    <!-- Turban pleats / folds -->
+    <path d="M -65 -25 Q 0 -55 65 -25 Q 0 -35 -65 -25 Z" fill="#E65100" opacity="0.6"/>
+    <path d="M -55 -10 Q 0 -40 55 -10 Q 0 -20 -55 -10 Z" fill="#E65100" opacity="0.5"/>
+    <circle cx="0" cy="-45" r="8" fill="#FFD54F"/>
 
-    <!-- Golden Kalash Vessel -->
-    <path d="M -30,-20 C -40,-20 -40,-10 -25,-10 C -45,15 -40,45 0,52 C 40,45 45,15 25,-10 C 40,-10 40,-20 30,-20 Z" fill="url(#goldGradient)" stroke="#FFE066" stroke-width="2" />
-    <!-- Kalash Neck Swastik / Sacred Lines -->
-    <path d="M -25,12 Q 0,22 25,12" fill="none" stroke="#800C1E" stroke-width="3" />
-    <circle cx="0" cy="22" r="4" fill="#800C1E" />
+    <!-- Face Oval -->
+    <ellipse cx="0" cy="15" rx="42" ry="48" fill="#F5C29B"/>
+
+    <!-- Tilak / Gandha on Forehead -->
+    <path d="M 0 -12 L 6 -28 L -6 -28 Z" fill="#B71C1C"/>
+    <line x1="-12" y1="-20" x2="12" y2="-20" stroke="#FFF8E1" stroke-width="3"/>
+
+    <!-- Moustache (मीशी) -->
+    <path d="M -28 32 Q -14 24 0 28 Q 14 24 28 32 Q 32 38 20 38 Q 0 32 -20 38 Q -32 38 -28 32 Z" fill="#212121"/>
+
+    <!-- Eyes and Eyebrows -->
+    <path d="M -26 0 Q -16 -8 -6 0" fill="none" stroke="#3E2723" stroke-width="3" stroke-linecap="round"/>
+    <path d="M 6 0 Q 16 -8 26 0" fill="none" stroke="#3E2723" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="-16" cy="3" r="3" fill="#212121"/>
+    <circle cx="16" cy="3" r="3" fill="#212121"/>
+
+    <!-- White Shirt & Collar -->
+    <path d="M -60 62 L -35 52 L 0 68 L 35 52 L 60 62 L 75 110 L -75 110 Z" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="2"/>
+    <path d="M -35 52 L 0 85 L 35 52 L 0 68 Z" fill="#F5F5F5"/>
+
+    <!-- Green Leaf Garland (हार / माळ) -->
+    <path d="M -65 65 Q 0 115 65 65 Q 0 95 -65 65 Z" fill="#2E7D32"/>
+    <circle cx="-45" cy="72" r="7" fill="#4CAF50"/>
+    <circle cx="-25" cy="85" r="7" fill="#388E3C"/>
+    <circle cx="0" cy="92" r="9" fill="#1B5E20"/>
+    <circle cx="25" cy="85" r="7" fill="#388E3C"/>
+    <circle cx="45" cy="72" r="7" fill="#4CAF50"/>
+    <circle cx="0" cy="92" r="5" fill="#FFC107"/>
   </g>
 
-  <!-- Main Brand Title: वंजारी जोडी -->
-  <g text-anchor="middle" filter="url(#goldGlow)">
-    <!-- Shadow effect behind title -->
-    <text x="258" y="380" font-family="'Mukta', 'Noto Sans Devanagari', 'Tiro Devanagari Marathi', sans-serif" font-size="64" font-weight="900" fill="#2B0207" text-anchor="middle">
+  <!-- Sant Bhagwan Baba Name Ribbon -->
+  <g transform="translate(512, 360)">
+    <rect x="-140" y="-16" width="280" height="32" rx="16" fill="url(#goldGrad)" stroke="#FFE082" stroke-width="2" filter="url(#dropShadow)"/>
+    <text x="0" y="5" font-family="'Noto Sans Devanagari', 'Mangal', 'Arial', sans-serif" font-weight="900" font-size="18" fill="#3A0208" text-anchor="middle">
+      राष्ट्रसंत श्री भगवान बाबा
+    </text>
+  </g>
+
+  <!-- SIDE TEXTS: Gold Marathi Calligraphy -->
+  <!-- Left Side: संस्कार आपले... -->
+  <g transform="translate(185, 300)">
+    <text x="0" y="0" font-family="'Noto Sans Devanagari', 'Mangal', 'Arial', sans-serif" font-weight="900" font-size="28" fill="url(#goldLight)" text-anchor="middle" filter="url(#dropShadow)">
+      संस्कार
+    </text>
+    <text x="0" y="32" font-family="'Noto Sans Devanagari', 'Mangal', 'Arial', sans-serif" font-weight="900" font-size="26" fill="#FFE082" text-anchor="middle">
+      आपले...
+    </text>
+    <path d="M -50 45 Q 0 55 50 45" fill="none" stroke="url(#goldGrad)" stroke-width="2"/>
+  </g>
+
+  <!-- Right Side: संबंध आपले... -->
+  <g transform="translate(839, 300)">
+    <text x="0" y="0" font-family="'Noto Sans Devanagari', 'Mangal', 'Arial', sans-serif" font-weight="900" font-size="28" fill="url(#goldLight)" text-anchor="middle" filter="url(#dropShadow)">
+      संबंध
+    </text>
+    <text x="0" y="32" font-family="'Noto Sans Devanagari', 'Mangal', 'Arial', sans-serif" font-weight="900" font-size="26" fill="#FFE082" text-anchor="middle">
+      आपले...
+    </text>
+    <path d="M -50 45 Q 0 55 50 45" fill="none" stroke="url(#goldGrad)" stroke-width="2"/>
+  </g>
+
+  <!-- CENTER MOTIF: Golden Heart with Bride & Groom Silhouettes -->
+  <g transform="translate(512, 450)">
+    <!-- Heart Glow -->
+    <path d="M 0 35 C -60 -35, -110 15, 0 95 C 110 15, 60 -35, 0 35 Z" fill="#FFB300" opacity="0.3" filter="url(#glow)"/>
+    <!-- Outer Gold Heart -->
+    <path d="M 0 30 C -65 -45, -115 15, 0 100 C 115 15, 65 -45, 0 30 Z" fill="url(#goldGrad)" filter="url(#dropShadow)"/>
+    <!-- Inner Dark Heart -->
+    <path d="M 0 28 C -55 -35, -95 15, 0 88 C 95 15, 55 -35, 0 28 Z" fill="#3D030B"/>
+
+    <!-- Groom Silhouette (Left) -->
+    <g transform="translate(-22, 25)">
+      <!-- Groom Turban -->
+      <path d="M -15 -22 Q 0 -35 15 -22 C 18 -12, 10 5, 0 8 C -10 5, -18 -12, -15 -22 Z" fill="url(#goldGrad)"/>
+      <path d="M -8 -30 L -4 -42 L 2 -32 Z" fill="#FFC107"/>
+      <!-- Head & Neck -->
+      <circle cx="0" cy="-10" r="11" fill="url(#goldGrad)"/>
+      <path d="M -16 5 C -16 -2, 16 -2, 16 5 L 18 30 L -18 30 Z" fill="url(#goldGrad)"/>
+    </g>
+
+    <!-- Bride Silhouette (Right) -->
+    <g transform="translate(22, 28)">
+      <!-- Bride Hair / Bun (अंबाडा) & Nath -->
+      <circle cx="5" cy="-14" r="7" fill="url(#goldGrad)"/>
+      <circle cx="0" cy="-10" r="10" fill="url(#goldGrad)"/>
+      <!-- Earring & Jewelry -->
+      <circle cx="-8" cy="-6" r="3" fill="#FFF8E1"/>
+      <path d="M -14 5 C -14 -2, 14 -2, 14 5 L 16 28 L -16 28 Z" fill="url(#goldGrad)"/>
+    </g>
+  </g>
+
+  <!-- MAIN TITLE: Bold 3D Gold Devanagari Typography "वंजारी जोडी" -->
+  <g transform="translate(512, 620)">
+    <!-- 3D Shadow Layers -->
+    <text x="0" y="10" font-family="'Noto Sans Devanagari', 'Mangal', 'Arial', sans-serif" font-weight="900" font-size="112" fill="#1A0004" text-anchor="middle">वंजारी जोडी</text>
+    <text x="0" y="6" font-family="'Noto Sans Devanagari', 'Mangal', 'Arial', sans-serif" font-weight="900" font-size="112" fill="#3E0008" text-anchor="middle">वंजारी जोडी</text>
+    <text x="0" y="3" font-family="'Noto Sans Devanagari', 'Mangal', 'Arial', sans-serif" font-weight="900" font-size="112" fill="#7A000E" text-anchor="middle">वंजारी जोडी</text>
+
+    <!-- Main Gold Face Text -->
+    <text x="0" y="0" font-family="'Noto Sans Devanagari', 'Mangal', 'Arial', sans-serif" font-weight="900" font-size="112" fill="url(#goldLight)" stroke="#5A000A" stroke-width="4" text-anchor="middle" filter="url(#dropShadow)">
       वंजारी जोडी
     </text>
-    <!-- Main Golden Title -->
-    <text x="256" y="376" font-family="'Mukta', 'Noto Sans Devanagari', 'Tiro Devanagari Marathi', sans-serif" font-size="64" font-weight="900" fill="url(#brightGold)" stroke="#600812" stroke-width="2" text-anchor="middle" letter-spacing="1">
-      वंजारी जोडी
-    </text>
+
+    <!-- TM Symbol -->
+    <text x="280" y="-55" font-family="sans-serif" font-weight="900" font-size="28" fill="#FFE082">TM</text>
   </g>
 
-  <!-- Tagline Badge at Bottom -->
-  <g text-anchor="middle">
-    <rect x="136" y="402" width="240" height="34" rx="17" fill="#42040B" stroke="url(#goldGradient)" stroke-width="2" />
-    <text x="256" y="424" font-family="'Noto Sans Devanagari', sans-serif" font-size="18" font-weight="800" fill="#FFE066" text-anchor="middle" letter-spacing="1.5">
-      वधू-वर सूचक
+  <!-- SUBTITLE BANNER: "वधू-वर परिचय केंद्र" -->
+  <g transform="translate(512, 735)">
+    <!-- Banner Shadow & Shape -->
+    <path d="M -280 -32 L 280 -32 Q 310 0 280 32 L -280 32 Q -310 0 -280 -32 Z" fill="#200004" opacity="0.5" transform="translate(0, 6)"/>
+    <path d="M -280 -30 L 280 -30 Q 305 0 280 30 L -280 30 Q -305 0 -280 -30 Z" fill="url(#bannerGrad)" stroke="url(#goldGrad)" stroke-width="4" filter="url(#dropShadow)"/>
+
+    <!-- Banner Inner Border -->
+    <path d="M -270 -22 L 270 -22 Q 290 0 270 22 L -270 22 Q -290 0 -270 -22 Z" fill="none" stroke="#FF8F00" stroke-width="1.5"/>
+
+    <!-- Banner Text -->
+    <text x="0" y="10" font-family="'Noto Sans Devanagari', 'Mangal', 'Arial', sans-serif" font-weight="900" font-size="40" fill="#6A000D" text-anchor="middle">
+      वधू-वर परिचय केंद्र
     </text>
+
+    <!-- Banner Ornamental Flourishes -->
+    <circle cx="-290" cy="0" r="8" fill="#FFC107"/>
+    <circle cx="290" cy="0" r="8" fill="#FFC107"/>
   </g>
 
-  <!-- Bottom Corner Ornate Stars -->
-  <circle cx="256" cy="458" r="4" fill="url(#goldGradient)" />
-  <circle cx="240" cy="458" r="2.5" fill="#FFD700" opacity="0.7" />
-  <circle cx="272" cy="458" r="2.5" fill="#FFD700" opacity="0.7" />
+  <!-- TAGLINE: "पवित्र व संस्कारयुक्त नात्यांची सुंदर सुरुवात" -->
+  <g transform="translate(512, 815)">
+    <text x="0" y="0" font-family="'Noto Sans Devanagari', 'Mangal', 'Arial', sans-serif" font-weight="800" font-size="28" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">
+      पवित्र व संस्कारयुक्त नात्यांची सुंदर सुरुवात
+    </text>
+    <!-- Divider Line -->
+    <path d="M -220 18 L 220 18" stroke="url(#goldGrad)" stroke-width="2"/>
+    <polygon points="0,12 -10,18 0,24 10,18" fill="#FFD54F"/>
+  </g>
+
+  <!-- BOTTOM MOTIF: Intertwined Golden Wedding Rings -->
+  <g transform="translate(512, 890)">
+    <!-- Left Ring -->
+    <ellipse cx="-20" cy="0" rx="32" ry="20" fill="none" stroke="url(#goldGrad)" stroke-width="8" filter="url(#dropShadow)"/>
+    <ellipse cx="-20" cy="0" rx="32" ry="20" fill="none" stroke="#FFF8E1" stroke-width="2"/>
+
+    <!-- Right Ring Intertwined -->
+    <ellipse cx="20" cy="0" rx="32" ry="20" fill="none" stroke="url(#goldGrad)" stroke-width="8" filter="url(#dropShadow)"/>
+    <ellipse cx="20" cy="0" rx="32" ry="20" fill="none" stroke="#FFF8E1" stroke-width="2"/>
+
+    <!-- Sparkling Diamond Gem on Ring -->
+    <polygon points="0,-22 -8,-12 0,-2 8,-12" fill="#E0F7FA"/>
+    <circle cx="0" cy="-12" r="4" fill="#FFFFFF" filter="url(#glow)"/>
+
+    <!-- Decorative Bottom Gold Scroll Flourish -->
+    <path d="M -120 15 Q -60 30 0 10 Q 60 30 120 15" fill="none" stroke="url(#goldGrad)" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="-125" cy="14" r="5" fill="#FFC107"/>
+    <circle cx="125" cy="14" r="5" fill="#FFC107"/>
+  </g>
+
 </svg>
