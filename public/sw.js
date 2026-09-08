@@ -1,17 +1,20 @@
-const CACHE_NAME = 'vanjarijodi-cache-v1';
+const CACHE_NAME = 'vanjarijodi-cache-v2026-09-08-01';
 const URLS_TO_CACHE = [
   '/',
-  '/index.html',
-  '/manifest.json'
+  '/manifest.json',
+  '/logo.png',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/favicon.png'
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(URLS_TO_CACHE);
     })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -20,21 +23,22 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cache) => {
           if (cache !== CACHE_NAME) {
+            console.log('[SW] Deleting old cache:', cache);
             return caches.delete(cache);
           }
         })
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
+// Network-First for Navigation (HTML) & Stale-While-Revalidate for Assets
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
 
-  // Skip API routes, Vite dev routes, and external schemes
+  // Skip API, dev routes, hot updates, external schemes
   if (
     url.pathname.startsWith('/api/') ||
     url.pathname.startsWith('/@') ||
@@ -44,28 +48,36 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // For HTML navigation requests, ALWAYS fetch from network first to ensure latest version
+  if (event.request.mode === 'navigate' || event.request.headers.get('accept')?.includes('text/html')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          return caches.match(event.request).then((cached) => cached || caches.match('/'));
+        })
+    );
+    return;
+  }
+
+  // For static assets, try network then fallback to cache
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const responseClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
         }
         return networkResponse;
       })
       .catch(() => {
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          // Only fallback to index.html for top-level HTML navigation requests
-          if (event.request.mode === 'navigate') {
-            return caches.match('/');
-          }
-          return Promise.reject('Resource not cached');
-        });
+        return caches.match(event.request);
       })
   );
 });
