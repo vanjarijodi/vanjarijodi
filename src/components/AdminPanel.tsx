@@ -311,6 +311,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
       (p.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.mobile || '').includes(searchTerm) ||
       (p.district || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.city || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.taluka || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.nativeAddress || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.subCaste || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.occupation || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.id || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     if (!matchesSearch) return false;

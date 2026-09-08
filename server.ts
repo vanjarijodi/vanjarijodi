@@ -187,63 +187,6 @@ async function startServer() {
   const usedUtrSet = new Set<string>();
   const usedScreenshotSet = new Set<string>();
 
-  // Seed sample demo data for instant admin testability if empty
-  const sampleUtr1 = '984728491823';
-  const sampleUtr2 = '563829104821';
-  usedUtrSet.add(sampleUtr1);
-  usedUtrSet.add(sampleUtr2);
-  usedScreenshotSet.add('https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80');
-
-  paymentRequestsMap.set('PAY-REQ-101', {
-    id: 'PAY-REQ-101',
-    user_id: 'usr-rahul-sanap',
-    user_name: 'राहुल सानप',
-    user_mobile: '9822334455',
-    plan_id: 'welcome_offer',
-    plan_name: 'वेलकम स्पेशल ऑफर (Welcome Plan)',
-    amount: 299,
-    utr_number: sampleUtr1,
-    screenshot_url: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80',
-    status: 'pending',
-    admin_note: '',
-    created_at: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
-    updated_at: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
-    payment_method: 'upi_intent',
-  });
-
-  paymentRequestsMap.set('PAY-REQ-102', {
-    id: 'PAY-REQ-102',
-    user_id: 'usr-pooja-munde',
-    user_name: 'पूजा मुंडे',
-    user_mobile: '9766554433',
-    plan_id: 'gold',
-    plan_name: 'गोल्ड प्लॅन (Gold Plan - 6 Months)',
-    amount: 999,
-    utr_number: sampleUtr2,
-    screenshot_url: 'https://images.unsplash.com/photo-1554224154-26032ffc0d07?w=600&auto=format&fit=crop&q=80',
-    status: 'approved',
-    admin_note: 'पेमेंट बँक खात्यात अचूक जमा झाले.',
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
-    updated_at: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-    approved_at: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-    membership_id: 'MEM-usr-pooja-munde',
-    payment_method: 'qr_scan',
-  });
-
-  membershipsMap.set('MEM-usr-pooja-munde', {
-    id: 'MEM-usr-pooja-munde',
-    user_id: 'usr-pooja-munde',
-    user_name: 'पूजा मुंडे',
-    user_mobile: '9766554433',
-    plan_name: 'गोल्ड प्लॅन (Gold Plan - 6 Months)',
-    plan_id: 'gold',
-    amount: 999,
-    status: 'active',
-    expires_at: new Date(Date.now() + 1000 * 60 * 60 * 24 * 180).toISOString(),
-    created_at: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-    updated_at: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-  });
-
   // Helper to sanitize inputs
   function sanitizeString(str: any): string {
     if (typeof str !== 'string') return '';

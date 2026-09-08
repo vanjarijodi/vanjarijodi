@@ -127,7 +127,10 @@ service cloud.firestore {
     // Notifications
     match /notifications/{notifId} {
       allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || resource.data.userId == 'all' || resource.data.userId == 'broadcast' || isAdmin());
-      allow create: if isAuthenticated();
+      allow create: if isAuthenticated() && (
+        (request.resource.data.userId != 'all' && request.resource.data.userId != 'broadcast' && request.resource.data.senderId == request.auth.uid) || 
+        isAdmin()
+      );
       allow update, delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 

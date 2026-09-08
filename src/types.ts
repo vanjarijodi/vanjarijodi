@@ -77,6 +77,7 @@ export interface UserProfile {
   district: string;
   taluka: string;
   city: string;
+  village?: string;
   currentAddress?: string;
   nativeAddress?: string;
   education: string;
