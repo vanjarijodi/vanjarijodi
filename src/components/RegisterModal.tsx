@@ -500,38 +500,38 @@ export const RegisterModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/70 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-3xl bg-[#FFFDF5] border-2 border-amber-400 rounded-3xl shadow-2xl text-slate-800 overflow-hidden my-auto max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-1.5 sm:p-6 bg-slate-950/70 backdrop-blur-md overflow-y-auto">
+      <div className="relative w-full max-w-3xl bg-[#FFFDF5] border-2 border-amber-400 rounded-2xl sm:rounded-3xl shadow-2xl text-slate-800 overflow-hidden my-auto max-h-[96vh] sm:max-h-[92vh] flex flex-col">
         
         {/* HEADER */}
-        <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] border-b border-amber-300 text-amber-100 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-2xl bg-amber-400/20 text-amber-200 border border-amber-300/40">
-              <Sparkles className="w-6 h-6 fill-amber-300 text-amber-300" />
+        <div className="flex items-center justify-between px-3.5 sm:px-6 py-2.5 sm:py-3.5 bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] border-b border-amber-300 text-amber-100 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 sm:p-2 rounded-xl bg-amber-400/20 text-amber-200 border border-amber-300/40 shrink-0">
+              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 fill-amber-300 text-amber-300" />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-black text-amber-100 tracking-tight">
+              <h2 className="text-sm sm:text-lg font-black text-amber-100 tracking-tight leading-tight">
                 वंजारी वधू-वर नोंदणी केंद्र (Registration)
               </h2>
-              <p className="text-xs text-amber-200/90 font-medium">
+              <p className="text-[10px] sm:text-xs text-amber-200/90 font-medium truncate max-w-[220px] sm:max-w-none">
                 {siteConfig?.logoSubtitle || 'वंजारी समाजाचे हक्काचे व विश्वासाचे सुवर्ण व्यासपीठ'}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-amber-100/10 hover:bg-amber-100/20 text-amber-100 transition-colors"
+            className="p-1.5 sm:p-2 rounded-xl bg-amber-100/10 hover:bg-amber-100/20 text-amber-100 transition-colors shrink-0 cursor-pointer"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
 
         {/* VOLUNTARY FORM GUIDANCE NOTICE */}
-        <div className="bg-amber-100 border-b border-amber-300 px-6 py-2.5 text-xs text-amber-950 font-bold flex items-center justify-between gap-2 shrink-0">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-[#A71930] shrink-0" />
+        <div className="bg-amber-100/95 border-b border-amber-300 px-3 sm:px-5 py-1.5 text-[11px] sm:text-xs text-amber-950 font-bold flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 leading-snug">
+            <AlertCircle className="w-3.5 h-3.5 text-[#A71930] shrink-0" />
             <span>
-              <strong className="text-[#A71930]">महत्त्वाची सूचना:</strong> या अर्जामधील कोणतेही रकाने अनिवार्य (Compulsory) नाहीत. आपल्याकडे जेवढी माहिती उपलब्ध असेल तेवढीच भरून सोयीस्कर नोंदणी पूर्ण करावी.
+              <strong className="text-[#A71930]">💡 सूचना:</strong> अर्जातील रकाने अनिवार्य नाहीत. सोयीनुसार माहिती भरावी.
             </span>
           </div>
         </div>
@@ -640,40 +640,27 @@ export const RegisterModal: React.FC<{
             </div>
           </div>
         ) : showSelector ? (
-          <div className="p-8 space-y-6 text-center overflow-y-auto">
+          <div className="p-3.5 sm:p-6 space-y-3.5 text-center overflow-y-auto">
             
-            {/* Centered Brand Logo */}
-            <div className="flex flex-col items-center justify-center py-4 bg-white border border-amber-200/60 rounded-3xl shadow-sm max-w-md mx-auto">
-              <VanjariJodiLogo variant="stacked" size={80} />
-              <p className="text-[10px] sm:text-xs text-amber-700 font-extrabold mt-2 italic bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-                ॥ श्री संत भगवान बाबा प्रसन्न ॥
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <span className="inline-block px-3 py-1 rounded-full bg-amber-100 text-[#A71930] font-black text-xs border border-amber-300 uppercase tracking-wider">
+            {/* Short Title */}
+            <div className="space-y-0.5">
+              <span className="inline-block px-2.5 py-0.5 rounded-full bg-amber-100 text-[#A71930] font-black text-[11px] border border-amber-300 uppercase tracking-wider">
                 पसंतीचा नोंदणी पर्याय निवडा
               </span>
-              <h3 className="text-2xl font-black text-[#A71930]">
-                तुम्हाला नोंदणी कशी करायची आहे?
-              </h3>
-              <p className="text-xs text-slate-600 max-w-lg mx-auto font-medium">
-                खालील दोन पर्यायांपैकी एक बटण निवडा. फोटो किंवा बायोडाटा कागदपत्र अपलोड करून अवघ्या १० सेकंदांत माहिती ऑटो-फिल करा किंवा मॅन्युअली फॉर्म भरा.
-              </p>
             </div>
 
             {/* Google 1-Click Fast Registration Option */}
-            <div className="max-w-md mx-auto bg-gradient-to-r from-amber-50 via-white to-amber-50 p-3 rounded-2xl border-2 border-amber-300 shadow-sm">
+            <div className="max-w-md mx-auto bg-gradient-to-r from-amber-50 via-white to-amber-50 p-2 sm:p-2.5 rounded-2xl border-2 border-amber-300 shadow-2xs">
               <button
                 type="button"
                 disabled={isGoogleSigningUp}
                 onClick={handleGoogleSignUp}
-                className="w-full py-2.5 px-4 bg-white hover:bg-amber-50/50 border border-slate-300 hover:border-amber-500 rounded-xl shadow-sm transition-all flex items-center justify-center gap-3 cursor-pointer group active:scale-95 disabled:opacity-60"
+                className="w-full py-2 px-3 bg-white hover:bg-amber-50/50 border border-slate-300 hover:border-amber-500 rounded-xl shadow-2xs transition-all flex items-center justify-center gap-2.5 cursor-pointer group active:scale-95 disabled:opacity-60"
               >
                 {isGoogleSigningUp ? (
-                  <Loader2 className="w-5 h-5 text-amber-700 animate-spin" />
+                  <Loader2 className="w-4 h-4 text-amber-700 animate-spin" />
                 ) : (
-                  <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                     <path
                       fill="#4285F4"
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -696,21 +683,18 @@ export const RegisterModal: React.FC<{
                   <div className="text-xs font-black text-slate-900 group-hover:text-[#A71930] transition">
                     Google द्वारे १-क्लिक जलद नोंदणी (Sign up with Google)
                   </div>
-                  <div className="text-[10px] text-slate-500 font-semibold">
-                    नाव, ई-मेल व फोटो आपोआप भरले जातील
-                  </div>
                 </div>
               </button>
             </div>
 
-            <div className="flex items-center gap-3 max-w-md mx-auto">
+            <div className="flex items-center gap-2 max-w-md mx-auto my-1">
               <div className="flex-1 h-px bg-amber-200"></div>
-              <span className="text-[10px] font-extrabold text-amber-800 uppercase">किंवा खालील पर्याय निवडा</span>
+              <span className="text-[10px] font-extrabold text-amber-800 uppercase">किंवा मॅन्युअल भरणा पर्याय</span>
               <div className="flex-1 h-px bg-amber-200"></div>
             </div>
 
             {/* 2 PROMINENT BUTTONS */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-2xl mx-auto pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto">
               
               {/* Option 1: Manual Form Registration */}
               <button
@@ -719,23 +703,20 @@ export const RegisterModal: React.FC<{
                   setActiveMode('manual');
                   setShowSelector(false);
                 }}
-                className="group relative p-6 rounded-2xl bg-white border-2 border-amber-300 hover:border-[#A71930] hover:shadow-2xl transition-all text-left space-y-3 cursor-pointer overflow-hidden active:scale-95"
+                className="group relative p-3.5 sm:p-5 rounded-2xl bg-white border-2 border-amber-300 hover:border-[#A71930] hover:shadow-xl transition-all text-left flex items-center gap-3 cursor-pointer active:scale-95"
               >
-                <div className="w-12 h-12 rounded-2xl bg-amber-100 text-[#A71930] flex items-center justify-center text-2xl border border-amber-300 group-hover:bg-[#A71930] group-hover:text-white transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 text-[#A71930] flex items-center justify-center text-xl border border-amber-300 group-hover:bg-[#A71930] group-hover:text-white transition-colors shrink-0">
                   {siteConfig?.regOption1Icon || '📝'}
                 </div>
-                <div>
-                  <h4 className="text-base font-black text-[#A71930] group-hover:text-[#800C1E]">
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-xs sm:text-sm font-black text-[#A71930] group-hover:text-[#800C1E] truncate">
                     {siteConfig?.regOption1Title || '१. मॅन्युअल नोंदणी / फॉर्म भरा'}
                   </h4>
-                  <p className="text-xs text-slate-600 mt-1 font-medium leading-relaxed">
-                    वैयक्तिक, शैक्षणिक, कौटुंबिक व संपर्क माहिती स्वतः ५ सोप्या टप्प्यांत भरा.
+                  <p className="text-[10px] text-slate-600 font-medium leading-tight mt-0.5 truncate">
+                    माहिती स्वतः ५ सोप्या टप्प्यांत भरा
                   </p>
                 </div>
-                <div className="pt-2 text-xs font-bold text-[#A71930] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                  <span>फॉर्म भरण्यास सुरुवात करा</span>
-                  <ArrowRight className="w-4 h-4" />
-                </div>
+                <ArrowRight className="w-4 h-4 text-[#A71930] shrink-0 group-hover:translate-x-1 transition-transform" />
               </button>
 
               {/* Option 2: Photo / PDF BioData Upload (AI Scan) */}
@@ -745,54 +726,47 @@ export const RegisterModal: React.FC<{
                   setActiveMode('ocr_photo');
                   setShowSelector(false);
                 }}
-                className="group relative p-6 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/80 border-2 border-amber-400 hover:border-[#A71930] hover:shadow-2xl transition-all text-left space-y-3 cursor-pointer overflow-hidden active:scale-95"
+                className="group relative p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-50 to-amber-100/80 border-2 border-amber-400 hover:border-[#A71930] hover:shadow-xl transition-all text-left flex items-center gap-3 cursor-pointer active:scale-95"
               >
-                <div className="w-12 h-12 rounded-2xl bg-[#A71930] text-amber-200 flex items-center justify-center text-2xl border border-amber-300 shadow">
+                <div className="w-10 h-10 rounded-xl bg-[#A71930] text-amber-200 flex items-center justify-center text-xl border border-amber-300 shadow shrink-0">
                   {siteConfig?.regOption2Icon || '📁'}
                 </div>
-                <div>
-                  <h4 className="text-base font-black text-[#800C1E]">
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-xs sm:text-sm font-black text-[#800C1E] truncate">
                     {siteConfig?.regOption2Title || '२. फोटो किंवा PDF द्वारे नोंदणी'}
                   </h4>
-                  <p className="text-xs text-slate-700 mt-1 font-medium leading-relaxed">
-                    तुमच्या व्हॉट्सॲप किंवा कागदी बायोडाटाचा फोटो अपलोड करा. आमचे एआय तंत्रज्ञान स्वयंचलित वाचन करेल.
+                  <p className="text-[10px] text-slate-700 font-medium leading-tight mt-0.5 truncate">
+                    बायोडाटा फोटो किंवा PDF अपलोड करून ऑटो-स्कॅन करा
                   </p>
                 </div>
-                <div className="pt-2 text-xs font-bold text-[#A71930] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                  <span>बायोडाटा फोटो अपलोड करा</span>
-                  <ArrowRight className="w-4 h-4" />
-                </div>
+                <ArrowRight className="w-4 h-4 text-[#A71930] shrink-0 group-hover:translate-x-1 transition-transform" />
               </button>
 
             </div>
-
-            <p className="text-[11px] text-slate-500 pt-4">
-              टीप: वंजारी समाजातील सदस्यांसाठी नोंदणी सुविधा उपलब्ध आहे.
-            </p>
           </div>
         ) : (
           /* STEP 2: SPECIFIC REGISTRATION FORM (NO NESTED DUPLICATES) */
           <div className="flex-1 overflow-y-auto flex flex-col">
             
             {/* Top Toolbar to change mode back to selector */}
-            <div className="px-6 py-2.5 bg-amber-100/90 border-b border-amber-200 flex items-center justify-between text-xs font-bold text-slate-700">
+            <div className="px-3 sm:px-6 py-1.5 bg-amber-100/90 border-b border-amber-200 flex items-center justify-between text-[11px] sm:text-xs font-bold text-slate-700 shrink-0">
               <button
                 type="button"
                 onClick={() => setShowSelector(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-amber-200 text-[#A71930] border border-amber-300 transition-all"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white hover:bg-amber-200 text-[#A71930] border border-amber-300 transition-all text-[11px] font-black cursor-pointer"
               >
-                <ArrowLeft className="w-4 h-4" />
-                <span>← नोंदणी पर्याय बदला (Change Option)</span>
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>← पर्याय बदला</span>
               </button>
 
-              <span className="px-3 py-1 rounded-full bg-amber-200 text-[#800C1E] font-black">
-                {activeMode === 'ocr_photo' ? 'स्कॅन पर्याय: बायोडाटा फोटो/PDF' : 'मॅन्युअल पर्याय: ५-टप्पे फॉर्म'}
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-200 text-[#800C1E] font-black text-[10px] sm:text-xs">
+                {activeMode === 'ocr_photo' ? 'स्कॅन: फोटो/PDF' : 'मॅन्युअल: ५-टप्पे फॉर्म'}
               </span>
             </div>
 
             {/* AI OCR PHOTO UPLOAD VIEW */}
             {activeMode === 'ocr_photo' ? (
-              <div className="p-6 overflow-y-auto flex-1 space-y-4">
+              <div className="p-3 sm:p-6 overflow-y-auto flex-1 space-y-3">
                 <AIBioDataExtractor
                   onExtracted={(ext) => {
                     if (ext.fullName) setFullName(ext.fullName);
@@ -851,41 +825,41 @@ export const RegisterModal: React.FC<{
               </div>
             ) : (
               /* MANUAL MULTI-STEP FORM VIEW */
-              <form onSubmit={handleSubmitRegistration} className="p-6 overflow-y-auto space-y-4 text-xs sm:text-sm flex-1">
+              <form onSubmit={handleSubmitRegistration} className="p-3 sm:p-6 overflow-y-auto space-y-3.5 text-xs sm:text-sm flex-1">
                 
                 {/* AI Extracted Success Banner */}
                 {extractedSuccessBadge && (
-                  <div className="p-3.5 bg-emerald-50 border-2 border-emerald-400 rounded-2xl flex items-center justify-between gap-3 shadow-xs text-emerald-950 text-xs font-black animate-fade-in">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                  <div className="p-3 bg-emerald-50 border-2 border-emerald-400 rounded-xl flex items-center justify-between gap-2 shadow-xs text-emerald-950 text-xs font-black animate-fade-in">
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                       <span>{extractedSuccessBadge}</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => setExtractedSuccessBadge(null)}
-                      className="text-emerald-700 hover:text-emerald-950 font-bold px-2 py-0.5 rounded-lg hover:bg-emerald-100 cursor-pointer"
+                      className="text-emerald-700 hover:text-emerald-950 font-bold px-1.5 py-0.5 rounded hover:bg-emerald-100 cursor-pointer text-xs"
                     >
-                      ✕ बंद करा
+                      ✕ बंद
                     </button>
                   </div>
                 )}
                 
                 {/* Step Progress Bar */}
-                <div className="flex items-center justify-between text-xs font-bold text-slate-600 pb-3 border-b border-amber-200 overflow-x-auto gap-2">
-                  <span className={`px-2.5 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${step === 1 ? 'bg-[#A71930] text-amber-100 shadow' : 'bg-amber-100 text-slate-700'}`} onClick={() => setStep(1)}>
-                    १. वैयक्तिक माहिती
+                <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold text-slate-600 pb-2 border-b border-amber-200 overflow-x-auto gap-1.5 no-scrollbar">
+                  <span className={`px-2 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap ${step === 1 ? 'bg-[#A71930] text-amber-100 shadow-xs' : 'bg-amber-100/80 text-slate-700'}`} onClick={() => setStep(1)}>
+                    १. वैयक्तिक
                   </span>
-                  <span className={`px-2.5 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${step === 2 ? 'bg-[#A71930] text-amber-100 shadow' : 'bg-amber-100 text-slate-700'}`} onClick={() => setStep(2)}>
-                    २. शिक्षण व नोकरी
+                  <span className={`px-2 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap ${step === 2 ? 'bg-[#A71930] text-amber-100 shadow-xs' : 'bg-amber-100/80 text-slate-700'}`} onClick={() => setStep(2)}>
+                    २. शिक्षण-नोकरी
                   </span>
-                  <span className={`px-2.5 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${step === 3 ? 'bg-[#A71930] text-amber-100 shadow' : 'bg-amber-100 text-slate-700'}`} onClick={() => setStep(3)}>
-                    ३. कौटुंबिक तपशील
+                  <span className={`px-2 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap ${step === 3 ? 'bg-[#A71930] text-amber-100 shadow-xs' : 'bg-amber-100/80 text-slate-700'}`} onClick={() => setStep(3)}>
+                    ३. कौटुंबिक
                   </span>
-                  <span className={`px-2.5 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${step === 4 ? 'bg-[#A71930] text-amber-100 shadow' : 'bg-amber-100 text-slate-700'}`} onClick={() => setStep(4)}>
-                    ४. संपर्क व फोटो
+                  <span className={`px-2 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap ${step === 4 ? 'bg-[#A71930] text-amber-100 shadow-xs' : 'bg-amber-100/80 text-slate-700'}`} onClick={() => setStep(4)}>
+                    ४. संपर्क-फोटो
                   </span>
-                  <span className={`px-2.5 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${step === 5 ? 'bg-[#A71930] text-amber-100 shadow' : 'bg-amber-100 text-slate-700'}`} onClick={() => setStep(5)}>
-                    ५. तपासणी व गोपनीयता
+                  <span className={`px-2 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap ${step === 5 ? 'bg-[#A71930] text-amber-100 shadow-xs' : 'bg-amber-100/80 text-slate-700'}`} onClick={() => setStep(5)}>
+                    ५. सोयीस्कर
                   </span>
                 </div>
 
