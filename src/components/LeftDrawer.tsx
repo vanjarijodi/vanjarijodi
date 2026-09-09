@@ -182,9 +182,8 @@ export const LeftDrawer: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      if (window.confirm(isEn ? 'Are you sure you want to log out?' : 'तुम्हाला खात्यातून लॉग आऊट करायचे आहे का?')) {
-                        logout();
-                      }
+                      logout();
+                      setIsLeftDrawerOpen(false);
                     }}
                     className="py-1.5 px-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-400/40 text-[11px] font-black flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
                   >
@@ -561,10 +560,8 @@ export const LeftDrawer: React.FC = () => {
             {currentUser && (
               <button
                 onClick={() => {
-                  if (window.confirm(isEn ? 'Are you sure you want to log out?' : 'तुम्हाला खात्यातून सुरक्षितपणे लॉग आऊट करायचे आहे का?')) {
-                    logout();
-                    setIsLeftDrawerOpen(false);
-                  }
+                  logout();
+                  setIsLeftDrawerOpen(false);
                 }}
                 className="w-full flex items-center justify-between p-3.5 rounded-2xl text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 font-extrabold transition-all cursor-pointer shadow-xs active:scale-98"
               >

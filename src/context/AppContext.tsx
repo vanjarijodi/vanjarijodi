@@ -2339,13 +2339,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       localStorage.removeItem('vanjari_jodi_current_user');
       localStorage.removeItem('vanjari_jodi_is_admin_logged_in');
+      localStorage.removeItem('vanjari_jodi_admin');
       sessionStorage.removeItem('vanjari_jodi_current_user');
+      sessionStorage.clear();
     } catch (e) {}
     setCurrentView('home');
     setIsLeftDrawerOpen(false);
     setIsRightDrawerOpen(false);
+    setIsLoginOpen(false);
+    setIsRegisterOpen(false);
+    setIsAdminOpen(false);
+    setIsBioDataMakerOpen(false);
+    setIsBusinessVendorRegisterModalOpen(false);
     try {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'instant' });
     } catch (e) {}
   }, []);
 

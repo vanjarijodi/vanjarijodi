@@ -22,7 +22,8 @@ export function getCleanReferralCode(profile: Partial<UserProfile>): string {
 }
 
 export function getReferralShareLink(referralCode: string): string {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://vanjarijodi.web.app';
+  const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const origin = (typeof window !== 'undefined' && !isLocal) ? window.location.origin : 'https://vanjarijodi.web.app';
   return `${origin}/?ref=${encodeURIComponent(referralCode)}`;
 }
 

@@ -456,9 +456,7 @@ export const MemberDashboard: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                if (window.confirm('तुम्हाला खात्यातून लॉग आऊट करायचे आहे का?')) {
-                  logout();
-                }
+                logout();
               }}
               className="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-black shadow-sm flex items-center gap-1.5 border border-rose-300 transition-all cursor-pointer active:scale-95"
               title="खात्यातून सुरक्षितपणे बाहेर पडा (Logout)"

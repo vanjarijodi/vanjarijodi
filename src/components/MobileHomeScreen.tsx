@@ -126,9 +126,7 @@ export const MobileHomeScreen: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                if (window.confirm('तुम्हाला खात्यातून लॉग आऊट करायचे आहे का?')) {
-                  logout();
-                }
+                logout();
               }}
               className="px-2.5 py-1.5 rounded-xl bg-black/30 hover:bg-black/40 text-amber-200 font-black text-[11px] transition active:scale-95 border border-amber-300/30 flex items-center gap-1"
               title="खात्यातून बाहेर पडा (Logout)"

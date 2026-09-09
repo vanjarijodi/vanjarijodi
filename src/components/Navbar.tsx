@@ -268,9 +268,7 @@ export const Navbar: React.FC<{
 
                 <button
                   onClick={() => {
-                    if (window.confirm(isEn ? 'Are you sure you want to log out?' : 'तुम्हाला खात्यातून लॉग आऊट करायचे आहे का?')) {
-                      logout();
-                    }
+                    logout();
                   }}
                   className="hidden md:flex items-center gap-1 p-2 sm:px-2.5 sm:py-2 rounded-xl bg-slate-100 hover:bg-rose-100 text-slate-700 hover:text-rose-800 text-xs font-bold border border-slate-200 hover:border-rose-300 transition shadow-2xs cursor-pointer min-h-[44px]"
                   title={isEn ? 'Log Out' : 'लॉग आऊट'}
