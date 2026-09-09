@@ -607,7 +607,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const unsubConfig = listenToSiteConfig((remoteConfig) => {
       if (remoteConfig) {
-        setSiteConfig((prev) => ({ ...prev, ...remoteConfig }));
+        const safeRemoteConfig = {
+          ...remoteConfig,
+          logoUrl: '/vanjari-jodi-official-logo.png',
+        };
+        setSiteConfig((prev) => ({
+          ...prev,
+          ...safeRemoteConfig,
+          logoUrl: '/vanjari-jodi-official-logo.png',
+        }));
       }
     }, INITIAL_SITE_CONFIG);
 
@@ -737,7 +745,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return {
           ...INITIAL_SITE_CONFIG,
           ...parsed,
-          logoUrl: (!parsed.logoUrl || parsed.logoUrl === '/logo.png' || parsed.logoUrl === '/vanjari-jodi-logo.svg' || parsed.logoUrl.endsWith('logo.png')) ? '/vanjari-jodi-official-logo.png' : parsed.logoUrl,
+          logoUrl: '/vanjari-jodi-official-logo.png',
           adminCredentials: {
             name: parsed.adminCredentials?.name || 'मुख्य मास्टर ॲडमिन',
             username: parsed.adminCredentials?.username || 'admin',

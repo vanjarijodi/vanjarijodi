@@ -35,7 +35,7 @@ export const DynamicSeoHead: React.FC<DynamicSeoHeadProps> = ({
       : siteConfig?.metaDescriptionEn || 'Vanjari Jodi (vanjarijodi.web.app) is the official matrimonial portal for Vanjari community brides and grooms across Maharashtra and worldwide.';
 
     let targetUrl = canonicalUrl || siteDomain;
-    let shareImg = ogImage || siteConfig?.logoUrl || `${siteDomain}/logo.png`;
+    let shareImg = ogImage || `${siteDomain}/vanjari-jodi-official-logo.png`;
 
     // Contextual Overrides
     if (selectedProfileForModal) {
@@ -130,7 +130,7 @@ export const DynamicSeoHead: React.FC<DynamicSeoHeadProps> = ({
       siteUrl: siteDomain,
       siteNameMr: siteConfig?.logoTitle || 'वंजारी जोडी वधू-वर सूचक केंद्र',
       siteNameEn: 'Vanjari Jodi Matrimony',
-      logoUrl: siteConfig?.logoUrl || `${siteDomain}/logo.png`,
+      logoUrl: `${siteDomain}/vanjari-jodi-official-logo.png`,
       supportPhone: siteConfig?.contactPhone || '+91 9800000000',
       supportEmail: siteConfig?.contactEmail || 'gitevijay123@gmail.com',
       address: siteConfig?.contactAddress || 'Maharashtra, India',

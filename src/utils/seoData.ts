@@ -353,8 +353,8 @@ export function generateStructuredJsonLd(config: {
       'vanjarijodi.web.app'
     ],
     url: config.siteUrl,
-    logo: config.logoUrl || `${config.siteUrl}/logo.png`,
-    image: config.logoUrl || `${config.siteUrl}/logo.png`,
+    logo: `${config.siteUrl}/vanjari-jodi-official-logo.png`,
+    image: `${config.siteUrl}/vanjari-jodi-official-logo.png`,
     description: 'महाराष्ट्र व जगभरातील १# मानांकित अधिकृत वंजारी समाज वधू-वर सूचक केंद्र (Official Vanjari Community Matrimonial Portal - vanjarijodi.web.app).',
     telephone: config.supportPhone || '',
     email: config.supportEmail || 'gitevijay123@gmail.com',

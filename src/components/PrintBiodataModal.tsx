@@ -196,8 +196,7 @@ export const PrintBiodataModal: React.FC<{
             <img
               src={
                 siteConfig?.biodataWatermarkUrl ||
-                siteConfig?.logoUrl ||
-                "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80"
+                "/vanjari-jodi-official-logo.png"
               }
               alt="Watermark Logo"
               referrerPolicy="no-referrer"
@@ -498,8 +497,7 @@ export const PrintBiodataModal: React.FC<{
               <img
                 src={
                   siteConfig?.biodataWatermarkUrl ||
-                  siteConfig?.logoUrl ||
-                  "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=300&q=80"
+                  "/vanjari-jodi-official-logo.png"
                 }
                 alt="Watermark Logo"
                 crossOrigin="anonymous"

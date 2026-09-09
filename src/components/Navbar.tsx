@@ -189,7 +189,7 @@ export const Navbar: React.FC<{
             >
               <VanjariJodiLogo
                 variant="full"
-                size={38}
+                size={44}
                 autoCompactOnMobile={false}
                 className="transition-transform duration-200 group-hover:scale-[1.02]"
               />

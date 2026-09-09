@@ -10,6 +10,9 @@ interface LogoProps {
   autoCompactOnMobile?: boolean;
 }
 
+const OFFICIAL_LOGO = '/vanjari-jodi-official-logo.png';
+const FALLBACK_LOGO = '/logo.png';
+
 export const VanjariJodiLogo: React.FC<LogoProps> = ({
   className = '',
   size = 40,
@@ -17,9 +20,8 @@ export const VanjariJodiLogo: React.FC<LogoProps> = ({
   showSubtitle = true,
 }) => {
   const { siteConfig, language } = useApp();
-  const [imgError, setImgError] = React.useState(false);
+  const [currentLogoSrc, setCurrentLogoSrc] = React.useState(OFFICIAL_LOGO);
 
-  const customLogoUrl = siteConfig?.logoUrl || '/vanjari-jodi-official-logo.png';
   const scalePercent = Number(siteConfig?.logoScalePercent) || 100;
   const scaleFactor = Math.max(0.4, Math.min(2.5, scalePercent / 100));
   
@@ -35,28 +37,10 @@ export const VanjariJodiLogo: React.FC<LogoProps> = ({
     : (siteConfig?.logoSubtitle || 'वर-वधू शोध');
   const hideLogoText = siteConfig?.hideLogoText || false;
 
-  React.useEffect(() => {
-    setImgError(false);
-  }, [customLogoUrl]);
-
-  // Official Royal Circular Emblem matching the user's ChatGPT insignia
-  const renderSVGEmblem = (extraClass = '') => {
-    const emblemSize = variant === 'full' ? Math.min(effectiveSize, 46) : effectiveSize;
-    return (
-      <img
-        src="/vanjari-jodi-official-logo.png"
-        alt={logoTitle}
-        style={{ width: `${emblemSize}px`, height: `${emblemSize}px` }}
-        className={`inline-block shrink-0 object-contain select-none drop-shadow-md rounded-full ${extraClass}`}
-        referrerPolicy="no-referrer"
-      />
-    );
-  };
-
-  // If custom logo URL is provided by admin or local logo file exists:
-  const renderCustomLogoImg = (imgHeight = effectiveSize) => {
+  // Render official Vanjari Jodi logo image with fallback
+  const renderOfficialLogoImg = (imgHeight = effectiveSize) => {
     const isEmblem = variant === 'emblem';
-    const adjustedHeight = isEmblem ? imgHeight : (variant === 'full' ? Math.min(imgHeight, 46) : imgHeight);
+    const adjustedHeight = isEmblem ? imgHeight : Math.max(imgHeight, 42);
     
     return (
       <div 
@@ -67,7 +51,7 @@ export const VanjariJodiLogo: React.FC<LogoProps> = ({
         }}
       >
         <img
-          src={customLogoUrl}
+          src={currentLogoSrc}
           alt={logoTitle}
           style={{ 
             width: '100%',
@@ -77,14 +61,16 @@ export const VanjariJodiLogo: React.FC<LogoProps> = ({
           className="shrink-0 drop-shadow-md rounded-full select-none"
           referrerPolicy="no-referrer"
           onError={() => {
-            setImgError(true);
+            if (currentLogoSrc !== FALLBACK_LOGO) {
+              setCurrentLogoSrc(FALLBACK_LOGO);
+            }
           }}
         />
       </div>
     );
   };
 
-  const logoGraphic = (customLogoUrl && !imgError) ? renderCustomLogoImg(effectiveSize) : renderSVGEmblem();
+  const logoGraphic = renderOfficialLogoImg(effectiveSize);
 
   // If set to hide text or variant is emblem, only render the image/graphic itself
   if (variant === 'emblem' || hideLogoText) {
