@@ -41,6 +41,7 @@ export const PROFESSION_ROLES = [
 
 export const PROFILE_TAG_PRESETS: TagPreset[] = [
   // 🌟 ॲडमिन विशेष टॅग्ज
+  { id: 'truecaller_verified', label: '🛡️ Truecaller Verified', description: 'ट्रू कॉलर अधिकृत पडताळणीकृत सदस्य', category: 'admin' },
   { id: 'admin_special', label: '🌟 ॲडमिन विशेष', description: 'ॲडमिनद्वारे विशेष शिफारस केलेले स्थळ', category: 'admin' },
   { id: 'vip_profile', label: '👑 VIP स्थळ', description: 'व्हीआयपी व अतिमहत्त्वाचे प्रोफाइल', category: 'admin' },
   { id: 'recommended', label: '⭐ रिकमेंडेड जोडी', description: 'खास जुळणारे शिफारस केलेले स्थळ', category: 'admin' },
@@ -66,7 +67,8 @@ export const PROFILE_TAG_PRESETS: TagPreset[] = [
   { id: 'teacher', label: '👨‍🏫 शिक्षक / प्राध्यापक', description: 'माध्यमिक शिक्षक, प्रोफेसर, कॉलेज', category: 'job' },
   { id: 'private_job', label: '💼 खाजगी नोकरी (Private Job)', description: 'कॉर्पोरेट, खाजगी कंपनी, मॅनेजर', category: 'job' },
   { id: 'business', label: '🏢 व्यावसायिक / उद्योगपती', description: 'स्वतःचा व्यवसाय, व्यापारी, कॉन्ट्रॅक्टर', category: 'job' },
-  { id: 'farmer', label: '🌾 शेतकरी / बागायतदार', description: 'शेती, बागायतदार, कृषी व्यवसाय', category: 'job' },
+  { id: 'farmer', label: '🌾 शेतकरी', description: 'शेती, शेतकरी कुटुंब', category: 'job' },
+  { id: 'rich_farmer_tag', label: '🌾 बागायतदार / समृद्ध शेती', description: 'मोठी बागायती शेती व बागायतदार', category: 'job' },
   { id: 'police_defense', label: '👮 पोलीस / सैन्यदल', description: 'महाराष्ट्र पोलीस, लष्कर, डिफेन्स', category: 'job' },
   { id: 'bank_officer', label: '🏦 बँक अधिकारी', description: 'राष्ट्रीयीकृत / खाजगी बँक ऑफिसर', category: 'job' },
   { id: 'lawyer_ca', label: '⚖️ वकील / सीए / फायनान्स', description: 'ऍडव्होकेट, सनदी लेखापाल, कोर्ट', category: 'job' },
@@ -77,7 +79,6 @@ export const PROFILE_TAG_PRESETS: TagPreset[] = [
   { id: 'highly_educated', label: '🎓 उच्च शिक्षित (Master\'s/PhD)', description: 'मास्टर्स, पोस्ट ग्रॅज्युएट, विद्यावाचस्पती', category: 'education' },
   { id: 'nri', label: '✈️ NRI / परदेशात स्थायिक', description: 'परदेशात नोकरी / वास्तव्यास असलेले', category: 'education' },
   { id: 'own_house', label: '🏡 स्वतःचे घर / बंगलो', description: 'स्वतःच्या मालकीचे घर व समृद्ध कुटुंब', category: 'education' },
-  { id: 'rich_farmer_tag', label: '🌾 बागायतदार / समृद्ध शेती', description: 'मोठी बागायती शेती व बागायतदार', category: 'education' },
   { id: 'vegetarian', label: '🌱 शुद्ध शाकाहारी', description: 'शाकाहारी आहार व सात्विक राहणीमान', category: 'education' },
 ];
 
@@ -85,6 +86,11 @@ export const PROFESSION_PRESETS = PROFILE_TAG_PRESETS.filter(t => t.category ===
 
 export function getTagStyleClass(tag: string): string {
   const lower = tag.toLowerCase();
+
+  // 🛡️ Truecaller Verified
+  if (lower.includes('truecaller')) {
+    return 'bg-blue-100 text-blue-900 border-blue-400 font-black shadow-xs';
+  }
 
   // 🌟 Admin Special / VIP / Featured / Premium
   if (lower.includes('ॲडमिन') || lower.includes('vip') || lower.includes('प्रीमियम') || lower.includes('रिकमेंडेड') || lower.includes('हॉट') || lower.includes('विशेष')) {

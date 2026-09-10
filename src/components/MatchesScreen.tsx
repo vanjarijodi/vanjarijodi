@@ -15,7 +15,7 @@ import {
   Sparkles,
   ArrowRight,
   Eye,
-  PhoneCall,
+  Send,
   Search,
   Filter,
 } from 'lucide-react';
@@ -338,24 +338,16 @@ export const MatchesScreen: React.FC = () => {
                           <span>चॅट</span>
                         </button>
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (isContactUnlocked) {
-                              alert(`📞 मोबाईल क्रमांक: ${profile.mobile || 'माहिती उपलब्ध नाही'}`);
-                            } else {
-                              setSelectedProfileForModal(profile);
-                            }
-                          }}
-                          className={`py-2 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 ${
-                            isContactUnlocked
-                              ? 'bg-emerald-600 text-white'
-                              : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300'
-                          }`}
+                        <a
+                          href={`https://t.me/${profile.telegramUsername || siteConfig?.telegramUsername || 'Primemultiservice'}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="py-2 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 bg-sky-600 hover:bg-sky-700 text-white shadow-xs cursor-pointer"
+                          title="टेलिग्राम चॅट"
                         >
-                          <PhoneCall className="w-3.5 h-3.5" />
-                          <span>{isContactUnlocked ? 'कॉल' : 'नंबर'}</span>
-                        </button>
+                          <Send className="w-3.5 h-3.5" />
+                          <span>टेलिग्राम</span>
+                        </a>
                       </div>
                     </div>
                   );

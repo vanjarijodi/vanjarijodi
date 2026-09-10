@@ -15,11 +15,12 @@ import {
   Copy,
   Check,
   ExternalLink,
-  Plus
+  Plus,
+  Send
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { useApp } from '../context/AppContext';
-import { getCleanReferralCode, openWhatsAppChat } from '../utils/referralUtils';
+import { getCleanReferralCode, openTelegramChat } from '../utils/referralUtils';
 
 interface AdminReferralManagementProps {
   onOpenCustomPlanModal?: (profile: UserProfile) => void;
@@ -155,7 +156,7 @@ export const AdminReferralManagement: React.FC<AdminReferralManagementProps> = (
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  const handleSendReferralRewardWhatsApp = (referrer: UserProfile, count: number) => {
+  const handleSendReferralRewardTelegram = (referrer: UserProfile, count: number) => {
     const text = `*वंजारी जोडी मॅट्रिमोनी - रेफरल बक्षीस व अभिनंदन!* 🎁
 
 नमस्कार *${referrer.fullName}* जी! 🙏
@@ -170,7 +171,7 @@ https://vanjarijodi.web.app
 - *वंजारी जोडी मॅट्रिमोनी परिवार*
 _PRIME MULTI SERVICES AND SUPPLIERS_`;
 
-    openWhatsAppChat(referrer.mobile, text);
+    openTelegramChat(text, referrer.telegramUsername);
   };
 
   return (
@@ -394,17 +395,15 @@ _PRIME MULTI SERVICES AND SUPPLIERS_`;
                               <span>🎁 फ्री प्लॅन द्या</span>
                             </button>
 
-                            {/* Send WhatsApp Message */}
-                            {p.mobile && (
-                              <button
-                                type="button"
-                                onClick={() => handleSendReferralRewardWhatsApp(p, item.referredCount)}
-                                className="p-1.5 rounded-xl bg-emerald-100 hover:bg-emerald-200 text-emerald-800 transition-colors cursor-pointer"
-                                title="व्हॉट्सॲपवर बक्षीस ऑफर पाठवा"
-                              >
-                                <MessageCircle className="w-4 h-4" />
-                              </button>
-                            )}
+                            {/* Send Telegram Message */}
+                            <button
+                              type="button"
+                              onClick={() => handleSendReferralRewardTelegram(p, item.referredCount)}
+                              className="p-1.5 rounded-xl bg-sky-100 hover:bg-sky-200 text-sky-800 transition-colors cursor-pointer"
+                              title="टेलिग्रामवर बक्षीस ऑफर पाठवा"
+                            >
+                              <Send className="w-4 h-4" />
+                            </button>
                           </div>
                         </td>
                       </tr>

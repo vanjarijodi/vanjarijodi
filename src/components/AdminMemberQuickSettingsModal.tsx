@@ -19,7 +19,11 @@ import {
   Tag,
   Plus,
   Trash2,
-  Check
+  Check,
+  Key,
+  Copy,
+  Edit2,
+  Send
 } from 'lucide-react';
 import { UserProfile, MembershipTier } from '../types';
 import { useApp } from '../context/AppContext';
@@ -38,9 +42,20 @@ export const AdminMemberQuickSettingsModal: React.FC<AdminMemberQuickSettingsMod
   onClose,
   onOpenCustomPlanGrantModal
 }) => {
-  const { updateProfile, plansList } = useApp();
+  const { updateProfile, plansList, adminResetUserPassword, siteConfig } = useApp();
 
   if (!profile) return null;
+
+  // Password Reset states
+  const [newPasswordInput, setNewPasswordInput] = useState<string>('');
+  const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
+  const [isResettingPassword, setIsResettingPassword] = useState<boolean>(false);
+  const [resetSuccessMessage, setResetSuccessMessage] = useState<string>('');
+  const [copiedPassword, setCopiedPassword] = useState<boolean>(false);
+
+  // Tag rename states
+  const [editingTagFrom, setEditingTagFrom] = useState<string | null>(null);
+  const [editingTagTo, setEditingTagTo] = useState<string>('');
 
   const [allowGuestContactView, setAllowGuestContactView] = useState<boolean>(
     profile.allowGuestContactView ?? false
@@ -88,6 +103,60 @@ export const AdminMemberQuickSettingsModal: React.FC<AdminMemberQuickSettingsMod
 
   const handleRemoveTag = (tagLabel: string) => {
     setProfessionTags(prev => prev.filter(t => t !== tagLabel));
+  };
+
+  const handleRenameTag = (oldTag: string, newTag: string) => {
+    const trimmed = newTag.trim();
+    if (!trimmed) return;
+    setProfessionTags(prev => prev.map(t => (t === oldTag ? trimmed : t)));
+    setEditingTagFrom(null);
+    setEditingTagTo('');
+  };
+
+  const handleAutoGeneratePassword = () => {
+    const randomDigits = Math.floor(1000 + Math.random() * 9000);
+    setNewPasswordInput(`Vanjari@${randomDigits}`);
+    setResetSuccessMessage('');
+  };
+
+  const handleAdminResetPassword = async () => {
+    if (!newPasswordInput || newPasswordInput.trim().length < 4) {
+      alert('कृपया किमान ४ अक्षरी/अंकी पासवर्ड टाका.');
+      return;
+    }
+    setIsResettingPassword(true);
+    try {
+      const res = await adminResetUserPassword(profile.id, newPasswordInput.trim());
+      if (res.success) {
+        setResetSuccessMessage(`पासवर्ड यशस्वीरीत्या बदलला आहे: ${newPasswordInput.trim()}`);
+      } else {
+        alert(res.message || 'पासवर्ड बदलता आला नाही.');
+      }
+    } catch (err: any) {
+      alert('त्रुटी: ' + (err.message || 'पासवर्ड रीसेट करता आला नाही'));
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
+  const handleCopyPassword = () => {
+    if (!newPasswordInput) return;
+    navigator.clipboard.writeText(newPasswordInput);
+    setCopiedPassword(true);
+    setTimeout(() => setCopiedPassword(false), 2000);
+  };
+
+  const handleToggleTruecaller = () => {
+    const nextState = !isPhoneVerified;
+    setIsPhoneVerified(nextState);
+    const tcTag = '🛡️ Truecaller Verified';
+    if (nextState) {
+      if (!professionTags.includes(tcTag)) {
+        setProfessionTags(prev => [tcTag, ...prev]);
+      }
+    } else {
+      setProfessionTags(prev => prev.filter(t => t !== tcTag));
+    }
   };
 
   const handleSave = () => {
@@ -207,7 +276,98 @@ export const AdminMemberQuickSettingsModal: React.FC<AdminMemberQuickSettingsMod
                       ⏳ मंजुरी प्रलंबित
                     </span>
                   )}
+                  {isPhoneVerified && (
+                    <span className="text-blue-800 font-extrabold bg-blue-100 px-2 py-0.5 rounded-full border border-blue-300 flex items-center gap-1">
+                      🛡️ Truecaller Verified
+                    </span>
+                  )}
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 🔑 ADMIN PASSWORD RESET (BCRYPT SECURE) */}
+          <div className="bg-gradient-to-r from-slate-900 via-[#1e1b2e] to-slate-900 text-white p-4 rounded-2xl border-2 border-amber-400 shadow-md space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-700 pb-2">
+              <h4 className="font-black text-amber-300 flex items-center gap-2 text-xs sm:text-sm">
+                <Key className="w-4 h-4 text-amber-400" />
+                <span>🔐 सदस्याचा पासवर्ड बदला / रिसेट करा (Bcrypt Password Reset):</span>
+              </h4>
+              <span className="text-[10px] bg-amber-400 text-amber-950 font-black px-2 py-0.5 rounded-full">
+                Bcrypt Encrypted
+              </span>
+            </div>
+
+            <p className="text-[11px] text-slate-300 leading-relaxed">
+              सदस्याचा पासवर्ड विसरल्यास किंवा नवीन पासवर्ड सेट करण्यासाठी येथे नवीन पासवर्ड टाका. डेटाबेसमध्ये तो Bcrypt हॅशिंगने १००% सुरक्षित साठवला जाईल.
+            </p>
+
+            {resetSuccessMessage && (
+              <div className="p-2.5 bg-emerald-950 border border-emerald-500 rounded-xl text-emerald-200 text-xs font-bold flex items-center justify-between gap-2 flex-wrap">
+                <span className="flex items-center gap-1.5 truncate">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{resetSuccessMessage}</span>
+                </span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleCopyPassword}
+                    className="py-1 px-2.5 bg-emerald-800 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Copy className="w-3 h-3" />
+                    <span>{copiedPassword ? 'कॉपी झाले!' : 'कॉपी करा'}</span>
+                  </button>
+                  <a
+                    href={`https://t.me/${(profile.telegramUsername || siteConfig?.telegramUsername || 'Primemultiservice').replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '')}?text=${encodeURIComponent(
+                      `नमस्कार ${profile.fullName},\n\nवंजारी जोडी वरील आपला पासवर्ड रिसेट करण्यात आला आहे.\n👤 युझर: ${profile.fullName}\n🔒 नवीन पासवर्ड: ${newPasswordInput}\n\nकृपया या पासवर्डने लॉगिन करावे.`
+                    )}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="py-1 px-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Send className="w-3 h-3" />
+                    <span>टेलिग्रामवर पाठवा</span>
+                  </a>
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1">
+                <input
+                  type={showNewPassword ? 'text' : 'password'}
+                  placeholder="नवीन पासवर्ड टाका (किमान ४ अक्षरे/अंक)..."
+                  value={newPasswordInput}
+                  onChange={(e) => setNewPasswordInput(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-600 rounded-xl px-3 py-2 pr-9 text-xs font-bold text-amber-200 placeholder:text-slate-500 outline-none focus:border-amber-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-white cursor-pointer"
+                >
+                  {showNewPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+
+              <div className="flex gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleAutoGeneratePassword}
+                  className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-amber-200 text-xs font-bold rounded-xl border border-slate-600 transition cursor-pointer"
+                  title="मजबूत पासवर्ड ऑटो-जनरेट करा"
+                >
+                  🎲 ऑटो-जनरेट
+                </button>
+                <button
+                  type="button"
+                  disabled={isResettingPassword || !newPasswordInput}
+                  onClick={handleAdminResetPassword}
+                  className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black rounded-xl shadow transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <Key className="w-3.5 h-3.5" />
+                  <span>{isResettingPassword ? 'बदलत आहे...' : 'पासवर्ड सेव्ह करा'}</span>
+                </button>
               </div>
             </div>
           </div>
@@ -449,21 +609,57 @@ export const AdminMemberQuickSettingsModal: React.FC<AdminMemberQuickSettingsMod
               </span>
             </div>
 
-            {/* Currently Selected Tags */}
+            {/* Truecaller Quick Tag & Phone Verification Switch */}
+            <div className="flex items-center justify-between p-2.5 bg-blue-50 border-2 border-blue-300 rounded-xl">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-blue-600 text-white rounded-lg">
+                  <Shield className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="font-extrabold text-blue-950 text-xs block">🛡️ Truecaller Verified टॅग व पडताळणी</span>
+                  <span className="text-[10px] text-blue-700 font-medium">सदस्याला Truecaller Verified अधिकृत टॅग द्या व फोन पडताळणी करा</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleToggleTruecaller}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition cursor-pointer shadow-xs ${
+                  isPhoneVerified ? 'bg-blue-600 text-white shadow' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                }`}
+              >
+                {isPhoneVerified ? '✓ टॅग सक्रीय (Active)' : '✕ टॅग द्या'}
+              </button>
+            </div>
+
+            {/* Currently Selected Tags with Renaming Feature */}
             {professionTags.length > 0 && (
-              <div className="bg-white p-3 rounded-xl border border-amber-300 space-y-1.5">
-                <span className="text-[11px] font-black text-slate-700 block">निवडलेले विशेष टॅग्ज:</span>
+              <div className="bg-white p-3 rounded-xl border border-amber-300 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black text-slate-700">निवडलेले विशेष टॅग्ज (नाव बदलण्यासाठी पेन्सिलवर क्लिक करा):</span>
+                  <span className="text-[10px] text-slate-500 font-semibold">{professionTags.length} टॅग्ज</span>
+                </div>
                 <div className="flex flex-wrap gap-1.5">
                   {professionTags.map((tag, idx) => (
                     <span
                       key={idx}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-black border flex items-center gap-1.5 ${getTagStyleClass(tag)}`}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-black border flex items-center gap-1.5 shadow-2xs ${getTagStyleClass(tag)}`}
                     >
                       <span>{tag}</span>
                       <button
                         type="button"
+                        onClick={() => {
+                          setEditingTagFrom(tag);
+                          setEditingTagTo(tag);
+                        }}
+                        className="p-0.5 hover:bg-black/10 rounded transition cursor-pointer text-slate-700 hover:text-slate-950"
+                        title="टॅगचे नाव बदला (उदा. शेतकरी -> बागायतदार शेतकरी)"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleRemoveTag(tag)}
-                        className="hover:text-rose-600 transition cursor-pointer"
+                        className="p-0.5 hover:bg-rose-200/80 rounded transition cursor-pointer text-rose-700 hover:text-rose-900"
                         title="टॅग काढा"
                       >
                         <X className="w-3 h-3" />
@@ -471,6 +667,41 @@ export const AdminMemberQuickSettingsModal: React.FC<AdminMemberQuickSettingsMod
                     </span>
                   ))}
                 </div>
+
+                {/* Inline Tag Rename Box */}
+                {editingTagFrom && (
+                  <div className="p-2.5 bg-amber-100/90 border border-amber-400 rounded-xl space-y-1.5 animate-fadeIn">
+                    <span className="text-[11px] font-black text-[#800C1E] block">
+                      टॅगचे नाव बदला: <strong className="text-slate-900 font-bold">{editingTagFrom}</strong>
+                    </span>
+                    <div className="flex gap-1.5">
+                      <input
+                        type="text"
+                        value={editingTagTo}
+                        onChange={(e) => setEditingTagTo(e.target.value)}
+                        placeholder="उदा. 🌾 समृद्ध शेतकरी / बागायतदार..."
+                        className="w-full px-2.5 py-1.5 text-xs font-bold rounded-lg border border-amber-400 bg-white text-slate-900 outline-none focus:ring-1 focus:ring-[#800C1E]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRenameTag(editingTagFrom, editingTagTo)}
+                        className="px-3 py-1.5 bg-[#800C1E] text-white font-black text-xs rounded-lg shadow-xs cursor-pointer hover:bg-[#A71930] shrink-0"
+                      >
+                        नाव बदला
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingTagFrom(null);
+                          setEditingTagTo('');
+                        }}
+                        className="px-2.5 py-1.5 bg-slate-200 text-slate-700 font-bold text-xs rounded-lg cursor-pointer hover:bg-slate-300 shrink-0"
+                      >
+                        रद्द
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

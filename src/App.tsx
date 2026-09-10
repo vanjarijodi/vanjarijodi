@@ -153,9 +153,13 @@ const MainAppContent: React.FC = () => {
                 <MobileHomeScreen />
               </div>
 
-              {/* Desktop full hero & plans */}
-              <div className="hidden md:block">
+              {/* Desktop full hero & sections */}
+              <div className="hidden md:block space-y-4">
                 <Hero />
+                <BlessingsSection />
+                <FeaturesSection />
+                <SuccessStories />
+                <FAQSection />
                 <PremiumPlans />
               </div>
             </main>

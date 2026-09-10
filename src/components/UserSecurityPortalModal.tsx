@@ -31,7 +31,7 @@ interface UserSecurityPortalModalProps {
 }
 
 export const UserSecurityPortalModal: React.FC<UserSecurityPortalModalProps> = ({ isOpen, onClose }) => {
-  const { currentUser, language, setCurrentUser } = useApp();
+  const { currentUser, language, setCurrentUser, updateUserPassword } = useApp();
   const [activeTab, setActiveTab] = useState<'sessions' | 'history' | 'account_security'>('sessions');
 
   const [sessions, setSessions] = useState<UserSession[]>([]);
@@ -137,10 +137,10 @@ export const UserSecurityPortalModal: React.FC<UserSecurityPortalModalProps> = (
     }
   };
 
-  const handleUpdatePassword = (e: React.FormEvent) => {
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPassword || newPassword.length < 6) {
-      alert(language === 'mr' ? 'नवीन पासवर्ड किमान ६ अक्षरी असावा.' : 'Password must be at least 6 characters.');
+    if (!newPassword || newPassword.length < 4) {
+      alert(language === 'mr' ? 'नवीन पासवर्ड किमान ४ अक्षरी किंवा अंकी असावा.' : 'Password must be at least 4 characters.');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -148,8 +148,10 @@ export const UserSecurityPortalModal: React.FC<UserSecurityPortalModalProps> = (
       return;
     }
 
-    // Update password on current user
-    setCurrentUser(prev => prev ? { ...prev, password: newPassword } : null);
+    if (currentUser?.id) {
+      await updateUserPassword(newPassword, currentUser.id);
+    }
+
     logSecurityEvent({
       userId: currentUser.id,
       userName: currentUser.fullName,
@@ -164,7 +166,7 @@ export const UserSecurityPortalModal: React.FC<UserSecurityPortalModalProps> = (
     setConfirmPassword('');
     setMessage({
       type: 'success',
-      text: language === 'mr' ? 'तुमचा पासवर्ड यशस्वीरीत्या बदलण्यात आला आहे!' : 'Password updated successfully!'
+      text: language === 'mr' ? 'तुमचा पासवर्ड यशस्वीरीत्या बदलण्यात व सुरक्षित जतन करण्यात आला आहे!' : 'Password updated and saved successfully!'
     });
   };
 

@@ -6,7 +6,7 @@ import {
   ExternalLink,
   Sparkles,
   PlusCircle,
-  Phone,
+  Send,
   MessageCircle,
   Building2,
   Camera,
@@ -23,7 +23,7 @@ import {
 import { CommunityAd } from '../types';
 
 export const CommunityAds: React.FC = () => {
-  const { communityAds, language, setIsAdminOpen, isAdsEnabled, setIsMarketingAdModalOpen } = useApp();
+  const { communityAds, language, setIsAdminOpen, isAdsEnabled, setIsMarketingAdModalOpen, siteConfig } = useApp();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeAdModal, setActiveAdModal] = useState<CommunityAd | null>(null);
 
@@ -179,32 +179,15 @@ export const CommunityAds: React.FC = () => {
 
                   {/* Actions & Contact Buttons */}
                   <div className="pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
-                    {ad.contactPhone ? (
-                      <div className="flex items-center gap-2">
-                        <a
-                          href={`tel:${ad.contactPhone}`}
-                          className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 text-xs font-bold flex items-center gap-1.5 border border-slate-700 transition-all"
-                        >
-                          <Phone className="w-3.5 h-3.5 text-amber-400" />
-                          <span>{ad.contactPhone}</span>
-                        </a>
-
-                        <a
-                          href={`https://wa.me/${(ad.contactPhone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hello, I saw your ad on VanjariJodi.')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3.5 py-2 rounded-xl bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 text-xs font-bold flex items-center gap-1.5 border border-emerald-500/40 transition-all"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>WhatsApp</span>
-                        </a>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-1.5 text-xs text-amber-300 font-bold">
-                        <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                        <span>{language === 'en' ? 'Verified VanjariJodi Ad' : 'वंजारी जोडी प्रमाणित जाहिरात'}</span>
-                      </div>
-                    )}
+                    <a
+                      href={`https://t.me/${(siteConfig?.telegramUsername || 'Primemultiservice').replace(/^@/, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
+                    >
+                      <Send className="w-3.5 h-3.5 text-white" />
+                      <span>{language === 'en' ? 'Telegram Chat' : 'टेलिग्राम चॅट संपर्क'}</span>
+                    </a>
 
                     <button
                       onClick={() => setActiveAdModal(ad)}
@@ -271,27 +254,15 @@ export const CommunityAds: React.FC = () => {
 
               {/* Contact Actions in Modal */}
               <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
-                {activeAdModal.contactPhone && (
-                  <>
-                    <a
-                      href={`tel:${activeAdModal.contactPhone}`}
-                      className="w-full sm:w-auto flex-1 py-3 px-5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-sm flex items-center justify-center gap-2 shadow-lg transition-all"
-                    >
-                      <Phone className="w-4 h-4" />
-                      <span>{language === 'en' ? 'Call Now' : 'कॉल करा'}: {activeAdModal.contactPhone}</span>
-                    </a>
-
-                    <a
-                      href={`https://wa.me/${(activeAdModal.contactPhone || '').replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Hello, I am interested in your ad on VanjariJodi.')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full sm:w-auto flex-1 py-3 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg transition-all"
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                      <span>{language === 'en' ? 'Chat on WhatsApp' : 'WhatsApp वर चॅट करा'}</span>
-                    </a>
-                  </>
-                )}
+                <a
+                  href={`https://t.me/${(siteConfig?.telegramUsername || 'Primemultiservice').replace(/^@/, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-auto flex-1 py-3 px-5 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>{language === 'en' ? 'Telegram Chat Inquiry' : 'टेलिग्राम चॅटद्वारे चौकशी करा'}</span>
+                </a>
 
                 {activeAdModal.linkUrl && (
                   <a

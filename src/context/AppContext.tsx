@@ -43,6 +43,7 @@ import {
   BioDataSubmission
 } from '../types';
 import { triggerBrowserPushNotification, playNotificationSound } from '../utils/pushNotificationHelper';
+import { hashPassword, verifyPassword, isBcryptHash } from '../utils/passwordSecurity';
 import {
   INITIAL_PROFILES,
   SUCCESS_STORIES,
@@ -341,8 +342,11 @@ interface AppContextType {
   loginAsGuest: (mobile?: string, name?: string, district?: string) => void;
   loginWithGoogle: () => Promise<{ success: boolean; isNewUser: boolean; user?: UserProfile; message?: string }>;
   loginWithEmail: (email: string, passwordOrOtp?: string) => Promise<{ success: boolean; isNewUser: boolean; user?: UserProfile; message?: string; requiresEmailVerification?: boolean; email?: string }>;
-  loginWithTruecaller: (mobile: string, name?: string, city?: string) => Promise<{ success: boolean; isNewUser: boolean; user?: UserProfile; message?: string }>;
-  loginWithMobile: (mobile: string, otpOrPin?: string) => Promise<{ success: boolean; isNewUser: boolean; user?: UserProfile; message?: string }>;
+  loginWithTruecaller: (mobile: string, name?: string, city?: string, verifiedToken?: string) => Promise<{ success: boolean; isNewUser: boolean; user?: UserProfile; message?: string }>;
+  loginWithMobile: (mobile: string, authData?: { password?: string; pin?: string; otpToken?: string; isOtpVerified?: boolean } | string) => Promise<{ success: boolean; isNewUser: boolean; user?: UserProfile; message?: string; requireSetPassword?: boolean }>;
+  updateUserPassword: (password: string, userId?: string) => Promise<{ success: boolean; message: string }>;
+  adminResetUserPassword: (userId: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
+  toggleTruecallerVerified: (userId: string, customName?: string) => Promise<{ success: boolean; isVerified: boolean; message: string }>;
   sendPasswordReset: (email: string) => Promise<{ success: boolean; message: string }>;
   updateFeatureBoxes: (boxes: FeatureBoxItem[]) => void;
 
@@ -1694,14 +1698,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setNotifications((prev) => [newNotif, ...prev]);
     syncDocToFirestore('notifications', newNotif.id, newNotif);
 
-    // Trigger Web Browser Push Notification API & Sound Chime
-    if (siteConfig?.enableSoundNotifications !== false) {
-      playNotificationSound();
+    // Trigger Web Browser Push Notification API & Sound Chime ONLY if recipient is the current user or broadcast!
+    // Never trigger push notification on the sender's device when sending a targeted notification (e.g. like sent to another member).
+    const isTargetedToCurrentSession =
+      newNotif.userId === 'all' ||
+      newNotif.userId === 'broadcast' ||
+      (currentUser && newNotif.userId === currentUser.id);
+
+    if (isTargetedToCurrentSession) {
+      if (siteConfig?.enableSoundNotifications !== false) {
+        playNotificationSound();
+      }
+      triggerBrowserPushNotification(newNotif.titleMr || newNotif.title, {
+        body: newNotif.messageMr || newNotif.message,
+        playSound: false
+      });
     }
-    triggerBrowserPushNotification(newNotif.titleMr || newNotif.title, {
-      body: newNotif.messageMr || newNotif.message,
-      playSound: false
-    });
   };
 
   const markNotificationRead = (id: string) => {
@@ -3986,11 +3998,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (existing) {
       if (existing.isBlocked) {
-        return { success: false, isNewUser: false, user: existing, message: 'Account blocked' };
+        return { success: false, isNewUser: false, user: existing, message: 'हे खाते ॲडमिनद्वारे तात्पुरते बंद (Block) केलेले आहे.' };
       }
+
+      // Security check: If profile has password, verify it strictly
+      if (existing.password && existing.password.trim()) {
+        const cleanGivenPass = (passwordOrOtp || '').trim();
+        if (!cleanGivenPass || cleanGivenPass !== existing.password.trim()) {
+          return {
+            success: false,
+            isNewUser: false,
+            user: existing,
+            message: 'चुकीचा ई-मेल पासवर्ड! कृपया अचूक पासवर्ड टाका किंवा पासवर्ड रीसेट करा.'
+          };
+        }
+      }
+
       setCurrentUser(existing);
-      logActivity('Email Login', `ई-मेल द्वारे लॉगिन: ${existing.fullName} (${cleanEmail})`, existing.fullName);
-      return { success: true, isNewUser: false, user: existing };
+      logActivity('Email Login', `ई-मेल द्वारे सुरक्षित लॉगिन: ${existing.fullName} (${cleanEmail})`, existing.fullName);
+      return { success: true, isNewUser: false, user: existing, message: 'ई-मेल लॉगिन यशस्वी!' };
     }
 
     // New User creation via Email
@@ -4059,11 +4085,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  // Truecaller 1-Tap / Instant Verified Login
+  // Truecaller 1-Tap / Verified Login
   const loginWithTruecaller = async (
     mobileInput: string,
     nameInput?: string,
-    cityInput?: string
+    cityInput?: string,
+    verifiedToken?: string
   ): Promise<{
     success: boolean;
     isNewUser: boolean;
@@ -4072,9 +4099,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }> => {
     const rawClean = (mobileInput || '').replace(/\D/g, '');
     if (!rawClean || rawClean.length < 10) {
-      return { success: false, isNewUser: false, message: 'Invalid 10-digit mobile number' };
+      return { success: false, isNewUser: false, message: 'अवैध १० अंकी मोबाईल नंबर.' };
     }
     const cleanMobile = rawClean.slice(-10);
+
+    // If verifiedToken is missing, reject unverified login
+    if (!verifiedToken) {
+      return {
+        success: false,
+        isNewUser: false,
+        message: 'Truecaller पडताळणी टोकन आवश्यक आहे. कृपया Truecaller किंवा OTP द्वारे लॉगिन करा.'
+      };
+    }
 
     const existing = profiles.find((p) => {
       const pClean = (p.mobile || '').replace(/\D/g, '');
@@ -4086,7 +4122,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     if (existing) {
       if (existing.isBlocked) {
-        return { success: false, isNewUser: false, user: existing, message: 'Account blocked by Admin' };
+        return { success: false, isNewUser: false, user: existing, message: 'हे खाते ॲडमिनद्वारे बंद (Block) केलेले आहे.' };
       }
 
       const updated: UserProfile = {
@@ -4111,7 +4147,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updated.fullName
       );
 
-      return { success: true, isNewUser: false, user: updated };
+      return { success: true, isNewUser: false, user: updated, message: 'Truecaller पडताळणी यशस्वी!' };
     }
 
     // New Profile Created with Truecaller Verification
@@ -4184,15 +4220,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { success: true, isNewUser: true, user: newProfile };
   };
 
-  // Simple, direct Mobile Number Login (no password hurdle for non-tech users)
+  // Secure Mobile Number Login (Strict verification: Password/PIN or Server-verified OTP)
   const loginWithMobile = async (
     mobileInput: string,
-    otpOrPin?: string
+    authData?: { password?: string; pin?: string; otpToken?: string; isOtpVerified?: boolean } | string
   ): Promise<{
     success: boolean;
     isNewUser: boolean;
     user?: UserProfile;
     message?: string;
+    requireSetPassword?: boolean;
   }> => {
     const rawClean = (mobileInput || '').replace(/\D/g, '');
     if (!rawClean || rawClean.length < 10) {
@@ -4207,17 +4244,81 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const timestamp = new Date().toISOString();
 
+    // Parse authData safely
+    let providedPassword = '';
+    let isOtpVerified = false;
+    let otpToken = '';
+
+    if (typeof authData === 'string') {
+      providedPassword = authData.trim();
+    } else if (authData && typeof authData === 'object') {
+      providedPassword = (authData.password || authData.pin || '').trim();
+      isOtpVerified = Boolean(authData.isOtpVerified);
+      otpToken = authData.otpToken || '';
+    }
+
     if (existing) {
       if (existing.isBlocked) {
         return { success: false, isNewUser: false, user: existing, message: 'हे खाते ॲडमिनद्वारे तात्पुरते बंद (Block) केलेले आहे.' };
+      }
+
+      // SECURITY ENFORCEMENT: Bcrypt password verification
+      const userHasPassword = Boolean(existing.password && existing.password.trim());
+      let isAuthenticated = false;
+      let requireSetPassword = false;
+
+      if (userHasPassword) {
+        if (providedPassword && verifyPassword(providedPassword, existing.password)) {
+          isAuthenticated = true;
+          // Upgrade legacy plain-text password to Bcrypt hash seamlessly
+          if (!isBcryptHash(existing.password)) {
+            const upgradedHash = hashPassword(providedPassword);
+            existing.password = upgradedHash;
+            syncDocToFirestore('profiles', existing.id, { password: upgradedHash });
+          }
+        } else if (isOtpVerified || otpToken) {
+          isAuthenticated = true;
+        } else {
+          return {
+            success: false,
+            isNewUser: false,
+            user: existing,
+            message: providedPassword
+              ? 'चुकीचा पासवर्ड! कृपया अचूक पासवर्ड टाका किंवा ॲडमिन कडून रिसेट करून घ्या.'
+              : 'या खात्यासाठी सुरक्षा पासवर्ड आवश्यक आहे.'
+          };
+        }
+      } else {
+        // Legacy account without a password yet - set first password
+        if (isOtpVerified || otpToken) {
+          isAuthenticated = true;
+          requireSetPassword = true;
+        } else if (providedPassword && providedPassword.length >= 4) {
+          isAuthenticated = true;
+          const newHashed = hashPassword(providedPassword);
+          existing.password = newHashed;
+          syncDocToFirestore('profiles', existing.id, { password: newHashed });
+        } else {
+          return {
+            success: false,
+            isNewUser: false,
+            user: existing,
+            requireSetPassword: true,
+            message: 'कृपया आपल्या खात्यासाठी सुरक्षित पासवर्ड तयार करा.'
+          };
+        }
+      }
+
+      if (!isAuthenticated) {
+        return { success: false, isNewUser: false, message: 'प्रमाणीकरण अयशस्वी. प्रवेश नाकारला.' };
       }
 
       const updated: UserProfile = {
         ...existing,
         isPhoneVerified: true,
         phoneVerifiedAt: timestamp,
-        phoneVerificationMethod: 'mobile_otp',
-        lastActive: 'सध्या ऑनलाईन (मोबाईल लॉगिन)',
+        phoneVerificationMethod: isOtpVerified ? 'mobile_otp' : 'password',
+        lastActive: 'सध्या ऑनलाईन (सुरक्षित लॉगिन)',
       };
 
       setProfiles((prev) =>
@@ -4228,14 +4329,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       logActivity(
         'Mobile Login',
-        `मोबाईल क्रमांकाद्वारे थेट लॉगिन: ${updated.fullName} (${cleanMobile})`,
+        `मोबाईल क्रमांकाद्वारे सुरक्षित लॉगिन: ${updated.fullName} (${cleanMobile})`,
         updated.fullName
       );
 
-      return { success: true, isNewUser: false, user: updated, message: 'आपले सहर्ष स्वागत आहे! मोबाईल लॉगिन यशस्वी.' };
+      return {
+        success: true,
+        isNewUser: false,
+        user: updated,
+        requireSetPassword,
+        message: 'आपले सहर्ष स्वागत आहे! सुरक्षित लॉगिन यशस्वी.'
+      };
     }
 
-    // New Profile Created with Mobile Number
+    // If no existing profile is found:
+    if (!isOtpVerified && !otpToken && !providedPassword) {
+      return {
+        success: false,
+        isNewUser: true,
+        message: 'या मोबाईल नंबरवर कोणतेही नोंदणीकृत खाते आढळले नाही. कृपया प्रथम नवीन नोंदणी (Register) करा.'
+      };
+    }
+
+    // New Profile Created with Bcrypt Hashed Credentials
     const newUserId = `vj-m-${Date.now().toString().slice(-6)}`;
     const newProfile: UserProfile = {
       id: newUserId,
@@ -4244,6 +4360,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       dob: '1998-01-01',
       age: 26,
       mobile: `+91 ${cleanMobile}`,
+      password: providedPassword ? hashPassword(providedPassword) : undefined,
       email: '',
       district: 'बीड (Beed)',
       taluka: 'परळी',
@@ -4268,11 +4385,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       isVerified: true,
       isPhoneVerified: true,
       phoneVerifiedAt: timestamp,
-      phoneVerificationMethod: 'mobile_otp',
+      phoneVerificationMethod: 'password',
       isFeatured: false,
       isApproved: true,
       membership: 'free',
-      authProvider: 'mobile',
+      authProvider: 'mobile_otp',
       createdAt: timestamp.split('T')[0],
       lastActive: 'सध्या ऑनलाईन (नवीन मोबाईल सदस्य)',
       privacy: { hideContact: false, hidePhoto: false },
@@ -4287,7 +4404,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     logActivity(
       'Mobile Registration',
-      `मोबाईल नंबरद्वारे नवीन सदस्य नोंदणी: ${cleanMobile}`,
+      `मोबाईल नंबरद्वारे सुरक्षित नोंदणी: ${cleanMobile}`,
       newProfile.fullName
     );
 
@@ -4300,7 +4417,107 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       type: 'system'
     });
 
-    return { success: true, isNewUser: true, user: newProfile, message: 'आपले वंजारी जोडीवर सहर्ष स्वागत आहे! नवीन खाते तयार झाले.' };
+    return {
+      success: true,
+      isNewUser: true,
+      user: newProfile,
+      requireSetPassword: !providedPassword,
+      message: 'आपले वंजारी जोडीवर सहर्ष स्वागत आहे! सुरक्षित खाते तयार झाले.'
+    };
+  };
+
+  // Securely update user password or PIN across state and Firestore using Bcrypt
+  const updateUserPassword = async (
+    newPassword: string,
+    userId?: string
+  ): Promise<{ success: boolean; message: string }> => {
+    const targetUserId = userId || currentUser?.id;
+    if (!targetUserId) {
+      return { success: false, message: 'सदस्य सत्र उपलब्ध नाही. कृपया प्रथम लॉगिन करा.' };
+    }
+    const cleanPass = (newPassword || '').trim();
+    if (cleanPass.length < 4) {
+      return { success: false, message: 'पासवर्ड किंवा पिन किमान ४ अक्षरी किंवा अंकी असावा.' };
+    }
+
+    const hashedPassword = hashPassword(cleanPass);
+
+    setProfiles((prev) =>
+      prev.map((p) => (p.id === targetUserId ? { ...p, password: hashedPassword } : p))
+    );
+    if (currentUser && currentUser.id === targetUserId) {
+      setCurrentUser((prev) => (prev ? { ...prev, password: hashedPassword } : null));
+    }
+    await syncDocToFirestore('profiles', targetUserId, { password: hashedPassword });
+    logActivity('Security Update', `सुरक्षा पासवर्ड/पिन Bcrypt द्वारे अपडेट केला: ${currentUser?.fullName || targetUserId}`, currentUser?.fullName);
+    return { success: true, message: 'सुरक्षा पासवर्ड Bcrypt द्वारे सुरक्षितपणे सेव्ह झाला!' };
+  };
+
+  // Admin Direct Password Reset / Overwrite with Bcrypt
+  const adminResetUserPassword = async (
+    userId: string,
+    newPassword: string
+  ): Promise<{ success: boolean; message: string }> => {
+    if (!userId) {
+      return { success: false, message: 'सदस्य आयडी आवश्यक आहे.' };
+    }
+    const cleanPass = (newPassword || '').trim();
+    if (cleanPass.length < 4) {
+      return { success: false, message: 'पासवर्ड किमान ४ अक्षरी किंवा अंकी असावा.' };
+    }
+
+    const hashedPassword = hashPassword(cleanPass);
+
+    setProfiles((prev) =>
+      prev.map((p) => (p.id === userId ? { ...p, password: hashedPassword } : p))
+    );
+    if (currentUser && currentUser.id === userId) {
+      setCurrentUser((prev) => (prev ? { ...prev, password: hashedPassword } : null));
+    }
+    await syncDocToFirestore('profiles', userId, { password: hashedPassword });
+    logActivity('Admin Password Reset', `ॲडमिनने सदस्याचा पासवर्ड Bcrypt ने ओव्हरराइट केला: ID ${userId}`, 'Admin');
+    return { success: true, message: 'सदस्याचा पासवर्ड Bcrypt द्वारे यशस्वीरीत्या बदलला व सुरक्षित केला!' };
+  };
+
+  // Toggle Truecaller Verified Tag
+  const toggleTruecallerVerified = async (
+    userId: string,
+    customName?: string
+  ): Promise<{ success: boolean; isVerified: boolean; message: string }> => {
+    let nextStatus = false;
+    let targetName = customName || '';
+
+    setProfiles((prev) =>
+      prev.map((p) => {
+        if (p.id === userId) {
+          nextStatus = !(p.truecallerVerified || p.phoneVerificationMethod === 'truecaller');
+          targetName = targetName || p.fullName;
+          return {
+            ...p,
+            truecallerVerified: nextStatus,
+            isPhoneVerified: nextStatus ? true : p.isPhoneVerified,
+            phoneVerificationMethod: nextStatus ? 'truecaller' : (p.phoneVerificationMethod === 'truecaller' ? 'password' : p.phoneVerificationMethod),
+            truecallerName: nextStatus ? targetName : p.truecallerName,
+            phoneVerifiedAt: nextStatus ? new Date().toISOString() : p.phoneVerifiedAt,
+          };
+        }
+        return p;
+      })
+    );
+
+    await syncDocToFirestore('profiles', userId, {
+      truecallerVerified: nextStatus,
+      isPhoneVerified: nextStatus ? true : undefined,
+      phoneVerificationMethod: nextStatus ? 'truecaller' : 'password',
+      truecallerName: nextStatus ? targetName : undefined,
+    });
+
+    logActivity('Truecaller Badge', `Truecaller पडताळणी टॅग ${nextStatus ? 'सक्रिय केला' : 'काढला'}: ID ${userId}`, 'Admin');
+    return {
+      success: true,
+      isVerified: nextStatus,
+      message: nextStatus ? 'Truecaller पडताळणी टॅग यशस्वीरीत्या दिला!' : 'Truecaller पडताळणी टॅग काढला.',
+    };
   };
 
   const updateFeatureBoxes = (boxes: any[]) => {
@@ -5441,6 +5658,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         loginWithEmail,
         loginWithTruecaller,
         loginWithMobile,
+        updateUserPassword,
+        adminResetUserPassword,
+        toggleTruecallerVerified,
         sendPasswordReset,
         updateFeatureBoxes,
         payPerContactRequests,

@@ -25,7 +25,8 @@ import {
   RotateCw,
   SlidersHorizontal,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Send
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { SmartBadgeRow } from './SmartBadgeRow';
@@ -181,9 +182,9 @@ export const FullMobileInstaDeck: React.FC<FullMobileInstaDeckProps> = ({
     verticalTouchStartX.current = null;
   };
 
-  const handleWhatsAppShare = () => {
+  const handleTelegramShare = () => {
     const text = `वंजारी जोडीवरील अनुरूप स्थळ: ${currentProfile.fullName} (${currentProfile.age} वर्षे, ${currentProfile.district || 'महाराष्ट्र'}) - अधिक माहितीसाठी पहा: https://vanjarijodi.web.app`;
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+    window.open(`https://t.me/share/url?url=${encodeURIComponent('https://vanjarijodi.web.app')}&text=${encodeURIComponent(text)}`, '_blank');
   };
 
   return (
@@ -335,14 +336,14 @@ export const FullMobileInstaDeck: React.FC<FullMobileInstaDeckProps> = ({
                 </button>
               )}
 
-              {/* WhatsApp Share Action */}
+              {/* Telegram Share Action */}
               <button
                 type="button"
-                onClick={handleWhatsAppShare}
-                className="p-3 rounded-full bg-emerald-600/90 hover:bg-emerald-700 backdrop-blur-md text-white border border-emerald-400/50 shadow-xl transition-transform active:scale-85 cursor-pointer flex flex-col items-center gap-0.5"
-                title="व्हॉट्सॲपवर शेअर करा"
+                onClick={handleTelegramShare}
+                className="p-3 rounded-full bg-sky-600/90 hover:bg-sky-700 backdrop-blur-md text-white border border-sky-400/50 shadow-xl transition-transform active:scale-85 cursor-pointer flex flex-col items-center gap-0.5"
+                title="टेलिग्रामवर शेअर करा"
               >
-                <Share2 className="w-5 h-5 text-white" />
+                <Send className="w-5 h-5 text-white" />
                 <span className="text-[8px] font-black">शेअर</span>
               </button>
             </div>

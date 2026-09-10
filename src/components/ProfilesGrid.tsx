@@ -18,8 +18,9 @@ import {
   MapPin,
   Briefcase,
   GraduationCap,
-  MessageCircle,
   PhoneCall,
+  MessageCircle,
+  Send,
   Sparkles,
   Lock,
   CheckCircle,
@@ -967,34 +968,20 @@ export const ProfilesGrid: React.FC<{
                         )}
                       </button>
 
-                      {/* WhatsApp Connect Button */}
-                      {isAuthorized ? (
-                        <a
-                          href={`https://wa.me/91${profile.mobile || '0000000000'}?text=नमस्कार, मी वंजारी जोडी (VanjariJodi) वरून आपली प्रोफाईल (ID: ${profile.id}) पाहिली. मला आपल्याबद्दल अधिक जाणून घेण्यात रस आहे.`}
-                          target="_blank"
-                          referrerPolicy="no-referrer"
-                          className="py-2 rounded-[12px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center justify-center gap-1 shadow-sm active:scale-95 text-center cursor-pointer"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5 text-white shrink-0 fill-white/10" />
-                          <span>व्हॉट्सॲप</span>
-                        </a>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (checkGuestPermission('viewProfiles', 'व्हॉट्सॲप संपर्क')) {
-                              unlockContact(profile.id);
-                            }
-                          }}
-                          className="py-2 rounded-[12px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black flex items-center justify-center gap-1 shadow-sm active:scale-95 text-center cursor-pointer"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5 text-white shrink-0 fill-white/10" />
-                          <span>व्हॉट्सॲप</span>
-                        </button>
-                      )}
+                      {/* Telegram Connect Button */}
+                      <a
+                        href={`https://t.me/${profile.telegramUsername || siteConfig?.telegramUsername || 'Primemultiservice'}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="py-2 rounded-[12px] bg-sky-600 hover:bg-sky-700 text-white text-xs font-black flex items-center justify-center gap-1 shadow-sm active:scale-95 text-center cursor-pointer"
+                        title="टेलिग्राम चॅट"
+                      >
+                        <Send className="w-3.5 h-3.5 text-white shrink-0" />
+                        <span>टेलिग्राम चॅट</span>
+                      </a>
                     </div>
 
-                    {/* Contact Number Request (Secondary triggers) */}
+                    {/* Contact Request (Secondary triggers) */}
                     <div className="pt-0.5">
                       {isAuthorized ? (
                         <button
@@ -1012,7 +999,7 @@ export const ProfilesGrid: React.FC<{
                           className="w-full py-1.5 rounded-[10px] bg-amber-50 text-amber-700 text-[10px] font-extrabold flex items-center justify-center gap-1 border border-amber-200 cursor-default"
                         >
                           <Clock className="w-3 h-3 text-amber-500 animate-spin" />
-                          <span>मोबाईल नंबर विनंती प्रलंबित</span>
+                          <span>संपर्क विनंती प्रलंबित</span>
                         </button>
                       ) : (
                         <button
@@ -1020,8 +1007,8 @@ export const ProfilesGrid: React.FC<{
                           onClick={() => requestContactAuthorization(profile.id)}
                           className="w-full py-1.5 rounded-[10px] bg-amber-50 hover:bg-amber-100 text-[#800C1E] border border-amber-200 text-[10px] font-extrabold flex items-center justify-center gap-1 transition-all cursor-pointer"
                         >
-                          <PhoneCall className="w-3 h-3 text-[#800C1E]" />
-                          <span>मोबाईल नंबरसाठी थेट विनंती पाठवा</span>
+                          <Send className="w-3 h-3 text-[#800C1E]" />
+                          <span>थेट संपर्क विनंती पाठवा</span>
                         </button>
                       )}
                     </div>

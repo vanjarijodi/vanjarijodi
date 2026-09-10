@@ -17,8 +17,20 @@ export const CLOUDINARY_UPLOAD_PRESET = (import.meta as any).env?.VITE_CLOUDINAR
 
 export const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB allowance with auto-compression
 
+const ALLOWED_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+  'image/jpg',
+  'application/pdf',
+]);
+
+const FORBIDDEN_EXTENSIONS = /\.(exe|bat|cmd|sh|php|phtml|cgi|pl|js|ts|html|htm|jar|vbs|scr|bin)$/i;
+
 /**
- * Validates file size - smooth auto-compression handles large camera photos.
+ * Validates file size and file type to ensure security against malicious uploads.
  */
 export const validateFileSize = (file: File | Blob): { valid: boolean; errorMsg?: string } => {
   if (file.size > MAX_FILE_SIZE_BYTES) {
@@ -28,6 +40,23 @@ export const validateFileSize = (file: File | Blob): { valid: boolean; errorMsg?
       errorMsg: `फाईलचा आकार खूप मोठा (${sizeInMB} MB) आहे. ५० MB पेक्षा लहान फोटो निवडा.`,
     };
   }
+
+  // Type & Extension check if File object
+  if (file instanceof File) {
+    if (file.name && FORBIDDEN_EXTENSIONS.test(file.name)) {
+      return {
+        valid: false,
+        errorMsg: 'असुरक्षित फाईल प्रकार मान्य नाही. कृपया केवळ JPG, PNG किंवा PDF फाईल अपलोड करा.',
+      };
+    }
+    if (file.type && !ALLOWED_MIME_TYPES.has(file.type.toLowerCase()) && !file.type.startsWith('image/')) {
+      return {
+        valid: false,
+        errorMsg: 'केवळ फोटो (JPG, PNG, WebP) किंवा PDF बायोडाटा अपलोड करू शकता.',
+      };
+    }
+  }
+
   return { valid: true };
 };
 

@@ -83,9 +83,14 @@ ${adminNote ? `📝 *ॲडमिन संदेश:* ${adminNote}\n` : ''}
 _PRIME MULTI SERVICES AND SUPPLIERS_`;
 }
 
+export function openTelegramChat(text: string, username?: string) {
+  const tg = (username || 'Primemultiservice').replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '');
+  const url = `https://t.me/${tg}?text=${encodeURIComponent(text)}`;
+  window.open(url, '_blank');
+}
+
 export function openWhatsAppChat(mobile: string, text: string) {
-  const cleanPhone = mobile.replace(/\D/g, '');
-  const phoneWithCountry = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
-  const url = `https://api.whatsapp.com/send?phone=${phoneWithCountry}&text=${encodeURIComponent(text)}`;
+  // Converted to Telegram Chat per mandate
+  const url = `https://t.me/Primemultiservice?text=${encodeURIComponent(text)}`;
   window.open(url, '_blank');
 }

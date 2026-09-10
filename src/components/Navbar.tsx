@@ -107,16 +107,18 @@ export const Navbar: React.FC<{
             <span className="text-[9px] bg-amber-400 text-slate-950 px-1.5 py-0.2 rounded font-black">Free</span>
           </button>
 
-          {/* Wedding Vendor Registration Button (Catering, Decor, Flowers, Halls etc.) */}
-          <button
-            onClick={() => setIsBusinessVendorRegisterModalOpen(true)}
-            className="px-2.5 sm:px-3 py-0.5 rounded-md bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-300 hover:to-amber-200 text-slate-950 font-black text-[10px] sm:text-[11px] flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs border border-amber-200 shrink-0"
-            title={isEn ? 'Vendor Registration (Catering, Decoration, Florist, Hall)' : 'व्हेंडर नोंदणी — जेवण, डेकोरेशन, फुलवाले, हॉल (दर व माहिती भरा)'}
-          >
-            <Handshake className="w-3.5 h-3.5 text-slate-950" />
-            <span>{isEn ? '🤝 Vendor Registration' : '🤝 व्हेंडर नोंदणी (Vendor Registration)'}</span>
-            <span className="text-[9px] bg-[#800C1E] text-amber-200 px-1.5 py-0.2 rounded font-black">दर व माहिती</span>
-          </button>
+          {/* Wedding Vendor Registration Button (Catering, Decor, Flowers, Halls etc.) - Shown only when not logged in */}
+          {!currentUser && siteConfig?.enableBusinessVendors !== false && (
+            <button
+              onClick={() => setIsBusinessVendorRegisterModalOpen(true)}
+              className="px-2.5 sm:px-3 py-0.5 rounded-md bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-300 hover:to-amber-200 text-slate-950 font-black text-[10px] sm:text-[11px] flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs border border-amber-200 shrink-0"
+              title={isEn ? 'Vendor Registration (Catering, Decoration, Florist, Hall)' : 'व्हेंडर नोंदणी — जेवण, डेकोरेशन, फुलवाले, हॉल (दर व माहिती भरा)'}
+            >
+              <Handshake className="w-3.5 h-3.5 text-slate-950" />
+              <span>{isEn ? '🤝 Vendor Registration' : '🤝 व्हेंडर नोंदणी (Vendor Registration)'}</span>
+              <span className="text-[9px] bg-[#800C1E] text-amber-200 px-1.5 py-0.2 rounded font-black">दर व माहिती</span>
+            </button>
+          )}
 
           {/* Top Ribbon Official Telegram Support */}
           {siteConfig?.showTelegramBanner !== false && (
@@ -295,16 +297,18 @@ export const Navbar: React.FC<{
 
             {/* DESKTOP-ONLY EXTRA BADGES (Language, VIP, APK, Menu) */}
             <div className="hidden md:flex items-center gap-2">
-              {/* Vendor Registration Button (Catering, Decor, Florist, Hall etc.) */}
-              <button
-                onClick={() => setIsBusinessVendorRegisterModalOpen(true)}
-                className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-100 to-orange-100 hover:from-amber-200 hover:to-orange-200 text-[#800C1E] border border-amber-300 font-black text-xs transition-all shadow-xs cursor-pointer active:scale-95 shrink-0"
-                title="व्हेंडर नोंदणी — जेवण, डेकोरेशन, फुलवाले, मंगल कार्यालय (दर व माहिती भरा)"
-              >
-                <Handshake className="w-4 h-4 text-[#800C1E]" />
-                <span>🤝 व्हेंडर नोंदणी</span>
-                <span className="text-[9px] bg-[#800C1E] text-amber-100 px-1.5 py-0.5 rounded font-bold">दर व माहिती</span>
-              </button>
+              {/* Vendor Registration Button (Only when not logged in) */}
+              {!currentUser && siteConfig?.enableBusinessVendors !== false && (
+                <button
+                  onClick={() => setIsBusinessVendorRegisterModalOpen(true)}
+                  className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-100 to-orange-100 hover:from-amber-200 hover:to-orange-200 text-[#800C1E] border border-amber-300 font-black text-xs transition-all shadow-xs cursor-pointer active:scale-95 shrink-0"
+                  title="व्हेंडर नोंदणी — जेवण, डेकोरेशन, फुलवाले, मंगल कार्यालय (दर व माहिती भरा)"
+                >
+                  <Handshake className="w-4 h-4 text-[#800C1E]" />
+                  <span>🤝 व्हेंडर नोंदणी</span>
+                  <span className="text-[9px] bg-[#800C1E] text-amber-100 px-1.5 py-0.5 rounded font-bold">दर व माहिती</span>
+                </button>
+              )}
 
               {/* Dual Language Toggle */}
               <div className="flex items-center p-0.5 bg-slate-100 border border-slate-200 rounded-xl text-[11px] font-black shadow-inner">
@@ -418,7 +422,7 @@ export const Navbar: React.FC<{
                       <span>{isEn ? 'Register Profile' : 'नोंदणी करा'}</span>
                     </button>
 
-                    {siteConfig?.enableBusinessVendors !== false && (
+                    {!currentUser && siteConfig?.enableBusinessVendors !== false && (
                       <button
                         onClick={() => {
                           setIsBusinessVendorDirectoryOpen(true);
@@ -436,7 +440,7 @@ export const Navbar: React.FC<{
                       </button>
                     )}
 
-                    {siteConfig?.enableBusinessVendors !== false && (
+                    {!currentUser && siteConfig?.enableBusinessVendors !== false && (
                       <button
                         onClick={() => {
                           setIsBusinessVendorRegisterModalOpen(true);
@@ -580,8 +584,8 @@ export const Navbar: React.FC<{
         </div>
       </div>
 
-      {/* 🤝 PROMINENT WEDDING VENDOR CALLOUT STRIP */}
-      {!isVendorStripDismissed && siteConfig?.enableBusinessVendors !== false && (
+      {/* 🤝 PROMINENT WEDDING VENDOR CALLOUT STRIP - ONLY FOR GUESTS / VISITORS */}
+      {!currentUser && !isVendorStripDismissed && siteConfig?.enableBusinessVendors !== false && (
         <div className="w-full bg-gradient-to-r from-[#800C1E] via-[#9B1229] to-[#800C1E] text-amber-100 py-1.5 px-3 sm:px-6 flex items-center justify-between gap-2 border-b border-amber-400/40 shadow-xs z-30">
           <div className="flex items-center gap-2 min-w-0 truncate">
             <span className="p-1 rounded-lg bg-amber-400 text-slate-950 shadow-xs shrink-0 flex items-center justify-center font-black animate-pulse">

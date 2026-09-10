@@ -16,7 +16,7 @@ export const FlashAdPopup: React.FC = () => {
   const subtitle = language === 'en'
     ? (siteConfig?.flashAdSubtitleEn || siteConfig?.flashAdSubtitle || 'Free bio-data book distribution & direct family meetings at Parli, Beed & Pune!')
     : (siteConfig?.flashAdSubtitle || 'परळी वैजनाथ, बीड व पुणे येथे मोफत बायोडाटा पुस्तक वाटप व प्रत्यक्ष गाठीभेटी!');
-  const linkUrl = siteConfig?.flashAdLinkUrl || 'https://wa.me/910000000000?text=मेळावा_जाहिरात_चौकशी';
+  const linkUrl = siteConfig?.flashAdLinkUrl || `https://t.me/${(siteConfig?.telegramUsername || 'Primemultiservice').replace(/^@/, '')}?text=मेळावा_जाहिरात_चौकशी`;
   const displayMode = siteConfig?.flashAdDisplayMode || 'popup_modal';
   const autoCloseSecs = siteConfig?.flashAdAutoCloseSeconds ?? 8;
   const delaySecs = siteConfig?.flashAdDelaySeconds ?? 1;

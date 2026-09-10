@@ -4,8 +4,10 @@ import { UserProfile } from '../types';
 import { MAHARASHTRA_CITIES, findCityCoordinates } from '../data/maharashtraCities';
 import { downloadKundliPdfReport } from '../utils/kundliPdfGenerator';
 import { KundliVerificationModal } from './KundliVerificationModal';
+import { getProfileSurnameOnly } from '../utils/nameFormatter';
 import {
   X,
+  ArrowLeft,
   Sparkles,
   Scroll,
   ShieldAlert,
@@ -31,6 +33,7 @@ import {
   Check,
   Download,
   QrCode,
+  Send,
 } from 'lucide-react';
 
 interface KundaliMilanModalProps {
@@ -124,14 +127,13 @@ export const KundaliMilanModal: React.FC<KundaliMilanModalProps> = ({
 
   const isKundliFreeTrial = Boolean(siteConfig?.kundliSettings?.isFreeTrialMode === true);
 
-  // Subscription check: Free Trial Mode (if enabled), Paid member, admin, mutual match, or single kundli credit
-  const isPaidMember = Boolean(
-    isKundliFreeTrial ||
-    isMutualMatch ||
+  // Paid member authorization check (actual paid plan or unlocked profile or admin)
+  const isPaidSubscriber = Boolean(
     isAdminLoggedIn ||
     (currentUser && (
       (currentUser.kundliCredits && currentUser.kundliCredits > 0) ||
-      (profile && currentUser.unlockedKundliProfileIds?.includes(profile.id)) ||
+      (profile && (currentUser as any).unlockedKundliProfileIds?.includes(profile.id)) ||
+      (profile && (currentUser as any).unlockedProfileIds?.includes(profile.id)) ||
       currentUser.isAdmin === true ||
       currentUser.id === 'admin' ||
       currentUser.isCustomAccessGranted === true ||
@@ -147,11 +149,41 @@ export const KundaliMilanModal: React.FC<KundaliMilanModalProps> = ({
     ))
   );
 
+  const isGuestUser = !currentUser || currentUser.isGuest || currentUser.id?.startsWith('guest');
+
+  // Subscription check for viewing calculation output: Free Trial Mode, Paid member, admin, or mutual match
+  const isPaidMember = Boolean(
+    isKundliFreeTrial ||
+    isPaidSubscriber ||
+    isMutualMatch
+  );
+
   const isCandidateBride = profile?.gender === 'bride';
+
+  // Strict privacy authorization check: Guests and unpaid free members cannot view full candidate identity
+  const isAuthorizedToSeeCandidateFullName = Boolean(
+    !isGuestUser && (
+      isAdminLoggedIn ||
+      isPaidSubscriber ||
+      isMutualMatch ||
+      (profile && currentUser && profile.id === currentUser.id)
+    )
+  );
+
+  const getCandidateSafeName = (p?: UserProfile | null, defaultFallback = 'उमेदवार') => {
+    if (!p) return defaultFallback;
+    if (isAuthorizedToSeeCandidateFullName) {
+      return p.fullName || defaultFallback;
+    }
+    const surnameOnly = getProfileSurnameOnly(p.fullName, 'mr');
+    return `${surnameOnly} (🔒 नाव सुरक्षित)`;
+  };
 
   // Groom Details State
   const [groomName, setGroomName] = useState(
-    isCandidateBride ? currentUser?.fullName || 'वर (Groom)' : profile?.fullName || 'वर (Groom)'
+    isCandidateBride
+      ? currentUser?.fullName || 'वर (Groom)'
+      : getCandidateSafeName(profile, 'वर (Groom)')
   );
   const [groomDob, setGroomDob] = useState(
     isCandidateBride ? currentUser?.dob || '1995-05-15' : profile?.dob || '1995-05-15'
@@ -170,7 +202,9 @@ export const KundaliMilanModal: React.FC<KundaliMilanModalProps> = ({
 
   // Bride Details State
   const [brideName, setBrideName] = useState(
-    isCandidateBride ? profile?.fullName || 'वधू (Bride)' : currentUser?.fullName || 'वधू (Bride)'
+    isCandidateBride
+      ? getCandidateSafeName(profile, 'वधू (Bride)')
+      : currentUser?.fullName || 'वधू (Bride)'
   );
   const [brideDob, setBrideDob] = useState(
     isCandidateBride ? profile?.dob || '1997-08-20' : currentUser?.dob || '1997-08-20'
@@ -242,7 +276,7 @@ export const KundaliMilanModal: React.FC<KundaliMilanModalProps> = ({
 
     const gName = isBride
       ? currentUser?.fullName || 'वर (Groom)'
-      : candidateProfile?.fullName || 'वर (Groom)';
+      : getCandidateSafeName(candidateProfile, 'वर (Groom)');
     const gDob = isBride
       ? currentUser?.dob || '1995-05-15'
       : candidateProfile?.dob || '1995-05-15';
@@ -254,7 +288,7 @@ export const KundaliMilanModal: React.FC<KundaliMilanModalProps> = ({
       : candidateProfile?.city || candidateProfile?.district || candidateProfile?.birthPlace || 'छत्रपती संभाजीनगर';
 
     const bName = isBride
-      ? candidateProfile?.fullName || 'वधू (Bride)'
+      ? getCandidateSafeName(candidateProfile, 'वधू (Bride)')
       : currentUser?.fullName || 'वधू (Bride)';
     const bDob = isBride
       ? candidateProfile?.dob || '1997-08-20'
@@ -465,12 +499,12 @@ export const KundaliMilanModal: React.FC<KundaliMilanModalProps> = ({
     window.print();
   };
 
-  const handleShareWhatsApp = () => {
+  const handleShareTelegram = () => {
     if (!result) return;
     const isNadiDosha = Boolean(result.doshaAnalysis?.nadiDosha?.present);
     const isManglikCompat = result.doshaAnalysis?.manglikCompatibility?.compatible !== false;
     const msg = `🚩 *वंजारी जोडी मॅट्रिमोनी - वैदिक ३६ गुणमेलन अहवाल* 🚩\n\n🤵 *वर:* ${groomName} (${groomCity})\n👰 *वधू:* ${brideName} (${brideCity})\n\n⭐ *एकूण प्राप्त गुण:* *${result.totalScore} / ३६ गुण (${result.percentage}%)*\n🎯 *निकाल:* ${result.compatibilityVerdict}\n📜 *मार्गदर्शन:* ${result.recommendationMr || 'वैदिक अष्टकूट अहवाल'}\n\n🛡️ *दोष विश्लेषण:* ${isNadiDosha ? '⚠️ नाडी दोष' : '✅ नाडी निर्दोष'} | ${isManglikCompat ? '✅ मंगळ सुसंगत' : '⚠️ मंगळ विचार'}\n\n🌐 सविस्तर पत्रिका जुळवणी पाहण्यासाठी: https://vanjarijodi.web.app\n॥ श्री संत भगवान बाबा प्रसन्न ॥`;
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+    window.open(`https://t.me/share/url?url=${encodeURIComponent('https://vanjarijodi.web.app')}&text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   const handleUpgradeClick = () => {
@@ -505,34 +539,40 @@ export const KundaliMilanModal: React.FC<KundaliMilanModalProps> = ({
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-4">
       <div className="bg-[#FFFDF9] w-full max-w-4xl rounded-3xl shadow-2xl border-2 border-amber-300 overflow-hidden flex flex-col max-h-[94vh] animate-in fade-in zoom-in-95 duration-200">
         
-        {/* Modal Header with Prokerala Badge */}
-        <div className="bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] text-white p-3.5 sm:p-5 flex items-center justify-between shadow-md border-b border-amber-300/30">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-400/20 border border-amber-300/40 flex items-center justify-center text-amber-300 shadow-inner">
-              <Scroll className="w-5 h-5" />
-            </div>
-            <div>
+        {/* Modal Header with Prokerala Badge & Back Button */}
+        <div className="bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] text-white p-3 sm:p-4 flex items-center justify-between shadow-md border-b border-amber-300/30">
+          <div className="flex items-center space-x-2.5 min-w-0">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-2.5 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-amber-100 font-black text-xs flex items-center gap-1.5 border border-amber-300/40 shadow-xs cursor-pointer active:scale-95 shrink-0"
+              title="मागे जा (Go Back)"
+            >
+              <ArrowLeft className="w-4 h-4 text-amber-300" />
+              <span>मागे जा</span>
+            </button>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-xl font-black text-amber-100">
-                  वैदिक ३६ गुणमेलन व कुंडली पत्रिका जुळवणी
+                <h2 className="text-sm sm:text-base font-black text-amber-100 truncate">
+                  वैदिक ३६ गुणमेलन व कुंडली जुळवणी
                 </h2>
-                <span className="hidden sm:inline-flex items-center gap-1 text-[9px] bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono shadow-xs">
+                <span className="hidden sm:inline-flex items-center gap-1 text-[9px] bg-gradient-to-r from-amber-400 to-yellow-300 text-slate-950 font-black px-2 py-0.5 rounded-full uppercase tracking-wider font-mono shadow-xs">
                   <Sparkles className="w-2.5 h-2.5" />
-                  Prokerala API v2
+                  Prokerala v2
                 </span>
               </div>
-              <p className="text-xs text-amber-200/90 font-medium mt-0.5">
-                लाहिरी अयनांश (Lahiri Ayanamsa) अष्टकूट पद्धतीनुसार वर-वधू पत्रिकांचे सविस्तर विश्लेषण
+              <p className="text-[11px] text-amber-200/90 font-medium truncate hidden sm:block">
+                लाहिरी अयनांश अष्टकूट पद्धतीनुसार वर-वधू पत्रिकांचे सविस्तर विश्लेषण
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition cursor-pointer shrink-0"
             title="बंद करा"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
 
@@ -653,14 +693,36 @@ export const KundaliMilanModal: React.FC<KundaliMilanModalProps> = ({
 
               <div className="space-y-2.5 text-xs">
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">वराचे पूर्ण नाव (Groom Name)</label>
-                  <input
-                    type="text"
-                    value={groomName}
-                    onChange={(e) => setGroomName(e.target.value)}
-                    placeholder="उदा. अमित तुकाराम सानप"
-                    className="w-full p-2.5 rounded-xl bg-white border border-slate-300 font-bold text-slate-800 text-xs focus:ring-2 focus:ring-[#800C1E]"
-                  />
+                  {!isCandidateBride && profile && !isAuthorizedToSeeCandidateFullName ? (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-slate-700 block">वराचे नाव (Groom Name)</label>
+                        <span className="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Lock className="w-2.5 h-2.5" /> गोपनीयता सुरक्षित
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        value={groomName}
+                        readOnly
+                        className="w-full p-2.5 rounded-xl bg-slate-100 border border-slate-300 font-bold text-slate-600 text-xs cursor-not-allowed select-none"
+                      />
+                      <p className="text-[11px] text-[#800C1E] font-medium leading-tight">
+                        🔒 वराचे पूर्ण नाव व थेट संपर्क पाहण्यासाठी सशुल्क सभासदत्व आवश्यक आहे. ३६ गुण जुळवणीचा निकाल आपण मोफत पाहू शकता.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">वराचे पूर्ण नाव (Groom Name)</label>
+                      <input
+                        type="text"
+                        value={groomName}
+                        onChange={(e) => setGroomName(e.target.value)}
+                        placeholder="उदा. अमित तुकाराम सानप"
+                        className="w-full p-2.5 rounded-xl bg-white border border-slate-300 font-bold text-slate-800 text-xs focus:ring-2 focus:ring-[#800C1E]"
+                      />
+                    </>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -758,14 +820,36 @@ export const KundaliMilanModal: React.FC<KundaliMilanModalProps> = ({
 
               <div className="space-y-2.5 text-xs">
                 <div>
-                  <label className="text-[11px] font-bold text-slate-700 block mb-1">वधूचे पूर्ण नाव (Bride Name)</label>
-                  <input
-                    type="text"
-                    value={brideName}
-                    onChange={(e) => setBrideName(e.target.value)}
-                    placeholder="उदा. पूजा मारुती मुंडे"
-                    className="w-full p-2.5 rounded-xl bg-white border border-slate-300 font-bold text-slate-800 text-xs focus:ring-2 focus:ring-[#800C1E]"
-                  />
+                  {isCandidateBride && profile && !isAuthorizedToSeeCandidateFullName ? (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-slate-700 block">वधूचे नाव (Bride Name)</label>
+                        <span className="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Lock className="w-2.5 h-2.5" /> गोपनीयता सुरक्षित
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        value={brideName}
+                        readOnly
+                        className="w-full p-2.5 rounded-xl bg-slate-100 border border-slate-300 font-bold text-slate-600 text-xs cursor-not-allowed select-none"
+                      />
+                      <p className="text-[11px] text-[#800C1E] font-medium leading-tight">
+                        🔒 वधूचे पूर्ण नाव व थेट संपर्क पाहण्यासाठी सशुल्क सभासदत्व आवश्यक आहे. ३६ गुण जुळवणीचा निकाल आपण मोफत पाहू शकता.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">वधूचे पूर्ण नाव (Bride Name)</label>
+                      <input
+                        type="text"
+                        value={brideName}
+                        onChange={(e) => setBrideName(e.target.value)}
+                        placeholder="उदा. पूजा मारुती मुंडे"
+                        className="w-full p-2.5 rounded-xl bg-white border border-slate-300 font-bold text-slate-800 text-xs focus:ring-2 focus:ring-[#800C1E]"
+                      />
+                    </>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
@@ -1313,11 +1397,11 @@ export const KundaliMilanModal: React.FC<KundaliMilanModalProps> = ({
 
                 <button
                   type="button"
-                  onClick={handleShareWhatsApp}
-                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow cursor-pointer active:scale-95"
+                  onClick={handleShareTelegram}
+                  className="px-3.5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow cursor-pointer active:scale-95"
                 >
-                  <Share2 className="w-3.5 h-3.5" />
-                  <span>व्हॉट्सॲप शेअर</span>
+                  <Send className="w-3.5 h-3.5" />
+                  <span>टेलिग्राम शेअर</span>
                 </button>
                 <button
                   type="button"

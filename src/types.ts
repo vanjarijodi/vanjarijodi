@@ -121,7 +121,7 @@ export interface UserProfile {
   faceVerifiedAt?: string;
   isPhoneVerified?: boolean;
   phoneVerifiedAt?: string;
-  phoneVerificationMethod?: 'truecaller' | 'otp' | 'admin' | 'mobile_otp';
+  phoneVerificationMethod?: 'truecaller' | 'otp' | 'admin' | 'mobile_otp' | 'password';
   truecallerName?: string;
   truecallerVerified?: boolean;
   telegramUsername?: string;
@@ -228,6 +228,9 @@ export interface UserProfile {
   membershipTier?: MembershipTier;
   status?: 'pending' | 'approved' | 'rejected';
   isSoftDeleted?: boolean;
+  qualityScore?: number;
+  activeSessions?: UserActiveSession[];
+  loginHistory?: UserLoginHistoryItem[];
 }
 
 export interface ProfileReport {
@@ -634,6 +637,34 @@ export interface ApkSettings {
   fileSizeMb?: string;
 }
 
+export type AdminRoleType =
+  | 'super_admin'
+  | 'payment_admin'
+  | 'profile_admin'
+  | 'support_admin'
+  | 'viewer';
+
+export interface UserActiveSession {
+  sessionId: string;
+  deviceName: string;
+  browser: string;
+  os: string;
+  ip?: string;
+  loginTime: string;
+  lastActiveTime: string;
+  isCurrentSession?: boolean;
+}
+
+export interface UserLoginHistoryItem {
+  id: string;
+  method: 'mobile_otp' | 'google' | 'email_otp' | 'password' | 'truecaller' | 'guest';
+  timestamp: string;
+  ip?: string;
+  device?: string;
+  status: 'success' | 'failed';
+  failureReason?: string;
+}
+
 export type SubAdminPermission = 
   | 'manage_profiles'
   | 'add_profiles'
@@ -662,9 +693,12 @@ export interface SubAdmin {
   name: string;
   username: string;
   password: string;
-  role: 'primary_admin' | 'sub_admin';
+  pin?: string;
+  role: AdminRoleType | 'primary_admin' | 'sub_admin';
   permissions: SubAdminPermission[];
   createdAt: string;
+  lastLoginAt?: string;
+  isActive?: boolean;
 }
 
 export interface FeatureBoxItem {

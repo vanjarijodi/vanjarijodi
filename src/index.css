@@ -71,3 +71,13 @@ body, input, textarea, select, button {
 .hover\:pause:hover {
   animation-play-state: paused;
 }
+
+/* Anti-Print & Anti-Capture Security for Member Biodatas */
+@media print {
+  .no-print-protected {
+    display: none !important;
+  }
+  .print-protected-warning {
+    display: block !important;
+  }
+}

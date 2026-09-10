@@ -29,6 +29,7 @@ import {
   Globe,
   Sliders,
   UserPlus,
+  Send,
 } from 'lucide-react';
 
 export interface BioDataCustomField {
@@ -357,18 +358,17 @@ export const BioDataMakerModal: React.FC<{
     }
   };
 
-  // WhatsApp Quick Share Intent
-  const handleShareWhatsApp = () => {
+  // Telegram Quick Share Intent
+  const handleShareTelegram = () => {
     const websiteDomain = siteConfig?.canonicalDomain || 'https://vanjarijodi.web.app';
     const text = `🌸 *विवाह बायोडाटा (BioData)* 🌸\n` +
       `👤 *नाव:* ${formData.fullName || '---'}\n` +
       `🎓 *शिक्षण:* ${formData.education || '---'}\n` +
       `💼 *नोकरी/व्यवसाय:* ${formData.jobTitle || formData.businessTitle || '---'}\n` +
-      `📍 *मूळ गाव/पत्ता:* ${formData.nativePlace || '---'}\n` +
-      `📱 *संपर्क क्रमांक:* ${formData.mobile || '---'}\n\n` +
+      `📍 *मूळ गाव/पत्ता:* ${formData.nativePlace || '---'}\n\n` +
       `🌐 *वंजारी जोडी मॅट्रिमोनी पोर्टलवर अधिक स्थळे पाहण्यासाठी भेट द्या:*\n${websiteDomain}`;
 
-    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    const url = `https://t.me/share/url?url=${encodeURIComponent(websiteDomain)}&text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
 
@@ -463,15 +463,15 @@ export const BioDataMakerModal: React.FC<{
               <span>{addedSystemProfileId ? 'सिस्टीममध्ये जोडले' : 'सिस्टीमला जोडा'}</span>
             </button>
 
-            {/* WhatsApp Share */}
+            {/* Telegram Share */}
             <button
               type="button"
-              onClick={handleShareWhatsApp}
-              className="px-2.5 sm:px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow cursor-pointer flex items-center gap-1.5 transition-all text-xs"
-              title="WhatsApp वर बायोडाटा शेअर करा"
+              onClick={handleShareTelegram}
+              className="px-2.5 sm:px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl shadow cursor-pointer flex items-center gap-1.5 transition-all text-xs"
+              title="टेलिग्रामवर बायोडाटा शेअर करा"
             >
-              <Share2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">WhatsApp</span>
+              <Send className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Telegram</span>
             </button>
 
             {/* JPG Download Button */}

@@ -25,7 +25,8 @@ import {
   MessageCircle,
   ShieldCheck,
   Check,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Send
 } from 'lucide-react';
 
 export const BusinessVendorRegisterModal: React.FC<{
@@ -232,9 +233,8 @@ export const BusinessVendorRegisterModal: React.FC<{
     setIsSubmitted(true);
   };
 
-  const handleSendToAdminWhatsapp = () => {
-    const adminPhone = siteConfig.contactWhatsapp || siteConfig.contactPhone || '919822000000';
-    const cleanPhone = (adminPhone || '').replace(/[^0-9]/g, '');
+  const handleSendToAdminTelegram = () => {
+    const adminTg = (siteConfig?.telegramUsername || 'Primemultiservice').replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '');
     const serviceTypeDesc = isCatering
       ? (cateringServiceType === 'cooking_only'
           ? 'फक्त स्वयंपाक मजुरी (किराणा पार्टीचा)'
@@ -249,7 +249,7 @@ export const BusinessVendorRegisterModal: React.FC<{
       `*श्रेणी (Category):* ${category}\n` +
       `*मालकाचे नाव:* ${ownerName}\n` +
       `*मोबाईल:* ${mobile}\n` +
-      `*व्हॉट्सॲप:* ${whatsapp || mobile}\n` +
+      `*टेलिग्राम:* ${whatsapp || mobile}\n` +
       `*जिल्हा व तालुका:* ${district}, ${taluka}\n` +
       (isCatering && serviceTypeDesc ? `*सेवा प्रकार:* ${serviceTypeDesc}\n` : '') +
       (isCatering && cookingLaborRate ? `*स्वयंपाक मजुरी दर:* ${cookingLaborRate} (${cookingLaborType})\n` : '') +
@@ -258,7 +258,7 @@ export const BusinessVendorRegisterModal: React.FC<{
       `*सवलत:* ${memberDiscount}\n\n` +
       `कृपया आमची माहिती तपासून वंजारी जोडी विवाह डिरेक्टरीवर लाइव्ह करावी.`
     );
-    window.open(`https://wa.me/${cleanPhone.length === 10 ? '91' + cleanPhone : cleanPhone}?text=${msg}`, '_blank');
+    window.open(`https://t.me/${adminTg}?text=${msg}`, '_blank');
   };
 
   return (
@@ -329,11 +329,11 @@ export const BusinessVendorRegisterModal: React.FC<{
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={handleSendToAdminWhatsapp}
-                  className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 border border-emerald-400"
+                  onClick={handleSendToAdminTelegram}
+                  className="w-full sm:w-auto px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white font-black text-xs sm:text-sm rounded-xl shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-95 border border-sky-400"
                 >
-                  <MessageCircle className="w-4 h-4 text-white" />
-                  <span>ॲडमिनला व्हॉट्सॲपवर माहिती पाठवा</span>
+                  <Send className="w-4 h-4 text-white" />
+                  <span>ॲडमिनला टेलिग्रामवर माहिती पाठवा</span>
                 </button>
 
                 <button
@@ -472,12 +472,12 @@ export const BusinessVendorRegisterModal: React.FC<{
 
                 <div>
                   <label className="block text-slate-200 font-bold text-xs mb-1 flex items-center gap-1">
-                    <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
-                    व्हॉट्सॲप नंबर
+                    <Send className="w-3.5 h-3.5 text-sky-400" />
+                    टेलिग्राम युझरनेम / संपर्क
                   </label>
                   <input
-                    type="tel"
-                    placeholder="व्हॉट्सॲप नंबर (समान असल्यास तसेच ठेवा)"
+                    type="text"
+                    placeholder="उदा. @username किंवा टेलिग्राम नंबर"
                     value={whatsapp}
                     onChange={(e) => setWhatsapp(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-700 focus:border-amber-500 rounded-xl px-3 py-2 text-white outline-none font-mono"

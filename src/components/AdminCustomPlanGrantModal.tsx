@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { UserProfile, MembershipTier } from '../types';
 import { useApp } from '../context/AppContext';
-import { getPlanGrantWhatsAppMessage, openWhatsAppChat } from '../utils/referralUtils';
+import { getPlanGrantWhatsAppMessage, openTelegramChat } from '../utils/referralUtils';
 
 interface AdminCustomPlanGrantModalProps {
   profile: UserProfile | null;
@@ -201,11 +201,7 @@ export const AdminCustomPlanGrantModal: React.FC<AdminCustomPlanGrantModalProps>
     setIsSuccess(true);
   };
 
-  const handleSendWhatsApp = () => {
-    if (!profile.mobile) {
-      alert('सदस्याचा मोबाईल नंबर उपलब्ध नाही.');
-      return;
-    }
+  const handleSendTelegram = () => {
     const msg = getPlanGrantWhatsAppMessage(
       profile.fullName,
       effectivePlanName,
@@ -213,7 +209,7 @@ export const AdminCustomPlanGrantModal: React.FC<AdminCustomPlanGrantModalProps>
       calculatedExpiry.formatted,
       adminNote.trim()
     );
-    openWhatsAppChat(profile.mobile, msg);
+    openTelegramChat(msg, profile.telegramUsername);
   };
 
   return (
@@ -287,11 +283,11 @@ export const AdminCustomPlanGrantModal: React.FC<AdminCustomPlanGrantModalProps>
             <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
               <button
                 type="button"
-                onClick={handleSendWhatsApp}
-                className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
+                onClick={handleSendTelegram}
+                className="flex-1 py-3 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-sky-600/30 transition-all cursor-pointer"
               >
-                <MessageCircle className="w-4 h-4" />
-                <span>📲 व्हॉट्सॲपवर अभिनंदन पाठवा</span>
+                <Send className="w-4 h-4" />
+                <span>📲 टेलिग्रामवर अभिनंदन पाठवा</span>
               </button>
               <button
                 type="button"

@@ -14,7 +14,7 @@ import {
   ChevronRight,
   Heart,
   FileText,
-  PhoneCall,
+  Send,
   Scroll,
   Lock,
   Sparkles,
@@ -333,12 +333,19 @@ export const HorizontalBiodataDeck: React.FC<HorizontalBiodataDeckProps> = ({
           <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200 text-[11px]">
             {isAuthorized ? (
               <div className="space-y-1">
-                <div className="flex items-center justify-between font-bold text-emerald-700">
+                <div className="flex items-center justify-between font-bold text-sky-700">
                   <span className="flex items-center gap-1">
-                    <PhoneCall className="w-3.5 h-3.5" />
-                    <span>{language === 'en' ? 'Contact:' : 'संपर्क:'}</span>
+                    <Send className="w-3.5 h-3.5" />
+                    <span>{language === 'en' ? 'Telegram:' : 'टेलिग्राम चॅट:'}</span>
                   </span>
-                  <span>{currentProfile.mobile}</span>
+                  <a
+                    href={`https://t.me/${currentProfile.telegramUsername || siteConfig?.telegramUsername || 'Primemultiservice'}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sky-700 underline hover:text-sky-900"
+                  >
+                    @{currentProfile.telegramUsername || siteConfig?.telegramUsername || 'Primemultiservice'}
+                  </a>
                 </div>
                 {isMutualMatch && (
                   <p className="text-[10px] font-black text-rose-700 flex items-center gap-1 pt-0.5 border-t border-amber-200/50">

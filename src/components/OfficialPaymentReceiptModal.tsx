@@ -116,9 +116,9 @@ ${supportContactText}
     setTimeout(() => setCopied(false), 2500);
   };
 
-  const handleWhatsAppShare = () => {
+  const handleTelegramShare = () => {
     const text = encodeURIComponent(`*वंजारी जोडी अधिकृत पेमेंट पावती*\n\nसदस्य: ${data.userName}\nपावती क्र: ${data.receiptNo}\nरक्कम: ₹${displayAmount}\nUTR: ${data.utrNumber}\nप्लॅन: ${data.planName}\n\nआपले स्वागत आहे! अधिक तपशीलासाठी gitevijay123@gmail.com वर संपर्क साधा.`);
-    window.open(`https://wa.me/91${data.userMobile.replace(/[^0-9]/g, '').slice(-10)}?text=${text}`, '_blank');
+    window.open(`https://t.me/share/url?url=${encodeURIComponent('https://vanjarijodi.web.app')}&text=${text}`, '_blank');
   };
 
   return (
@@ -274,11 +274,11 @@ ${supportContactText}
           </button>
 
           <button
-            onClick={handleWhatsAppShare}
-            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer"
+            onClick={handleTelegramShare}
+            className="px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer"
           >
-            <Share2 className="w-4 h-4 text-white" />
-            <span>WhatsApp वर पाठवा</span>
+            <Send className="w-4 h-4 text-white" />
+            <span>टेलिग्रामवर पाठवा</span>
           </button>
 
         </div>

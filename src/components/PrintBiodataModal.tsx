@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { UserProfile } from '../types';
 import { VanjariJodiLogo } from './VanjariJodiLogo';
-import { Printer, X, Download, FileImage, FileText, ChevronDown, ShieldCheck, Sparkles, Lock } from 'lucide-react';
+import { Printer, X, Download, FileImage, FileText, ChevronDown, ShieldCheck, Sparkles, Lock, ArrowLeft } from 'lucide-react';
 import { safeHtml2Canvas } from '../utils/safeHtml2Canvas';
 import { jsPDF } from 'jspdf';
 import { VerifiedBadge } from './VerifiedBadge';
@@ -20,8 +20,56 @@ export const PrintBiodataModal: React.FC<{
 
   if (!profile) return null;
 
+  // Strict check: Member can ONLY download/print their own biodata, or if logged in as Admin
+  const isSelf = Boolean(
+    currentUser && (
+      currentUser.id === profile.id ||
+      (currentUser.mobile && profile.mobile && currentUser.mobile === profile.mobile)
+    )
+  );
+  const isUserAdmin = Boolean(currentUser?.isAdmin || isAdminLoggedIn);
+  const canDownloadOrPrint = isSelf || isUserAdmin;
+
+  if (!canDownloadOrPrint) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+        <div className="bg-white rounded-3xl border-2 border-rose-300 shadow-2xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 animate-in fade-in zoom-in-95">
+          <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto shadow-inner border border-rose-200">
+            <Lock className="w-8 h-8" />
+          </div>
+          
+          <div className="space-y-1.5">
+            <h3 className="text-lg font-black text-slate-900">
+              🔒 डाऊनलोड व प्रिंट प्रतिबंधित आहे
+            </h3>
+            <p className="text-xs text-slate-600 font-bold leading-relaxed">
+              आपण फक्त <span className="text-[#800C1E] font-black">स्वतःच्या प्रोफाईलचा बायोडाटा</span> डाऊनलोड अथवा प्रिंट करू शकता. इतर सदस्यांच्या गोपनीयतेच्या सुरक्षेसाठी दुसऱ्या सदस्याचा बायोडाटा डाऊनलोड किंवा सेव्ह करण्यास सक्त मनाई आहे.
+            </p>
+          </div>
+
+          <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-[11px] text-amber-900 font-medium text-left space-y-1">
+            <p className="font-bold flex items-center gap-1 text-[#800C1E]">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              <span>गोपनीयता सुरक्षा नियम:</span>
+            </p>
+            <p>• सदस्य स्वतःचा बायोडाटा डाउनलोड/प्रिंट व शेअर करू शकतात.</p>
+            <p>• दुसऱ्या सदस्यांची माहिती केवळ ॲपमध्ये पाहण्यासाठी सुरक्षित ठेवण्यात आली आहे.</p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-3 rounded-2xl bg-gradient-to-r from-[#800C1E] to-[#A71930] hover:brightness-110 text-amber-100 font-black text-xs shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-95 transition"
+          >
+            <ArrowLeft className="w-4 h-4 text-amber-300" />
+            <span>← मागे जा (Go Back)</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Strict Photo Access Verification (Paid members only)
-  const isSelf = Boolean(currentUser && currentUser.id === profile.id);
   const photoAccess = getPhotoAccessStatus({
     currentUser,
     targetProfile: profile,
@@ -129,6 +177,18 @@ export const PrintBiodataModal: React.FC<{
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-6 bg-slate-900/80 backdrop-blur-sm overflow-y-auto print:p-0 print:bg-white print:static">
       
+      {/* Top Left Back Button */}
+      <div className="fixed top-4 left-4 z-[110] print:hidden">
+        <button
+          onClick={onClose}
+          className="px-3.5 py-2 rounded-full bg-slate-900/90 hover:bg-slate-950 text-white font-black text-xs shadow-xl border border-white/30 flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
+          title="मागे जा"
+        >
+          <ArrowLeft className="w-4 h-4 text-amber-300" />
+          <span>मागे जा</span>
+        </button>
+      </div>
+
       {/* Top Action Bar */}
       <div className="fixed top-4 right-4 z-[110] flex items-center gap-2 print:hidden">
         

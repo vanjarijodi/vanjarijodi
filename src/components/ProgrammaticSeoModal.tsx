@@ -21,6 +21,7 @@ import {
   Copy,
   Check,
   Award,
+  Send,
 } from 'lucide-react';
 import { SmartBadgeRow } from './SmartBadgeRow';
 import { SafeAvatar } from './SafeAvatar';
@@ -125,7 +126,7 @@ export const ProgrammaticSeoModal: React.FC<ProgrammaticSeoModalProps> = ({
     }
   };
 
-  const handleWhatsAppShare = () => {
+  const handleTelegramShare = () => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://vanjarijodi.web.app';
     const link =
       activeTab === 'subcastes'
@@ -135,7 +136,7 @@ export const ProgrammaticSeoModal: React.FC<ProgrammaticSeoModalProps> = ({
     const title = activeTab === 'subcastes' ? currentSubCaste.nameMr : currentCity.nameMr;
     const text = `🚩 *${title} - वंजारी समाज वधू-वर सूचक केंद्र (Vanjari Jodi)* 🚩\n\nमहाराष्ट्र व जगभरातील १००% वंजारी समाजातील सत्यापित वधू-वर बायोडाटा, गोत्र-पत्रिका जुळवणी व मोफत नोंदणीसाठी खालील अधिकृत लिंकवर क्लिक करा:\n🔗 ${link}\n\n॥ श्री संत भगवान बाबा प्रसन्न ॥`;
 
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`, '_blank');
   };
 
   return (
@@ -208,11 +209,11 @@ export const ProgrammaticSeoModal: React.FC<ProgrammaticSeoModalProps> = ({
               <span>{copiedLink ? (isMr ? 'कॉपी झाले!' : 'Copied!') : (isMr ? 'SEO लिंक कॉपी करा' : 'Copy SEO Link')}</span>
             </button>
             <button
-              onClick={handleWhatsAppShare}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 cursor-pointer shadow-sm"
+              onClick={handleTelegramShare}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-600 hover:bg-sky-700 text-white flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
-              <Share2 className="w-3.5 h-3.5" />
-              <span>{isMr ? 'WhatsApp वर शेअर करा' : 'WhatsApp Share'}</span>
+              <Send className="w-3.5 h-3.5" />
+              <span>{isMr ? 'टेलिग्रामवर शेअर करा' : 'Telegram Share'}</span>
             </button>
           </div>
         </div>

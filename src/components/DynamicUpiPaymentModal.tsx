@@ -553,14 +553,13 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     setTimeout(() => setQrDownloaded(false), 3000);
   };
 
-  // Direct WhatsApp Admin Assistance
-  const handleOpenWhatsApp = () => {
-    const num = paymentConfig?.whatsappNumber || '7083070830';
-    const cleanNum = num.replace(/[^0-9]/g, '');
+  // Direct Telegram Admin Assistance
+  const handleOpenTelegram = () => {
+    const tgUsername = (siteConfig?.telegramUsername || 'Primemultiservice').replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '');
     const planName = activePlan?.nameMr || activePlan?.name || 'नोंदणी प्लॅन';
     const planPrice = activePlan?.price || paymentConfig?.amount || '398';
     const msg = encodeURIComponent(`नमस्कार ॲडमिन, मी वंजारी जोडी मॅट्रिमोनीवर "${planName}" (रक्कम: ₹${planPrice}) साठी पेमेंट करत आहे. मला पेमेंट करताना मदत हवी आहे.`);
-    window.open(`https://wa.me/91${cleanNum.slice(-10)}?text=${msg}`, '_blank');
+    window.open(`https://t.me/${tgUsername}?text=${msg}`, '_blank');
   };
 
   // Strict 12-Digit Numeric UTR Input Handler & Live Validation
@@ -1239,18 +1238,18 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                   </p>
                 </div>
 
-                {/* Quick WhatsApp Support Help */}
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-between gap-2">
+                {/* Quick Telegram Support Help */}
+                <div className="p-3 bg-sky-50 border border-sky-200 rounded-2xl flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span className="text-[11px] font-bold text-amber-950">पेमेंट करण्यास काही अडचण असल्यास:</span>
+                    <Send className="w-4 h-4 text-sky-600 shrink-0" />
+                    <span className="text-[11px] font-bold text-sky-950">पेमेंट करण्यास काही अडचण असल्यास:</span>
                   </div>
                   <button
                     type="button"
-                    onClick={handleOpenWhatsApp}
-                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] flex items-center gap-1 transition cursor-pointer shrink-0"
+                    onClick={handleOpenTelegram}
+                    className="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-700 text-white font-black text-[10px] flex items-center gap-1 transition cursor-pointer shrink-0 shadow-xs"
                   >
-                    <span>व्हॉट्सॲप मदत</span>
+                    <span>💬 टेलिग्राम मदत</span>
                   </button>
                 </div>
 

@@ -37,12 +37,17 @@ import {
   Zap,
   Phone,
   PhoneCall,
+  Send,
   MessageCircle,
   Share2,
   Scroll,
   CheckCircle,
   ArrowRight,
-  Home
+  Home,
+  RefreshCw,
+  Laptop,
+  Globe,
+  Activity
 } from 'lucide-react';
 import { requestPushPermission, getPushPermissionState, triggerBrowserPushNotification } from '../utils/pushNotificationHelper';
 
@@ -92,6 +97,91 @@ export const MemberDashboard: React.FC = () => {
   const [isUploadingBack, setIsUploadingBack] = useState(false);
   const [docUploadError, setDocUploadError] = useState<string | null>(null);
   const [docSuccessMsg, setDocSuccessMsg] = useState<string | null>(null);
+
+  // Active Security Sessions State
+  const [userSessions, setUserSessions] = useState<any[]>([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+  const [currentIp, setCurrentIp] = useState<string>('');
+  const [revokeMessage, setRevokeMessage] = useState<string | null>(null);
+
+  // Fetch security sessions for current user
+  const fetchUserSessions = React.useCallback(async () => {
+    if (!currentUser?.id) return;
+    setIsLoadingSessions(true);
+    try {
+      const res = await fetch(`/api/security/user-sessions/${currentUser.id}`);
+      const data = await res.json();
+      if (data.success && Array.isArray(data.sessions)) {
+        setUserSessions(data.sessions);
+        if (data.currentIp) setCurrentIp(data.currentIp);
+      }
+    } catch (err) {
+      console.warn('Could not fetch security sessions:', err);
+    } finally {
+      setIsLoadingSessions(false);
+    }
+  }, [currentUser?.id]);
+
+  React.useEffect(() => {
+    if (tab === 'privacy' && currentUser?.id) {
+      fetchUserSessions();
+    }
+  }, [tab, currentUser?.id, fetchUserSessions]);
+
+  // Revoke other device sessions
+  const handleRevokeOtherSessions = async () => {
+    if (!currentUser?.id) return;
+    try {
+      const res = await fetch('/api/security/revoke-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: currentUser.id, revokeAllOther: true }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRevokeMessage('इतर सर्व डिव्हाइसेसवरून यशस्वीरीत्या लॉगआउट केले आहे.');
+        fetchUserSessions();
+        setTimeout(() => setRevokeMessage(null), 4000);
+      }
+    } catch (err) {
+      console.error('Revoke error:', err);
+    }
+  };
+
+  // Profile Quality / Completeness Score Calculation (0 - 100%)
+  const qualityScore = useMemo(() => {
+    if (!currentUser) return 0;
+    let score = 0;
+    // 1. Photo (25%)
+    if (currentUser.photos && currentUser.photos.length > 0) score += 25;
+    // 2. Personal & basic info (25%)
+    let basicCount = 0;
+    if (currentUser.age) basicCount++;
+    if (currentUser.education) basicCount++;
+    if (currentUser.occupation) basicCount++;
+    if (currentUser.income) basicCount++;
+    if (currentUser.height) basicCount++;
+    score += Math.round((basicCount / 5) * 25);
+    // 3. Family & native place (20%)
+    let famCount = 0;
+    if (currentUser.fatherName || currentUser.fatherOccupation) famCount++;
+    if (currentUser.nativeAddress || currentUser.district) famCount++;
+    if (currentUser.city || currentUser.taluka) famCount++;
+    if (currentUser.subCaste) famCount++;
+    score += Math.round((famCount / 4) * 20);
+    // 4. Contact & verified phone (15%)
+    let contactCount = 0;
+    if (currentUser.mobile) contactCount++;
+    if (currentUser.isPhoneVerified) contactCount++;
+    if (currentUser.email) contactCount++;
+    score += Math.round((contactCount / 3) * 15);
+    // 5. Govt ID / Face verified (15%)
+    let idCount = 0;
+    if (currentUser.idProofUrl || currentUser.aadhaarCardUrl || currentUser.aadhaarFrontUrl) idCount++;
+    if (currentUser.isFaceVerified) idCount++;
+    score += idCount > 0 ? (idCount === 2 ? 15 : 10) : 0;
+    return Math.min(100, score);
+  }, [currentUser]);
 
   // Filter notifications specifically for this member (exclude admin and other users' notifications)
   const memberNotifications = useMemo(() => {
@@ -437,6 +527,18 @@ export const MemberDashboard: React.FC = () => {
 
             <button
               type="button"
+              onClick={() => {
+                setSelectedProfileForModal(currentUser);
+              }}
+              className="px-4 py-2.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-[#800C1E] text-xs font-black shadow-xs flex items-center gap-1.5 border border-amber-300 transition-all cursor-pointer active:scale-95"
+              title="माझा बायोडाटा पहा व डाऊनलोड करा"
+            >
+              <FileText className="w-4 h-4 text-[#800C1E]" />
+              <span>📄 बायोडाटा डाऊनलोड</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setIsShareModalOpen(true)}
               className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black shadow-md flex items-center gap-1.5 border border-emerald-300 transition-all cursor-pointer active:scale-95"
             >
@@ -688,6 +790,80 @@ export const MemberDashboard: React.FC = () => {
             </button>
           </div>
         )}
+
+        {/* Profile Quality / Completeness Score Card */}
+        <div className="bg-gradient-to-r from-amber-50 via-white to-amber-50 border-2 border-amber-300 rounded-3xl p-5 shadow-sm space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#800C1E] to-[#A71930] text-amber-300 flex items-center justify-center font-black text-base shadow border border-amber-400/40 shrink-0">
+                {qualityScore}%
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="text-sm sm:text-base font-black text-[#800C1E]">
+                    प्रोफाईल गुणवत्ता स्कोर (Profile Quality Score)
+                  </h4>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                    qualityScore >= 80 ? 'bg-emerald-100 text-emerald-800' : qualityScore >= 50 ? 'bg-amber-100 text-amber-900' : 'bg-rose-100 text-rose-800'
+                  }`}>
+                    {qualityScore >= 80 ? '🌟 उत्कृष्ट (High Quality)' : qualityScore >= 50 ? '⚡ मध्यम (Good)' : '⚠️ अपूर्ण (Incomplete)'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 font-semibold mt-0.5">
+                  {qualityScore >= 80
+                    ? 'अभिनंदन! तुमचे प्रोफाईल परिपूर्ण असल्याने वधू-वर स्थळांकडून जास्तीत जास्त पसंती व प्रतिसाद मिळतील.'
+                    : 'तुमचे प्रोफाईल १००% पूर्ण करा जेणेकरून अधिक वधू-वर स्थळे तुमच्याशी स्वतः संपर्क साधतील.'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsEditProfileModalOpen(true)}
+              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs rounded-xl shadow-xs border border-amber-400 self-start sm:self-auto cursor-pointer"
+            >
+              माहिती पूर्ण करा →
+            </button>
+          </div>
+
+          {/* Visual Progress Bar */}
+          <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
+            <div
+              className={`h-full transition-all duration-700 rounded-full ${
+                qualityScore >= 80 ? 'bg-emerald-500' : qualityScore >= 50 ? 'bg-amber-500' : 'bg-rose-500'
+              }`}
+              style={{ width: `${qualityScore}%` }}
+            />
+          </div>
+
+          {/* Checklist Badges */}
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] font-bold">
+            <span className={`px-2 py-1 rounded-lg border flex items-center gap-1 ${
+              currentUser.photos && currentUser.photos.length > 0 ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-500 border-slate-300'
+            }`}>
+              {currentUser.photos && currentUser.photos.length > 0 ? '✓' : '○'} फोटो जोडला (+२५%)
+            </span>
+            <span className={`px-2 py-1 rounded-lg border flex items-center gap-1 ${
+              currentUser.age && currentUser.education && currentUser.occupation ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-500 border-slate-300'
+            }`}>
+              {currentUser.age && currentUser.education && currentUser.occupation ? '✓' : '○'} शिक्षण व नोकरी (+२५%)
+            </span>
+            <span className={`px-2 py-1 rounded-lg border flex items-center gap-1 ${
+              currentUser.city && currentUser.subCaste ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-500 border-slate-300'
+            }`}>
+              {currentUser.city && currentUser.subCaste ? '✓' : '○'} कौटुंबिक माहिती (+२०%)
+            </span>
+            <span className={`px-2 py-1 rounded-lg border flex items-center gap-1 ${
+              currentUser.isPhoneVerified ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-500 border-slate-300'
+            }`}>
+              {currentUser.isPhoneVerified ? '✓' : '○'} मोबाईल पडताळणी (+१५%)
+            </span>
+            <span className={`px-2 py-1 rounded-lg border flex items-center gap-1 ${
+              currentUser.idProofUrl || currentUser.aadhaarFrontUrl || currentUser.isFaceVerified ? 'bg-emerald-50 text-emerald-800 border-emerald-300' : 'bg-slate-100 text-slate-500 border-slate-300'
+            }`}>
+              {currentUser.idProofUrl || currentUser.aadhaarFrontUrl || currentUser.isFaceVerified ? '✓' : '○'} ओळखपत्र / चेहरा (+१५%)
+            </span>
+          </div>
+        </div>
 
         {/* Dashboard Navigation Tabs */}
         <div className="flex border-b border-amber-200 overflow-x-auto text-xs font-bold gap-2 pb-1">
@@ -1179,7 +1355,7 @@ export const MemberDashboard: React.FC = () => {
                       🎉 परस्पर पसंती (Mutual Match) - दोघांचे लाईक्स जुळले आहेत!
                     </h4>
                     <p className="text-xs text-emerald-900/90 font-medium">
-                      या सदस्यांनी तुम्हाला व तुम्ही त्यांना दोघांनी एकमेकांना पसंत केले आहे. तुम्ही थेट कॉल, व्हॉट्सॲप आणि ३६ गुण कुंडली तपासू शकता.
+                      या सदस्यांनी तुम्हाला व तुम्ही त्यांना दोघांनी एकमेकांना पसंत केले आहे. तुम्ही थेट टेलिग्राम चॅट, इन-ॲप चॅट आणि ३६ गुण कुंडली तपासू शकता.
                     </p>
                   </div>
                 </div>
@@ -1247,17 +1423,15 @@ export const MemberDashboard: React.FC = () => {
                             <span>३६ गुण कुंडली</span>
                           </button>
 
-                          {p.mobile && (
-                            <a
-                              href={`https://wa.me/91${p.mobile.replace(/\D/g, '')}?text=${encodeURIComponent(`नमस्ते ${p.fullName}, मी वंजारीजोडी ॲपवरून संपर्क करत आहे. आपली परस्पर पसंती (Mutual Match) झाली आहे.`)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="col-span-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black shadow flex items-center justify-center gap-1.5 transition-transform active:scale-95"
-                            >
-                              <MessageCircle className="w-3.5 h-3.5 text-emerald-200" />
-                              <span>💬 व्हॉट्सॲपवर संपर्क करा ({p.mobile})</span>
-                            </a>
-                          )}
+                          <a
+                            href={`https://t.me/${p.telegramUsername || siteConfig?.telegramUsername || 'Primemultiservice'}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="col-span-2 px-3 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-black shadow flex items-center justify-center gap-1.5 transition-transform active:scale-95 cursor-pointer"
+                          >
+                            <Send className="w-3.5 h-3.5 text-white" />
+                            <span>💬 टेलिग्राम वर संपर्क साधा (@{p.telegramUsername || siteConfig?.telegramUsername || 'Primemultiservice'})</span>
+                          </a>
                         </div>
                       </div>
                     ))}
@@ -1550,17 +1724,124 @@ export const MemberDashboard: React.FC = () => {
 
         {/* TAB 6: PRIVACY SETTINGS */}
         {tab === 'privacy' && (
-          <div className="bg-white border-2 border-amber-200 rounded-3xl p-6 space-y-4 text-xs sm:text-sm shadow-sm">
-            <h3 className="text-lg font-black text-[#A71930]">गोपनीयता व सुरक्षा सेटिंग्ज</h3>
+          <div className="bg-white border-2 border-amber-200 rounded-3xl p-6 space-y-6 text-xs sm:text-sm shadow-sm">
+            <div>
+              <h3 className="text-lg font-black text-[#A71930]">गोपनीयता व सुरक्षा सेटिंग्ज</h3>
+              <p className="text-xs text-slate-600 font-medium mt-0.5">
+                खात्याची सुरक्षा, संपर्क नियंत्रण आणि सक्रिय डिव्हाइसेसचे व्यवस्थापन करा.
+              </p>
+            </div>
+
             <div className="space-y-3">
-              <label className="flex items-center gap-3 bg-[#FFFDF5] p-4 rounded-2xl border border-amber-200 font-semibold">
+              <label className="flex items-center gap-3 bg-[#FFFDF5] p-4 rounded-2xl border border-amber-200 font-semibold cursor-pointer">
                 <input type="checkbox" defaultChecked className="w-4 h-4 accent-[#A71930]" />
-                <span>माझा मोबाईल नंबर केवळ प्रमाणित वधू/वरांना दाखवा</span>
+                <span>माझा मोबाईल नंबर केवळ प्रमाणित वधू/वरांना दाखवा (Verified Profiles Only)</span>
               </label>
-              <label className="flex items-center gap-3 bg-[#FFFDF5] p-4 rounded-2xl border border-amber-200 font-semibold">
+              <label className="flex items-center gap-3 bg-[#FFFDF5] p-4 rounded-2xl border border-amber-200 font-semibold cursor-pointer">
                 <input type="checkbox" defaultChecked className="w-4 h-4 accent-[#A71930]" />
                 <span>नवीन प्रतिसादांचे त्वरित व्हॉट्सॲप नोटिफिकेशन्स मिळवा</span>
               </label>
+            </div>
+
+            {/* Active Devices & Security Sessions Portal */}
+            <div className="bg-[#FFFDF5] p-5 rounded-2xl border-2 border-amber-300 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-amber-500/20 text-[#800C1E] border border-amber-400">
+                    <Laptop className="w-5 h-5 text-[#800C1E]" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-[#800C1E] text-sm sm:text-base">
+                      सक्रिय डिव्हाइसेस व सुरक्षित सेशन्स (Active Device Sessions)
+                    </h4>
+                    <p className="text-xs text-slate-600 font-medium">
+                      तुमच्या खात्यात कोणत्या उपकरणांमधून लॉगिन केले आहे ते येथे पहा.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={fetchUserSessions}
+                    disabled={isLoadingSessions}
+                    className="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-xs font-bold text-slate-700 flex items-center gap-1 cursor-pointer"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isLoadingSessions ? 'animate-spin' : ''}`} />
+                    <span>रिफ्रेश</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRevokeOtherSessions}
+                    className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold flex items-center gap-1 shadow-xs cursor-pointer"
+                  >
+                    <span>इतर सर्व डिव्हाइसेसमधून लॉगआउट करा</span>
+                  </button>
+                </div>
+              </div>
+
+              {revokeMessage && (
+                <div className="p-3 bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold rounded-xl flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{revokeMessage}</span>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                {userSessions.length === 0 ? (
+                  <div className="p-3.5 bg-white border border-amber-200 rounded-xl flex items-center justify-between shadow-2xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center font-black">
+                        <Smartphone className="w-4 h-4 text-[#800C1E]" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900 text-xs sm:text-sm">
+                            हे डिव्हाइस (सध्याचे ब्राउझर सेशन)
+                          </span>
+                          <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-black border border-emerald-300">
+                            चालू डिव्हाइस
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 font-medium">
+                          IP: {currentIp || '127.0.0.1'} | महाराष्ट्र, भारत
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-[11px] text-emerald-600 font-bold">सुरक्षित व सक्रिय ✓</span>
+                  </div>
+                ) : (
+                  userSessions.map((session, idx) => (
+                    <div
+                      key={session.sessionId || idx}
+                      className="p-3.5 bg-white border border-amber-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center font-black">
+                          <Smartphone className="w-4 h-4 text-[#800C1E]" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 text-xs sm:text-sm">
+                              {session.device || 'Android / Chrome Mobile'}
+                            </span>
+                            {session.isCurrentSession && (
+                              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-black border border-emerald-300">
+                                चालू डिव्हाइस
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-medium">
+                            IP: {session.ip || currentIp || '127.0.0.1'} | {session.location || 'Maharashtra, India'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right text-[11px] text-slate-500">
+                        <p>शेवटचे सक्रिय: {new Date(session.lastActiveTime || Date.now()).toLocaleTimeString()}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         )}

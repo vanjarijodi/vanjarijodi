@@ -110,21 +110,19 @@ export const BusinessVendorDirectoryModal: React.FC<{
   });
 
   const handleBookingViaAdmin = (vendor: BusinessVendor) => {
-    const adminPhone = siteConfig.contactWhatsapp || siteConfig.contactPhone || '910000000000';
-    const cleanPhone = (adminPhone || '').replace(/[^0-9]/g, '');
+    const tgUsername = (siteConfig.telegramUsername || 'Primemultiservice').replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '');
     const msg = encodeURIComponent(
       `नमस्कार वंजारी जोडी ॲडमिन, मला "${vendor.businessName}" (${vendor.category}, ${vendor.district}) बद्दल माहिती आणि बुकींग करायचे आहे. ${selectedWeddingDate ? `माझ्या लग्नाची तारीख: ${selectedWeddingDate}` : ''}`
     );
-    window.open(`https://wa.me/${cleanPhone}?text=${msg}`, '_blank');
+    window.open(`https://t.me/${tgUsername}?text=${msg}`, '_blank');
   };
 
   const handleDirectWhatsapp = (vendor: BusinessVendor) => {
-    const phone = ((vendor.whatsapp || vendor.mobile) || '').replace(/[^0-9]/g, '');
-    const cleanPhone = phone.length === 10 ? '91' + phone : phone;
+    const tgUsername = (siteConfig.telegramUsername || 'Primemultiservice').replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '');
     const msg = encodeURIComponent(
-      `नमस्कार ${vendor.ownerName} जी, मी वंजारी जोडी पोर्टलवरून आपल्या "${vendor.businessName}" व्यवसायाबद्दल माहिती पाहिला आहे. मला लग्नकार्यासाठी बुकींग / चौकशी करायची आहे. ${selectedWeddingDate ? `तारीख: ${selectedWeddingDate}` : ''}`
+      `नमस्कार ${vendor.ownerName} जी, मी वंजारी जोडी पोर्टलवरून आपल्या "${vendor.businessName}" व्यवसायाबद्दल माहिती पाहिली आहे. मला लग्नकार्यासाठी चौकशी करायची आहे. ${selectedWeddingDate ? `तारीख: ${selectedWeddingDate}` : ''}`
     );
-    window.open(`https://wa.me/${cleanPhone}?text=${msg}`, '_blank');
+    window.open(`https://t.me/${tgUsername}?text=${msg}`, '_blank');
   };
 
   const handleSendInquirySubmit = (e: React.FormEvent) => {
@@ -586,35 +584,16 @@ export const BusinessVendorDirectoryModal: React.FC<{
                         <span>तारीख बुक / चौकशी करा</span>
                       </button>
 
-                      {siteConfig.showVendorContactsToPublic !== false ? (
-                        <div className="flex items-center gap-2 w-full sm:w-auto flex-1">
-                          <a
-                            href={`tel:${vendor.mobile}`}
-                            className="flex-1 py-2 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[11px] rounded-xl flex items-center justify-center gap-1 transition-colors border border-slate-700"
-                          >
-                            <Phone className="w-3.5 h-3.5 text-amber-400" />
-                            <span>कॉलींग</span>
-                          </a>
-
-                          <button
-                            type="button"
-                            onClick={() => handleDirectWhatsapp(vendor)}
-                            className="flex-1 py-2 px-2.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/40 font-bold text-[11px] rounded-xl flex items-center justify-center gap-1 cursor-pointer transition-colors"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5" />
-                            <span>व्हाट्सॲप</span>
-                          </button>
-                        </div>
-                      ) : (
+                      <div className="flex items-center gap-2 w-full sm:w-auto flex-1">
                         <button
                           type="button"
-                          onClick={() => handleBookingViaAdmin(vendor)}
-                          className="w-full py-2 px-3 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all"
+                          onClick={() => handleDirectWhatsapp(vendor)}
+                          className="w-full py-2 px-3 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-colors"
                         >
-                          <MessageCircle className="w-4 h-4 text-emerald-200" />
-                          <span>ॲडमिनद्वारे बुकींग करा</span>
+                          <Send className="w-3.5 h-3.5" />
+                          <span>थेट टेलिग्राम चॅट चौकशी</span>
                         </button>
-                      )}
+                      </div>
 
                       <button
                         type="button"
@@ -860,15 +839,14 @@ export const BusinessVendorDirectoryModal: React.FC<{
                   <span>ॲडमिनद्वारे बुकींग करा</span>
                 </button>
 
-                {siteConfig.showVendorContactsToPublic !== false && (
-                  <a
-                    href={`tel:${selectedVendorForDetails.mobile}`}
-                    className="py-2.5 px-4 bg-slate-800 text-slate-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 border border-slate-700"
-                  >
-                    <Phone className="w-4 h-4 text-amber-400" />
-                    <span>कॉलींग</span>
-                  </a>
-                )}
+                <button
+                  type="button"
+                  onClick={() => handleDirectWhatsapp(selectedVendorForDetails)}
+                  className="py-2.5 px-4 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-pointer shadow transition-colors"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>टेलिग्राम चॅट</span>
+                </button>
               </div>
 
             </div>

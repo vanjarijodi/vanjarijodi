@@ -17,6 +17,7 @@ import { uploadToCloudinary, compressAndResizeImage } from '../utils/cloudinary'
 import { getPhotoAccessStatus } from '../utils/photoAccess';
 import {
   X,
+  ArrowLeft,
   ShieldCheck,
   ShieldAlert,
   Heart,
@@ -261,9 +262,41 @@ export const ProfileDetailModal: React.FC<{
   });
   const isPhotoBlurred = photoAccess.isBlurred;
 
-  const handleShareWhatsApp = () => {
-    const text = `*वंजारीजोडी बायोडाटा:* ${profile.fullName} (${profile.age} वर्षे, ${profile.education}, ${profile.district})\nअधिक माहितीसाठी VanjariJodi App पहा.`;
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+  const isOwnProfile = Boolean(
+    currentUser && (
+      currentUser.id === profile.id ||
+      (currentUser.mobile && profile.mobile && currentUser.mobile === profile.mobile)
+    )
+  );
+  const canExportOrShare = isOwnProfile || isUserAdmin;
+
+  const [isShareDropdownOpen, setIsShareDropdownOpen] = useState(false);
+
+  const handleShareOwnBiodata = (platform: 'whatsapp' | 'telegram' | 'native') => {
+    setIsShareDropdownOpen(false);
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://vanjarijodi.web.app';
+    const text = `🚩 *वंजारी जोडी मॅट्रिमोनी बायोडाटा* 🚩\n\n*नाव:* ${profile.fullName}\n*वय:* ${profile.age || '--'} वर्षे | *उंची:* ${profile.height || '--'}\n*शिक्षण:* ${profile.education || '--'}\n*व्यवसाय/नोकरी:* ${profile.occupation || '--'}\n*जिल्हा:* ${profile.district || '--'}\n*बायोडाटा ID:* ${profile.id}\n\nअधिक माहिती व संपर्क पाहण्यासाठी 'वंजारी जोडी' ॲप डाउनलोड करा:\n${origin}`;
+
+    if (platform === 'whatsapp') {
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+    } else if (platform === 'telegram') {
+      window.open(`https://t.me/share/url?url=${encodeURIComponent(origin)}&text=${encodeURIComponent(text)}`, '_blank');
+    } else {
+      if (navigator.share) {
+        navigator.share({
+          title: `${profile.fullName} - वंजारी जोडी बायोडाटा`,
+          text: text,
+          url: origin,
+        }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(text);
+        alert('आपल्या बायोडाटाची माहिती कॉपी झाली आहे! आपण कोणालाही पाठवू शकता.');
+      }
+    }
+  };
+
+  const handleShareTelegram = () => {
+    handleShareOwnBiodata('telegram');
   };
 
   return (
@@ -271,53 +304,115 @@ export const ProfileDetailModal: React.FC<{
       <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
         <div className="relative w-full max-w-4xl bg-[#FFFDF5] border-2 border-amber-300 rounded-3xl shadow-2xl text-slate-800 overflow-hidden my-auto max-h-[90vh] flex flex-col">
           
-          {/* Modal Header */}
-          <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[#A71930] to-[#800C1E] border-b border-amber-300 text-white">
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-mono text-amber-900 bg-amber-200 px-3 py-1 rounded-full font-bold border border-amber-300">
-                आयडी: {profile.id}
-              </span>
-              <h2 className="text-base sm:text-lg font-black text-amber-100 break-words">
-                {formatProfileDisplayName(profile.fullName, currentUser, isAdminLoggedIn, isAuthorized || isMutualMatch, siteConfig, language, isMutualMatch, profile.id)}
-              </h2>
+          {/* Modal Header (Sticky with Prominent Back Button) */}
+          <div className="sticky top-0 z-40 flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3.5 bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] border-b border-amber-300 text-white shadow-md">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              {/* Prominent Back Button */}
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-2.5 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-amber-100 font-black text-xs flex items-center gap-1.5 border border-amber-300/40 shadow-xs cursor-pointer active:scale-95 shrink-0"
+                title="मागे जा (Go Back)"
+              >
+                <ArrowLeft className="w-4 h-4 text-amber-300" />
+                <span>मागे जा</span>
+              </button>
+
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-[10px] sm:text-xs font-mono text-amber-900 bg-amber-200 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full font-bold border border-amber-300 shrink-0">
+                  {profile.id}
+                </span>
+                <h2 className="text-xs sm:text-base font-black text-amber-100 truncate">
+                  {formatProfileDisplayName(profile.fullName, currentUser, isAdminLoggedIn, isAuthorized || isMutualMatch, siteConfig, language, isMutualMatch, profile.id)}
+                </h2>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={handleShareWhatsApp}
-                className="px-2.5 py-1.5 rounded-xl bg-emerald-600/90 hover:bg-emerald-700 text-white text-[11px] font-extrabold flex items-center gap-1 border border-emerald-400/40 shadow-xs cursor-pointer"
-                title="WhatsApp वर शेअर करा"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">शेअर</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsPrintModalOpen(true)}
-                className="px-2.5 py-1.5 rounded-xl bg-amber-200/20 hover:bg-amber-200/30 text-amber-100 text-[11px] font-extrabold flex items-center gap-1 border border-amber-300/40 shadow-xs cursor-pointer"
-                title="बायोडाटा प्रिंट करा"
-              >
-                <Printer className="w-3.5 h-3.5 text-amber-300" />
-                <span className="hidden sm:inline">प्रिंट</span>
-              </button>
-              {currentUser?.id !== profile.id && !isUserAdmin && (
+
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+              {/* IF VIEWING OWN BIODATA OR ADMIN: SHOW SHARE & DOWNLOAD/PRINT BUTTONS */}
+              {canExportOrShare ? (
+                <>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsShareDropdownOpen(!isShareDropdownOpen)}
+                      className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-[11px] font-extrabold flex items-center gap-1 border border-emerald-400/40 shadow-xs cursor-pointer active:scale-95"
+                      title="माझा बायोडाटा शेअर करा"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">शेअर</span>
+                    </button>
+
+                    {isShareDropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-48 rounded-2xl bg-white shadow-2xl border border-slate-200 py-1.5 z-50 text-slate-800 text-xs font-bold animate-fadeIn">
+                        <button
+                          type="button"
+                          onClick={() => handleShareOwnBiodata('whatsapp')}
+                          className="w-full px-3.5 py-2 text-left hover:bg-emerald-50 text-emerald-800 flex items-center gap-2 cursor-pointer"
+                        >
+                          <MessageCircle className="w-4 h-4 text-emerald-600" />
+                          <span>व्हॉट्सॲपवर शेअर</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleShareOwnBiodata('telegram')}
+                          className="w-full px-3.5 py-2 text-left hover:bg-sky-50 text-sky-800 flex items-center gap-2 cursor-pointer"
+                        >
+                          <Send className="w-4 h-4 text-sky-600" />
+                          <span>टेलिग्रामवर शेअर</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleShareOwnBiodata('native')}
+                          className="w-full px-3.5 py-2 text-left hover:bg-amber-50 text-slate-800 flex items-center gap-2 cursor-pointer border-t border-slate-100"
+                        >
+                          <FileText className="w-4 h-4 text-[#800C1E]" />
+                          <span>माहिती कॉपी करा</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsPrintModalOpen(true)}
+                    className="px-2.5 py-1.5 rounded-xl bg-amber-200/20 hover:bg-amber-200/30 text-amber-100 text-[11px] font-extrabold flex items-center gap-1 border border-amber-300/40 shadow-xs cursor-pointer active:scale-95"
+                    title="माझा बायोडाटा डाऊनलोड / प्रिंट करा"
+                  >
+                    <Download className="w-3.5 h-3.5 text-amber-300" />
+                    <span className="hidden sm:inline">डाऊनलोड</span>
+                  </button>
+                </>
+              ) : (
+                /* IF VIEWING ANOTHER MEMBER'S BIODATA: STRICT PRIVACY SHIELD BADGE (NO SHARE, NO DOWNLOAD) */
+                <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-950/60 border border-amber-400/30 text-amber-200 text-[10px] sm:text-[11px] font-black shadow-xs">
+                  <Lock className="w-3 h-3 text-amber-300 shrink-0" />
+                  <span className="hidden sm:inline">🔒 स्क्रीनशॉट व डाऊनलोड प्रतिबंधित</span>
+                  <span className="sm:hidden">🔒 सुरक्षित</span>
+                </div>
+              )}
+
+              {/* REPORT PROFILE BUTTON (ONLY FOR OTHER MEMBERS) */}
+              {!isOwnProfile && !isUserAdmin && (
                 <button
                   type="button"
                   onClick={() => setIsReportModalOpen(true)}
-                  className="px-2.5 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-200 text-[11px] font-extrabold flex items-center gap-1 border border-rose-400/40 transition-all cursor-pointer"
+                  className="px-2 sm:px-2.5 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-200 text-[11px] font-extrabold flex items-center gap-1 border border-rose-400/40 transition-all cursor-pointer"
                   title="तक्रार नोंदवा"
                 >
                   <ShieldAlert className="w-3.5 h-3.5 text-rose-300" />
                   <span className="hidden sm:inline">तक्रार</span>
                 </button>
               )}
+
+              {/* CLOSE BUTTON */}
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-full hover:bg-white/20 text-white transition-colors cursor-pointer ml-1"
+                className="p-1.5 rounded-xl hover:bg-white/20 text-white transition-colors cursor-pointer ml-0.5 bg-black/20 border border-white/10"
                 title="बंद करा"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
           </div>
@@ -418,19 +513,15 @@ export const ProfileDetailModal: React.FC<{
                   </div>
 
                   <div className="flex items-center flex-wrap gap-2 w-full md:w-auto">
-                    {profile.mobile && (
-                      <a
-                        href={`https://wa.me/91${profile.mobile.replace(/[^0-9]/g, '').slice(-10)}?text=${encodeURIComponent(
-                          `नमस्कार ${profile.fullName}, वंजारी जोडी मॅट्रिमोनीवरून ॲडमिन टीम.`
-                        )}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                        <span>WhatsApp ({profile.mobile})</span>
-                      </a>
-                    )}
+                    <a
+                      href={`https://t.me/${profile.telegramUsername || siteConfig?.telegramUsername || 'Primemultiservice'}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3.5 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                    >
+                      <Send className="w-4 h-4" />
+                      <span>टेलिग्राम संपर्क (@{profile.telegramUsername || siteConfig?.telegramUsername || 'Primemultiservice'})</span>
+                    </a>
                     <button
                       type="button"
                       onClick={() => setAdminViewMode('biodata')}
@@ -1068,11 +1159,11 @@ export const ProfileDetailModal: React.FC<{
 
                       <button
                         type="button"
-                        onClick={handleShareWhatsApp}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-xs cursor-pointer"
+                        onClick={handleShareTelegram}
+                        className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-black flex items-center gap-1.5 shadow-xs cursor-pointer"
                       >
-                        <Share2 className="w-4 h-4" />
-                        <span>WhatsApp शेअर</span>
+                        <Send className="w-4 h-4" />
+                        <span>टेलिग्राम शेअर</span>
                       </button>
                     </div>
 
@@ -1098,7 +1189,12 @@ export const ProfileDetailModal: React.FC<{
 
             {/* IF NOT IN 'ADMIN_CONTROLS' (OR FOR GENERAL USERS), SHOW THE CLEAN BIODATA VIEW */}
             {(!isUserAdmin || adminViewMode === 'biodata') && (
-              <div className="space-y-6 animate-fadeIn">
+              <SecurityWatermarkOverlay
+                variant="modal"
+                className={!canExportOrShare ? 'no-print-protected select-none' : ''}
+                showWarningAlert={!canExportOrShare}
+              >
+                <div className="space-y-6 animate-fadeIn">
                 {/* Admin Quick Sticky Pill for fast context */}
                 {isUserAdmin && (
                   <div className="p-3 bg-gradient-to-r from-amber-100 via-white to-amber-100 rounded-2xl border-2 border-amber-300 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
@@ -2121,31 +2217,36 @@ export const ProfileDetailModal: React.FC<{
                 </div>
               </div>
             )}
-          </div>
+            </div>
+          </SecurityWatermarkOverlay>
         )}
 
-      </div>
+        </div>
 
           {/* Modal Footer Actions */}
           <div className="p-3 sm:p-4 bg-amber-50/90 border-t border-amber-200 flex flex-wrap items-center justify-between gap-3">
             
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsPrintModalOpen(true)}
-                className="px-3 py-1.5 rounded-xl bg-white hover:bg-amber-100 text-[#800C1E] text-xs font-bold flex items-center gap-1 border border-amber-300 shadow-2xs cursor-pointer"
-              >
-                <Printer className="w-3.5 h-3.5 text-[#800C1E]" />
-                <span>प्रिंट</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleShareWhatsApp}
-                className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-1 border border-emerald-300 shadow-2xs cursor-pointer"
-              >
-                <Share2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>शेअर</span>
-              </button>
+              {canExportOrShare && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setIsPrintModalOpen(true)}
+                    className="px-3 py-1.5 rounded-xl bg-white hover:bg-amber-100 text-[#800C1E] text-xs font-bold flex items-center gap-1 border border-amber-300 shadow-2xs cursor-pointer"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-[#800C1E]" />
+                    <span>प्रिंट</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleShareTelegram}
+                    className="px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 text-xs font-bold flex items-center gap-1 border border-sky-300 shadow-2xs cursor-pointer"
+                  >
+                    <Send className="w-3.5 h-3.5 text-sky-600" />
+                    <span>शेअर</span>
+                  </button>
+                </>
+              )}
               {currentUser?.id !== profile.id && !isUserAdmin && (
                 <button
                   type="button"
@@ -2169,7 +2270,7 @@ export const ProfileDetailModal: React.FC<{
                         आपले प्रोफाईल ॲडमिन पडताळणीसाठी प्रलंबित आहे
                       </p>
                       <p className="text-[11px] text-slate-700 font-bold">
-                        ॲडमिन मंजुरीनंतर थेट कॉल, व्हॉट्सॲप, चॅट व सर्व संपर्क पर्याय कार्यन्वित होतील.
+                        ॲडमिन मंजुरीनंतर थेट टेलिग्राम चॅट, इन-ॲप चॅट व सर्व संपर्क पर्याय कार्यन्वित होतील.
                       </p>
                     </div>
                   </div>
@@ -2180,11 +2281,13 @@ export const ProfileDetailModal: React.FC<{
               ) : isAuthorized ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <a
-                    href={`tel:${profile.mobile}`}
-                    className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold flex items-center gap-1.5"
+                    href={`https://t.me/${profile.telegramUsername || siteConfig?.telegramUsername || 'Primemultiservice'}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm"
                   >
-                    <PhoneCall className="w-4 h-4" />
-                    <span>कॉल करा ({profile.mobile})</span>
+                    <Send className="w-4 h-4" />
+                    <span>टेलिग्राम संपर्क (@{profile.telegramUsername || siteConfig?.telegramUsername || 'Primemultiservice'})</span>
                   </a>
                   <button
                     onClick={() => {
@@ -2196,18 +2299,9 @@ export const ProfileDetailModal: React.FC<{
                     <MessageCircle className="w-4 h-4" />
                     <span>चॅट करा</span>
                   </button>
-                  <a
-                    href={`https://t.me/${profile.telegramUsername || siteConfig?.telegramUsername || 'Primemultiservice'}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm"
-                  >
-                    <Send className="w-4 h-4" />
-                    <span>टेलिग्राम संपर्क (@{profile.telegramUsername || siteConfig?.telegramUsername || 'Primemultiservice'})</span>
-                  </a>
                   {isMutualMatch && (
                     <span className="px-3 py-1 rounded-xl bg-rose-100 text-rose-800 border border-rose-300 text-xs font-black flex items-center gap-1">
-                      💞 म्युचुअल लाईक (मॅच) + Truecaller मुळे मोबाईल नंबर अनलॉक!
+                      💞 म्युचुअल लाईक (मॅच) संपर्क अनलॉक!
                     </span>
                   )}
                 </div>
@@ -2331,6 +2425,17 @@ export const ProfileDetailModal: React.FC<{
                   <span>{interestObj || likedProfileIds.includes(profile.id) ? '❤️ लाईक केले (Liked)' : '❤️ लाईक करा (Like Profile)'}</span>
                 </button>
               )}
+
+              {/* Bottom Back Button */}
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-black flex items-center gap-1.5 shadow-sm transition active:scale-95 cursor-pointer shrink-0"
+                title="मागे यादीत जा"
+              >
+                <ArrowLeft className="w-4 h-4 text-slate-700" />
+                <span>मागे जा (Back)</span>
+              </button>
             </div>
 
           </div>

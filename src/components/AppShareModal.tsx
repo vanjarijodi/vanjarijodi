@@ -14,7 +14,8 @@ import {
   Heart,
   ShieldCheck,
   CheckCircle2,
-  ArrowRight
+  ArrowRight,
+  Send
 } from 'lucide-react';
 import { VanjariJodiLogo } from './VanjariJodiLogo';
 
@@ -83,10 +84,10 @@ ${origin}
     }
   };
 
-  const handleWhatsAppShare = () => {
+  const handleTelegramShare = () => {
     const encoded = encodeURIComponent(shareTextMarathi);
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encoded}`;
-    window.open(whatsappUrl, '_blank');
+    const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(fullApkDownloadUrl)}&text=${encoded}`;
+    window.open(telegramUrl, '_blank');
   };
 
   const handleNativeShare = async () => {
@@ -173,14 +174,14 @@ ${origin}
             </button>
           </div>
 
-          {/* Primary Action 1: One-Click WhatsApp Share Button */}
+          {/* Primary Action 1: One-Click Telegram Share Button */}
           <button
             type="button"
-            onClick={handleWhatsAppShare}
-            className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-black text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-500/25 active:scale-98 transition cursor-pointer"
+            onClick={handleTelegramShare}
+            className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 text-white font-black text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-sky-500/25 active:scale-98 transition cursor-pointer"
           >
-            <span className="text-lg">💬</span>
-            <span>व्हॉट्सॲपवर थेट शेअर करा (WhatsApp Share)</span>
+            <Send className="w-5 h-5" />
+            <span>टेलिग्रामवर थेट शेअर करा (Telegram Share)</span>
           </button>
 
           {/* Secondary Actions: Native Mobile Share & Copy Link */}

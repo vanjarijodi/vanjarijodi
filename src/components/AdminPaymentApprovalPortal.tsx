@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { downloadPaymentInvoicePDF, InvoiceData } from '../utils/invoiceGenerator';
+import { openTelegramChat } from '../utils/referralUtils';
 import {
   ShieldCheck,
   CheckCircle2,
@@ -535,26 +536,20 @@ export const AdminPaymentApprovalPortal: React.FC = () => {
     downloadPaymentInvoicePDF(invData);
   };
 
-  // Send WhatsApp Clarification
-  const handleSendWhatsAppClarification = (reqItem: any) => {
-    const cleanMobile = (reqItem.userMobile || '').replace(/[^0-9]/g, '').slice(-10);
-    if (!cleanMobile) {
-      alert('मोबाईल नंबर उपलब्ध नाही');
-      return;
-    }
+  // Send Telegram Clarification / Receipt
+  const handleSendTelegramClarification = (reqItem: any) => {
     const isDup = (fraudAnalytics.utrCounts[reqItem.utrNumber] || 0) > 1;
     let message = '';
 
     if (isDup) {
       message = `नमस्कार *${reqItem.userName}*,\n\nवंजारी जोडी मॅट्रिमोनी वरून संपर्क करत आहोत. तुम्ही सबमिट केलेला UTR क्रमांक (*${reqItem.utrNumber}*) आधीच वापरलेला दिसत आहे. कृपया तुमच्या बँक पावतीचा खरा आणि स्पष्ट फोटो किंवा योग्य UTR क्रमांक पाठवा.\n\nधन्यवाद,\n*वंजारी जोडी मॅट्रिमोनी टीम*`;
     } else if (reqItem.status === 'approved') {
-      message = `🎉 *वंजारी जोडी मॅट्रिमोनी - पेमेंट मंजूर!* 🎉\n\nनमस्कार *${reqItem.userName}*,\nतुमचे ₹${reqItem.amount} चे पेमेंट (UTR: ${reqItem.utrNumber}) यशस्वीरीत्या मंजूर झाले आहे.\n\n📋 *प्लॅन:* ${reqItem.planName}\n🔐 *स्टेटस:* ॲक्टिव्ह मेंबर\n\n🌐 लॉगिन: https://vanjarijodi.web.app\n📞 मदत: ${settingsForm.support_mobile}`;
+      message = `🎉 *वंजारी जोडी मॅट्रिमोनी - पेमेंट मंजूर!* 🎉\n\nनमस्कार *${reqItem.userName}*,\nतुमचे ₹${reqItem.amount} चे पेमेंट (UTR: ${reqItem.utrNumber}) यशस्वीरीत्या मंजूर झाले आहे.\n\n📋 *प्लॅन:* ${reqItem.planName}\n🔐 *स्टेटस:* ॲक्टिव्ह मेंबर\n\n🌐 लॉगिन: https://vanjarijodi.web.app\n📞 टेलिग्राम सपोर्ट: @${(siteConfig?.telegramUsername || 'Primemultiservice').replace(/^@/, '')}`;
     } else {
-      message = `नमस्कार *${reqItem.userName}*,\n\nवंजारी जोडी मॅट्रिमोनीवर तुमच्या ₹${reqItem.amount} च्या पेमेंट पावतीची (UTR: ${reqItem.utrNumber}) पडताळणी चालू आहे. काही शंका असल्यास कृपया या नंबरवर संपर्क साधा.\n\n- वंजारी जोडी मॅनेजमेंट`;
+      message = `नमस्कार *${reqItem.userName}*,\n\nवंजारी जोडी मॅट्रिमोनीवर तुमच्या ₹${reqItem.amount} च्या पेमेंट पावतीची (UTR: ${reqItem.utrNumber}) पडताळणी चालू आहे. काही शंका असल्यास कृपया या टेलिग्राम चॅटवर संपर्क साधा.\n\n- वंजारी जोडी मॅनेजमेंट`;
     }
 
-    const waUrl = `https://api.whatsapp.com/send?phone=91${cleanMobile}&text=${encodeURIComponent(message)}`;
-    window.open(waUrl, '_blank');
+    openTelegramChat(message, reqItem.telegramUsername || siteConfig?.telegramUsername);
   };
 
   return (
@@ -1064,14 +1059,14 @@ export const AdminPaymentApprovalPortal: React.FC = () => {
                               <span>१-क्लिक मंजूर करा (Approve)</span>
                             </button>
 
-                            {/* WhatsApp Clarification */}
+                            {/* Telegram Clarification */}
                             <button
                               type="button"
-                              onClick={() => handleSendWhatsAppClarification(req)}
-                              className="p-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl transition cursor-pointer"
-                              title="WhatsApp वर मेसेज पाठवा"
+                              onClick={() => handleSendTelegramClarification(req)}
+                              className="p-2 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-300 rounded-xl transition cursor-pointer"
+                              title="टेलिग्रामवर मेसेज पाठवा"
                             >
-                              <MessageSquare className="w-4 h-4 text-emerald-600" />
+                              <Send className="w-4 h-4 text-sky-600" />
                             </button>
 
                             {/* Reject Button */}
@@ -1105,14 +1100,14 @@ export const AdminPaymentApprovalPortal: React.FC = () => {
                               </button>
                             )}
 
-                            {/* WhatsApp Confirmation */}
+                            {/* Telegram Confirmation */}
                             <button
                               type="button"
-                              onClick={() => handleSendWhatsAppClarification(req)}
-                              className="px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm transition cursor-pointer"
+                              onClick={() => handleSendTelegramClarification(req)}
+                              className="px-3 py-2 bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-300 rounded-xl text-xs font-bold flex items-center space-x-1.5 shadow-sm transition cursor-pointer"
                             >
-                              <MessageSquare className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>WhatsApp पावती</span>
+                              <Send className="w-3.5 h-3.5 text-sky-600" />
+                              <span>टेलिग्राम पावती</span>
                             </button>
                           </>
                         ) : (
@@ -1122,11 +1117,11 @@ export const AdminPaymentApprovalPortal: React.FC = () => {
                             </span>
                             <button
                               type="button"
-                              onClick={() => handleSendWhatsAppClarification(req)}
+                              onClick={() => handleSendTelegramClarification(req)}
                               className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs transition cursor-pointer"
                               title="कारण विचारा"
                             >
-                              <MessageSquare className="w-3.5 h-3.5" />
+                              <Send className="w-3.5 h-3.5 text-slate-600" />
                             </button>
                           </div>
                         )}
@@ -1431,11 +1426,11 @@ export const AdminPaymentApprovalPortal: React.FC = () => {
                             )}
                             <button
                               type="button"
-                              onClick={() => handleSendWhatsAppClarification(tx)}
-                              className="p-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg transition cursor-pointer"
-                              title="WhatsApp मेसेज"
+                              onClick={() => handleSendTelegramClarification(tx)}
+                              className="p-1 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-lg transition cursor-pointer"
+                              title="टेलिग्राम मेसेज"
                             >
-                              <MessageSquare className="w-3.5 h-3.5" />
+                              <Send className="w-3.5 h-3.5" />
                             </button>
                           </div>
                         </td>

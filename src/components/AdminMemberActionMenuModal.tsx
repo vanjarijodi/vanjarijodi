@@ -18,7 +18,8 @@ import {
   Sparkles,
   Lock,
   Unlock,
-  AlertCircle
+  AlertCircle,
+  Key
 } from 'lucide-react';
 import { UserProfile } from '../types';
 
@@ -31,6 +32,7 @@ interface AdminMemberActionMenuModalProps {
   onGrantPlan: (member: UserProfile) => void;
   onSpecialPremium: (member: UserProfile) => void;
   onContactAccess: (member: UserProfile) => void;
+  onChangePassword?: (member: UserProfile) => void;
   onViewReports: (member: UserProfile) => void;
   onSendWarning: (member: UserProfile) => void;
   onToggleSuspend: (member: UserProfile) => void;
@@ -49,6 +51,7 @@ export const AdminMemberActionMenuModal: React.FC<AdminMemberActionMenuModalProp
   onGrantPlan,
   onSpecialPremium,
   onContactAccess,
+  onChangePassword,
   onViewReports,
   onSendWarning,
   onToggleSuspend,
@@ -228,6 +231,29 @@ export const AdminMemberActionMenuModal: React.FC<AdminMemberActionMenuModalProp
               <div className="flex-1">
                 <div className="font-bold text-xs text-slate-900">6. Contact Access (संपर्क थेट अनलॉक)</div>
                 <div className="text-[10px] text-slate-500 font-normal">या सदस्याला किंवा या सदस्याचा नंबर अनलॉक करण्याची परवानगी द्या</div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                onClose();
+                if (onChangePassword) {
+                  onChangePassword(member);
+                } else {
+                  onContactAccess(member);
+                }
+              }}
+              className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-amber-50 text-slate-800 transition cursor-pointer text-left"
+            >
+              <div className="p-2 rounded-lg bg-slate-900 text-amber-300">
+                <Key className="w-4 h-4" />
+              </div>
+              <div className="flex-1">
+                <div className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
+                  <span>Change / Reset Password (पासवर्ड रिसेट)</span>
+                  <span className="text-[9px] bg-amber-200 text-amber-950 font-black px-1.5 py-0.2 rounded">Bcrypt</span>
+                </div>
+                <div className="text-[10px] text-slate-500 font-normal">सदस्याचा पासवर्ड बदला किंवा Bcrypt ने सुरक्षित नवीन पासवर्ड जनरेट करा</div>
               </div>
             </button>
           </div>

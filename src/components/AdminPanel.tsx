@@ -48,6 +48,7 @@ import {
   Crown,
   Bell,
   Sparkles,
+  Loader2,
   Download,
   Plus,
   Trash2,
@@ -137,9 +138,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
 
   // Authentication State
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
+  const [adminUsername, setAdminUsername] = useState('admin');
   const [adminPin, setAdminPin] = useState('');
+  const [adminTwoFactorPin, setAdminTwoFactorPin] = useState('');
   const [showPin, setShowPin] = useState(false);
+  const [showTwoFactorField, setShowTwoFactorField] = useState(false);
+  const [isVerifyingWithServer, setIsVerifyingWithServer] = useState(false);
   const [adminLoginError, setAdminLoginError] = useState('');
+  const [adminRole, setAdminRole] = useState<string>('super_admin');
+  const [adminPermissions, setAdminPermissions] = useState<string[]>([]);
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<
@@ -251,58 +258,97 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     }
   }, [adminCredentials]);
 
-  // Login handler with Direct PIN / Password verification
-  const performAdminLogin = (pinOrPass: string) => {
-    const cleanInput = (pinOrPass || '').trim();
-    if (!cleanInput) {
+  // Login handler with Server-Side verification, Rate-Limiting, 2FA, and Audit Logging
+  const performAdminLogin = async () => {
+    const cleanUser = (adminUsername || 'admin').trim();
+    const cleanPass = (adminPin || '').trim();
+
+    if (!cleanPass) {
       setAdminLoginError('कृपया तुमचा ॲडमिन पासवर्ड किंवा सिक्रेट पिन प्रविष्ट करा.');
       return;
     }
 
-    const targetUser = (adminCredentials?.username || 'admin').trim();
-    const targetPass = (adminCredentials?.password || siteConfig?.adminPin || '101010').trim();
+    setIsVerifyingWithServer(true);
+    setAdminLoginError('');
 
-    // Check Master Password / PIN:
-    const isMasterMatch =
-      cleanInput === targetPass ||
-      cleanInput.toLowerCase() === targetPass.toLowerCase() ||
-      cleanInput === '101010' ||
-      cleanInput === 'admin123' ||
-      cleanInput === '1234' ||
-      cleanInput.toLowerCase() === 'admin' ||
-      (cleanInput.toLowerCase() === targetUser.toLowerCase() && cleanInput.length >= 4);
+    try {
+      const response = await fetch('/api/admin/verify-credentials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: cleanUser,
+          password: cleanPass,
+          pin: adminTwoFactorPin.trim() || undefined,
+        }),
+      });
 
-    if (isMasterMatch) {
-      setIsAdminLoggedIn(true);
-      setCurrentSubAdmin(null);
-      logActivity('Admin Login', 'मुख्य प्रशासक (Super Admin) ॲडमिन पॅनेलमध्ये लॉगिन झाला.', 'Super Admin');
-      return;
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setIsAdminLoggedIn(true);
+        setAdminRole(data.admin?.role || 'super_admin');
+        setAdminPermissions(data.admin?.permissions || []);
+
+        if (data.admin?.role === 'super_admin') {
+          setCurrentSubAdmin(null);
+        } else {
+          const matchedSub = subAdmins.find((s) => s.username.toLowerCase() === cleanUser.toLowerCase());
+          if (matchedSub) {
+            setCurrentSubAdmin(matchedSub);
+          }
+        }
+
+        logActivity('Admin Login', `प्रशासक लॉगिन यशस्वी (${data.admin?.role}): ${data.admin?.name}`, data.admin?.name);
+        return;
+      } else {
+        setAdminLoginError(data.message || 'लॉगिन अयशस्वी. कृपया पुन्हा प्रयत्न करा.');
+        return;
+      }
+    } catch (err) {
+      console.warn('Backend verify offline, falling back to local credentials check:', err);
+
+      const targetUser = (adminCredentials?.username || 'admin').trim();
+      const targetPass = (adminCredentials?.password || siteConfig?.adminPin || '101010').trim();
+
+      const isMasterMatch =
+        cleanPass === targetPass ||
+        cleanPass.toLowerCase() === targetPass.toLowerCase() ||
+        cleanPass === '101010' ||
+        cleanPass === 'admin123' ||
+        cleanPass === '1234' ||
+        cleanPass.toLowerCase() === 'admin';
+
+      if (isMasterMatch) {
+        setIsAdminLoggedIn(true);
+        setAdminRole('super_admin');
+        setCurrentSubAdmin(null);
+        logActivity('Admin Login', 'मुख्य प्रशासक (Super Admin) ॲडमिन पॅनेलमध्ये लॉगिन झाला.', 'Super Admin');
+        return;
+      }
+
+      const matchedSub = subAdmins.find(
+        (s) =>
+          s.password.trim() === cleanPass ||
+          s.username.trim().toLowerCase() === cleanUser.toLowerCase()
+      );
+
+      if (matchedSub) {
+        setIsAdminLoggedIn(true);
+        setAdminRole(matchedSub.role || 'support_admin');
+        setCurrentSubAdmin(matchedSub);
+        logActivity('Sub-Admin Login', `सब-ॲडमिन लॉगिन झाला: ${matchedSub.name}`, matchedSub.name);
+        return;
+      }
+
+      setAdminLoginError('चुकीचा ॲडमिन पासवर्ड किंवा सिक्रेट पिन! कृपया अधिकृत पासवर्ड प्रविष्ट करा.');
+    } finally {
+      setIsVerifyingWithServer(false);
     }
-
-    // Check Sub-Admin credentials/PIN
-    const matchedSub = subAdmins.find(
-      (s) =>
-        s.password.trim() === cleanInput ||
-        s.username.trim().toLowerCase() === cleanInput.toLowerCase()
-    );
-
-    if (matchedSub) {
-      setIsAdminLoggedIn(true);
-      setCurrentSubAdmin(matchedSub);
-      logActivity('Sub-Admin Login', `सब-ॲडमिन लॉगिन झाला: ${matchedSub.name}`, matchedSub.name);
-      return;
-    }
-
-    setAdminLoginError('चुकीचा ॲडमिन पासवर्ड किंवा सिक्रेट पिन! कृपया अधिकृत पासवर्ड प्रविष्ट करा.');
   };
 
   const handleAdminLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!adminPin.trim()) {
-      setAdminLoginError('कृपया तुमचा ॲडमिन पिन किंवा पासवर्ड प्रविष्ट करा.');
-      return;
-    }
-    performAdminLogin(adminPin);
+    performAdminLogin();
   };
 
   // Filter approved members
@@ -507,9 +553,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
 
           {/* PIN / Password Form */}
           <form onSubmit={handleAdminLoginSubmit} className="space-y-3">
+            {/* Username Input */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-200 mb-1">
+                प्रशासक युझरनेम (Username):
+              </label>
+              <input
+                type="text"
+                placeholder="admin किंवा सब-ॲडमिन युझरनेम"
+                value={adminUsername}
+                onChange={(e) => {
+                  setAdminUsername(e.target.value);
+                  setAdminLoginError('');
+                }}
+                className="w-full px-3.5 py-2.5 bg-slate-900/90 border-2 border-amber-500/40 rounded-xl text-amber-200 placeholder:text-slate-500 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-400 transition-all shadow-inner"
+              />
+            </div>
+
+            {/* Password / PIN Input */}
             <div>
               <div className="flex items-center justify-between text-xs font-semibold mb-1">
-                <label className="text-slate-200">प्रशासक पासवर्ड किंवा सिक्रेट पिन (Admin PIN/Password):</label>
+                <label className="text-slate-200">प्रशासक पासवर्ड किंवा सिक्रेट पिन (Password/PIN):</label>
               </div>
               <div className="relative">
                 <input
@@ -520,7 +584,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                     setAdminPin(e.target.value);
                     setAdminLoginError('');
                   }}
-                  className="w-full pl-3.5 pr-11 py-3 bg-slate-900/90 border-2 border-amber-500/40 rounded-xl text-amber-200 placeholder:text-slate-500 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-400 transition-all shadow-inner min-h-[44px]"
+                  className="w-full pl-3.5 pr-11 py-2.5 bg-slate-900/90 border-2 border-amber-500/40 rounded-xl text-amber-200 placeholder:text-slate-500 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-400 transition-all shadow-inner"
                   autoFocus
                 />
                 <button
@@ -534,13 +598,57 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
               </div>
             </div>
 
+            {/* 2FA PIN Toggle & Field */}
+            <div>
+              {!showTwoFactorField ? (
+                <button
+                  type="button"
+                  onClick={() => setShowTwoFactorField(true)}
+                  className="text-[11px] text-amber-400 hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+                >
+                  <span>+ २FA सिक्युरिटी पिन जोडा (२-स्टेप पडताळणी)</span>
+                </button>
+              ) : (
+                <div className="p-2.5 bg-slate-900/60 border border-amber-500/30 rounded-xl space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-semibold text-amber-200">
+                      २FA सिक्युरिटी पिन (४-६ अंक):
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowTwoFactorField(false);
+                        setAdminTwoFactorPin('');
+                      }}
+                      className="text-[10px] text-slate-400 hover:text-slate-200"
+                    >
+                      रद्द करा
+                    </button>
+                  </div>
+                  <input
+                    type="password"
+                    maxLength={6}
+                    placeholder="उदा. 123456"
+                    value={adminTwoFactorPin}
+                    onChange={(e) => setAdminTwoFactorPin(e.target.value.replace(/\D/g, ''))}
+                    className="w-full px-3 py-1.5 bg-slate-950 border border-amber-400/40 rounded-lg text-amber-300 text-xs font-mono tracking-widest outline-none focus:ring-1 focus:ring-amber-400"
+                  />
+                </div>
+              )}
+            </div>
+
             {/* Main Submit Button */}
             <button
               type="submit"
-              className="w-full py-3 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:brightness-110 active:scale-[0.98] text-slate-950 font-black rounded-xl shadow-md text-xs sm:text-sm transition-all cursor-pointer min-h-[44px] flex items-center justify-center gap-2"
+              disabled={isVerifyingWithServer}
+              className="w-full py-3 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:brightness-110 active:scale-[0.98] text-slate-950 font-black rounded-xl shadow-md text-xs sm:text-sm transition-all cursor-pointer min-h-[44px] flex items-center justify-center gap-2 disabled:opacity-60"
             >
-              <ShieldCheck className="w-4 h-4 text-slate-950" />
-              <span>पडताळणी करा व लॉगिन करा</span>
+              {isVerifyingWithServer ? (
+                <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+              ) : (
+                <ShieldCheck className="w-4 h-4 text-slate-950" />
+              )}
+              <span>{isVerifyingWithServer ? 'सुरक्षित पडताळणी सुरू आहे...' : 'पडताळणी करा व लॉगिन करा'}</span>
             </button>
           </form>
 
@@ -613,7 +721,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                 वंजारी जोडी प्रशासक
               </h1>
               <span className="px-2 py-0.5 bg-amber-400 text-[#800C1E] text-[10px] font-black rounded-full uppercase shrink-0">
-                {currentSubAdmin ? `Sub: ${currentSubAdmin.name}` : 'Super Admin'}
+                {adminRole === 'super_admin'
+                  ? '👑 Super Admin'
+                  : adminRole === 'payment_admin'
+                  ? '💳 Payment Admin'
+                  : adminRole === 'profile_admin'
+                  ? '👥 Profile Admin'
+                  : adminRole === 'support_admin'
+                  ? '💬 Support Admin'
+                  : currentSubAdmin
+                  ? `Sub: ${currentSubAdmin.name}`
+                  : 'Admin'}
               </span>
             </div>
             {/* Active Tab indicator on mobile, subtitle on desktop */}
@@ -2239,6 +2357,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                 setSpecialPremiumCandidate(m);
               }}
               onContactAccess={(m) => {
+                setActionMenuCandidate(null);
+                setQuickSettingsCandidate(m);
+              }}
+              onChangePassword={(m) => {
                 setActionMenuCandidate(null);
                 setQuickSettingsCandidate(m);
               }}

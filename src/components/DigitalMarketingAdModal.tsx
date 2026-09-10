@@ -19,7 +19,8 @@ import {
   Megaphone,
   Smartphone,
   Layers,
-  Crown
+  Crown,
+  Send
 } from 'lucide-react';
 import { VanjariJodiLogo } from './VanjariJodiLogo';
 
@@ -109,8 +110,8 @@ Search thousands of verified Vanjari Brides & Grooms across IT, Engineering, Med
     setTimeout(() => setCopiedIndex(null), 2500);
   };
 
-  const handleShareWhatsApp = (text: string) => {
-    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+  const handleShareTelegram = (text: string) => {
+    const url = `https://t.me/share/url?url=${encodeURIComponent('https://vanjarijodi.web.app')}&text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
 
@@ -272,16 +273,16 @@ Search thousands of verified Vanjari Brides & Grooms across IT, Engineering, Med
                     <span>व्हॉट्सॲप स्टेट्सवर जाहिरात कशी करावी?</span>
                   </h4>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    हे पोस्टर थेट तुमच्या व्हॉट्सॲप स्टेट्सवर, फेसबुक स्टोरीवर किंवा वंजारी समाजातील ग्रुप्समध्ये शेअर करून अधिक स्थळांची माहिती मिळवा.
+                    हे पोस्टर थेट तुमच्या टेलिग्राम चॅनेलवर, टेलिग्राम ग्रुप्समध्ये किंवा सोशल मीडियावर शेअर करून अधिक स्थळांची माहिती मिळवा.
                   </p>
 
                   <div className="pt-2 flex flex-col gap-2.5">
                     <button
-                      onClick={() => handleShareWhatsApp(adCopies[0].text)}
-                      className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all active:scale-95"
+                      onClick={() => handleShareTelegram(adCopies[0].text)}
+                      className="w-full py-3 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all active:scale-95"
                     >
-                      <MessageCircle className="w-4 h-4" />
-                      <span>व्हॉट्सॲपवर त्वरित शेअर करा (Direct WhatsApp Share)</span>
+                      <Send className="w-4 h-4" />
+                      <span>टेलिग्रामवर त्वरित शेअर करा (Direct Telegram Share)</span>
                     </button>
 
                     <button
@@ -348,11 +349,11 @@ Search thousands of verified Vanjari Brides & Grooms across IT, Engineering, Med
                   </p>
 
                   <button
-                    onClick={() => handleShareWhatsApp(adCopies[1].text)}
-                    className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all"
+                    onClick={() => handleShareTelegram(adCopies[1].text)}
+                    className="w-full py-3 px-4 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all"
                   >
-                    <MessageCircle className="w-4 h-4" />
-                    <span>व्हॉट्सॲपवर जाहिरात पाठवा</span>
+                    <Send className="w-4 h-4" />
+                    <span>टेलिग्रामवर जाहिरात पाठवा</span>
                   </button>
                 </div>
               </div>
@@ -364,10 +365,10 @@ Search thousands of verified Vanjari Brides & Grooms across IT, Engineering, Med
             <div className="space-y-5 max-w-3xl mx-auto">
               <div className="text-center space-y-1 mb-2">
                 <h3 className="text-base sm:text-lg font-black text-slate-900">
-                  व्हायरल मराठी जाहिरात मजकूर (One-Click WhatsApp Broadcasts)
+                  व्हायरल मराठी जाहिरात मजकूर (One-Click Telegram Broadcasts)
                 </h3>
                 <p className="text-xs text-slate-600">
-                  खालीलपैकी कोणताही मजकूर एका क्लिकवर कॉपी करा किंवा थेट व्हॉट्सॲप ग्रुपमध्ये पाठवा.
+                  खालीलपैकी कोणताही मजकूर एका क्लिकवर कॉपी करा किंवा थेट टेलिग्राम चॅटमध्ये पाठवा.
                 </p>
               </div>
 
@@ -403,11 +404,11 @@ Search thousands of verified Vanjari Brides & Grooms across IT, Engineering, Med
                       </button>
 
                       <button
-                        onClick={() => handleShareWhatsApp(ad.text)}
-                        className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-1.5 cursor-pointer transition-all shadow-sm active:scale-95"
+                        onClick={() => handleShareTelegram(ad.text)}
+                        className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-black text-xs flex items-center gap-1.5 cursor-pointer transition-all shadow-sm active:scale-95"
                       >
-                        <MessageCircle className="w-3.5 h-3.5" />
-                        <span>व्हॉट्सॲपवर पाठवा</span>
+                        <Send className="w-3.5 h-3.5" />
+                        <span>टेलिग्रामवर पाठवा</span>
                       </button>
                     </div>
                   </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, Save, Trash2, Camera, Award, Shield, AlertCircle, Loader2, 
   FileText, CheckCircle2, Eye, ExternalLink, Sparkles, UserCheck, Check, ShieldCheck, Download,
-  Tag, Plus, Bell, MessageCircle, Cloud, Upload
+  Tag, Plus, Bell, MessageCircle, Cloud, Upload, Send
 } from 'lucide-react';
 import { UserProfile, Gender, MaritalStatus, MembershipTier } from '../types';
 import { uploadToCloudinary, compressAndResizeImage } from '../utils/cloudinary';
@@ -37,7 +37,7 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
   onSave,
   canEdit = true,
 }) => {
-  const { trashPhoto, sendPushNotification } = useApp();
+  const { trashPhoto, sendPushNotification, siteConfig } = useApp();
   const [activeSubTab, setActiveSubTab] = useState<
     'personal' | 'astrology' | 'location' | 'education' | 'family' | 'documents' | 'badge'
   >('personal');
@@ -318,9 +318,8 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
     });
   };
 
-  const handleSendWhatsAppPhotoRequest = () => {
+  const handleSendTelegramPhotoRequest = () => {
     if (!profile) return;
-    const cleanMobile = (mobile || profile.mobile || '').replace(/\D/g, '');
     const currentCount = photos.length;
     const text = encodeURIComponent(
       `नमस्कार ${fullName || profile.fullName},\n\n` +
@@ -329,8 +328,9 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
       `इतर सदस्यांकडून १००% उत्तम प्रतिसाद मिळण्यासाठी व बायोडाटा परिपूर्ण दिसण्यासाठी कृपया किमान ५ सुंदर फोटो आपल्या प्रोफाइलवर नक्की अपलोड करावेत.\n\n` +
       `फोटो अपलोड करण्यासाठी लिंक: https://vanjarijodi.web.app/dashboard`
     );
-    window.open(`https://wa.me/91${cleanMobile}?text=${text}`, '_blank');
-    setPhotoReqSentMsg('✅ सदस्याच्या व्हॉट्सॲपवर फोटो मागणीचा मेसेज उघडला आहे!');
+    const targetTg = (profile.telegramUsername || siteConfig?.telegramUsername || 'Primemultiservice').replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '');
+    window.open(`https://t.me/${targetTg}?text=${text}`, '_blank');
+    setPhotoReqSentMsg('✅ सदस्याच्या टेलिग्रामवर फोटो मागणीचा मेसेज उघडला आहे!');
   };
 
   const handleSendInAppPhotoRequest = () => {
@@ -1209,11 +1209,11 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
-                        onClick={handleSendWhatsAppPhotoRequest}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow flex items-center gap-1 cursor-pointer transition-transform active:scale-95"
+                        onClick={handleSendTelegramPhotoRequest}
+                        className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white font-black text-xs rounded-xl shadow flex items-center gap-1 cursor-pointer transition-transform active:scale-95"
                       >
-                        <MessageCircle className="w-3.5 h-3.5 text-white" />
-                        <span>💬 व्हॉट्सॲप मेसेज</span>
+                        <Send className="w-3.5 h-3.5 text-white" />
+                        <span>💬 टेलिग्राम मेसेज</span>
                       </button>
                       <button
                         type="button"

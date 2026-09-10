@@ -11,7 +11,8 @@ import {
   Sparkles,
   ArrowRight,
   ShieldCheck,
-  Zap
+  Zap,
+  Send
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import { useApp } from '../context/AppContext';
@@ -19,7 +20,6 @@ import {
   getCleanReferralCode,
   getReferralShareLink,
   getReferralWhatsAppMessage,
-  openWhatsAppChat
 } from '../utils/referralUtils';
 
 interface ReferralShareModalProps {
@@ -67,9 +67,9 @@ export const ReferralShareModal: React.FC<ReferralShareModalProps> = ({
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  const handleShareWhatsApp = () => {
+  const handleShareTelegram = () => {
     const msg = getReferralWhatsAppMessage(activeUser.fullName, referralCode);
-    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+    const url = `https://t.me/share/url?url=${encodeURIComponent(shareLink)}&text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
   };
 
@@ -147,14 +147,14 @@ export const ReferralShareModal: React.FC<ReferralShareModalProps> = ({
             </div>
           </div>
 
-          {/* Direct WhatsApp Share Button - High Contrast & Catchy */}
+          {/* Direct Telegram Share Button - High Contrast & Catchy */}
           <button
             type="button"
-            onClick={handleShareWhatsApp}
-            className="w-full py-3.5 px-4 rounded-2xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-black text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-500/25 transition-all transform active:scale-[0.98] cursor-pointer"
+            onClick={handleShareTelegram}
+            className="w-full py-3.5 px-4 rounded-2xl bg-[#229ED9] hover:bg-[#1e8ec3] text-white font-black text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-sky-500/25 transition-all transform active:scale-[0.98] cursor-pointer"
           >
-            <MessageCircle className="w-5 h-5" />
-            <span>📲 व्हॉट्सॲपवर मित्रांना व ग्रुपवर शेअर करा</span>
+            <Send className="w-5 h-5" />
+            <span>📲 टेलिग्रामवर मित्रांना व ग्रुपवर शेअर करा</span>
           </button>
 
           {/* Direct Link Share Row */}

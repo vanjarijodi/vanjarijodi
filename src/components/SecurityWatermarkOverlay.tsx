@@ -133,18 +133,27 @@ export const SecurityWatermarkOverlay: React.FC<SecurityWatermarkOverlayProps> =
 
       {/* SCREENSHOT WARNING OVERLAY POPUP */}
       {screenshotDetected && showWarningAlert && (
-        <div className="absolute inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-4 text-center text-white animate-fadeIn">
-          <div className="w-12 h-12 bg-rose-600 rounded-full flex items-center justify-center mb-2 shadow-lg animate-bounce">
-            <ShieldAlert className="w-7 h-7 text-amber-200" />
+        <div className="fixed inset-0 z-[999] bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-5 text-center text-white animate-fadeIn">
+          <div className="w-14 h-14 bg-rose-600 rounded-full flex items-center justify-center mb-3 shadow-lg animate-bounce">
+            <ShieldAlert className="w-8 h-8 text-amber-200" />
           </div>
-          <h4 className="text-sm sm:text-base font-black text-amber-300">
-            🚨 स्क्रीनशॉट घेण्यास मनाई आहे! (Screenshot Prevented)
+          <h4 className="text-base sm:text-lg font-black text-amber-300">
+            🚨 स्क्रीनशॉट व डाऊनलोड घेण्यास सक्त मनाई आहे!
           </h4>
-          <p className="text-xs text-slate-200 font-bold mt-1 max-w-sm leading-relaxed">
-            या फोटोवर तुमचा नाव व मोबाईल नंबर (<span className="text-amber-300">{viewerName} - {viewerMobile}</span>) वॉटरमार्क केला आहे. हा फोटो व्हायरल केल्यास थेट तुमची आयडी ट्रॅक होईल.
+          <p className="text-xs sm:text-sm text-slate-200 font-bold mt-2 max-w-md leading-relaxed">
+            गोपनीयतेच्या कडक नियमांनुसार दुसऱ्या सदस्यांचा बायोडाटा सेव्ह, डाऊनलोड, स्क्रीनशॉट किंवा शेअर करता येत नाही. या स्क्रीनवर आपले नाव व मोबाईल क्रमांक (<span className="text-amber-300">{viewerName} • {viewerMobile}</span>) वॉटरमार्क केलेला आहे.
           </p>
-          <div className="mt-3 px-3 py-1 bg-amber-400 text-slate-950 font-black text-[10px] rounded-lg shadow">
-            सुरक्षितता नियम • VanjariJodi Protection Engine
+          <div className="mt-4 flex items-center gap-2">
+            <span className="px-3.5 py-1.5 bg-amber-400 text-slate-950 font-black text-[11px] rounded-xl shadow-md">
+              🔒 सुरक्षितता नियम • VanjariJodi Protection Engine
+            </span>
+            <button
+              type="button"
+              onClick={() => setScreenshotDetected(false)}
+              className="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-200 font-black text-[11px] rounded-xl border border-white/20 cursor-pointer"
+            >
+              समजले (OK)
+            </button>
           </div>
         </div>
       )}

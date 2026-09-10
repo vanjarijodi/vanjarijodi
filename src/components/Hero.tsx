@@ -18,10 +18,12 @@ import {
   Stethoscope,
   Send,
   Eye,
-  ShieldCheck
+  ShieldCheck,
+  Crown
 } from 'lucide-react';
 import { MAHARASHTRA_DISTRICTS } from '../data/initialData';
 import { transliterateMarathiToEnglish } from '../utils/transliterate';
+import { ModernProfileCard } from './ModernProfileCard';
 
 export const Hero: React.FC = () => {
   const {
@@ -119,7 +121,7 @@ export const Hero: React.FC = () => {
         <div className="absolute top-1/2 -right-24 w-80 h-80 rounded-full bg-amber-400/15 blur-3xl" />
       </div>
 
-      <div className="relative z-10 max-w-4xl mx-auto px-3 sm:px-4 space-y-4">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
         
         {/* ========================================================================= */}
         {/* 1. SINGLE UNIFIED PREMIUM HERO CARD                                      */}
@@ -398,8 +400,8 @@ export const Hero: React.FC = () => {
               </div>
             </button>
 
-            {/* Action 2: Wedding Vendor Network */}
-            {isVendorsEnabled && (
+            {/* Action 2: Wedding Vendor Network (Only for non-logged-in visitors) */}
+            {!currentUser && isVendorsEnabled && (
               <button
                 type="button"
                 onClick={() => setIsBusinessVendorDirectoryOpen(true)}
@@ -454,6 +456,36 @@ export const Hero: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {/* ========================================================================= */}
+        {/* 6. RECOMMENDED PROFILES GRID (DESKTOP HOME FEATURED PROFILES)            */}
+        {/* ========================================================================= */}
+        {currentUser && profiles && profiles.length > 0 && (
+          <div className="w-full space-y-4 pt-2">
+            <div className="flex items-center justify-between border-b border-amber-200/80 pb-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-amber-600 animate-pulse" />
+                <h2 className="font-black text-lg sm:text-xl text-slate-900">
+                  {isEn ? 'Recommended Matrimony Matches' : 'शिफारस केलेली प्रमुख वधू-वर स्थळे'}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCurrentView('profiles')}
+                className="px-3.5 py-1.5 rounded-xl bg-[#800C1E] hover:bg-[#A71930] text-amber-100 font-bold text-xs flex items-center gap-1 transition-all active:scale-95 cursor-pointer shadow-xs"
+              >
+                <span>{isEn ? 'View All Matches' : 'सर्व स्थळे पहा'} ({profiles.length})</span>
+                <ChevronRight className="w-4 h-4 text-amber-300" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+              {profiles.slice(0, 8).map((profile) => (
+                <ModernProfileCard key={profile.id} profile={profile} />
+              ))}
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

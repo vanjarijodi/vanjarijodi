@@ -158,26 +158,16 @@ export const ChatModal: React.FC<{
 
           <div className="flex items-center gap-1.5 shrink-0">
             {isAllowedToChat && (
-              <>
-                <a
-                  href={`tel:${user.mobile}`}
-                  className="p-2 rounded-full hover:bg-white/10 text-amber-200 transition-colors"
-                  title="फोन करा"
-                >
-                  <PhoneCall className="w-4 h-4" />
-                </a>
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    setActiveVideoUser(user);
-                  }}
-                  className="p-2 rounded-full hover:bg-white/10 text-amber-200 transition-colors cursor-pointer"
-                  title="व्हिडिओ कॉल"
-                >
-                  <Video className="w-4 h-4" />
-                </button>
-              </>
+              <a
+                href={`https://t.me/${user.telegramUsername || siteConfig?.telegramUsername || 'Primemultiservice'}`}
+                target="_blank"
+                rel="noreferrer"
+                className="p-2 rounded-full hover:bg-white/10 text-sky-200 transition-colors flex items-center gap-1"
+                title="टेलिग्राम चॅट"
+              >
+                <Send className="w-4 h-4" />
+                <span className="text-[10px] font-bold hidden sm:inline">टेलिग्राम चॅट</span>
+              </a>
             )}
             <button
               type="button"
