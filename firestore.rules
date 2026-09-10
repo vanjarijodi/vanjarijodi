@@ -115,6 +115,25 @@ service cloud.firestore {
     match /businessVendors/{vendorId} {
       allow read: if resource.data.status == 'approved' || isAdmin();
       allow create: if true;
+      allow update: if (isAuthenticated() && resource.data.id == request.auth.uid && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'vendorBasePrice', 'platformMargin', 'customerPrice'])) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /business_vendors/{vendorId} {
+      allow read: if resource.data.status == 'approved' || isAdmin();
+      allow create: if true;
+      allow update: if (isAuthenticated() && resource.data.id == request.auth.uid && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'vendorBasePrice', 'platformMargin', 'customerPrice'])) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /vendor_activity_logs/{logId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /vendor_inquiries/{inquiryId} {
+      allow read: if isAuthenticated() || isAdmin();
+      allow create: if true;
       allow update, delete: if isAdmin();
     }
 

@@ -109,6 +109,7 @@ const MainAppContent: React.FC = () => {
     isAppShareOpen,
     setIsAppShareOpen,
     language,
+    vendorSettings,
   } = useApp();
 
   const { showExitToast } = useAndroidBackHandler();
@@ -262,13 +263,13 @@ const MainAppContent: React.FC = () => {
         />
 
         {/* Business Vendor Directory, Registration & Portal Modals */}
-        {isBusinessVendorDirectoryOpen && (
+        {isBusinessVendorDirectoryOpen && (vendorSettings?.enableVendorModule !== false) && (
           <BusinessVendorDirectoryModal onClose={() => setIsBusinessVendorDirectoryOpen(false)} />
         )}
-        {isBusinessVendorRegisterModalOpen && (
+        {isBusinessVendorRegisterModalOpen && (vendorSettings?.enableVendorModule !== false) && (
           <BusinessVendorRegisterModal onClose={() => setIsBusinessVendorRegisterModalOpen(false)} />
         )}
-        {isVendorPortalOpen && (
+        {isVendorPortalOpen && (vendorSettings?.enableVendorModule !== false) && (
           <BusinessVendorPortalModal onClose={() => setIsVendorPortalOpen(false)} />
         )}
 

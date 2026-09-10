@@ -7,7 +7,24 @@ import {
   onSnapshot,
   getDocs
 } from 'firebase/firestore';
-import { UserProfile, SiteConfig, ChatMessage, SuccessStory, PaymentRequest, ContactRequest, AdminSupportMessage, NotificationItem, PaymentConfig, Plan, BusinessVendor } from '../types';
+import { UserProfile, SiteConfig, ChatMessage, SuccessStory, PaymentRequest, ContactRequest, AdminSupportMessage, NotificationItem, PaymentConfig, Plan, BusinessVendor, VendorSettings, VendorActivityLog } from '../types';
+
+export const DEFAULT_VENDOR_SETTINGS: VendorSettings = {
+  enableVendorModule: true,
+  vendorBusinessMode: 'information_collection_only',
+  enableVendorDirectory: true,
+  enableVendorBooking: false,
+  enableVendorEnquiry: false,
+  enableVendorCustomerPricing: false,
+  enableVendorPayment: false,
+  enableVendorPublicMobile: true,
+  enableVendorPublicWhatsapp: true,
+  enableVendorPublicAddress: true,
+  enableVendorPublicRates: false,
+  enableVendorPdf: true,
+  enableVendorRegistration: true,
+  updatedAt: new Date().toISOString()
+};
 
 export const DEFAULT_PAYMENT_CONFIG: PaymentConfig = {
   upiId: 'paytm.s3ms5x7@pty',
@@ -367,6 +384,86 @@ export const listenToBusinessVendors = (
     });
   } catch (err) {
     console.warn('Firestore listen error for business_vendors:', err);
+    return () => {};
+  }
+};
+
+// Real-time Vendor Settings listener (Doc: siteConfig/vendorSettings)
+export const listenToVendorSettings = (
+  onUpdate: (settings: VendorSettings) => void
+) => {
+  try {
+    const docRef = doc(db, 'siteConfig', 'vendorSettings');
+    return onSnapshot(docRef, async (snapshot) => {
+      if (!snapshot.exists()) {
+        await syncDocToFirestore('siteConfig', 'vendorSettings', DEFAULT_VENDOR_SETTINGS);
+        await syncDocToFirestore('settings', 'vendor_config', DEFAULT_VENDOR_SETTINGS);
+        onUpdate(DEFAULT_VENDOR_SETTINGS);
+      } else {
+        const data = snapshot.data() as VendorSettings;
+        const merged: VendorSettings = {
+          ...DEFAULT_VENDOR_SETTINGS,
+          ...data
+        };
+        onUpdate(merged);
+      }
+    }, (err) => {
+      console.warn('Firestore snapshot error for vendorSettings:', err);
+    });
+  } catch (err) {
+    console.warn('Firestore listen error for vendorSettings:', err);
+    return () => {};
+  }
+};
+
+export const saveVendorSettingsToFirestore = async (settings: VendorSettings): Promise<boolean> => {
+  try {
+    const cleanSettings: VendorSettings = {
+      ...settings,
+      updatedAt: new Date().toISOString()
+    };
+
+    await syncDocToFirestore('siteConfig', 'vendorSettings', cleanSettings);
+    await syncDocToFirestore('settings', 'vendor_config', cleanSettings);
+    await syncDocToFirestore('siteConfig', 'mainConfig', {
+      enableBusinessVendors: cleanSettings.enableVendorModule,
+      vendorSettings: cleanSettings
+    });
+
+    try {
+      localStorage.setItem('vanjari_jodi_vendor_settings', JSON.stringify(cleanSettings));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('vendor_settings_updated', { detail: cleanSettings }));
+      }
+    } catch (e) {}
+
+    return true;
+  } catch (err) {
+    console.error('Error saving vendor settings to Firestore:', err);
+    return false;
+  }
+};
+
+export const listenToVendorActivityLogs = (
+  onUpdate: (logs: VendorActivityLog[]) => void
+) => {
+  try {
+    const colRef = collection(db, 'vendor_activity_logs');
+    return onSnapshot(colRef, (snapshot) => {
+      const items: VendorActivityLog[] = [];
+      snapshot.forEach((d) => {
+        const data = d.data() as VendorActivityLog;
+        if (data && data.id) {
+          items.push(data);
+        }
+      });
+      items.sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
+      onUpdate(items);
+    }, (err) => {
+      console.warn('Firestore snapshot error for vendor_activity_logs:', err);
+    });
+  } catch (err) {
+    console.warn('Firestore listen error for vendor_activity_logs:', err);
     return () => {};
   }
 };

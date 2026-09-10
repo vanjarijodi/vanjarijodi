@@ -45,6 +45,7 @@ import { useApp } from '../context/AppContext';
 import { uploadToCloudinary } from '../utils/cloudinary';
 import { AdminOcrKeyManager } from './AdminOcrKeyManager';
 import { VanjariJodiLogo } from './VanjariJodiLogo';
+import { AdminVendorManagementCenter } from './AdminVendorManagementCenter';
 
 export const AdminMasterSettingsCenter: React.FC = () => {
   const { siteConfig, updateSiteConfig, currentSubAdmin } = useApp();
@@ -275,6 +276,16 @@ export const AdminMasterSettingsCenter: React.FC = () => {
               }`}
             >
               🔍 SEO व इंडेक्सिंग
+            </button>
+            <button
+              onClick={() => setSelectedCategory('vendor')}
+              className={`px-3 py-2 rounded-xl whitespace-nowrap cursor-pointer transition ${
+                selectedCategory === 'vendor'
+                  ? 'bg-amber-400 text-amber-950 font-black'
+                  : 'bg-white/10 text-amber-100 hover:bg-white/20'
+              }`}
+            >
+              🏢 व्हेंडर मॉड्यूल्स मास्टर कंट्रोल
             </button>
             <button
               onClick={() => setSelectedCategory('ocr_ai')}
@@ -3380,6 +3391,13 @@ export const AdminMasterSettingsCenter: React.FC = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 🏢 TAB: VENDOR MANAGEMENT & MASTER CONTROL CENTER */}
+      {(selectedCategory === 'all' || selectedCategory === 'vendor') && (
+        <div className="pt-2">
+          <AdminVendorManagementCenter />
         </div>
       )}
 

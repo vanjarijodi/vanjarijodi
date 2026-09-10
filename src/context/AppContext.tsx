@@ -40,7 +40,9 @@ import {
   VendorBookingInquiry,
   PaymentConfig,
   MemberIdRequest,
-  BioDataSubmission
+  BioDataSubmission,
+  VendorSettings,
+  VendorActivityLog
 } from '../types';
 import { triggerBrowserPushNotification, playNotificationSound } from '../utils/pushNotificationHelper';
 import { hashPassword, verifyPassword, isBcryptHash } from '../utils/passwordSecurity';
@@ -76,6 +78,10 @@ import {
   listenToPlans,
   savePlansToFirestore,
   listenToBusinessVendors,
+  listenToVendorSettings,
+  saveVendorSettingsToFirestore,
+  DEFAULT_VENDOR_SETTINGS,
+  listenToVendorActivityLogs,
   DEFAULT_PAYMENT_CONFIG
 } from '../utils/firestoreSync';
 
@@ -427,6 +433,18 @@ interface AppContextType {
   convertBioDataToMember: (submissionId: string) => void;
   deleteBioDataSubmission: (submissionId: string) => void;
   businessVendors: BusinessVendor[];
+  vendorSettings: VendorSettings;
+  updateVendorSettings: (newSettings: Partial<VendorSettings>) => Promise<boolean>;
+  vendorActivityLogs: VendorActivityLog[];
+  logVendorActivity: (
+    action: VendorActivityLog['action'],
+    actionLabel: string,
+    details: string,
+    vendorId?: string,
+    businessName?: string,
+    oldValue?: string,
+    newValue?: string
+  ) => void;
   isBusinessVendorDirectoryOpen: boolean;
   setIsBusinessVendorDirectoryOpen: (open: boolean) => void;
   isBusinessVendorRegisterModalOpen: boolean;
@@ -436,8 +454,11 @@ interface AppContextType {
   currentVendorUser: BusinessVendor | null;
   setCurrentVendorUser: (vendor: BusinessVendor | null) => void;
   vendorBookingInquiries: VendorBookingInquiry[];
-  addBusinessVendor: (vendor: Omit<BusinessVendor, 'id' | 'createdAt' | 'status'> & { status?: 'pending' | 'approved' | 'rejected' }) => void;
-  updateBusinessVendorStatus: (id: string, status: 'approved' | 'rejected') => void;
+  addBusinessVendor: (vendor: Omit<BusinessVendor, 'id' | 'createdAt' | 'status'> & { status?: 'pending' | 'approved' | 'rejected' | 'suspended' }) => void;
+  updateBusinessVendorStatus: (id: string, status: 'approved' | 'rejected' | 'suspended') => void;
+  approveBusinessVendor: (id: string) => void;
+  rejectBusinessVendor: (id: string, reason?: string) => void;
+  suspendBusinessVendor: (id: string, reason?: string) => void;
   deleteBusinessVendor: (id: string) => void;
   addCustomVendorCategory: (categoryName: string) => void;
   toggleVendorBookedDate: (vendorId: string, dateStr: string) => void;
@@ -5297,6 +5318,74 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return saved ? JSON.parse(saved) : null;
   });
 
+  // Master Vendor Settings State
+  const [vendorSettings, setVendorSettings] = useState<VendorSettings>(() => {
+    const saved = localStorage.getItem('vanjari_jodi_vendor_settings');
+    if (saved) {
+      try {
+        return { ...DEFAULT_VENDOR_SETTINGS, ...JSON.parse(saved) };
+      } catch (e) {}
+    }
+    return DEFAULT_VENDOR_SETTINGS;
+  });
+
+  const [vendorActivityLogs, setVendorActivityLogs] = useState<VendorActivityLog[]>([]);
+
+  useEffect(() => {
+    const unsub = listenToVendorSettings((newSettings) => {
+      setVendorSettings(newSettings);
+    });
+    return () => {
+      if (unsub) unsub();
+    };
+  }, []);
+
+  useEffect(() => {
+    const unsub = listenToVendorActivityLogs((newLogs) => {
+      setVendorActivityLogs(newLogs);
+    });
+    return () => {
+      if (unsub) unsub();
+    };
+  }, []);
+
+  const updateVendorSettings = async (newSettings: Partial<VendorSettings>): Promise<boolean> => {
+    const merged = { ...vendorSettings, ...newSettings };
+    setVendorSettings(merged);
+    const success = await saveVendorSettingsToFirestore(merged);
+    logVendorActivity(
+      'vendor_settings_changed',
+      'व्हेंडर सेटिंग्ज अपडेट केली',
+      `मास्टर टॉगल किंवा पर्याय अद्ययावत केले.`
+    );
+    return success;
+  };
+
+  const logVendorActivity = (
+    action: VendorActivityLog['action'],
+    actionLabel: string,
+    details: string,
+    vendorId?: string,
+    businessName?: string,
+    oldValue?: string,
+    newValue?: string
+  ) => {
+    const log: VendorActivityLog = {
+      id: 'valog-' + Date.now() + '-' + Math.random().toString(36).substring(2, 6),
+      timestamp: new Date().toISOString(),
+      adminUsername: currentSubAdmin?.username || 'admin',
+      action,
+      actionLabel,
+      details,
+      vendorId,
+      businessName,
+      oldValue,
+      newValue
+    };
+    setVendorActivityLogs((prev) => [log, ...prev]);
+    syncDocToFirestore('vendor_activity_logs', log.id, log);
+  };
+
   const [vendorBookingInquiries, setVendorBookingInquiries] = useState<VendorBookingInquiry[]>(() => {
     const saved = localStorage.getItem('vanjari_jodi_vendor_inquiries');
     return saved ? JSON.parse(saved) : [];
@@ -5330,7 +5419,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.setItem('vanjari_jodi_vendor_inquiries', JSON.stringify(vendorBookingInquiries));
   }, [vendorBookingInquiries]);
 
-  const addBusinessVendor = (vendorData: Omit<BusinessVendor, 'id' | 'createdAt' | 'status'> & { status?: 'pending' | 'approved' | 'rejected' }) => {
+  const addBusinessVendor = (vendorData: Omit<BusinessVendor, 'id' | 'createdAt' | 'status'> & { status?: 'pending' | 'approved' | 'rejected' | 'suspended' }) => {
     const newVendor: BusinessVendor = {
       ...vendorData,
       id: 'ven-' + Date.now(),
@@ -5342,20 +5431,95 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setBusinessVendors((prev) => [newVendor, ...prev]);
     syncDocToFirestore('business_vendors', newVendor.id, newVendor);
+    logVendorActivity(
+      'vendor_created',
+      'नवीन व्हेंडर नोंदणी',
+      `नवीन व्यवसाय नोंदणी अर्ज: ${newVendor.businessName} (${newVendor.category}) (Status: ${newVendor.status})`,
+      newVendor.id,
+      newVendor.businessName
+    );
     logActivity('Business Vendor Registration', `नवीन व्यवसाय नोंदणी अर्ज: ${newVendor.businessName} (${newVendor.category}) (Status: ${newVendor.status})`);
   };
 
-  const updateBusinessVendorStatus = (id: string, status: 'approved' | 'rejected') => {
+  const updateBusinessVendorStatus = (id: string, status: 'approved' | 'rejected' | 'suspended') => {
+    if (status === 'approved') approveBusinessVendor(id);
+    else if (status === 'rejected') rejectBusinessVendor(id);
+    else if (status === 'suspended') suspendBusinessVendor(id);
+  };
+
+  const approveBusinessVendor = (id: string) => {
+    const target = businessVendors.find((v) => v.id === id);
+    const now = new Date().toISOString();
     setBusinessVendors((prev) =>
-      prev.map((v) => (v.id === id ? { ...v, status } : v))
+      prev.map((v) => (v.id === id ? { ...v, status: 'approved', approvedAt: now, updatedAt: now } : v))
     );
-    syncDocToFirestore('business_vendors', id, { status });
-    logActivity('Update Vendor Status', `व्यवसाय स्टेटस बदलले: ID ${id} -> ${status}`);
+    syncDocToFirestore('business_vendors', id, { status: 'approved', approvedAt: now, updatedAt: now });
+    logVendorActivity(
+      'vendor_approved',
+      'व्हेंडर मंजूर केला',
+      `व्यवसाय मंजूर करण्यात आला: ${target?.businessName || id}`,
+      id,
+      target?.businessName
+    );
+  };
+
+  const rejectBusinessVendor = (id: string, reason?: string) => {
+    const target = businessVendors.find((v) => v.id === id);
+    const now = new Date().toISOString();
+    setBusinessVendors((prev) =>
+      prev.map((v) =>
+        v.id === id ? { ...v, status: 'rejected', rejectionReason: reason || 'योग्य निकष न बसल्यामुळे', rejectedAt: now, updatedAt: now } : v
+      )
+    );
+    syncDocToFirestore('business_vendors', id, {
+      status: 'rejected',
+      rejectionReason: reason || 'योग्य निकष न बसल्यामुळे',
+      rejectedAt: now,
+      updatedAt: now
+    });
+    logVendorActivity(
+      'vendor_rejected',
+      'व्हेंडर नाकारला',
+      `व्यवसाय नाकारण्यात आला: ${target?.businessName || id} (कारण: ${reason || 'N/A'})`,
+      id,
+      target?.businessName
+    );
+  };
+
+  const suspendBusinessVendor = (id: string, reason?: string) => {
+    const target = businessVendors.find((v) => v.id === id);
+    const now = new Date().toISOString();
+    setBusinessVendors((prev) =>
+      prev.map((v) =>
+        v.id === id ? { ...v, status: 'suspended', suspendedReason: reason || 'प्रशासकीय कारणास्तव स्थगित', suspendedAt: now, updatedAt: now } : v
+      )
+    );
+    syncDocToFirestore('business_vendors', id, {
+      status: 'suspended',
+      suspendedReason: reason || 'प्रशासकीय कारणास्तव स्थगित',
+      suspendedAt: now,
+      updatedAt: now
+    });
+    logVendorActivity(
+      'vendor_suspended',
+      'व्हेंडर निलंबित केला',
+      `व्यवसाय निलंबित केला: ${target?.businessName || id} (कारण: ${reason || 'N/A'})`,
+      id,
+      target?.businessName
+    );
   };
 
   const deleteBusinessVendor = (id: string) => {
+    const target = businessVendors.find((v) => v.id === id);
     setBusinessVendors((prev) => prev.filter((v) => v.id !== id));
     deleteDocFromFirestore('business_vendors', id);
+    logVendorActivity(
+      'vendor_deleted',
+      'व्हेंडर हटवला',
+      `व्यवसाय नोंदणी कायमची हटवली: ${target?.businessName || id}`,
+      id,
+      target?.businessName
+    );
     logActivity('Delete Vendor', `व्यवसाय नोंदणी हटवली: ID ${id}`);
   };
 
@@ -5722,6 +5886,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         convertBioDataToMember,
         deleteBioDataSubmission,
         businessVendors,
+        vendorSettings,
+        updateVendorSettings,
+        vendorActivityLogs,
+        logVendorActivity,
         isBusinessVendorDirectoryOpen,
         setIsBusinessVendorDirectoryOpen,
         isBusinessVendorRegisterModalOpen,
@@ -5733,6 +5901,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         vendorBookingInquiries,
         addBusinessVendor,
         updateBusinessVendorStatus,
+        approveBusinessVendor,
+        rejectBusinessVendor,
+        suspendBusinessVendor,
         deleteBusinessVendor,
         addCustomVendorCategory,
         toggleVendorBookedDate,

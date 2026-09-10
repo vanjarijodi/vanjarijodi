@@ -719,19 +719,60 @@ export interface PendingLike {
   status: 'pending' | 'approved' | 'rejected';
 }
 
+export interface VendorSettings {
+  enableVendorModule: boolean;
+  vendorBusinessMode: 'information_collection_only' | 'full_services';
+  enableVendorDirectory: boolean;
+  enableVendorBooking: boolean;
+  enableVendorEnquiry: boolean;
+  enableVendorCustomerPricing: boolean;
+  enableVendorPayment: boolean;
+  enableVendorPublicMobile: boolean;
+  enableVendorPublicWhatsapp: boolean;
+  enableVendorPublicAddress: boolean;
+  enableVendorPublicRates: boolean;
+  enableVendorPdf: boolean;
+  enableVendorRegistration: boolean;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+export interface VendorActivityLog {
+  id: string;
+  timestamp: string;
+  adminUsername: string;
+  action:
+    | 'vendor_created'
+    | 'vendor_edited'
+    | 'vendor_approved'
+    | 'vendor_rejected'
+    | 'vendor_suspended'
+    | 'vendor_deleted'
+    | 'vendor_pricing_changed'
+    | 'vendor_settings_changed';
+  actionLabel: string;
+  vendorId?: string;
+  businessName?: string;
+  details: string;
+  oldValue?: string;
+  newValue?: string;
+}
+
 export interface BusinessVendor {
   id: string;
   businessName: string;
   ownerName: string;
   category: string;
+  subCategory?: string;
   district: string;
   taluka?: string;
+  village?: string;
   address?: string;
   mobile: string;
   whatsapp?: string;
   alternatePhone?: string;
   email?: string;
-  ratesAndPackages: string; // उदा. रु. १५,००० प्रति दिवस / रु. २५० प्रति ताट
+  ratesAndPackages?: string; // उदा. रु. १५,००० प्रति दिवस / रु. २५० प्रति ताट
   hallRentDay?: string; // एका दिवसाचे / १ शिफ्टचे हॉल भाडे
   perPlateRate?: string; // प्रति ताट / जेवणाचे दर
   packageRate?: string; // एकत्रित पॅकेज दर
@@ -749,14 +790,32 @@ export interface BusinessVendor {
   diningHallAvailable?: string; // जेवणाचा स्वतंत्र हॉल
   parkingCapacity?: string; // पार्किंग क्षमता
   amenities?: string[]; // जनरेटर, AC, CCTV, इ.
+  services?: string;
+  facilities?: string;
+  workingDaysTiming?: string;
   googleMapLocation?: string; // गुगल मॅप्स लिंक
   memberDiscount?: string; // उदा. वंजारी जोडी सदस्यांना ५% किंवा १०% डिस्काउंट
   commissionRate?: string; // उदा. ५% कमिशन, १०% कमिशन
+  
+  // Admin-Only Internal Pricing & Margin (Requirement 6 - ADMIN ONLY)
+  vendorBasePrice?: number | string; // Vendor base cost
+  platformMargin?: number | string; // Admin platform margin/commission
+  customerPrice?: number | string; // Customer-facing price (visible only when customer pricing enabled)
+  adminPricingNotes?: string;
+
   photoUrl?: string;
+  photos?: string[];
   pdfUrl?: string; // रेट कार्ड किंवा ब्रोशर PDF
   description?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'suspended';
+  rejectionReason?: string;
+  suspendedReason?: string;
+  adminNotes?: string;
   createdAt: string;
+  updatedAt?: string;
+  approvedAt?: string;
+  rejectedAt?: string;
+  suspendedAt?: string;
   viewsCount?: number;
   bookedDates?: string[]; // YYYY-MM-DD format (उदा. ['2025-11-25', '2025-12-02'])
   pinPassword?: string; // व्हेंडर पोर्टल लॉगिनसाठी पिन/पासवर्ड
@@ -1020,6 +1079,7 @@ export interface SiteConfig {
   enableBusinessVendors?: boolean;
   showVendorContactsToPublic?: boolean;
   customVendorCategories?: string[];
+  vendorSettings?: VendorSettings;
   // Flash / Popup Ad Settings (आकर्षक जाहिरात / पॉपअप फोटो)
   isFlashAdEnabled?: boolean;
   flashAdImageUrl?: string;
