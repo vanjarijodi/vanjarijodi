@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import { uploadToCloudinary, validateFileSize } from '../utils/cloudinary';
 import {
   X,
@@ -48,6 +49,8 @@ export const ContactUnlockModal: React.FC = () => {
   const [launchingApp, setLaunchingApp] = useState<string | null>(null);
   const [isUtrChecking, setIsUtrChecking] = useState(false);
   const [isUtrDuplicate, setIsUtrDuplicate] = useState(false);
+
+  useModalScrollLock(isContactUnlockModalOpen && !!selectedProfileForUnlock);
 
   if (!isContactUnlockModalOpen || !selectedProfileForUnlock) return null;
 
@@ -302,8 +305,8 @@ export const ContactUnlockModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="relative w-full max-w-lg bg-gradient-to-b from-amber-50 via-white to-amber-50 rounded-2xl shadow-2xl border-2 border-amber-300/80 overflow-hidden my-8 animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-0 sm:p-4 overflow-hidden pt-safe pb-safe">
+      <div className="relative w-full h-full sm:h-auto max-w-lg bg-gradient-to-b from-amber-50 via-white to-amber-50 rounded-none sm:rounded-2xl shadow-2xl border-0 sm:border-2 border-amber-300/80 overflow-hidden sm:my-8 animate-in fade-in zoom-in-95 duration-200 flex flex-col">
         
         {/* Header Bar */}
         <div className="bg-gradient-to-r from-[#A71930] via-[#800C1E] to-[#A71930] text-amber-100 px-6 py-4 flex items-center justify-between border-b border-amber-300/30">

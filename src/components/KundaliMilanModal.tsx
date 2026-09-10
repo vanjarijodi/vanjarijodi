@@ -5,6 +5,7 @@ import { MAHARASHTRA_CITIES, findCityCoordinates } from '../data/maharashtraCiti
 import { downloadKundliPdfReport } from '../utils/kundliPdfGenerator';
 import { KundliVerificationModal } from './KundliVerificationModal';
 import { getProfileSurnameOnly } from '../utils/nameFormatter';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import {
   X,
   ArrowLeft,
@@ -332,6 +333,8 @@ export const KundaliMilanModal: React.FC<KundaliMilanModalProps> = ({
     });
   }, [isOpen, candidateProfile?.id]);
 
+  useModalScrollLock(isOpen);
+
   if (!isOpen) return null;
 
   // Execute Kundli Matching Calculation via Official Prokerala API
@@ -536,8 +539,8 @@ export const KundaliMilanModal: React.FC<KundaliMilanModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-4">
-      <div className="bg-[#FFFDF9] w-full max-w-4xl rounded-3xl shadow-2xl border-2 border-amber-300 overflow-hidden flex flex-col max-h-[94vh] animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-hidden pt-safe pb-safe">
+      <div className="bg-[#FFFDF9] w-full h-full sm:h-auto max-w-4xl rounded-none sm:rounded-3xl shadow-2xl border-0 sm:border-2 border-amber-300 overflow-hidden flex flex-col sm:my-auto max-h-none sm:max-h-[94vh] animate-in fade-in zoom-in-95 duration-200">
         
         {/* Modal Header with Prokerala Badge & Back Button */}
         <div className="bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] text-white p-3 sm:p-4 flex items-center justify-between shadow-md border-b border-amber-300/30">

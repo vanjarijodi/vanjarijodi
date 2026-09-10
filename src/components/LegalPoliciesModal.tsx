@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import { X, ShieldCheck, FileText, Lock, RefreshCw, Phone, Mail, MapPin, CheckCircle2, Info, Building, CreditCard, Scale, UserCheck, AlertTriangle, MessageCircle, Clock, Award } from 'lucide-react';
 
 export type PolicyTabType = 'terms' | 'privacy' | 'refund' | 'cancellation' | 'shipping' | 'about' | 'pricing' | 'contact' | 'grievance';
@@ -18,6 +19,8 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
   const { siteConfig, language } = useApp();
   const [activeTab, setActiveTab] = useState<PolicyTabType>(initialTab);
 
+  useModalScrollLock(isOpen);
+
   if (!isOpen) return null;
 
   const isEn = language === 'en';
@@ -35,8 +38,8 @@ export const LegalPoliciesModal: React.FC<LegalPoliciesModalProps> = ({
   const grievanceOfficerAddress = siteConfig?.grievanceOfficerAddress || 'At Post Padali, Taluka Shirur (Kasar), District Beed, Maharashtra - 413249';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-white text-slate-800 w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl border border-amber-300/60 flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 pt-safe pb-safe">
+      <div className="bg-white text-slate-800 w-full h-full sm:h-auto max-w-4xl max-h-none sm:max-h-[90vh] rounded-none sm:rounded-3xl shadow-2xl border-0 sm:border border-amber-300/60 flex flex-col overflow-hidden sm:my-auto">
         
         {/* Header */}
         <div className="bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] px-5 py-4 text-amber-100 flex items-center justify-between shrink-0 border-b-2 border-amber-400">

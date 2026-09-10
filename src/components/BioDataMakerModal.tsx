@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import { safeHtml2Canvas } from '../utils/safeHtml2Canvas';
 import jsPDF from 'jspdf';
 import { uploadToCloudinary, compressAndResizeImage } from '../utils/cloudinary';
@@ -133,6 +134,8 @@ export const BioDataMakerModal: React.FC<{
     linkToPortal: false,
     customFields: [],
   });
+
+  useModalScrollLock(isOpen);
 
   if (!isOpen) return null;
 
@@ -375,8 +378,8 @@ export const BioDataMakerModal: React.FC<{
   const portalWebsiteUrl = siteConfig?.canonicalDomain || 'https://vanjarijodi.web.app';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-6xl bg-slate-950 rounded-3xl border border-amber-500/40 shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/85 backdrop-blur-md overflow-hidden pt-safe pb-safe">
+      <div className="relative w-full h-full sm:h-auto max-w-6xl bg-slate-950 rounded-none sm:rounded-3xl border-0 sm:border border-amber-500/40 shadow-2xl overflow-hidden flex flex-col sm:my-auto max-h-none sm:max-h-[95vh]">
         
         {/* Header Modal Bar */}
         <div className="px-4 sm:px-6 py-3.5 bg-gradient-to-r from-slate-900 via-slate-900 to-amber-950/40 border-b border-amber-500/30 flex items-center justify-between shrink-0">

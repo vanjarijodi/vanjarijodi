@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, ShieldCheck, CheckCircle2, AlertTriangle, Search, QrCode, Scroll, Calendar, User } from 'lucide-react';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 
 interface KundliVerificationModalProps {
   isOpen: boolean;
@@ -29,6 +30,8 @@ export const KundliVerificationModal: React.FC<KundliVerificationModalProps> = (
   );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+
+  useModalScrollLock(isOpen);
 
   if (!isOpen) return null;
 
@@ -62,8 +65,8 @@ export const KundliVerificationModal: React.FC<KundliVerificationModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
-      <div className="bg-[#FFFDF9] w-full max-w-lg rounded-3xl shadow-2xl border-2 border-amber-300 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-0 sm:p-4 pt-safe pb-safe">
+      <div className="bg-[#FFFDF9] w-full h-full sm:h-auto max-w-lg rounded-none sm:rounded-3xl shadow-2xl border-0 sm:border-2 border-amber-300 overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col sm:my-auto max-h-none sm:max-h-[92vh]">
         {/* Header */}
         <div className="bg-gradient-to-r from-[#800C1E] to-[#A71930] text-white p-4 sm:p-5 flex items-center justify-between border-b border-amber-300/30">
           <div className="flex items-center space-x-3">

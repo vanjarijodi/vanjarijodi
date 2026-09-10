@@ -24,6 +24,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { VerifiedBadge } from './VerifiedBadge';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 
 export const LeftDrawer: React.FC = () => {
   const {
@@ -54,14 +55,7 @@ export const LeftDrawer: React.FC = () => {
 
   const [isGoogleLoading, setIsGoogleLoading] = React.useState(false);
 
-  React.useEffect(() => {
-    if (isLeftDrawerOpen) {
-      document.body.style.overflow = 'hidden';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isLeftDrawerOpen]);
+  useModalScrollLock(isLeftDrawerOpen);
 
   if (!isLeftDrawerOpen) return null;
 

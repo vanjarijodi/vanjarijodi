@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { useApp } from '../context/AppContext';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import { MAHARASHTRA_DISTRICTS } from '../data/initialData';
 import {
   X,
@@ -40,14 +41,7 @@ export const RightFilterDrawer: React.FC = () => {
   });
 
   // Lock body scroll when drawer is open
-  React.useEffect(() => {
-    if (isRightDrawerOpen) {
-      document.body.style.overflow = 'hidden';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isRightDrawerOpen]);
+  useModalScrollLock(isRightDrawerOpen);
 
   if (!isRightDrawerOpen) return null;
 

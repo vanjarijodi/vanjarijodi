@@ -5,6 +5,7 @@ import { X, Scale, Heart, Sparkles, MapPin, Briefcase, GraduationCap, Calendar, 
 import { useApp } from '../context/AppContext';
 import { formatProfileDisplayName } from '../utils/nameFormatter';
 import { getPhotoAccessStatus } from '../utils/photoAccess';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 
 interface ProfileCompareModalProps {
   isOpen: boolean;
@@ -36,11 +37,13 @@ export const ProfileCompareModal: React.FC<ProfileCompareModalProps> = ({
     isProfilePlanExpired,
   } = useApp();
 
+  useModalScrollLock(isOpen && profilesToCompare.length > 0);
+
   if (!isOpen || profilesToCompare.length === 0) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-4">
-      <div className="bg-[#FFFDF9] w-full max-w-5xl rounded-3xl shadow-2xl border-2 border-amber-300 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-0 sm:p-4 pt-safe pb-safe">
+      <div className="bg-[#FFFDF9] w-full h-full sm:h-auto max-w-5xl rounded-none sm:rounded-3xl shadow-2xl border-0 sm:border-2 border-amber-300 overflow-hidden flex flex-col sm:my-auto max-h-none sm:max-h-[92vh] animate-in fade-in zoom-in-95 duration-200">
         
         {/* Modal Header */}
         <div className="bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] text-white p-4 sm:p-5 flex items-center justify-between border-b border-amber-300/30">

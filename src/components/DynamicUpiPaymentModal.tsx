@@ -3,6 +3,7 @@ import confetti from 'canvas-confetti';
 import { useApp } from '../context/AppContext';
 import { Plan, MembershipTier } from '../types';
 import { uploadToCloudinary, validateFileSize } from '../utils/cloudinary';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import {
   X,
   ShieldCheck,
@@ -851,11 +852,13 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  useModalScrollLock(isOpen && !!activePlan);
+
   if (!isOpen || !activePlan) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-amber-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm overflow-hidden pt-safe pb-safe">
+      <div className="relative w-full h-full sm:h-auto max-w-2xl bg-white rounded-none sm:rounded-3xl shadow-2xl overflow-hidden border-0 sm:border border-amber-200 flex flex-col sm:my-auto max-h-none sm:max-h-[92vh]">
         {/* Header Ribbon */}
         <div className="bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] text-white px-6 py-5 flex items-center justify-between relative">
           <div className="flex items-center space-x-3">

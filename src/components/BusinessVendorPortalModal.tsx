@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import { BusinessVendor } from '../types';
 import {
   X,
@@ -34,6 +35,8 @@ export const BusinessVendorPortalModal: React.FC<{
     updateVendorBookingInquiryStatus,
     updateVendorDetails
   } = useApp();
+
+  useModalScrollLock(true);
 
   // Login form state
   const [mobileInput, setMobileInput] = useState('');
@@ -111,8 +114,8 @@ export const BusinessVendorPortalModal: React.FC<{
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-3xl bg-slate-900 border border-amber-500/40 rounded-3xl shadow-2xl text-white overflow-hidden my-auto max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-hidden pt-safe pb-safe">
+      <div className="relative w-full h-full sm:h-auto max-w-3xl bg-slate-900 border-0 sm:border border-amber-500/40 rounded-none sm:rounded-3xl shadow-2xl text-white overflow-hidden sm:my-auto max-h-none sm:max-h-[92vh] flex flex-col">
         
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 bg-gradient-to-r from-amber-950 via-slate-900 to-amber-950 border-b border-amber-500/30 shrink-0">

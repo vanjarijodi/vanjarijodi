@@ -24,6 +24,7 @@ import {
   logSecurityEvent
 } from '../utils/securityService';
 import { UserSession, SecurityLogEvent } from '../types';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 
 interface UserSecurityPortalModalProps {
   isOpen: boolean;
@@ -78,6 +79,8 @@ export const UserSecurityPortalModal: React.FC<UserSecurityPortalModalProps> = (
       setPasswordSuccess(false);
     }
   }, [isOpen, currentUser]);
+
+  useModalScrollLock(isOpen);
 
   if (!isOpen || !currentUser) return null;
 
@@ -171,8 +174,8 @@ export const UserSecurityPortalModal: React.FC<UserSecurityPortalModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden border border-amber-200 flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 overflow-hidden pt-safe pb-safe">
+      <div className="bg-white rounded-none sm:rounded-2xl shadow-2xl w-full h-full sm:h-auto max-w-3xl overflow-hidden border-0 sm:border border-amber-200 flex flex-col sm:my-auto max-h-none sm:max-h-[90vh]">
         {/* Header */}
         <div className="bg-gradient-to-r from-red-900 via-rose-900 to-amber-900 text-white p-5 flex items-center justify-between">
           <div className="flex items-center space-x-3">

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, AlertTriangle, Upload, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { UserProfile, ProfileReport } from '../types';
 import { useApp } from '../context/AppContext';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 
 interface ReportProfileModalProps {
   isOpen: boolean;
@@ -16,6 +17,8 @@ export const ReportProfileModal: React.FC<ReportProfileModalProps> = ({ isOpen, 
   const [proofImage, setProofImage] = useState<string>('');
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState('');
+
+  useModalScrollLock(isOpen && !!profile);
 
   if (!isOpen || !profile) return null;
 
@@ -69,8 +72,8 @@ export const ReportProfileModal: React.FC<ReportProfileModalProps> = ({ isOpen, 
   };
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl border border-amber-200 animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4 overflow-hidden pt-safe pb-safe">
+      <div className="bg-white rounded-none sm:rounded-3xl max-w-lg w-full h-full sm:h-auto overflow-hidden shadow-2xl border-0 sm:border border-amber-200 animate-in fade-in zoom-in-95 duration-200 flex flex-col sm:my-auto max-h-none sm:max-h-[92vh]">
         
         {/* Header */}
         <div className="bg-gradient-to-r from-red-700 to-red-900 text-white p-5 flex items-center justify-between">

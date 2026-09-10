@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import { BusinessVendor } from '../types';
 import { MAHARASHTRA_DISTRICTS } from '../data/initialData';
 import {
@@ -50,6 +51,8 @@ export const BusinessVendorDirectoryModal: React.FC<{
   const [inquiryDate, setInquiryDate] = useState('');
   const [inquiryNotes, setInquiryNotes] = useState('');
   const [inquirySubmitted, setInquirySubmitted] = useState(false);
+
+  useModalScrollLock(true);
 
   const categoriesList = siteConfig.customVendorCategories || [
     'मंगल कार्यालय व लॉन्स',
@@ -150,8 +153,8 @@ export const BusinessVendorDirectoryModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-5xl bg-slate-900 border border-amber-500/30 rounded-3xl shadow-2xl text-white overflow-hidden my-auto max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-hidden pt-safe pb-safe">
+      <div className="relative w-full h-full sm:h-auto max-w-5xl bg-slate-900 border-0 sm:border border-amber-500/30 rounded-none sm:rounded-3xl shadow-2xl text-white overflow-hidden sm:my-auto max-h-none sm:max-h-[92vh] flex flex-col">
         
         {/* Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 bg-gradient-to-r from-amber-950/90 via-slate-900 to-amber-950/90 border-b border-amber-500/30 shrink-0">

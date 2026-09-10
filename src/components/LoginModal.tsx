@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { VanjariJodiLogo } from './VanjariJodiLogo';
 import { logSecurityEvent } from '../utils/securityService';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 
 export const LoginModal: React.FC<{
   isOpen: boolean;
@@ -265,6 +266,8 @@ export const LoginModal: React.FC<{
     }, 500);
   };
 
+  useModalScrollLock(isOpen);
+
   if (!isOpen) return null;
 
   const telegramUsername = (siteConfig?.telegramUsername || 'Primemultiservice')
@@ -273,8 +276,8 @@ export const LoginModal: React.FC<{
   const telegramChatUrl = `https://t.me/${telegramUsername}`;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-md bg-white border-2 border-amber-300 rounded-3xl shadow-2xl text-slate-800 overflow-hidden my-auto max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn pt-safe pb-safe">
+      <div className="relative w-full h-full sm:h-auto max-w-md bg-white border-0 sm:border-2 border-amber-300 rounded-none sm:rounded-3xl shadow-2xl text-slate-800 overflow-hidden sm:my-auto max-h-none sm:max-h-[92vh] flex flex-col">
         
         {/* HEADER */}
         <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] border-b border-amber-300 text-amber-100 shrink-0">

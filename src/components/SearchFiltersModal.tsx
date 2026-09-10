@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { MAHARASHTRA_DISTRICTS } from '../data/initialData';
 import { X, Filter, RotateCcw, Check, Sparkles, ShieldCheck, Camera, Compass } from 'lucide-react';
 import { Gender } from '../types';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 
 export const SearchFiltersModal: React.FC<{
   isOpen: boolean;
@@ -10,11 +11,13 @@ export const SearchFiltersModal: React.FC<{
 }> = ({ isOpen, onClose }) => {
   const { t, searchFilters, setSearchFilters, resetFilters, language, siteConfig } = useApp();
 
+  useModalScrollLock(isOpen);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-xl bg-slate-900 border-2 border-amber-400/40 rounded-3xl shadow-2xl text-white overflow-hidden my-auto max-h-[88vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn pt-safe pb-safe">
+      <div className="relative w-full h-full sm:h-auto max-w-xl bg-slate-900 border-0 sm:border-2 border-amber-400/40 rounded-none sm:rounded-3xl shadow-2xl text-white overflow-hidden sm:my-auto max-h-none sm:max-h-[88vh] flex flex-col">
         
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 bg-slate-950 border-b border-amber-500/20 shrink-0">

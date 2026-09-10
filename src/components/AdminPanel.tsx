@@ -34,6 +34,7 @@ import { AdminBroadcastNotificationCenter } from './AdminBroadcastNotificationCe
 import { VanjariJodiLogo } from './VanjariJodiLogo';
 import { MAHARASHTRA_DISTRICTS } from '../data/initialData';
 import { uploadToCloudinary } from '../utils/cloudinary';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import {
   X,
   Menu,
@@ -502,13 +503,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
     setEditingPlan(null);
   };
 
+  useModalScrollLock(isOpen);
+
   if (!isOpen) return null;
 
   // Render Login Modal if not authenticated
   if (!isAdminLoggedIn) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
-        <div className="relative w-full max-w-md max-h-[92dvh] overflow-y-auto bg-gradient-to-b from-[#1A0A0F] via-[#0F172A] to-[#0B132B] border-2 border-amber-500/40 rounded-3xl shadow-2xl p-4 sm:p-6 text-slate-100 animate-in fade-in zoom-in-95 duration-200 my-auto">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-slate-950/85 backdrop-blur-md overflow-hidden pt-safe pb-safe">
+        <div className="relative w-full h-full sm:h-auto max-w-md max-h-none sm:max-h-[92dvh] overflow-y-auto bg-gradient-to-b from-[#1A0A0F] via-[#0F172A] to-[#0B132B] border-0 sm:border-2 border-amber-500/40 rounded-none sm:rounded-3xl shadow-2xl p-4 sm:p-6 text-slate-100 animate-in fade-in zoom-in-95 duration-200 sm:my-auto flex flex-col justify-center">
           {/* Header Row */}
           <div className="flex items-center justify-between gap-3 pb-3 border-b border-amber-500/20">
             <div className="flex items-center gap-2.5">

@@ -10,6 +10,7 @@ import { KundaliMilanModal } from './KundaliMilanModal';
 import { ErrorBoundary } from './ErrorBoundary';
 import { SecurityWatermarkOverlay } from './SecurityWatermarkOverlay';
 import { calculateAshtakootMilan } from '../utils/kundaliCalculator';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import { getProfessionBadges, getTagStyleClass, getStructuredProfessionInfo } from '../utils/professionUtils';
 import { formatProfileDisplayName } from '../utils/nameFormatter';
 import { transliterateMarathiToEnglish } from '../utils/transliterate';
@@ -204,6 +205,8 @@ export const ProfileDetailModal: React.FC<{
     };
   }, [profile?.id]);
 
+  useModalScrollLock(Boolean(profile));
+
   if (!profile) return null;
 
   // Strict check: Only genuine admins can view and use administrative actions
@@ -301,8 +304,8 @@ export const ProfileDetailModal: React.FC<{
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-        <div className="relative w-full max-w-4xl bg-[#FFFDF5] border-2 border-amber-300 rounded-3xl shadow-2xl text-slate-800 overflow-hidden my-auto max-h-[90vh] flex flex-col">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-6 bg-slate-900/70 backdrop-blur-sm overflow-hidden pt-safe pb-safe">
+        <div className="relative w-full h-full sm:h-auto max-w-4xl bg-[#FFFDF5] border-0 sm:border-2 border-amber-300 rounded-none sm:rounded-3xl shadow-2xl text-slate-800 overflow-hidden sm:my-auto max-h-none sm:max-h-[92vh] flex flex-col">
           
           {/* Modal Header (Sticky with Prominent Back Button) */}
           <div className="sticky top-0 z-40 flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3.5 bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] border-b border-amber-300 text-white shadow-md">

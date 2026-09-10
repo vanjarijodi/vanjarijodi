@@ -19,6 +19,7 @@ import {
   PhoneCall
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 
 interface TruecallerVerificationModalProps {
   isOpen: boolean;
@@ -218,9 +219,13 @@ export const TruecallerVerificationModal: React.FC<TruecallerVerificationModalPr
     }
   };
 
+  useModalScrollLock(isOpen);
+
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs overflow-y-auto animate-fadeIn">
-      <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border-2 border-amber-300 overflow-hidden relative my-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-slate-950/75 backdrop-blur-xs overflow-hidden pt-safe pb-safe animate-fadeIn">
+      <div className="bg-white w-full h-full sm:h-auto max-w-lg rounded-none sm:rounded-3xl shadow-2xl border-0 sm:border-2 border-amber-300 overflow-hidden relative flex flex-col sm:my-auto max-h-none sm:max-h-[92vh]">
         
         {/* Modal Header */}
         <div className="bg-gradient-to-r from-[#0087FF] via-[#0066CC] to-[#800C1E] p-5 sm:p-6 text-white relative">

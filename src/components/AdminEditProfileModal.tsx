@@ -8,6 +8,7 @@ import { UserProfile, Gender, MaritalStatus, MembershipTier } from '../types';
 import { uploadToCloudinary, compressAndResizeImage } from '../utils/cloudinary';
 import { PROFESSION_PRESETS, PROFILE_TAG_PRESETS, TAG_CATEGORIES, getTagStyleClass } from '../utils/professionUtils';
 import { useApp } from '../context/AppContext';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 
 interface AdminEditProfileModalProps {
   profile: UserProfile | null;
@@ -226,6 +227,8 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
     }
   }, [profile, isOpen]);
 
+  useModalScrollLock(isOpen);
+
   if (!isOpen || !profile) return null;
 
   const handleDobChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -441,8 +444,8 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto">
-      <div className="bg-[#FFFDF5] w-full max-w-5xl rounded-3xl border-2 border-amber-400 shadow-2xl overflow-hidden flex flex-col my-auto max-h-[94vh] animate-in zoom-in-95 duration-150 text-slate-900">
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-0 sm:p-4 z-50 overflow-hidden pt-safe pb-safe">
+      <div className="bg-[#FFFDF5] w-full h-full sm:h-auto max-w-5xl rounded-none sm:rounded-3xl border-0 sm:border-2 border-amber-400 shadow-2xl overflow-hidden flex flex-col sm:my-auto max-h-none sm:max-h-[94vh] animate-in zoom-in-95 duration-150 text-slate-900">
         
         {/* Modal Header */}
         <div className="p-4 sm:p-5 bg-gradient-to-r from-amber-200 via-amber-100 to-amber-200 border-b-2 border-amber-300 flex items-center justify-between shrink-0">

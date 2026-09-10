@@ -9,6 +9,7 @@ import { compressAndResizeImage } from '../utils/imageCompressor';
 import { getCleanReferralCode } from '../utils/referralUtils';
 import { VanjariJodiLogo } from './VanjariJodiLogo';
 import { LegalPoliciesModal, PolicyTabType } from './LegalPoliciesModal';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import {
   X,
   UserCheck,
@@ -203,6 +204,8 @@ export const RegisterModal: React.FC<{
     setIsSuccessFinished(false);
     onClose();
   };
+
+  useModalScrollLock(isOpen);
 
   if (!isOpen) return null;
 
@@ -500,8 +503,8 @@ export const RegisterModal: React.FC<{
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-1.5 sm:p-6 bg-slate-950/70 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-3xl bg-[#FFFDF5] border-2 border-amber-400 rounded-2xl sm:rounded-3xl shadow-2xl text-slate-800 overflow-hidden my-auto max-h-[96vh] sm:max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-6 bg-slate-950/70 backdrop-blur-md overflow-hidden pt-safe pb-safe">
+      <div className="relative w-full h-full sm:h-auto max-w-3xl bg-[#FFFDF5] border-0 sm:border-2 border-amber-400 rounded-none sm:rounded-3xl shadow-2xl text-slate-800 overflow-hidden sm:my-auto max-h-none sm:max-h-[92vh] flex flex-col">
         
         {/* HEADER */}
         <div className="flex items-center justify-between px-3.5 sm:px-6 py-2.5 sm:py-3.5 bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] border-b border-amber-300 text-amber-100 shrink-0">

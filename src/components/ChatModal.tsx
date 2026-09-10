@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { UserProfile } from '../types';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import { uploadToCloudinary, validateFileSize } from '../utils/cloudinary';
 import {
   X,
@@ -63,6 +64,8 @@ export const ChatModal: React.FC<{
   useEffect(() => {
     scrollToBottom();
   }, [chatMessages.length, user?.id]);
+
+  useModalScrollLock(!!user && !!currentUser);
 
   if (!user || !currentUser) return null;
 
@@ -130,8 +133,8 @@ export const ChatModal: React.FC<{
   const sampleEmojis = ['🌸', '🙏', '❤️', '😊', '👍', '💐', '✨', '🚩', '💍', '🎉'];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-hidden">
-      <div className="relative w-full max-w-lg bg-[#efeae2] border border-amber-500/30 rounded-2xl sm:rounded-3xl shadow-2xl text-slate-800 overflow-hidden my-auto h-[92dvh] sm:h-[620px] max-h-[620px] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-md overflow-hidden pt-safe pb-safe">
+      <div className="relative w-full h-full sm:h-[620px] max-w-lg bg-[#efeae2] border-0 sm:border border-amber-500/30 rounded-none sm:rounded-3xl shadow-2xl text-slate-800 overflow-hidden sm:my-auto sm:max-h-[620px] flex flex-col">
         
         {/* WhatsApp Style Chat Header */}
         <div className="flex items-center justify-between px-3.5 py-2.5 bg-[#075e54] text-white shrink-0 shadow-md">

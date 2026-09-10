@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import {
   Bell,
   X,
@@ -35,6 +36,8 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
   } = useApp();
 
   const [activeCategory, setActiveCategory] = useState<string>('all');
+
+  useModalScrollLock(isOpen);
 
   if (!isOpen) return null;
 
@@ -93,8 +96,8 @@ export const NotificationCenterModal: React.FC<NotificationCenterModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
-      <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-amber-200 overflow-hidden flex flex-col max-h-[85vh]">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150 pt-safe pb-safe">
+      <div className="bg-white w-full h-full sm:h-auto max-w-lg rounded-none sm:rounded-3xl shadow-2xl border-0 sm:border border-amber-200 overflow-hidden flex flex-col sm:my-auto max-h-none sm:max-h-[85vh]">
         {/* Header */}
         <div className="p-4 bg-gradient-to-r from-[#800C1E] via-[#980e24] to-[#800C1E] text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">

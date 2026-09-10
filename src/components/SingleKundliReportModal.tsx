@@ -4,6 +4,7 @@ import { SingleKundliForm } from './SingleKundliForm';
 import { KundliChartGrid } from './KundliChartGrid';
 import { downloadSingleKundliPdfReport } from '../utils/singleKundliPdfGenerator';
 import { generateClientSingleKundli } from '../utils/singleKundliCalculator';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
 import {
   X,
   Sparkles,
@@ -201,9 +202,13 @@ export const SingleKundliReportModal: React.FC<SingleKundliReportModalProps> = (
     setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  useModalScrollLock(isOpen);
+
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-900/80 backdrop-blur-md overflow-y-auto animate-fade-in">
-      <div className="relative w-full max-w-4xl bg-[#FFFDF8] rounded-2xl md:rounded-3xl shadow-2xl border-2 border-amber-300/80 my-auto overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-slate-900/80 backdrop-blur-md overflow-hidden pt-safe pb-safe animate-fade-in">
+      <div className="relative w-full h-full sm:h-auto max-w-4xl bg-[#FFFDF8] rounded-none md:rounded-3xl shadow-2xl border-0 md:border-2 border-amber-300/80 sm:my-auto overflow-hidden flex flex-col max-h-none sm:max-h-[92vh]">
         {/* Header Modal Bar */}
         <div className="sticky top-0 z-20 bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] text-white px-4 md:px-6 py-3.5 flex items-center justify-between border-b-2 border-amber-400/80 shadow-lg shrink-0">
           <div className="flex items-center gap-2 md:gap-3">
