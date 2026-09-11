@@ -33,7 +33,11 @@ import {
   Percent,
   Gift,
   Send,
+  Zap,
 } from 'lucide-react';
+import { initiateRazorpayPayment, getRazorpayPublicConfig, type RazorpayPublicConfig } from '../services/razorpayClient';
+import { TelegramSupportButton } from './TelegramSupportButton';
+import { generatePaymentInvoicePDF } from '../utils/invoiceGenerator';
 
 interface DynamicUpiPaymentModalProps {
   isOpen: boolean;
@@ -135,6 +139,30 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
   const [adminNote, setAdminNote] = useState<string>('');
   const [approvedDetails, setApprovedDetails] = useState<any>(null);
 
+  // Razorpay Gateway State
+  const [paymentTab, setPaymentTab] = useState<'razorpay' | 'manual_upi'>('razorpay');
+  const [isRazorpayLoading, setIsRazorpayLoading] = useState<boolean>(false);
+  const [razorpayError, setRazorpayError] = useState<string | null>(null);
+  const [razorpayConfig, setRazorpayConfig] = useState<RazorpayPublicConfig | null>(null);
+
+  // Fetch Razorpay Server Public Configuration
+  useEffect(() => {
+    if (isOpen) {
+      getRazorpayPublicConfig()
+        .then((cfg) => {
+          setRazorpayConfig(cfg);
+          if (siteConfig?.enableRazorpay === false || cfg.enabled === false) {
+            setPaymentTab('manual_upi');
+          } else {
+            setPaymentTab('razorpay');
+          }
+        })
+        .catch((err) => {
+          console.warn('Could not load Razorpay server config:', err);
+        });
+    }
+  }, [isOpen, siteConfig?.enableRazorpay]);
+
   // Toast / Copy Feedback & Deep Link Notice
   const [copiedToast, setCopiedToast] = useState<boolean>(false);
   const [qrDownloaded, setQrDownloaded] = useState<boolean>(false);
@@ -151,6 +179,7 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
       setScreenshotPreview('');
       setScreenshotFile(null);
       setSubmitError(null);
+      setRazorpayError(null);
       setSubmittedRequestId(null);
       setPromoCodeInput('');
       setAppliedPromo(null);
@@ -845,6 +874,103 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     }
   };
 
+  // Razorpay 1-Click Instant Payment Checkout Handler
+  const handleRazorpayCheckout = async () => {
+    if (!isPaymentTermsAgreed) {
+      setSubmitError('कृपया पेमेंट सुरू करण्यापूर्वी नियम व अटी मान्य करा.');
+      return;
+    }
+    setRazorpayError(null);
+    setSubmitError(null);
+    setIsRazorpayLoading(true);
+
+    try {
+      await initiateRazorpayPayment({
+        planId: activePlan.id,
+        planName: activePlan.nameMr || activePlan.name,
+        userId: currentUser?.id || 'guest-user',
+        userName: currentUser?.fullName || 'सन्माननीय सदस्य',
+        userMobile: userMobile || currentUser?.mobile || currentUser?.mobileNumber || '',
+        promoDiscountAmount: discountAmount,
+        onSuccess: (verifiedData) => {
+          setIsRazorpayLoading(false);
+          if (appliedPromo) {
+            usePromoCode(appliedPromo.code);
+          }
+
+          const approvedInfo = {
+            ...verifiedData,
+            plan_name: activePlan.nameMr || activePlan.name,
+            amount: verifiedData.amount || finalPayablePrice,
+            utr_number: verifiedData.paymentId || verifiedData.orderId || `RZP-${Date.now()}`,
+            order_id: verifiedData.orderId,
+            gateway: 'razorpay',
+            status: 'approved',
+          };
+
+          setUtrNumber(verifiedData.paymentId || verifiedData.orderId || `RZP-${Date.now()}`);
+          handlePaymentApproved(approvedInfo);
+
+          // Context Sync
+          addPaymentRequest({
+            userId: currentUser?.id || 'guest-user',
+            userName: currentUser?.fullName || 'सन्माननीय सदस्य',
+            userMobile: userMobile || currentUser?.mobile || currentUser?.mobileNumber || '',
+            planId: activePlan.id as MembershipTier,
+            planName: activePlan.nameMr || activePlan.name,
+            amount: finalPayablePrice,
+            utrNumber: verifiedData.paymentId || verifiedData.orderId || `RZP-${Date.now()}`,
+            screenshotUrl: '',
+            paymentMethod: 'razorpay',
+            adminNote: 'Razorpay अधिकृत ऑटोमॅटिक गेटवेद्वारे स्वाक्षरी पडताळणी पूर्ण झाली व तात्काळ सक्रिय केले.',
+            promoCode: appliedPromo?.code,
+            discountAmount: discountAmount,
+            originalAmount: originalPrice,
+          });
+
+          logActivity(
+            'Razorpay Payment Success',
+            `सदस्याने ${activePlan.nameMr || activePlan.name} (रक्कम: ₹${finalPayablePrice}) साठी Razorpay द्वारे ऑनलाईन पेमेंट यशस्वी केले. Payment ID: ${verifiedData.paymentId}`,
+            currentUser?.fullName || 'Member'
+          );
+        },
+        onError: (errMsg) => {
+          setIsRazorpayLoading(false);
+          setRazorpayError(errMsg || 'पेमेंट प्रक्रियेत अडचण आली. कृपया पुन्हा प्रयत्न करा किंवा थेट UPI चा वापर करा.');
+        },
+        onDismiss: () => {
+          setIsRazorpayLoading(false);
+        },
+      });
+    } catch (err: any) {
+      setIsRazorpayLoading(false);
+      setRazorpayError(err?.message || 'Razorpay पेमेंट लोड करताना त्रुटी आली.');
+    }
+  };
+
+  // Generate & Download Tax Invoice / Payment Receipt
+  const handleDownloadInvoice = () => {
+    generatePaymentInvoicePDF({
+      invoiceNumber: approvedDetails?.order_id || `INV-${Date.now().toString().slice(-6)}`,
+      paymentId: approvedDetails?.utr_number || utrNumber || `RZP-${Date.now()}`,
+      orderId: approvedDetails?.order_id || orderId || `ORD-${Date.now()}`,
+      gateway: approvedDetails?.gateway === 'razorpay' ? 'Razorpay Payment Gateway' : 'Direct UPI / Merchant QR',
+      utrNumber: approvedDetails?.utr_number || utrNumber || `RZP-${Date.now()}`,
+      userName: currentUser?.fullName || 'सन्माननीय सदस्य',
+      userMobile: userMobile || currentUser?.mobile || '',
+      userDistrict: currentUser?.district || '',
+      planName: activePlan.nameMr || activePlan.name,
+      planDuration: activePlan.duration || 'सक्रिय वैधता',
+      amount: finalPayablePrice,
+      currency: 'INR',
+      paymentDate: new Date().toLocaleDateString('en-IN'),
+      membershipExpiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN'),
+      businessName: siteConfig?.logoTitle || 'वंजारी जोडी वधू-वर सूचक केंद्र',
+      upiId: siteConfig?.paymentUpiId || 'mahesh.hange1@ybl',
+      adminNote: 'Razorpay / UPI अधिकृत ऑनलाईन पावती. Membership Activated.',
+    });
+  };
+
   // Format MM:SS for Timer
   const formatTimer = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -1116,9 +1242,188 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
             )}
 
             {/* ------------------------------------------------------------- */}
-            {/* CONSOLIDATED UPI & QR PAYMENT SECTION (Admin Configured) */}
+            {/* PAYMENT GATEWAY METHOD SELECTOR TABS */}
             {/* ------------------------------------------------------------- */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
+            <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 gap-1.5">
+              <button
+                type="button"
+                onClick={() => setPaymentTab('razorpay')}
+                className={`flex-1 py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm ${
+                  paymentTab === 'razorpay'
+                    ? 'bg-gradient-to-r from-[#800C1E] to-[#A71930] text-amber-200 shadow-md ring-2 ring-amber-400'
+                    : 'bg-white text-slate-700 hover:text-slate-900 border border-slate-200'
+                }`}
+              >
+                <Zap className="w-4 h-4 text-amber-300" />
+                <span>⚡ Razorpay 1-क्लिक ऑनलाईन</span>
+                <span className="hidden sm:inline-block text-[10px] bg-amber-400 text-[#800C1E] font-black px-2 py-0.5 rounded-full">
+                  तात्काळ ॲक्टिव्ह
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPaymentTab('manual_upi')}
+                className={`flex-1 py-3 px-3 sm:px-4 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm ${
+                  paymentTab === 'manual_upi'
+                    ? 'bg-gradient-to-r from-[#800C1E] to-[#A71930] text-amber-200 shadow-md ring-2 ring-amber-400'
+                    : 'bg-white text-slate-700 hover:text-slate-900 border border-slate-200'
+                }`}
+              >
+                <QrCode className="w-4 h-4" />
+                <span>📲 मॅन्युअल QR / थेट UPI</span>
+              </button>
+            </div>
+
+            {/* ------------------------------------------------------------- */}
+            {/* TAB 1: RAZORPAY 1-CLICK INSTANT ONLINE CHECKOUT */}
+            {/* ------------------------------------------------------------- */}
+            {paymentTab === 'razorpay' && (
+              <div className="bg-gradient-to-br from-amber-50/90 via-white to-amber-100/40 rounded-3xl p-5 sm:p-6 border-2 border-amber-400 shadow-lg space-y-5">
+                {/* Header info */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200/80 pb-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="bg-amber-200 text-amber-950 text-[11px] font-black px-2.5 py-0.5 rounded-full border border-amber-300 uppercase flex items-center gap-1">
+                        <Lock className="w-3 h-3 text-[#800C1E]" />
+                        <span>अधिकृत Razorpay पेमेंट गेटवे</span>
+                      </span>
+                      <span className="bg-emerald-100 text-emerald-900 text-[11px] font-bold px-2 py-0.5 rounded-md border border-emerald-300">
+                        ⚡ तात्काळ अनलॉक
+                      </span>
+                    </div>
+                    <h4 className="text-base sm:text-lg font-black text-slate-900 mt-1">
+                      सुरक्षित ऑनलाईन पेमेंट (100% Secure Checkout)
+                    </h4>
+                    <p className="text-xs text-slate-600 font-medium">
+                      कोणताही १२-अंकी UTR क्रमांक टाकण्याची किंवा मंजुरीची वाट पाहण्याची आवश्यकता नाही. पेमेंट होताच लगेच मेंबरशिप सुरू होईल!
+                    </p>
+                  </div>
+
+                  <div className="text-right shrink-0 bg-white px-3.5 py-2 rounded-2xl border border-amber-300 shadow-2xs">
+                    <span className="text-[10px] text-slate-500 font-bold block">अंतिम देय रक्कम</span>
+                    <span className="text-xl sm:text-2xl font-black text-[#800C1E]">₹{finalPayablePrice}</span>
+                  </div>
+                </div>
+
+                {/* Supported Payment Channels Grid */}
+                <div className="bg-white p-4 rounded-2xl border border-amber-300/80 space-y-2.5 shadow-2xs">
+                  <span className="text-[11px] font-bold text-slate-600 block">
+                    सर्व लोकप्रिय भारतीय पेमेंट पद्धती उपलब्ध:
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-center font-bold text-slate-800 flex items-center justify-center gap-1.5">
+                      <span className="text-base">📱</span>
+                      <span>Google Pay / PhonePe</span>
+                    </div>
+                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-center font-bold text-slate-800 flex items-center justify-center gap-1.5">
+                      <span className="text-base">💳</span>
+                      <span>Debit / Credit Cards</span>
+                    </div>
+                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-center font-bold text-slate-800 flex items-center justify-center gap-1.5">
+                      <span className="text-base">🏦</span>
+                      <span>Net Banking (50+ Banks)</span>
+                    </div>
+                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-center font-bold text-slate-800 flex items-center justify-center gap-1.5">
+                      <span className="text-base">⚡</span>
+                      <span>Paytm, BHIM, Cred, UPI</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Member Details Review */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <label className="text-xs font-bold text-gray-800 block mb-1">
+                      तुमचा संपर्क मोबाईल नंबर
+                    </label>
+                    <input
+                      type="tel"
+                      value={userMobile}
+                      onChange={(e) => setUserMobile(e.target.value)}
+                      placeholder="१०-अंकी मोबाईल नंबर"
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold focus:border-[#800C1E] focus:outline-none"
+                    />
+                  </div>
+                  <div className="flex flex-col justify-end">
+                    <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 font-medium">
+                      निवडलेला प्लॅन: <strong className="text-slate-900">{activePlan.nameMr || activePlan.name}</strong> • वैधता: <strong>{activePlan.duration}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Terms agreement checkbox */}
+                <div className="p-3 bg-white rounded-xl border border-amber-300 space-y-1 text-xs">
+                  <label className="flex items-start space-x-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isPaymentTermsAgreed}
+                      onChange={(e) => setIsPaymentTermsAgreed(e.target.checked)}
+                      className="w-4 h-4 rounded border-amber-400 text-[#800C1E] focus:ring-0 mt-0.5 cursor-pointer shrink-0"
+                    />
+                    <div className="text-[11px] text-slate-800 font-bold leading-relaxed">
+                      <span>मी <strong>वंजारी जोडी मॅट्रिमोनी</strong> च्या ऑनलाईन पेमेंट अटी, </span>
+                      <span className="text-[#800C1E] underline">परतावा धोरण (5-7 Days Refund)</span>
+                      <span> व कायदेशीर अस्वीकरण मान्य करतो.</span>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Razorpay Error display */}
+                {razorpayError && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                      <span>{razorpayError}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentTab('manual_upi')}
+                      className="text-[11px] font-bold text-[#800C1E] underline ml-2 shrink-0 cursor-pointer"
+                    >
+                      थेट UPI वापरा ➔
+                    </button>
+                  </div>
+                )}
+
+                {/* Big Action Checkout Button */}
+                <button
+                  type="button"
+                  onClick={handleRazorpayCheckout}
+                  disabled={isRazorpayLoading || !isPaymentTermsAgreed}
+                  className="w-full py-4 px-6 bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] hover:from-[#6A0A19] hover:to-[#8E1428] disabled:opacity-50 disabled:cursor-not-allowed text-white font-black rounded-2xl shadow-xl hover:shadow-2xl transition flex items-center justify-center gap-2 text-base cursor-pointer active:scale-98"
+                >
+                  {isRazorpayLoading ? (
+                    <>
+                      <Loader2 className="w-6 h-6 animate-spin text-amber-300" />
+                      <span>सुरक्षित Razorpay गेटवे उघडत आहे...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-5 h-5 text-amber-300" />
+                      <span>Razorpay द्वारे ₹{finalPayablePrice} त्वरित भरा (1-Click Pay)</span>
+                      <ArrowRight className="w-5 h-5 text-amber-300 ml-1" />
+                    </>
+                  )}
+                </button>
+
+                {/* Trust & Telegram Support footer */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1 text-[11px] text-slate-500 font-medium border-t border-amber-200/60">
+                  <div className="flex items-center space-x-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>PCI-DSS Compliant • 256-Bit SSL Encryption • Razorpay Authorized</span>
+                  </div>
+                  <TelegramSupportButton customText="सपोर्ट चॅट (Telegram)" className="text-xs" />
+                </div>
+              </div>
+            )}
+
+            {/* ------------------------------------------------------------- */}
+            {/* TAB 2: MANUAL UPI & QR PAYMENT SECTION */}
+            {/* ------------------------------------------------------------- */}
+            {paymentTab === 'manual_upi' && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-stretch">
               
               {/* Card 1: Official QR Code (Admin Configured / Dynamic) */}
               <div className="bg-gradient-to-br from-amber-50/80 via-white to-amber-50/40 rounded-3xl p-5 border-2 border-amber-300 shadow-md flex flex-col items-center text-center justify-between space-y-3">
@@ -1461,6 +1766,8 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
                 <span>256-Bit SSL Encrypted • PayU Gateway Compliant • 24/7 Helpline</span>
               </div>
             </form>
+            </>
+          )}
           </div>
         )}
 
@@ -1547,10 +1854,16 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">पेड रक्कम:</span>
-                <span className="font-black text-[#800C1E]">₹{activePlan.price}</span>
+                <span className="font-black text-[#800C1E]">₹{finalPayablePrice}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">UTR नंबर:</span>
+                <span className="text-gray-600">पेमेंट पद्धत:</span>
+                <span className="font-bold text-emerald-800">
+                  {approvedDetails?.gateway === 'razorpay' ? '⚡ Razorpay Gateway (Instant)' : '📲 थेट UPI / QR'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">UTR / Payment ID:</span>
                 <span className="font-mono font-bold text-emerald-800">{utrNumber}</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-emerald-200/60 font-bold text-emerald-900">
@@ -1559,19 +1872,34 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
               </div>
             </div>
 
-            {/* Go to Profiles / Dashboard CTA Button */}
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                if (typeof setCurrentView === 'function') setCurrentView('profiles');
-              }}
-              className="w-full max-w-md mx-auto py-4 px-6 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold rounded-2xl shadow-xl transition flex items-center justify-center space-x-2 text-base"
-            >
-              <Sparkles className="w-5 h-5 text-amber-300" />
-              <span>वधू-वर प्रोफाईल्स पाहा (Explore Profiles)</span>
-              <ArrowRight className="w-5 h-5 text-amber-300 ml-1" />
-            </button>
+            {/* Action Buttons: Invoice Download & Go to Profiles */}
+            <div className="max-w-md mx-auto space-y-3">
+              <button
+                type="button"
+                onClick={handleDownloadInvoice}
+                className="w-full py-3 px-4 bg-white hover:bg-slate-50 border-2 border-emerald-600 text-emerald-800 font-black rounded-xl shadow-xs transition flex items-center justify-center gap-2 text-xs cursor-pointer active:scale-98"
+              >
+                <FileText className="w-4 h-4 text-emerald-700" />
+                <span>📄 अधिकृत कर पावती डाऊनलोड करा (Download Tax Invoice PDF)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  if (typeof setCurrentView === 'function') setCurrentView('profiles');
+                }}
+                className="w-full py-4 px-6 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold rounded-2xl shadow-xl transition flex items-center justify-center space-x-2 text-base cursor-pointer"
+              >
+                <Sparkles className="w-5 h-5 text-amber-300" />
+                <span>वधू-वर प्रोफाईल्स पाहा (Explore Profiles)</span>
+                <ArrowRight className="w-5 h-5 text-amber-300 ml-1" />
+              </button>
+            </div>
+
+            <div className="pt-2 flex justify-center">
+              <TelegramSupportButton customText="काही अडचण आल्यास टेलिग्राम सपोर्ट" className="text-xs" />
+            </div>
           </div>
         )}
 
@@ -1605,21 +1933,28 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
               <p>{adminNote || 'UTR नंबर बँक खात्याशी जुळला नाही किंवा अस्पष्ट पावती आहे.'}</p>
             </div>
 
-            {/* Retry Button */}
-            <button
-              type="button"
-              onClick={() => {
-                setStep('checkout');
-                setUtrNumber('');
-                setUtrError(null);
-                setIsUtrDuplicate(false);
-                setTimeLeft(600);
-              }}
-              className="w-full max-w-md mx-auto py-3.5 px-6 bg-[#800C1E] hover:bg-[#6A0A19] text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-sm"
-            >
-              <RefreshCw className="w-4 h-4 text-amber-300" />
-              <span>पुन्हा नवीन UTR टाकून प्रयत्न करा</span>
-            </button>
+            {/* Action Buttons: Retry and Telegram Support */}
+            <div className="max-w-md mx-auto space-y-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setStep('checkout');
+                  setPaymentTab('razorpay');
+                  setUtrNumber('');
+                  setUtrError(null);
+                  setIsUtrDuplicate(false);
+                  setTimeLeft(600);
+                }}
+                className="w-full py-3.5 px-6 bg-[#800C1E] hover:bg-[#6A0A19] text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-sm cursor-pointer"
+              >
+                <RefreshCw className="w-4 h-4 text-amber-300" />
+                <span>Razorpay द्वारे पुन्हा प्रयत्न करा (Retry Payment)</span>
+              </button>
+
+              <div className="pt-2 flex justify-center">
+                <TelegramSupportButton customText="मदतीसाठी टेलिग्राम संपर्क साधा" className="text-xs" />
+              </div>
+            </div>
           </div>
         )}
       </div>

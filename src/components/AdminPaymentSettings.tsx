@@ -153,7 +153,7 @@ export const AdminPaymentSettings: React.FC = () => {
         paytmUpiId: (formData.paytmUpiId || '').trim(),
         bhimUpiId: (formData.bhimUpiId || '').trim(),
         adminMobileNumber: (formData.adminMobileNumber || '').trim(),
-        whatsappNumber: (formData.whatsappNumber || '7083070830').trim(),
+        whatsappNumber: (formData.whatsappNumber || '').trim(),
         merchantQrImageUrl: targetQr,
         qrCodeUrl: targetQr,
         updatedAt: new Date().toISOString()

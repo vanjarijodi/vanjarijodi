@@ -3,6 +3,8 @@ import { jsPDF } from 'jspdf';
 export interface InvoiceData {
   invoiceNumber: string;
   paymentId: string;
+  orderId?: string;
+  gateway?: string;
   utrNumber: string;
   userName: string;
   userMobile: string;
@@ -16,6 +18,14 @@ export interface InvoiceData {
   businessName?: string;
   upiId?: string;
   adminNote?: string;
+}
+
+function maskPhone(phone?: string): string {
+  if (!phone) return 'XXXXXX0000';
+  const clean = phone.replace(/[^0-9]/g, '');
+  if (clean.length < 10) return 'XXXXXX' + clean.slice(-4);
+  const last10 = clean.slice(-10);
+  return `${last10.slice(0, 2)}XXXXXX${last10.slice(-2)}`;
 }
 
 /**
@@ -46,12 +56,12 @@ export function generatePaymentInvoicePDF(data: InvoiceData): jsPDF {
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(22);
-  doc.text(data.businessName || 'VANJARI JODI MATRIMONY', 14, 18);
+  doc.text('VANJARI JODI MATRIMONY', 14, 18);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.text('Official Matrimonial Membership Payment Receipt & Tax Invoice', 14, 25);
-  doc.text('Regd. Maharashtra | ISO 9001:2015 Certified | Support: +91 9800000000', 14, 31);
+  doc.text('Official Vanjari Matrimony | Telegram Support: @Primemultiservice', 14, 31);
   doc.text('Blessing: || Shree Sant Bhagwan Baba Prasanna ||', 14, 37);
 
   // Header Right Box (Invoice # & Status)
@@ -62,7 +72,8 @@ export function generatePaymentInvoicePDF(data: InvoiceData): jsPDF {
   doc.setFont('helvetica', 'normal');
   doc.text(`Receipt #: ${data.invoiceNumber || 'INV-' + Date.now().toString().slice(-6)}`, pageWidth - 14, 25, { align: 'right' });
   doc.text(`Date: ${new Date(data.paymentDate || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`, pageWidth - 14, 31, { align: 'right' });
-  doc.text(`Payment Mode: UPI Instant Intent / QR`, pageWidth - 14, 37, { align: 'right' });
+  const modeText = data.gateway === 'razorpay' ? 'Razorpay Verified Gateway' : 'UPI Instant / QR';
+  doc.text(`Mode: ${modeText}`, pageWidth - 14, 37, { align: 'right' });
 
   // 2. Member & Transaction Information Card
   doc.setTextColor(...textColor);
@@ -86,7 +97,7 @@ export function generatePaymentInvoicePDF(data: InvoiceData): jsPDF {
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text(`Mobile: ${data.userMobile || 'Not provided'}`, 18, yPos + 24);
+  doc.text(`Mobile: ${maskPhone(data.userMobile)}`, 18, yPos + 24);
   doc.text(`District: ${data.userDistrict || 'Maharashtra'}`, 18, yPos + 31);
   doc.text(`Account Status: Active Premium Member`, 18, yPos + 38);
   doc.text(`Community: Vanjari (NT-D)`, 18, yPos + 44);
@@ -100,18 +111,22 @@ export function generatePaymentInvoicePDF(data: InvoiceData): jsPDF {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.setTextColor(...primaryColor);
-  doc.text('TRANSACTION & UPI DETAILS', 112, yPos + 8);
+  doc.text('TRANSACTION & GATEWAY DETAILS', 112, yPos + 8);
 
   doc.setTextColor(...textColor);
   doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
-  doc.text(`UTR / Ref No: ${data.utrNumber || 'N/A'}`, 112, yPos + 17);
+  doc.text(`Txn ID: ${data.utrNumber || data.paymentId || 'N/A'}`, 112, yPos + 17);
 
   doc.setFont('helvetica', 'normal');
-  doc.text(`Merchant UPI ID: ${data.upiId || 'vanjarijodi@paytm'}`, 112, yPos + 24);
-  doc.text(`Txn Status: APPROVED & VERIFIED`, 112, yPos + 31);
+  if (data.orderId) {
+    doc.text(`Order ID: ${data.orderId}`, 112, yPos + 24);
+  } else {
+    doc.text(`Merchant: Vanjari Jodi Accounts`, 112, yPos + 24);
+  }
+  doc.text(`Status: APPROVED & VERIFIED`, 112, yPos + 31);
   doc.text(`Payment ID: ${data.paymentId || 'PAY-' + Date.now().toString().slice(-6)}`, 112, yPos + 38);
-  doc.text(`Verification: Strict 12-Digit Banking Check`, 112, yPos + 44);
+  doc.text(`Gateway: ${data.gateway === 'razorpay' ? 'Razorpay Secure' : 'Banking UPI Network'}`, 112, yPos + 44);
 
   // 3. Itemized Table
   yPos = 114;

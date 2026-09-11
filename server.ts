@@ -8,6 +8,18 @@ import { fetchNavamshaKundliMatching, fetchNavamshaSingleKundli } from './server
 import { fetchProkeralaKundliMatching, getProkeralaAccessToken } from './server/prokeralaService';
 import { fetchAstrologyApiKundliMatching } from './server/astrologyApiService';
 import { validateGitHubToken, syncProjectToGitHub } from './server/githubService';
+import {
+  getRazorpayPublicConfig,
+  getRazorpayAdminConfig,
+  updateRazorpayServerConfig,
+} from './server/razorpayConfig';
+import {
+  createRazorpayOrder,
+  verifyRazorpayPayment,
+  handleRazorpayWebhook,
+  getAllProcessedPayments,
+  SERVER_PLANS,
+} from './server/razorpayService';
 
 dotenv.config();
 
@@ -220,6 +232,198 @@ async function startServer() {
       });
     } catch (err: any) {
       return res.status(500).json({ success: false, error: err.message || 'Failed to update settings' });
+    }
+  });
+
+  // =========================================================================
+  // RAZORPAY PAYMENT GATEWAY - PRODUCTION READY APIS
+  // =========================================================================
+
+  // A. Public Razorpay Config for Frontend Checkout
+  app.get('/api/payment/razorpay/config', (req, res) => {
+    try {
+      const publicCfg = getRazorpayPublicConfig();
+      return res.json({
+        success: true,
+        config: publicCfg,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // B. Server-Side Authoritative Plans List
+  app.get('/api/payment/plans', (req, res) => {
+    return res.json({
+      success: true,
+      plans: Object.values(SERVER_PLANS),
+    });
+  });
+
+  // C. Create Razorpay Order with Server-Side Price Validation
+  app.post('/api/payment/razorpay/create-order', async (req, res) => {
+    try {
+      const { plan_id, user_id, user_name, user_mobile, promo_discount_amount } = req.body || {};
+      if (!plan_id) {
+        return res.status(400).json({ success: false, error: 'कृपया मेंबरशिप प्लॅन निवडावा (plan_id is required).' });
+      }
+
+      const result = await createRazorpayOrder({
+        planId: sanitizeString(plan_id),
+        userId: sanitizeString(user_id) || 'guest-user',
+        userName: sanitizeString(user_name) || 'Member',
+        userMobile: sanitizeString(user_mobile) || '',
+        promoDiscountAmount: Number(promo_discount_amount) || 0,
+      });
+
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      return res.json(result);
+    } catch (err: any) {
+      console.error('[Razorpay Create Order Error]:', err);
+      return res.status(500).json({
+        success: false,
+        error: 'पेमेंट ऑर्डर तयार करताना अडचण आली. कृपया पुन्हा प्रयत्न करा.',
+      });
+    }
+  });
+
+  // D. Verify Razorpay Payment Signature & Activate Membership
+  app.post('/api/payment/razorpay/verify-payment', async (req, res) => {
+    try {
+      const {
+        razorpay_order_id,
+        razorpay_payment_id,
+        razorpay_signature,
+        plan_id,
+        user_id,
+        user_name,
+        user_mobile,
+      } = req.body || {};
+
+      if (!razorpay_order_id || !razorpay_payment_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'पेमेंट आयडी किंवा ऑर्डर आयडी मिळालेला नाही.',
+        });
+      }
+
+      const cleanUserId = sanitizeString(user_id) || 'guest-user';
+      const cleanUserName = sanitizeString(user_name) || 'सन्माननीय सदस्य';
+      const cleanUserMobile = sanitizeString(user_mobile) || '';
+
+      const verification = await verifyRazorpayPayment({
+        orderId: sanitizeString(razorpay_order_id),
+        paymentId: sanitizeString(razorpay_payment_id),
+        signature: razorpay_signature ? sanitizeString(razorpay_signature) : undefined,
+        planId: plan_id ? sanitizeString(plan_id) : undefined,
+        userId: cleanUserId,
+        userName: cleanUserName,
+        userMobile: cleanUserMobile,
+      });
+
+      if (!verification.success) {
+        return res.status(400).json(verification);
+      }
+
+      // Automatically sync with server-side database stores
+      const membershipId = `MEM-${cleanUserId}`;
+      const nowIso = new Date().toISOString();
+      const expiresIso = verification.membershipExpiryDate || new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString();
+
+      const memberRecord: UserMembership = {
+        id: membershipId,
+        user_id: cleanUserId,
+        user_name: cleanUserName,
+        user_mobile: cleanUserMobile,
+        plan_name: verification.planName || 'Vanjari Jodi Plan',
+        plan_id: verification.planId || 'welcome_offer',
+        amount: verification.amount || 0,
+        status: 'active',
+        expires_at: expiresIso,
+        created_at: nowIso,
+        updated_at: nowIso,
+      };
+      membershipsMap.set(membershipId, memberRecord);
+
+      // Create Payment Request Record in approved state
+      const paymentRecordId = `PAY-${verification.paymentId}`;
+      const newPaymentRecord: PaymentRequestRecord = {
+        id: paymentRecordId,
+        user_id: cleanUserId,
+        user_name: cleanUserName,
+        user_mobile: cleanUserMobile,
+        plan_id: verification.planId || 'welcome_offer',
+        plan_name: verification.planName || 'Vanjari Jodi Plan',
+        amount: verification.amount || 0,
+        utr_number: verification.paymentId || razorpay_payment_id,
+        screenshot_url: '',
+        status: 'approved',
+        admin_note: `Razorpay Online Payment Verified (${verification.env || 'TEST'} Mode). Order: ${razorpay_order_id}`,
+        created_at: nowIso,
+        updated_at: nowIso,
+        approved_at: nowIso,
+        membership_id: membershipId,
+        payment_method: 'razorpay',
+      };
+      paymentRequestsMap.set(paymentRecordId, newPaymentRecord);
+
+      return res.json({
+        ...verification,
+        memberRecord,
+        paymentRecord: newPaymentRecord,
+      });
+    } catch (err: any) {
+      console.error('[Razorpay Verify Payment Error]:', err);
+      return res.status(500).json({
+        success: false,
+        error: 'पेमेंट पडताळणी करताना अडचण आली. कृपया ग्राहक सेवेशी टेलिग्रामवर संपर्क साधा.',
+      });
+    }
+  });
+
+  // E. Razorpay Webhook Handler
+  app.post('/api/payment/razorpay/webhook', (req, res) => {
+    try {
+      const signature = (req.headers['x-razorpay-signature'] as string) || '';
+      const rawBody = JSON.stringify(req.body);
+      const result = handleRazorpayWebhook(rawBody, signature);
+      return res.json(result);
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // F. Admin: Get Razorpay Settings (With Masked Secret Key)
+  app.get('/api/admin/payment/razorpay-credentials', (req, res) => {
+    try {
+      const adminConfig = getRazorpayAdminConfig();
+      return res.json({
+        success: true,
+        config: adminConfig,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // G. Admin: Update Razorpay Settings Securely
+  app.post('/api/admin/payment/razorpay-credentials', (req, res) => {
+    try {
+      const updates = req.body || {};
+      const result = updateRazorpayServerConfig(updates);
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+      return res.json({
+        success: true,
+        message: 'Payment gateway settings updated successfully.',
+        config: getRazorpayAdminConfig(),
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
     }
   });
 
