@@ -511,60 +511,47 @@ export const MemberDashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          {/* Compact Member Action Buttons Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 w-full pt-1">
             <button
               type="button"
               onClick={() => {
                 setCurrentView('home');
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#800C1E] to-[#A71930] hover:from-[#A71930] hover:to-[#800C1E] text-amber-100 text-xs font-black shadow-md flex items-center gap-1.5 border border-amber-400/40 transition-all cursor-pointer active:scale-95"
+              className="px-3 py-2 rounded-xl bg-gradient-to-r from-[#800C1E] to-[#A71930] hover:from-[#A71930] hover:to-[#800C1E] text-amber-100 text-xs font-black shadow-xs flex items-center justify-center gap-1 border border-amber-400/40 transition-all cursor-pointer active:scale-95"
               title="मुख्यपृष्ठ / होम स्क्रीनवर जा"
             >
-              <Home className="w-4 h-4 text-amber-300" />
-              <span>🏠 मुख्यपृष्ठ (Home)</span>
+              <Home className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+              <span>मुख्यपृष्ठ</span>
             </button>
 
             <button
               type="button"
-              onClick={() => {
-                setSelectedProfileForModal(currentUser);
-              }}
-              className="px-4 py-2.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-[#800C1E] text-xs font-black shadow-xs flex items-center gap-1.5 border border-amber-300 transition-all cursor-pointer active:scale-95"
+              onClick={() => setSelectedProfileForModal(currentUser)}
+              className="px-3 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-[#800C1E] text-xs font-black shadow-2xs flex items-center justify-center gap-1 border border-amber-300 transition-all cursor-pointer active:scale-95"
               title="माझा बायोडाटा पहा व डाऊनलोड करा"
             >
-              <FileText className="w-4 h-4 text-[#800C1E]" />
-              <span>📄 बायोडाटा डाऊनलोड</span>
+              <FileText className="w-3.5 h-3.5 text-[#800C1E] shrink-0" />
+              <span>बायोडाटा</span>
             </button>
 
             <button
               type="button"
               onClick={() => setIsShareModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black shadow-md flex items-center gap-1.5 border border-emerald-300 transition-all cursor-pointer active:scale-95"
+              className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-xs flex items-center justify-center gap-1 border border-emerald-400 transition-all cursor-pointer active:scale-95"
             >
-              <Share2 className="w-4 h-4 text-emerald-200" />
-              <span>🎁 शेअर करा आणि कमवा (Share & Earn)</span>
+              <Share2 className="w-3.5 h-3.5 text-emerald-200 shrink-0" />
+              <span>शेअर करा</span>
             </button>
 
             <button
               type="button"
               onClick={() => setIsEditProfileModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 text-xs font-black shadow-md flex items-center gap-1.5 border border-amber-300 transition-all cursor-pointer"
+              className="px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-slate-950 text-xs font-black shadow-xs flex items-center justify-center gap-1 border border-amber-300 transition-all cursor-pointer active:scale-95"
             >
-              <Edit className="w-4 h-4 text-slate-950" />
-              <span>✍️ माहिती बदला</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                logout();
-              }}
-              className="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-black shadow-sm flex items-center gap-1.5 border border-rose-300 transition-all cursor-pointer active:scale-95"
-              title="खात्यातून सुरक्षितपणे बाहेर पडा (Logout)"
-            >
-              <LogOut className="w-4 h-4 text-rose-700" />
-              <span>🚪 लॉग आऊट (Logout)</span>
+              <Edit className="w-3.5 h-3.5 text-slate-950 shrink-0" />
+              <span>माहिती बदला</span>
             </button>
           </div>
 
@@ -643,85 +630,55 @@ export const MemberDashboard: React.FC = () => {
             </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setCurrentView('home');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-              }}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#800C1E] to-[#A71930] hover:from-[#A71930] hover:to-[#800C1E] text-amber-100 text-xs font-black shadow-md flex items-center gap-1.5 border border-amber-400/40 transition-all cursor-pointer active:scale-95"
-            >
-              <Home className="w-4 h-4 text-amber-300" />
-              <span>🏠 मुख्यपृष्ठ (Home)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsEditProfileModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 text-xs font-black shadow-md flex items-center gap-1.5 border border-amber-300 transition-all cursor-pointer"
-            >
-              <Edit className="w-4 h-4 text-slate-950" />
-              <span>✍️ माहिती व फोटो बदला (Edit Profile)</span>
-            </button>
-
+          <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-amber-200/60">
             {/* Phone / Truecaller Verification Action Button */}
             {!currentUser.isPhoneVerified ? (
               <button
+                type="button"
                 onClick={() => setIsPhoneAuthModalOpen(true)}
-                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white text-xs font-black shadow-md flex items-center gap-1.5 border border-blue-300 animate-pulse cursor-pointer"
+                className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-extrabold flex items-center gap-1 shadow-2xs animate-pulse cursor-pointer"
                 title="Truecaller द्वारे १ सेकंदात मोबाईल नंबर पडताळणी करा"
               >
-                <Zap className="w-4 h-4 text-cyan-200 fill-current" />
-                <span>📱 Truecaller पडताळणी (Verify Mobile)</span>
+                <Zap className="w-3 h-3 text-cyan-200 fill-current" />
+                <span>Truecaller पडताळणी</span>
               </button>
             ) : (
-              <button
-                onClick={() => setIsPhoneAuthModalOpen(true)}
-                className="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-900 text-xs font-black shadow-xs flex items-center gap-1.5 border border-blue-300 cursor-pointer"
-                title="तुमचा मोबाईल नंबर पडताळणी झालेला आहे"
-              >
-                <CheckCircle2 className="w-4 h-4 text-blue-600" />
+              <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-900 text-[11px] font-extrabold flex items-center gap-1 border border-blue-200">
+                <CheckCircle2 className="w-3 h-3 text-blue-600" />
                 <span>नंबर व्हेरिफाइड ✓</span>
-              </button>
+              </span>
             )}
 
             {!currentUser.isFaceVerified && (
               <button
+                type="button"
                 onClick={() => setIsFaceAuthModalOpen(true)}
-                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-black shadow-md flex items-center gap-1.5 border border-teal-300"
+                className="px-2.5 py-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-extrabold flex items-center gap-1 shadow-2xs"
               >
-                <ScanFace className="w-4 h-4 text-teal-200" />
-                <span>चेहरा पडताळणी करा (Blue Tick)</span>
+                <ScanFace className="w-3 h-3 text-teal-200" />
+                <span>चेहरा पडताळणी (Blue Tick)</span>
               </button>
             )}
 
             {!siteConfig?.hidePaymentDetailsGlobal && (
               <button
+                type="button"
                 onClick={() => setIsPaymentOpen(true)}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#A71930] to-[#C82333] hover:from-[#800C1E] hover:to-[#A71930] text-amber-100 text-xs font-black shadow-md flex items-center gap-1.5 border border-amber-300/40"
+                className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-[#A71930] to-[#C82333] text-amber-100 text-[11px] font-black flex items-center gap-1 shadow-2xs border border-amber-300/40"
               >
-                <Crown className="w-4 h-4 fill-amber-300 text-amber-300" />
-                <span>प्लॅन अपग्रेड करा</span>
+                <Crown className="w-3 h-3 fill-amber-300 text-amber-300" />
+                <span>प्लॅन अपग्रेड</span>
               </button>
             )}
 
             <button
-              onClick={() => setSelectedProfileForModal(currentUser)}
-              className="px-4 py-2.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-[#800C1E] text-xs font-black shadow-sm flex items-center gap-1.5 border border-amber-300 transition-all cursor-pointer"
-              title="तुमचा स्वतःचा बायोडाटा प्रिंट किंवा डाऊनलोड करा"
-            >
-              <FileText className="w-4 h-4 text-[#A71930]" />
-              <span>🖨️ बायोडाटा प्रिंट / PDF</span>
-            </button>
-
-            <button
+              type="button"
               onClick={() => setIsProfileRemovalModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-[#800C1E] text-xs font-black shadow-sm flex items-center gap-1.5 border border-amber-300 transition-all cursor-pointer"
+              className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-800 text-[11px] font-extrabold flex items-center gap-1 border border-slate-200 transition-all cursor-pointer ml-auto"
               title="लग्न जुळल्यामुळे किंवा वैयक्तिक कारणास्तव प्रोफाईल हटवण्याची विनंती करा"
             >
-              <HeartHandshake className="w-4 h-4 text-rose-600" />
-              <span>💍 विवाह जुळला / प्रोफाईल काढा</span>
+              <HeartHandshake className="w-3 h-3 text-rose-600" />
+              <span>विवाह जुळला / प्रोफाईल काढा</span>
             </button>
           </div>
         </div>

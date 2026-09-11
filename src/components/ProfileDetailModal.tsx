@@ -171,6 +171,7 @@ export const ProfileDetailModal: React.FC<{
   const [isUploadingNewPhoto, setIsUploadingNewPhoto] = useState(false);
   const [isKundaliModalOpen, setIsKundaliModalOpen] = useState(false);
   const [isTruecallerModalOpen, setIsTruecallerModalOpen] = useState(false);
+  const [isShareDropdownOpen, setIsShareDropdownOpen] = useState(false);
 
   const handleAdminUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -273,8 +274,6 @@ export const ProfileDetailModal: React.FC<{
   );
   const canExportOrShare = isOwnProfile || isUserAdmin;
 
-  const [isShareDropdownOpen, setIsShareDropdownOpen] = useState(false);
-
   const handleShareOwnBiodata = (platform: 'whatsapp' | 'telegram' | 'native') => {
     setIsShareDropdownOpen(false);
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://vanjarijodi.web.app';
@@ -304,31 +303,18 @@ export const ProfileDetailModal: React.FC<{
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-6 bg-slate-900/70 backdrop-blur-sm overflow-hidden pt-safe pb-safe">
-        <div className="relative w-full h-full sm:h-auto max-w-4xl bg-[#FFFDF5] border-0 sm:border-2 border-amber-300 rounded-none sm:rounded-3xl shadow-2xl text-slate-800 overflow-hidden sm:my-auto max-h-none sm:max-h-[92vh] flex flex-col">
+      <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-sm p-0 sm:p-4 md:p-6 pt-safe pb-safe">
+        <div className="relative w-full min-h-full sm:min-h-0 sm:my-6 max-w-4xl mx-auto bg-[#FFFDF5] border-0 sm:border-2 border-amber-300 rounded-none sm:rounded-3xl shadow-2xl text-slate-800 flex flex-col">
           
-          {/* Modal Header (Sticky with Prominent Back Button) */}
-          <div className="sticky top-0 z-40 flex items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3.5 bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] border-b border-amber-300 text-white shadow-md">
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              {/* Prominent Back Button */}
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-2.5 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-amber-100 font-black text-xs flex items-center gap-1.5 border border-amber-300/40 shadow-xs cursor-pointer active:scale-95 shrink-0"
-                title="मागे जा (Go Back)"
-              >
-                <ArrowLeft className="w-4 h-4 text-amber-300" />
-                <span>मागे जा</span>
-              </button>
-
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-[10px] sm:text-xs font-mono text-amber-900 bg-amber-200 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full font-bold border border-amber-300 shrink-0">
-                  {profile.id}
-                </span>
-                <h2 className="text-xs sm:text-base font-black text-amber-100 truncate">
-                  {formatProfileDisplayName(profile.fullName, currentUser, isAdminLoggedIn, isAuthorized || isMutualMatch, siteConfig, language, isMutualMatch, profile.id)}
-                </h2>
-              </div>
+          {/* Modal Header (Clean Compact Light Bar - No Dark Banner) */}
+          <div className="sticky top-0 z-40 flex items-center justify-between px-3.5 sm:px-6 py-2 sm:py-2.5 bg-amber-50/95 backdrop-blur-md border-b border-amber-200 text-slate-800 shadow-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-[10px] sm:text-xs font-mono text-amber-950 bg-amber-200/80 px-2 py-0.5 rounded-full font-black border border-amber-300 shrink-0">
+                {profile.id}
+              </span>
+              <h2 className="text-xs sm:text-sm font-black text-[#800C1E] truncate">
+                {formatProfileDisplayName(profile.fullName, currentUser, isAdminLoggedIn, isAuthorized || isMutualMatch, siteConfig, language, isMutualMatch, profile.id)}
+              </h2>
             </div>
 
             <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
@@ -339,7 +325,7 @@ export const ProfileDetailModal: React.FC<{
                     <button
                       type="button"
                       onClick={() => setIsShareDropdownOpen(!isShareDropdownOpen)}
-                      className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-[11px] font-extrabold flex items-center gap-1 border border-emerald-400/40 shadow-xs cursor-pointer active:scale-95"
+                      className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black flex items-center gap-1 border border-emerald-500 shadow-2xs cursor-pointer active:scale-95"
                       title="माझा बायोडाटा शेअर करा"
                     >
                       <Share2 className="w-3.5 h-3.5" />
@@ -379,18 +365,18 @@ export const ProfileDetailModal: React.FC<{
                   <button
                     type="button"
                     onClick={() => setIsPrintModalOpen(true)}
-                    className="px-2.5 py-1.5 rounded-xl bg-amber-200/20 hover:bg-amber-200/30 text-amber-100 text-[11px] font-extrabold flex items-center gap-1 border border-amber-300/40 shadow-xs cursor-pointer active:scale-95"
+                    className="px-2.5 py-1 rounded-lg bg-amber-200 hover:bg-amber-300 text-amber-950 text-[11px] font-black flex items-center gap-1 border border-amber-300 shadow-2xs cursor-pointer active:scale-95"
                     title="माझा बायोडाटा डाऊनलोड / प्रिंट करा"
                   >
-                    <Download className="w-3.5 h-3.5 text-amber-300" />
+                    <Download className="w-3.5 h-3.5 text-amber-900" />
                     <span className="hidden sm:inline">डाऊनलोड</span>
                   </button>
                 </>
               ) : (
                 /* IF VIEWING ANOTHER MEMBER'S BIODATA: STRICT PRIVACY SHIELD BADGE (NO SHARE, NO DOWNLOAD) */
-                <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-950/60 border border-amber-400/30 text-amber-200 text-[10px] sm:text-[11px] font-black shadow-xs">
-                  <Lock className="w-3 h-3 text-amber-300 shrink-0" />
-                  <span className="hidden sm:inline">🔒 स्क्रीनशॉट व डाऊनलोड प्रतिबंधित</span>
+                <div className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-100/80 border border-amber-300 text-amber-950 text-[10px] sm:text-[11px] font-black">
+                  <Lock className="w-3 h-3 text-amber-800 shrink-0" />
+                  <span className="hidden sm:inline">🔒 सुरक्षित बायोडाटा</span>
                   <span className="sm:hidden">🔒 सुरक्षित</span>
                 </div>
               )}
@@ -400,10 +386,10 @@ export const ProfileDetailModal: React.FC<{
                 <button
                   type="button"
                   onClick={() => setIsReportModalOpen(true)}
-                  className="px-2 sm:px-2.5 py-1.5 rounded-xl bg-rose-950/60 hover:bg-rose-900 text-rose-200 text-[11px] font-extrabold flex items-center gap-1 border border-rose-400/40 transition-all cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-800 text-[11px] font-black flex items-center gap-1 border border-rose-300 transition-all cursor-pointer"
                   title="तक्रार नोंदवा"
                 >
-                  <ShieldAlert className="w-3.5 h-3.5 text-rose-300" />
+                  <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
                   <span className="hidden sm:inline">तक्रार</span>
                 </button>
               )}
@@ -412,7 +398,7 @@ export const ProfileDetailModal: React.FC<{
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-xl hover:bg-white/20 text-white transition-colors cursor-pointer ml-0.5 bg-black/20 border border-white/10"
+                className="p-1.5 rounded-lg bg-slate-200 hover:bg-rose-100 text-slate-700 hover:text-rose-700 transition cursor-pointer ml-1"
                 title="बंद करा"
               >
                 <X className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -466,8 +452,8 @@ export const ProfileDetailModal: React.FC<{
             </div>
           )}
 
-          {/* Modal Body Scrollable */}
-          <div className="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1 pr-3 sm:pr-4">
+          {/* Modal Body Content */}
+          <div className="p-3.5 sm:p-6 space-y-5 flex-1">
 
             {/* MUTUAL MATCH UNLOCK BANNER */}
             {isMutualMatch && (
@@ -1197,7 +1183,7 @@ export const ProfileDetailModal: React.FC<{
                 className={!canExportOrShare ? 'no-print-protected select-none' : ''}
                 showWarningAlert={!canExportOrShare}
               >
-                <div className="space-y-6 animate-fadeIn">
+                <div className="space-y-3.5 animate-fadeIn">
                 {/* Admin Quick Sticky Pill for fast context */}
                 {isUserAdmin && (
                   <div className="p-3 bg-gradient-to-r from-amber-100 via-white to-amber-100 rounded-2xl border-2 border-amber-300 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
@@ -1229,33 +1215,19 @@ export const ProfileDetailModal: React.FC<{
                   </div>
                 )}
 
-            {/* Statutory Legal Caution Banner for Candidate Due Diligence */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-50/90 border-2 border-amber-300 shadow-xs flex items-start gap-3">
-              <div className="p-2 bg-amber-400 text-amber-950 rounded-xl font-black text-lg shrink-0 mt-0.5">
-                🛡️
-              </div>
-              <div className="text-xs text-slate-800 space-y-0.5 leading-relaxed font-medium">
-                <span className="font-black text-[#800C1E] block">
-                  पालकांसाठी महत्त्वाची कायदेशीर सूचना व ताकीद (Mandatory Due Diligence Notice):
-                </span>
-                <span>
-                  'वंजारी जोडी' हे केवळ वधू-वर व त्यांच्या कुटुंबांना जोडणारे डिजिटल मध्यस्थ (Intermediary - Section 79 IT Act) व्यासपीठ आहे. कोणताही विवाह निश्चित करण्यापूर्वी किंवा कोणताही आर्थिक व्यवहार करण्यापूर्वी दोन्ही बाजूंनी वधू-वराच्या चारित्र्याची, नोकरी/व्यवसायाची, कौटुंबिक पार्श्वभूमीची व कागदपत्रांची <strong>प्रत्यक्ष सखोल खात्री (Personal & Family Due Diligence)</strong> करणे अनिवार्य आहे. मंचाची कोणतीही कायदेशीर वा आर्थिक जबाबदारी असणार नाही.
-                </span>
-              </div>
-            </div>
             {currentUser && currentUser.isApproved === false && !currentUser.isAdmin && (
-              <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-500/15 via-amber-50 to-amber-500/15 border-2 border-amber-400 shadow-sm flex items-start gap-3.5 mb-2">
-                <div className="p-2.5 bg-amber-400 text-amber-950 rounded-2xl text-xl font-black shrink-0 shadow-xs">
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-50 to-amber-500/15 border-2 border-amber-400 shadow-xs flex items-start gap-3">
+                <div className="p-2 bg-amber-400 text-amber-950 rounded-xl text-lg font-black shrink-0 shadow-xs">
                   ⏳
                 </div>
-                <div className="space-y-1">
-                  <h4 className="text-sm font-black text-[#A71930] flex items-center gap-2">
+                <div className="space-y-0.5">
+                  <h4 className="text-xs sm:text-sm font-black text-[#A71930] flex items-center gap-1.5 flex-wrap">
                     <span>आपले प्रोफाईल ॲडमिन मंजुरीसाठी प्रलंबित आहे (Pending Admin Verification)</span>
                     <span className="px-2 py-0.5 bg-amber-200 text-amber-950 rounded text-[10px] font-black">
                       लॉगिन सक्रिय
                     </span>
                   </h4>
-                  <p className="text-xs text-slate-700 font-bold leading-relaxed">
+                  <p className="text-[11px] sm:text-xs text-slate-700 font-bold leading-normal">
                     आपले लॉगिन सक्रिय आहे! ॲडमिनने आपले प्रोफाईल मंजूर करेपर्यंत आपल्याला इतर सदस्यांचा <strong>जिल्हा, शिक्षण व सरकारी नोकरी/व्यवसाय</strong> दिसेल. ॲडमिन मंजुरी मिळताच <strong>सर्व फोटो, नावे, बायोडाटा व मोबाईल नंबर</strong> आपोआप सक्रिय होतील.
                   </p>
                 </div>
@@ -1263,11 +1235,11 @@ export const ProfileDetailModal: React.FC<{
             )}
 
             {/* Top Banner with Main Image & Quick Badges */}
-            <div className="grid md:grid-cols-12 gap-5 sm:gap-6 bg-white p-4 sm:p-5 rounded-[16px] border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
+            <div className="grid md:grid-cols-12 gap-3.5 sm:gap-4 bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
               
               {/* Photos Column with Instagram Carousel */}
-              <div className="md:col-span-5 space-y-2.5">
-                <div className="rounded-[16px] overflow-hidden border border-amber-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.03)] bg-amber-50">
+              <div className="md:col-span-5 space-y-2">
+                <div className="rounded-2xl overflow-hidden border border-amber-200/80 shadow-2xs bg-amber-50">
                   <InstagramPhotoCarousel
                     photos={profile.photos && profile.photos.length > 0 ? profile.photos : (profile.photoUrl ? [profile.photoUrl] : [])}
                     defaultGender={profile.gender}
@@ -1283,7 +1255,7 @@ export const ProfileDetailModal: React.FC<{
                         setIsPaymentOpen(true);
                       }
                     }}
-                    aspectRatioClass="h-64 sm:h-76"
+                    aspectRatioClass="h-60 sm:h-72"
                     onPhotoClick={() => {
                       if (isPhotoBlurred) {
                         if (!currentUser || currentUser.isGuest) {
@@ -1327,27 +1299,14 @@ export const ProfileDetailModal: React.FC<{
               </div>
 
               {/* Main Info Column */}
-              <div className="md:col-span-7 flex flex-col justify-between space-y-3.5">
+              <div className="md:col-span-7 flex flex-col justify-between space-y-2.5">
                 <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs px-3 py-1 rounded-full bg-amber-100/80 text-[#800C1E] font-bold border border-amber-300/80">
-                      वंजारी समाज {profile.subCaste ? `(${profile.subCaste})` : ''}
-                    </span>
-                    <button
-                      onClick={() => toggleShortlist(profile.id)}
-                      className="p-2 rounded-full bg-amber-50 hover:bg-amber-100 text-slate-600 border border-amber-200 transition cursor-pointer"
-                      title="शॉर्टलिस्ट करा"
-                    >
-                      <Heart
-                        className={`w-5 h-5 ${isShortlisted ? 'fill-rose-600 text-rose-600' : ''}`}
-                      />
-                    </button>
-                  </div>
-
-                  <h1 className="text-xl sm:text-2xl font-black text-[#A71930] mt-2 flex flex-col items-start gap-1">
+                  <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span>{formatProfileDisplayName(profile.fullName, currentUser, isAdminLoggedIn, isAuthorized || isMutualMatch, siteConfig, language, isMutualMatch, profile.id)}</span>
-                      <VerifiedBadge profile={profile} size="md" />
+                      <h1 className="text-lg sm:text-xl font-black text-[#A71930] flex items-center gap-2 flex-wrap">
+                        <span>{formatProfileDisplayName(profile.fullName, currentUser, isAdminLoggedIn, isAuthorized || isMutualMatch, siteConfig, language, isMutualMatch, profile.id)}</span>
+                        <VerifiedBadge profile={profile} size="md" />
+                      </h1>
                       {siteConfig.requireMutualLikeForFullName !== false && !isMutualMatch && !isAuthorized && !isAdminLoggedIn && (
                         <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
                           <span>🔒</span>
@@ -1355,23 +1314,33 @@ export const ProfileDetailModal: React.FC<{
                         </span>
                       )}
                     </div>
-                  </h1>
+                    <button
+                      type="button"
+                      onClick={() => toggleShortlist(profile.id)}
+                      className="p-1.5 rounded-full bg-amber-50 hover:bg-amber-100 text-slate-600 border border-amber-200 transition cursor-pointer shrink-0"
+                      title="शॉर्टलिस्ट करा"
+                    >
+                      <Heart
+                        className={`w-4 h-4 ${isShortlisted ? 'fill-rose-600 text-rose-600' : ''}`}
+                      />
+                    </button>
+                  </div>
 
                   {/* High Contrast District & Qualification Highlight Box */}
-                  <div className="bg-gradient-to-r from-amber-100/90 via-amber-50 to-amber-100/90 p-3 sm:p-3.5 rounded-[16px] border border-amber-300 shadow-[0_2px_10px_rgba(0,0,0,0.03)] mt-3 space-y-2">
-                    <div className="flex items-center justify-between text-xs font-bold text-[#800C1E]">
-                      <span className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border border-amber-300/80 text-[#333333] shadow-2xs">
+                  <div className="bg-gradient-to-r from-amber-100/90 via-amber-50 to-amber-100/90 p-2.5 sm:p-3 rounded-xl border border-amber-300 shadow-2xs mt-2 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-bold text-[#800C1E] flex-wrap gap-1.5">
+                      <span className="flex items-center gap-1.5 bg-white px-2 py-1 rounded-lg border border-amber-300/80 text-[#333333] shadow-2xs">
                         <MapPin className="w-3.5 h-3.5 text-[#A71930] shrink-0" />
                         <span>जिल्हा: <strong className="text-[#A71930] font-black">{profile.district || 'महाराष्ट्र'}</strong> {profile.city || profile.taluka ? `(${profile.city || profile.taluka})` : ''}</span>
                       </span>
-                      <span className="bg-white px-2.5 py-1 rounded-lg border border-amber-300/80 text-[#333333] font-bold flex items-center gap-1">
+                      <span className="bg-white px-2 py-1 rounded-lg border border-amber-300/80 text-[#333333] font-bold flex items-center gap-1">
                         <Calendar className="w-3.5 h-3.5 text-amber-700 shrink-0" />
                         <span>{profile.age} वर्षे</span>
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2 text-xs font-bold text-[#333333] bg-white p-2 rounded-lg border border-amber-300/80 shadow-2xs">
-                      <GraduationCap className="w-4 h-4 text-[#A71930] shrink-0" />
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-[#333333] bg-white p-2 rounded-lg border border-amber-300/80 shadow-2xs">
+                      <GraduationCap className="w-3.5 h-3.5 text-[#A71930] shrink-0" />
                       <span>शिक्षण/पात्रता: <strong className="text-[#800C1E] font-black">{profile.education || 'उच्चशिक्षित'}</strong></span>
                     </div>
 
@@ -1380,7 +1349,7 @@ export const ProfileDetailModal: React.FC<{
                       const structured = getStructuredProfessionInfo(profile);
                       if (structured.allBadges.length === 0) return null;
                       return (
-                        <div className="p-2.5 bg-gradient-to-r from-amber-50/80 via-white to-amber-50/80 rounded-xl border border-amber-200/90 shadow-2xs space-y-1.5 mt-1">
+                        <div className="p-2 bg-gradient-to-r from-amber-50/80 via-white to-amber-50/80 rounded-lg border border-amber-200/90 shadow-2xs space-y-1 mt-1">
                           <div className="flex items-center justify-between text-[11px] font-black text-slate-700">
                             <span className="flex items-center gap-1 text-[#800C1E]">
                               <Briefcase className="w-3.5 h-3.5 text-[#A71930]" />
@@ -1389,14 +1358,14 @@ export const ProfileDetailModal: React.FC<{
                           </div>
                           
                           {/* Stacked Tags: Sector first, Role second, Highlights third */}
-                          <div className="flex flex-col gap-1.5">
+                          <div className="flex flex-col gap-1">
                             {/* Line 1: Primary Employment Sector (e.g., Govt Job, Private Job, Business) */}
                             {structured.sectorBadges.length > 0 && (
-                              <div className="flex flex-wrap items-center gap-1.5">
+                              <div className="flex flex-wrap items-center gap-1">
                                 {structured.sectorBadges.map((tag, idx) => (
                                   <span
                                     key={idx}
-                                    className={`px-3 py-1 rounded-lg text-xs font-black border shadow-xs flex items-center gap-1 ${getTagStyleClass(tag)}`}
+                                    className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border shadow-2xs flex items-center gap-1 ${getTagStyleClass(tag)}`}
                                   >
                                     <span>{tag}</span>
                                   </span>
@@ -1406,11 +1375,11 @@ export const ProfileDetailModal: React.FC<{
 
                             {/* Line 2: Specific Designation/Profession (e.g., Doctor, Engineer, Officer) */}
                             {structured.roleBadges.length > 0 && (
-                              <div className="flex flex-wrap items-center gap-1.5">
+                              <div className="flex flex-wrap items-center gap-1">
                                 {structured.roleBadges.map((tag, idx) => (
                                   <span
                                     key={idx}
-                                    className={`px-3 py-1 rounded-lg text-xs font-black border shadow-xs flex items-center gap-1 ${getTagStyleClass(tag)}`}
+                                    className={`px-2.5 py-0.5 rounded-md text-[11px] font-black border shadow-2xs flex items-center gap-1 ${getTagStyleClass(tag)}`}
                                   >
                                     <span>{tag}</span>
                                   </span>
@@ -1420,11 +1389,11 @@ export const ProfileDetailModal: React.FC<{
 
                             {/* Line 3: Other Highlight Badges */}
                             {structured.otherBadges.length > 0 && (
-                              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                              <div className="flex flex-wrap items-center gap-1 pt-0.5">
                                 {structured.otherBadges.map((tag, idx) => (
                                   <span
                                     key={idx}
-                                    className={`px-2.5 py-0.5 rounded-md text-[11px] font-extrabold border shadow-2xs ${getTagStyleClass(tag)}`}
+                                    className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold border shadow-2xs ${getTagStyleClass(tag)}`}
                                   >
                                     {tag}
                                   </span>
@@ -1437,55 +1406,55 @@ export const ProfileDetailModal: React.FC<{
                     })()}
                   </div>
 
-                  {profile.bio && (
-                    <p className="text-xs text-slate-700 bg-amber-50/60 p-2.5 rounded-[12px] border border-amber-200/80 mt-2.5 italic leading-relaxed">
+                  {profile.bio && !profile.bio.includes('गुगल') && !profile.bio.toLowerCase().includes('google') && (
+                    <p className="text-xs text-slate-700 bg-amber-50/60 p-2 rounded-lg border border-amber-200/80 mt-2 italic leading-relaxed">
                       "{profile.bio}"
                     </p>
                   )}
                 </div>
 
                 {/* Compact Grid Summary with Vector Icons */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs bg-slate-50/80 p-3 sm:p-3.5 rounded-[16px] border border-slate-200/80">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-[#A71930] shrink-0" />
-                    <div>
-                      <span className="text-slate-500 text-[11px] block font-medium">वय</span>
-                      <span className="font-semibold text-[#333333]">{profile.age} वर्षे</span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs bg-slate-50/90 p-2.5 sm:p-3 rounded-xl border border-slate-200/90 shadow-2xs">
+                  <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white border border-slate-100">
+                    <Calendar className="w-3.5 h-3.5 text-[#A71930] shrink-0" />
+                    <div className="truncate">
+                      <span className="text-slate-500 text-[10.5px] font-bold block leading-none">वय:</span>
+                      <span className="font-extrabold text-slate-900 leading-tight">{profile.age} वर्षे</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Ruler className="w-4 h-4 text-[#A71930] shrink-0" />
-                    <div>
-                      <span className="text-slate-500 text-[11px] block font-medium">उंची</span>
-                      <span className="font-semibold text-[#333333]">{profile.height}</span>
+                  <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white border border-slate-100">
+                    <Ruler className="w-3.5 h-3.5 text-[#A71930] shrink-0" />
+                    <div className="truncate">
+                      <span className="text-slate-500 text-[10.5px] font-bold block leading-none">उंची:</span>
+                      <span className="font-extrabold text-slate-900 leading-tight">{profile.height}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-[#A71930] shrink-0" />
-                    <div>
-                      <span className="text-slate-500 text-[11px] block font-medium">स्थान</span>
-                      <span className="font-semibold text-[#333333] truncate block">{profile.city || profile.district}</span>
+                  <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white border border-slate-100">
+                    <MapPin className="w-3.5 h-3.5 text-[#A71930] shrink-0" />
+                    <div className="truncate">
+                      <span className="text-slate-500 text-[10.5px] font-bold block leading-none">स्थान:</span>
+                      <span className="font-extrabold text-slate-900 leading-tight truncate block">{profile.city || profile.district}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <GraduationCap className="w-4 h-4 text-[#A71930] shrink-0" />
-                    <div>
-                      <span className="text-slate-500 text-[11px] block font-medium">शिक्षण</span>
-                      <span className="font-semibold text-[#333333] truncate block">{profile.education}</span>
+                  <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white border border-slate-100">
+                    <GraduationCap className="w-3.5 h-3.5 text-[#A71930] shrink-0" />
+                    <div className="truncate">
+                      <span className="text-slate-500 text-[10.5px] font-bold block leading-none">शिक्षण:</span>
+                      <span className="font-extrabold text-slate-900 leading-tight truncate block">{profile.education}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Briefcase className="w-4 h-4 text-[#A71930] shrink-0" />
-                    <div>
-                      <span className="text-slate-500 text-[11px] block font-medium">व्यवसाय</span>
-                      <span className="font-semibold text-[#333333] truncate block">{profile.occupation}</span>
+                  <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white border border-slate-100">
+                    <Briefcase className="w-3.5 h-3.5 text-[#A71930] shrink-0" />
+                    <div className="truncate">
+                      <span className="text-slate-500 text-[10.5px] font-bold block leading-none">व्यवसाय:</span>
+                      <span className="font-extrabold text-slate-900 leading-tight truncate block">{profile.occupation}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-[#A71930] shrink-0" />
-                    <div>
-                      <span className="text-slate-500 text-[11px] block font-medium">वैवाहिक स्थिती</span>
-                      <span className="font-semibold text-[#A71930] truncate block">
+                  <div className="flex items-center gap-1.5 p-1.5 rounded-lg bg-white border border-slate-100">
+                    <User className="w-3.5 h-3.5 text-[#A71930] shrink-0" />
+                    <div className="truncate">
+                      <span className="text-slate-500 text-[10.5px] font-bold block leading-none">वैवाहिक स्थिती:</span>
+                      <span className="font-extrabold text-[#A71930] leading-tight truncate block">
                         {profile.maritalStatus === 'never_married' ? 'अविवाहित' : profile.maritalStatus}
                       </span>
                     </div>
@@ -1493,21 +1462,21 @@ export const ProfileDetailModal: React.FC<{
                 </div>
 
                 {/* Aadhaar & Phone Verification badges */}
-                <div className="flex flex-wrap items-center gap-2 text-xs pt-1">
+                <div className="flex flex-wrap items-center gap-1.5 text-xs pt-0.5">
                   {profile.aadhaarVerified ? (
-                    <span className="text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-300 flex items-center gap-1.5 font-bold">
+                    <span className="text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1 font-bold text-[11px]">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                       <span>आधार कार्ड व्हेरिफाइड</span>
                     </span>
                   ) : (
-                    <span className="text-amber-800 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-300 flex items-center gap-1.5 font-medium">
+                    <span className="text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-300 flex items-center gap-1 font-medium text-[11px]">
                       <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
                       <span>ओळखपत्र पडताळणी सुरू आहे</span>
                     </span>
                   )}
 
                   {(profile.isPhoneVerified || profile.truecallerVerified) && (
-                    <span className="px-2.5 py-1 rounded-full bg-blue-50 text-blue-900 border border-blue-300 font-bold flex items-center gap-1.5">
+                    <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-900 border border-blue-300 font-bold flex items-center gap-1 text-[11px]">
                       <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
                       <span>{profile.phoneVerificationMethod === 'truecaller' ? 'Truecaller व्हेरिफाइड' : 'मोबाईल नंबर व्हेरिफाइड'}</span>
                     </span>
@@ -1606,128 +1575,128 @@ export const ProfileDetailModal: React.FC<{
                   </button>
                 </div>
 
-                {/* Tab Content Box - 16px radius, subtle shadow, 14px label, 15px dark charcoal value */}
-                <div className="bg-white p-5 sm:p-6 rounded-[16px] border border-slate-200/80 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
+                {/* Tab Content Box - compact radius and padding */}
+                <div className="bg-white p-3.5 sm:p-4.5 rounded-2xl border border-slate-200/90 shadow-2xs">
                   {/* 1. PERSONAL INFO TAB */}
                   {activeTab === 'personal' && (
-                    <div className="space-y-5">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
-                        <div className="p-3 bg-slate-50/70 rounded-[12px] border border-slate-200/60">
-                          <span className="text-[14px] text-slate-500 font-medium flex items-center gap-1.5">
-                            <Calendar className="w-4 h-4 text-[#A71930]" />
+                    <div className="space-y-3.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
+                        <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/70">
+                          <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5 text-[#A71930]" />
                             <span>जन्म तारीख व वय</span>
                           </span>
-                          <span className="text-[15px] font-semibold text-[#333333] mt-1 block">
+                          <span className="text-xs sm:text-sm font-extrabold text-[#1e293b] mt-0.5 block">
                             {profile.dob} ({profile.age} वर्षे)
                           </span>
                         </div>
 
-                        <div className="p-3 bg-slate-50/70 rounded-[12px] border border-slate-200/60">
-                          <span className="text-[14px] text-slate-500 font-medium flex items-center gap-1.5">
-                            <Clock className="w-4 h-4 text-[#A71930]" />
+                        <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/70">
+                          <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-[#A71930]" />
                             <span>जन्म वेळ व जन्म स्थान</span>
                           </span>
-                          <span className="text-[15px] font-semibold text-[#333333] mt-1 block">
+                          <span className="text-xs sm:text-sm font-extrabold text-[#1e293b] mt-0.5 block">
                             {profile.birthTime || 'सकाळी १०:३० AM'} {profile.birthPlace ? `(${profile.birthPlace})` : `(${profile.district})`}
                           </span>
                         </div>
 
-                        <div className="p-3 bg-slate-50/70 rounded-[12px] border border-slate-200/60">
-                          <span className="text-[14px] text-slate-500 font-medium flex items-center gap-1.5">
-                            <Ruler className="w-4 h-4 text-[#A71930]" />
+                        <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/70">
+                          <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
+                            <Ruler className="w-3.5 h-3.5 text-[#A71930]" />
                             <span>उंची व वजन</span>
                           </span>
-                          <span className="text-[15px] font-semibold text-[#333333] mt-1 block">
+                          <span className="text-xs sm:text-sm font-extrabold text-[#1e293b] mt-0.5 block">
                             {profile.height} {profile.weight ? `| ${profile.weight}` : '| ५५ किलो'}
                           </span>
                         </div>
 
-                        <div className="p-3 bg-slate-50/70 rounded-[12px] border border-slate-200/60">
-                          <span className="text-[14px] text-slate-500 font-medium flex items-center gap-1.5">
-                            <User className="w-4 h-4 text-[#A71930]" />
+                        <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/70">
+                          <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5 text-[#A71930]" />
                             <span>वर्ण व रक्तगट</span>
                           </span>
-                          <span className="text-[15px] font-semibold text-[#333333] mt-1 block">
+                          <span className="text-xs sm:text-sm font-extrabold text-[#1e293b] mt-0.5 block">
                             {profile.complexion || 'गोरा'} | {profile.bloodGroup || 'O+'}
                           </span>
                         </div>
 
-                        <div className="p-3 bg-slate-50/70 rounded-[12px] border border-slate-200/60">
-                          <span className="text-[14px] text-slate-500 font-medium flex items-center gap-1.5">
-                            <User className="w-4 h-4 text-[#A71930]" />
+                        <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/70">
+                          <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5 text-[#A71930]" />
                             <span>उपजात (Sub-caste)</span>
                           </span>
-                          <span className="text-[15px] font-semibold text-[#A71930] mt-1 block">
+                          <span className="text-xs sm:text-sm font-extrabold text-[#A71930] mt-0.5 block">
                             {profile.subCaste || 'वंजारी'}
                           </span>
                         </div>
 
-                        <div className="p-3 bg-slate-50/70 rounded-[12px] border border-slate-200/60">
-                          <span className="text-[14px] text-slate-500 font-medium flex items-center gap-1.5">
-                            <Scroll className="w-4 h-4 text-[#A71930]" />
+                        <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/70">
+                          <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
+                            <Scroll className="w-3.5 h-3.5 text-[#A71930]" />
                             <span>गोत्र व राशी</span>
                           </span>
-                          <span className="text-[15px] font-semibold text-[#333333] mt-1 block">
+                          <span className="text-xs sm:text-sm font-extrabold text-[#1e293b] mt-0.5 block">
                             {profile.gotra || 'काश्यप'} | {profile.rashi || 'मकर'}
                           </span>
                         </div>
 
-                        <div className="p-3 bg-slate-50/70 rounded-[12px] border border-slate-200/60">
-                          <span className="text-[14px] text-slate-500 font-medium flex items-center gap-1.5">
-                            <GraduationCap className="w-4 h-4 text-[#A71930]" />
+                        <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/70">
+                          <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
+                            <GraduationCap className="w-3.5 h-3.5 text-[#A71930]" />
                             <span>शिक्षण (Education)</span>
                           </span>
-                          <span className="text-[15px] font-semibold text-[#333333] mt-1 block">
+                          <span className="text-xs sm:text-sm font-extrabold text-[#1e293b] mt-0.5 block">
                             {profile.education}
                           </span>
                         </div>
 
-                        <div className="p-3 bg-slate-50/70 rounded-[12px] border border-slate-200/60">
-                          <span className="text-[14px] text-slate-500 font-medium flex items-center gap-1.5">
-                            <Briefcase className="w-4 h-4 text-[#A71930]" />
+                        <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/70">
+                          <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
+                            <Briefcase className="w-3.5 h-3.5 text-[#A71930]" />
                             <span>नोकरी / व्यवसाय (Profession)</span>
                           </span>
-                          <span className="text-[15px] font-semibold text-[#A71930] mt-1 block">
+                          <span className="text-xs sm:text-sm font-extrabold text-[#A71930] mt-0.5 block">
                             {profile.occupation}
                           </span>
                         </div>
 
-                        <div className="p-3 bg-slate-50/70 rounded-[12px] border border-slate-200/60">
-                          <span className="text-[14px] text-slate-500 font-medium flex items-center gap-1.5">
-                            <IndianRupee className="w-4 h-4 text-[#A71930]" />
+                        <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/70">
+                          <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
+                            <IndianRupee className="w-3.5 h-3.5 text-[#A71930]" />
                             <span>वार्षिक उत्पन्न (Annual Income)</span>
                           </span>
-                          <span className="text-[15px] font-semibold text-emerald-800 mt-1 block">
+                          <span className="text-xs sm:text-sm font-extrabold text-emerald-800 mt-0.5 block">
                             {profile.income || 'उपलब्ध नाही'}
                           </span>
                         </div>
 
-                        <div className="p-3 bg-slate-50/70 rounded-[12px] border border-slate-200/60">
-                          <span className="text-[14px] text-slate-500 font-medium flex items-center gap-1.5">
-                            <Building2 className="w-4 h-4 text-[#A71930]" />
+                        <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/70">
+                          <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
+                            <Building2 className="w-3.5 h-3.5 text-[#A71930]" />
                             <span>नोकरीचे शहर / ठिकाण</span>
                           </span>
-                          <span className="text-[15px] font-semibold text-[#333333] mt-1 block">
+                          <span className="text-xs sm:text-sm font-extrabold text-[#1e293b] mt-0.5 block">
                             {profile.city || profile.district}, {profile.district}
                           </span>
                         </div>
 
-                        <div className="p-3 bg-slate-50/70 rounded-[12px] border border-slate-200/60">
-                          <span className="text-[14px] text-slate-500 font-medium flex items-center gap-1.5">
-                            <Home className="w-4 h-4 text-[#A71930]" />
+                        <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/70">
+                          <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
+                            <Home className="w-3.5 h-3.5 text-[#A71930]" />
                             <span>मूळ गाव (Native Place)</span>
                           </span>
-                          <span className="text-[15px] font-semibold text-[#333333] mt-1 block">
+                          <span className="text-xs sm:text-sm font-extrabold text-[#1e293b] mt-0.5 block">
                             {formatAddressDetail(profile.nativeAddress, profile.taluka ? `${profile.taluka}, ${profile.district}` : profile.district)}
                           </span>
                         </div>
 
-                        <div className="p-3 bg-slate-50/70 rounded-[12px] border border-slate-200/60">
-                          <span className="text-[14px] text-slate-500 font-medium flex items-center gap-1.5">
-                            <MapPin className="w-4 h-4 text-[#A71930]" />
+                        <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/70">
+                          <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
+                            <MapPin className="w-3.5 h-3.5 text-[#A71930]" />
                             <span>सध्याचा पत्ता (Current Address)</span>
                           </span>
-                          <span className="text-[15px] font-semibold text-[#333333] mt-1 block">
+                          <span className="text-xs sm:text-sm font-extrabold text-[#1e293b] mt-0.5 block">
                             {formatAddressDetail(profile.currentAddress, profile.city ? `${profile.city}, ${profile.district}` : profile.district)}
                           </span>
                         </div>
@@ -1737,83 +1706,83 @@ export const ProfileDetailModal: React.FC<{
 
                   {/* 2. FAMILY DETAILS TAB */}
                   {activeTab === 'family' && (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-4">
-                        <div className="p-3 bg-slate-50/70 rounded-[12px] border border-slate-200/60">
-                          <span className="text-[14px] text-slate-500 font-medium flex items-center gap-1.5">
-                            <User className="w-4 h-4 text-[#A71930]" />
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3">
+                        <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/70">
+                          <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5 text-[#A71930]" />
                             <span>वडिलांचे नाव व व्यवसाय</span>
                           </span>
-                          <span className="text-[15px] font-semibold text-[#333333] mt-1 block">
+                          <span className="text-xs sm:text-sm font-extrabold text-[#1e293b] mt-0.5 block">
                             {formatFatherName(profile.fatherName)} {profile.fatherOccupation && isViewerPaidOrFestive ? `(${profile.fatherOccupation})` : ''}
                           </span>
                         </div>
 
-                        <div className="p-3 bg-slate-50/70 rounded-[12px] border border-slate-200/60">
-                          <span className="text-[14px] text-slate-500 font-medium flex items-center gap-1.5">
-                            <User className="w-4 h-4 text-[#A71930]" />
+                        <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/70">
+                          <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5 text-[#A71930]" />
                             <span>आईचे नाव व व्यवसाय</span>
                           </span>
-                          <span className="text-[15px] font-semibold text-[#333333] mt-1 block">
+                          <span className="text-xs sm:text-sm font-extrabold text-[#1e293b] mt-0.5 block">
                             {profile.motherName || 'माहिती दिलेली नाही'} {profile.motherOccupation ? `(${profile.motherOccupation})` : ''}
                           </span>
                         </div>
 
-                        <div className="p-3 bg-slate-50/70 rounded-[12px] border border-slate-200/60">
-                          <span className="text-[14px] text-slate-500 font-medium flex items-center gap-1.5">
-                            <Users className="w-4 h-4 text-[#A71930]" />
+                        <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/70">
+                          <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
+                            <Users className="w-3.5 h-3.5 text-[#A71930]" />
                             <span>भाऊ व बहीण तपशील</span>
                           </span>
-                          <span className="text-[15px] font-semibold text-[#333333] mt-1 block">
+                          <span className="text-xs sm:text-sm font-extrabold text-[#1e293b] mt-0.5 block">
                             {profile.brothers || 0} भाऊ, {profile.sisters || 0} बहीण {profile.brotherDetails ? `(${profile.brotherDetails})` : ''}
                           </span>
                         </div>
 
-                        <div className="p-3 bg-slate-50/70 rounded-[12px] border border-slate-200/60">
-                          <span className="text-[14px] text-slate-500 font-medium flex items-center gap-1.5">
-                            <Home className="w-4 h-4 text-[#A71930]" />
+                        <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/70">
+                          <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
+                            <Home className="w-3.5 h-3.5 text-[#A71930]" />
                             <span>कुटुंब पद्धत</span>
                           </span>
-                          <span className="text-[15px] font-semibold text-[#A71930] mt-1 block">
+                          <span className="text-xs sm:text-sm font-extrabold text-[#A71930] mt-0.5 block">
                             {profile.familyType || 'एकत्र / विभक्त कुटुंब'}
                           </span>
                         </div>
 
-                        <div className="p-3 bg-slate-50/70 rounded-[12px] border border-slate-200/60">
-                          <span className="text-[14px] text-slate-500 font-medium flex items-center gap-1.5">
-                            <User className="w-4 h-4 text-[#A71930]" />
+                        <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/70">
+                          <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5 text-[#A71930]" />
                             <span>मामांचे नाव</span>
                           </span>
-                          <span className="text-[15px] font-semibold text-[#333333] mt-1 block">
+                          <span className="text-xs sm:text-sm font-extrabold text-[#1e293b] mt-0.5 block">
                             {profile.mamaName || 'माहिती दिलेली नाही'}
                           </span>
                         </div>
 
-                        <div className="p-3 bg-slate-50/70 rounded-[12px] border border-slate-200/60">
-                          <span className="text-[14px] text-slate-500 font-medium flex items-center gap-1.5">
-                            <MapPin className="w-4 h-4 text-[#A71930]" />
+                        <div className="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/70">
+                          <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
+                            <MapPin className="w-3.5 h-3.5 text-[#A71930]" />
                             <span>मामांचे गाव</span>
                           </span>
-                          <span className="text-[15px] font-semibold text-[#333333] mt-1 block">
+                          <span className="text-xs sm:text-sm font-extrabold text-[#1e293b] mt-0.5 block">
                             {profile.mamaNative || profile.district}
                           </span>
                         </div>
                       </div>
 
                       {/* Relative Surnames */}
-                      <div className="p-4 bg-amber-50/60 rounded-[12px] border border-amber-200/80 space-y-2">
-                        <span className="text-[14px] text-[#800C1E] font-bold block">
+                      <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-200/80 space-y-1.5">
+                        <span className="text-xs text-[#800C1E] font-bold block">
                           नातेवाईक आडनावे (Relative Surnames):
                         </span>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-1.5">
                           {profile.relativeSurnames && profile.relativeSurnames.length > 0 ? (
                             profile.relativeSurnames.map((sur, idx) => (
-                              <span key={idx} className="bg-white px-3 py-1 rounded-lg text-[#333333] border border-amber-200 font-semibold text-[14px] shadow-2xs">
+                              <span key={idx} className="bg-white px-2.5 py-0.5 rounded-md text-[#333333] border border-amber-200 font-bold text-xs shadow-2xs">
                                 {sur}
                               </span>
                             ))
                           ) : (
-                            <span className="text-slate-500 text-[14px]">माहिती दिलेली नाही</span>
+                            <span className="text-slate-500 text-xs">माहिती दिलेली नाही</span>
                           )}
                         </div>
                       </div>
@@ -2218,6 +2187,139 @@ export const ProfileDetailModal: React.FC<{
                     </div>
                   )}
                 </div>
+
+                {/* COMPACT ACTION BUTTONS BAR AT BOTTOM OF PROFILE */}
+                <div className="p-3 sm:p-4 rounded-2xl bg-amber-50/80 border border-amber-200 shadow-xs space-y-3 mt-4">
+                  {/* Action buttons row */}
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* Like button */}
+                      {currentUser?.id !== profile.id && (
+                        <button
+                          type="button"
+                          onClick={() => sendInterest(profile.id)}
+                          disabled={!!interestObj || likedProfileIds.includes(profile.id)}
+                          className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-xs transition-all cursor-pointer ${
+                            interestObj || likedProfileIds.includes(profile.id)
+                              ? 'bg-amber-100 text-[#800C1E] border border-amber-300 cursor-default'
+                              : 'bg-gradient-to-r from-[#A71930] to-[#800C1E] text-white hover:brightness-110 active:scale-95'
+                          }`}
+                        >
+                          <Heart className={`w-3.5 h-3.5 ${interestObj || likedProfileIds.includes(profile.id) ? 'fill-[#A71930] text-[#A71930]' : 'fill-white text-white'}`} />
+                          <span>{interestObj || likedProfileIds.includes(profile.id) ? '❤️ लाईक केले' : '❤️ लाईक करा'}</span>
+                        </button>
+                      )}
+
+                      {/* Contact request or chat */}
+                      {isAuthorized ? (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <a
+                            href={`https://t.me/${profile.telegramUsername || siteConfig?.telegramUsername || 'Primemultiservice'}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="px-3.5 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span>टेलिग्राम संपर्क</span>
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose();
+                              setActiveChatUser(profile);
+                            }}
+                            className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span>चॅट करा</span>
+                          </button>
+                        </div>
+                      ) : !siteConfig?.requireMutualLikeAndVerificationToView && (
+                        <button
+                          type="button"
+                          onClick={() => requestContactAuthorization(profile.id)}
+                          className="px-3.5 py-2 rounded-xl bg-[#A71930] hover:bg-[#800C1E] text-amber-100 text-xs font-black flex items-center gap-1.5 shadow-xs cursor-pointer transition"
+                        >
+                          <PhoneCall className="w-3.5 h-3.5" />
+                          <span>मोफत विनंती करा</span>
+                        </button>
+                      )}
+
+                      {/* Unlock contact if pay-per-contact enabled */}
+                      {!isAuthorized && siteConfig?.isPayPerContactEnabled !== false && !siteConfig?.requireMutualLikeAndVerificationToView && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (checkGuestPermission('viewProfiles', 'संपर्क अन-लॉक')) {
+                              if (siteConfig?.isOfferModeEnabled || siteConfig?.disableAllPaymentsInOfferMode) {
+                                unlockContact(profile.id);
+                                alert('🎁 विशेष सण ऑफर: संपर्क क्रमांक विनामूल्य अन-लॉक झाला आहे!');
+                              } else {
+                                setSelectedProfileForUnlock(profile);
+                                setIsContactUnlockModalOpen(true);
+                              }
+                            }
+                          }}
+                          className="px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer border border-emerald-500"
+                        >
+                          <Lock className="w-3.5 h-3.5 text-amber-300" />
+                          <span>{siteConfig?.isOfferModeEnabled ? '🎁 मोफत अनलॉक' : 'संपर्क अनलॉक'}</span>
+                        </button>
+                      )}
+
+                      {/* Print / Download */}
+                      {canExportOrShare && (
+                        <button
+                          type="button"
+                          onClick={() => setIsPrintModalOpen(true)}
+                          className="px-3 py-2 rounded-xl bg-white hover:bg-amber-100 text-[#800C1E] text-xs font-bold flex items-center gap-1 border border-amber-300 cursor-pointer shadow-xs"
+                        >
+                          <Printer className="w-3.5 h-3.5 text-[#800C1E]" />
+                          <span>प्रिंट</span>
+                        </button>
+                      )}
+
+                      {/* Report profile */}
+                      {currentUser?.id !== profile.id && !isUserAdmin && (
+                        <button
+                          type="button"
+                          onClick={() => setIsReportModalOpen(true)}
+                          className="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-bold flex items-center gap-1 border border-rose-200 transition cursor-pointer"
+                          title="तक्रार नोंदवा"
+                        >
+                          <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
+                          <span>तक्रार</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Prominent Back / Close Button */}
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition active:scale-95 cursor-pointer ml-auto"
+                      title="मागे जा"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5 text-amber-300" />
+                      <span>मागे जा (Close)</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* COMPACT LEGAL DISCLAIMER & PRIVACY NOTICE (Tucked neatly at bottom) */}
+                <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-100/90 border border-slate-200 text-[11px] text-slate-600 font-medium space-y-1.5 leading-relaxed mt-3">
+                  <div className="flex items-center gap-1.5 text-slate-800 font-bold">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>गोपनीयता सुरक्षा: थेट फोन नंबर सार्वजनिक नाही. परस्पर पसंती किंवा टेलिग्राम सपोर्टद्वारे संपर्क साधा.</span>
+                  </div>
+                  <div className="border-t border-slate-200/80 pt-1.5 flex items-start gap-1.5 text-[10.5px] text-slate-500">
+                    <span className="shrink-0">⚖️</span>
+                    <span>
+                      <strong className="text-slate-700">कायदेशीर सूचना (Mandatory Notice):</strong> 'वंजारी जोडी' हे डिजिटल मध्यस्थ (Section 79 IT Act) व्यासपीठ आहे. विवाह निश्चित करण्यापूर्वी किंवा व्यवहार करण्यापूर्वी चारित्र्य, नोकरी/व्यवसाय व कौटुंबिक पार्श्वभूमीची <strong>प्रत्यक्ष सखोल खात्री</strong> करणे अनिवार्य आहे. मंचाची कोणतीही जबाबदारी असणार नाही.
+                    </span>
+                  </div>
+                </div>
+
               </div>
             )}
             </div>
@@ -2225,223 +2327,6 @@ export const ProfileDetailModal: React.FC<{
         )}
 
         </div>
-
-          {/* Modal Footer Actions */}
-          <div className="p-3 sm:p-4 bg-amber-50/90 border-t border-amber-200 flex flex-wrap items-center justify-between gap-3">
-            
-            <div className="flex items-center gap-2">
-              {canExportOrShare && (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setIsPrintModalOpen(true)}
-                    className="px-3 py-1.5 rounded-xl bg-white hover:bg-amber-100 text-[#800C1E] text-xs font-bold flex items-center gap-1 border border-amber-300 shadow-2xs cursor-pointer"
-                  >
-                    <Printer className="w-3.5 h-3.5 text-[#800C1E]" />
-                    <span>प्रिंट</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleShareTelegram}
-                    className="px-3 py-1.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 text-xs font-bold flex items-center gap-1 border border-sky-300 shadow-2xs cursor-pointer"
-                  >
-                    <Send className="w-3.5 h-3.5 text-sky-600" />
-                    <span>शेअर</span>
-                  </button>
-                </>
-              )}
-              {currentUser?.id !== profile.id && !isUserAdmin && (
-                <button
-                  type="button"
-                  onClick={() => setIsReportModalOpen(true)}
-                  className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-800 text-xs font-bold flex items-center gap-1 border border-rose-200 transition cursor-pointer"
-                  title="ॲडमिनकडे या प्रोफाईलबाबत तक्रार नोंदवा"
-                >
-                  <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
-                  <span>तक्रार</span>
-                </button>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              {currentUser && currentUser.isApproved === false && !currentUser.isAdmin ? (
-                <div className="p-3.5 bg-amber-100/90 border-2 border-amber-400 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-xl">⏳</span>
-                    <div>
-                      <p className="text-xs font-black text-[#A71930]">
-                        आपले प्रोफाईल ॲडमिन पडताळणीसाठी प्रलंबित आहे
-                      </p>
-                      <p className="text-[11px] text-slate-700 font-bold">
-                        ॲडमिन मंजुरीनंतर थेट टेलिग्राम चॅट, इन-ॲप चॅट व सर्व संपर्क पर्याय कार्यन्वित होतील.
-                      </p>
-                    </div>
-                  </div>
-                  <span className="px-3 py-1.5 bg-amber-200 text-amber-950 text-xs font-black rounded-xl border border-amber-300 whitespace-nowrap">
-                    🔒 मंजुरीची प्रतीक्षा करा
-                  </span>
-                </div>
-              ) : isAuthorized ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <a
-                    href={`https://t.me/${profile.telegramUsername || siteConfig?.telegramUsername || 'Primemultiservice'}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm"
-                  >
-                    <Send className="w-4 h-4" />
-                    <span>टेलिग्राम संपर्क (@{profile.telegramUsername || siteConfig?.telegramUsername || 'Primemultiservice'})</span>
-                  </a>
-                  <button
-                    onClick={() => {
-                      onClose();
-                      setActiveChatUser(profile);
-                    }}
-                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    <span>चॅट करा</span>
-                  </button>
-                  {isMutualMatch && (
-                    <span className="px-3 py-1 rounded-xl bg-rose-100 text-rose-800 border border-rose-300 text-xs font-black flex items-center gap-1">
-                      💞 म्युचुअल लाईक (मॅच) संपर्क अनलॉक!
-                    </span>
-                  )}
-                </div>
-              ) : isMutualMatch && !(currentUser?.isPhoneVerified || currentUser?.truecallerVerified) ? (
-                /* जर म्युचुअल लाईक झाली असेल पण Truecaller पडताळणी बाकी असेल */
-                <div className="p-3 bg-amber-100/90 border-2 border-amber-400 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">🔒</span>
-                    <div>
-                      <p className="text-xs font-black text-[#A71930]">
-                        💞 तुमचे एकमेकांना म्युचुअल लाईक (Match) झाले आहे!
-                      </p>
-                      <p className="text-[11px] text-slate-700 font-bold">
-                        मोबाईल नंबर पाहण्यासाठी कृपया Truecaller पडताळणी पूर्ण करा किंवा टेलिग्राम सपोर्टशी संपर्क करा.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => setIsTruecallerModalOpen(true)}
-                      className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-xs font-black rounded-xl shadow border border-blue-400 flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
-                    >
-                      <span>⚡ Truecaller व्हेरिफाय करा</span>
-                    </button>
-                    <a
-                      href={`https://t.me/${siteConfig?.telegramUsername || 'Primemultiservice'}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-3 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl flex items-center gap-1"
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      <span>टेलिग्राम</span>
-                    </a>
-                  </div>
-                </div>
-              ) : pendingReq ? (
-                <div className="px-4 py-2 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold flex items-center gap-1.5 cursor-default">
-                  <Lock className="w-4 h-4 text-amber-700" />
-                  <span>मान्यतेसाठी प्रलंबित (प्रशासकीय पडताळणी सुरु आहे)</span>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2 w-full sm:w-auto">
-                  {/* Privacy notice banner replacing direct public phone display */}
-                  <div className="bg-amber-50/95 border border-amber-300 rounded-xl p-2.5 flex items-center justify-between gap-3 text-xs">
-                    <div className="flex items-center gap-2 text-slate-700 font-bold">
-                      <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>गोपनीयता सुरक्षा: थेट नंबर सार्वजनिक उपलब्ध नाही. परस्पर पसंती किंवा टेलिग्राम सपोर्ट आयडी वापरा.</span>
-                    </div>
-                    <a
-                      href={`https://t.me/${siteConfig?.telegramUsername || 'Primemultiservice'}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white font-black rounded-lg text-[11px] flex items-center gap-1 shrink-0"
-                    >
-                      <Send className="w-3 h-3" />
-                      <span>टेलिग्राम सपोर्ट</span>
-                    </a>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    {/* Message when user hasn't mutual-liked or requires strict verification */}
-                    {siteConfig?.requireMutualLikeAndVerificationToView && (
-                      <div className="w-full text-xs font-extrabold text-[#A71930] bg-amber-50 p-2.5 rounded-xl border border-amber-300 flex items-center gap-1.5">
-                        <span>🔒</span>
-                        <span>एकमेकांना लाईक केल्याच्या नंतर आणि ट्रू कॉलर व्हेरिफिकेशन झाले तरच नंबर अनलॉक होईल.</span>
-                      </div>
-                    )}
-
-                    {/* Pay Per Contact Button - Hidden if isPayPerContactEnabled is false */}
-                    {siteConfig?.isPayPerContactEnabled !== false && !siteConfig?.requireMutualLikeAndVerificationToView && (
-                      <button
-                        onClick={() => {
-                          if (checkGuestPermission('viewProfiles', 'संपर्क अन-लॉक')) {
-                            if (siteConfig?.isOfferModeEnabled || siteConfig?.disableAllPaymentsInOfferMode) {
-                              unlockContact(profile.id);
-                              alert('🎁 विशेष सण ऑफर: संपर्क क्रमांक विनामूल्य अन-लॉक झाला आहे!');
-                            } else {
-                              setSelectedProfileForUnlock(profile);
-                              setIsContactUnlockModalOpen(true);
-                            }
-                          }
-                        }}
-                        className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-700 to-emerald-800 text-amber-100 text-xs font-black flex items-center gap-1.5 shadow-md hover:brightness-110 cursor-pointer border border-emerald-400"
-                      >
-                        <Lock className="w-4 h-4 text-amber-300" />
-                        <span>
-                          {siteConfig?.isOfferModeEnabled
-                            ? '🎁 मोफत संपर्क अन-लॉक करा (Offer)'
-                            : 'संपर्क अन-लॉक करा (Pay-Per-Contact)'}
-                        </span>
-                      </button>
-                    )}
-
-                    {!siteConfig?.requireMutualLikeAndVerificationToView && (
-                      <button
-                        onClick={() => {
-                          requestContactAuthorization(profile.id);
-                        }}
-                        className="px-4 py-2.5 rounded-xl bg-[#A71930] hover:bg-[#800C1E] text-amber-100 text-xs font-black flex items-center gap-1.5 shadow-md transition cursor-pointer"
-                      >
-                        <PhoneCall className="w-4 h-4" />
-                        <span>मोफत विनंती करा</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {currentUser?.id !== profile.id && (
-                <button
-                  onClick={() => sendInterest(profile.id)}
-                  disabled={!!interestObj || likedProfileIds.includes(profile.id)}
-                  className={`px-4 py-2.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md transition-all cursor-pointer ${
-                    interestObj || likedProfileIds.includes(profile.id)
-                      ? 'bg-amber-100 text-[#800C1E] border border-amber-300 cursor-default'
-                      : 'bg-gradient-to-r from-[#A71930] to-[#800C1E] text-amber-100 hover:brightness-110'
-                  }`}
-                >
-                  <Heart className={`w-4 h-4 ${interestObj || likedProfileIds.includes(profile.id) ? 'fill-[#A71930] text-[#A71930]' : 'fill-amber-200 text-amber-200'}`} />
-                  <span>{interestObj || likedProfileIds.includes(profile.id) ? '❤️ लाईक केले (Liked)' : '❤️ लाईक करा (Like Profile)'}</span>
-                </button>
-              )}
-
-              {/* Bottom Back Button */}
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-black flex items-center gap-1.5 shadow-sm transition active:scale-95 cursor-pointer shrink-0"
-                title="मागे यादीत जा"
-              >
-                <ArrowLeft className="w-4 h-4 text-slate-700" />
-                <span>मागे जा (Back)</span>
-              </button>
-            </div>
-
-          </div>
 
         </div>
       </div>

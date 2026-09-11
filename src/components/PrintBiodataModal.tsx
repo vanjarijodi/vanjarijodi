@@ -255,8 +255,9 @@ export const PrintBiodataModal: React.FC<{
           >
             <img
               src={
-                siteConfig?.biodataWatermarkUrl ||
-                "/vanjari-jodi-official-logo.png"
+                (siteConfig?.biodataWatermarkUrl && siteConfig.biodataWatermarkUrl.startsWith('data:image/'))
+                  ? siteConfig.biodataWatermarkUrl
+                  : "/vanjari-jodi-official-logo-v3.png?v=3"
               }
               alt="Watermark Logo"
               referrerPolicy="no-referrer"
@@ -556,8 +557,9 @@ export const PrintBiodataModal: React.FC<{
             >
               <img
                 src={
-                  siteConfig?.biodataWatermarkUrl ||
-                  "/vanjari-jodi-official-logo.png"
+                  (siteConfig?.biodataWatermarkUrl && siteConfig.biodataWatermarkUrl.startsWith('data:image/'))
+                    ? siteConfig.biodataWatermarkUrl
+                    : "/vanjari-jodi-official-logo-v3.png?v=3"
                 }
                 alt="Watermark Logo"
                 crossOrigin="anonymous"

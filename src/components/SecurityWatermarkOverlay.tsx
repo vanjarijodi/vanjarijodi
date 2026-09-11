@@ -117,14 +117,15 @@ export const SecurityWatermarkOverlay: React.FC<SecurityWatermarkOverlayProps> =
         ))}
       </div>
 
-      {/* 2. Top-Left Floating Security Badge */}
-      <div className="absolute top-2 left-2 z-30 pointer-events-none select-none px-2.5 py-1 rounded-xl bg-slate-950/80 backdrop-blur-md text-white border border-amber-400/40 shadow-lg flex items-center gap-1.5 max-w-[90%]">
-        <Lock className="w-3 h-3 text-amber-300 shrink-0" />
-        <div className="text-[9px] font-black leading-tight truncate">
-          <span className="text-amber-300 block">🔒 दर्शकाची माहिती (Logged Viewer):</span>
-          <span className="text-white truncate block">{viewerName} • 📞 {viewerMobile}</span>
+      {/* 2. Top-Left Floating Security Badge (Micro-compact so it never blocks faces or photos) */}
+      {variant !== 'modal' && (
+        <div className="absolute top-2 left-2 z-30 pointer-events-none select-none px-2 py-0.5 rounded-lg bg-black/75 backdrop-blur-xs text-white border border-amber-400/30 shadow-md flex items-center gap-1 max-w-[85%]">
+          <Lock className="w-2.5 h-2.5 text-amber-300 shrink-0" />
+          <span className="text-[9px] font-mono font-bold text-amber-200 truncate">
+            {viewerName || 'दर्शकाची माहिती'} • {viewerMobile}
+          </span>
         </div>
-      </div>
+      )}
 
       {/* 3. Bottom-Right Security Stamp */}
       <div className="absolute bottom-2 right-2 z-30 pointer-events-none select-none px-2 py-0.5 rounded-lg bg-black/75 backdrop-blur-xs text-[9px] font-mono font-black text-amber-200 border border-amber-300/30 shadow-md">

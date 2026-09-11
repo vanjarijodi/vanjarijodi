@@ -92,7 +92,7 @@ export const WelcomeScreen: React.FC = () => {
             <div className="relative group my-1">
               <div className="absolute -inset-2 rounded-full bg-gradient-to-r from-amber-300 via-amber-400 to-amber-500 opacity-30 blur-sm group-hover:opacity-50 transition duration-300" />
               <img
-                src="/vanjari-jodi-official-logo.png"
+                src="/vanjari-jodi-official-logo-v3.png?v=3"
                 alt="वंजारी जोडी वधू-वर सूचक केंद्र"
                 className="relative w-32 h-32 sm:w-36 sm:h-36 object-contain drop-shadow-md select-none rounded-full"
                 referrerPolicy="no-referrer"

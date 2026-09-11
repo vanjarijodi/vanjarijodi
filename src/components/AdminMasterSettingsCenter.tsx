@@ -2953,7 +2953,7 @@ export const AdminMasterSettingsCenter: React.FC = () => {
                 </div>
                 <div className="text-[11px] font-black text-slate-800 flex justify-between">
                   <span>स्त्रोत URL:</span>
-                  <span className="text-slate-500 truncate max-w-[150px]">{siteConfig.logoUrl || '/vanjari-jodi-official-logo.png'}</span>
+                  <span className="text-slate-500 truncate max-w-[150px]">{siteConfig.logoUrl || '/vanjari-jodi-official-logo-v3.png?v=3'}</span>
                 </div>
               </div>
             </div>
@@ -3064,7 +3064,7 @@ export const AdminMasterSettingsCenter: React.FC = () => {
 
                   <button
                     type="button"
-                    onClick={() => handleDirectFieldSave('logoUrl', '/vanjari-jodi-official-logo.png', 'मूळ अधिकृत लोगो रिस्टोअर केला!')}
+                    onClick={() => handleDirectFieldSave('logoUrl', '/vanjari-jodi-official-logo-v3.png?v=3', 'मूळ अधिकृत लोगो रिस्टोअर केला!')}
                     className="py-2 px-3 rounded-xl bg-white hover:bg-slate-100 text-slate-800 font-black text-xs border border-slate-300 shadow-2xs transition cursor-pointer"
                   >
                     🔄 मूळ अधिकृत लोगो सेट करा
@@ -3076,8 +3076,8 @@ export const AdminMasterSettingsCenter: React.FC = () => {
                   <span className="text-[10px] font-black text-slate-600">किंवा थेट इमेज URL टाका:</span>
                   <input
                     type="text"
-                    defaultValue={siteConfig.logoUrl || '/vanjari-jodi-official-logo.png'}
-                    placeholder="उदा. https://... किंवा /vanjari-jodi-official-logo.png"
+                    defaultValue={siteConfig.logoUrl || '/vanjari-jodi-official-logo-v3.png?v=3'}
+                    placeholder="उदा. https://... किंवा /vanjari-jodi-official-logo-v3.png?v=3"
                     onBlur={(e) => {
                       const val = e.target.value.trim();
                       if (val && val !== siteConfig.logoUrl) {

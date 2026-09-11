@@ -15,9 +15,7 @@ export const AdminSpecialPremiumModal: React.FC<AdminSpecialPremiumModalProps> =
   onClose,
   onSave,
 }) => {
-  if (!isOpen || !member) return null;
-
-  const currentAccess = member.specialPremiumAccess;
+  const currentAccess = member?.specialPremiumAccess;
   const [enabled, setEnabled] = useState(currentAccess?.enabled ?? true);
   const [durationOption, setDurationOption] = useState<'no_expiry' | '7_days' | '30_days' | 'custom'>(
     currentAccess?.expiryDate ? 'custom' : 'no_expiry'
@@ -26,6 +24,18 @@ export const AdminSpecialPremiumModal: React.FC<AdminSpecialPremiumModalProps> =
     currentAccess?.expiryDate ? currentAccess.expiryDate.split('T')[0] : ''
   );
   const [note, setNote] = useState<string>(currentAccess?.note || 'प्रशासकाद्वारे विशेष प्रीमियम हक्क प्रदान');
+
+  React.useEffect(() => {
+    if (member) {
+      const access = member.specialPremiumAccess;
+      setEnabled(access?.enabled ?? true);
+      setDurationOption(access?.expiryDate ? 'custom' : 'no_expiry');
+      setCustomExpiryDate(access?.expiryDate ? access.expiryDate.split('T')[0] : '');
+      setNote(access?.note || 'प्रशासकाद्वारे विशेष प्रीमियम हक्क प्रदान');
+    }
+  }, [member, isOpen]);
+
+  if (!isOpen || !member) return null;
 
   const handleSave = () => {
     let finalExpiryDate: string | null = null;

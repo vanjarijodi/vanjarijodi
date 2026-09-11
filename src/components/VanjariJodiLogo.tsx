@@ -10,8 +10,8 @@ interface LogoProps {
   autoCompactOnMobile?: boolean;
 }
 
-const OFFICIAL_LOGO = '/vanjari-jodi-official-logo.png';
-const FALLBACK_LOGO = '/logo.png';
+const OFFICIAL_LOGO = '/vanjari-jodi-official-logo-v3.png?v=3';
+const FALLBACK_LOGO = '/vanjari-jodi-official-logo-v3.png?v=3';
 
 export const VanjariJodiLogo: React.FC<LogoProps> = ({
   className = '',
@@ -20,7 +20,14 @@ export const VanjariJodiLogo: React.FC<LogoProps> = ({
   showSubtitle = true,
 }) => {
   const { siteConfig, language } = useApp();
-  const [currentLogoSrc, setCurrentLogoSrc] = React.useState(OFFICIAL_LOGO);
+  const logoSrc = siteConfig?.logoUrl || OFFICIAL_LOGO;
+  const [currentLogoSrc, setCurrentLogoSrc] = React.useState(logoSrc);
+
+  React.useEffect(() => {
+    if (siteConfig?.logoUrl) {
+      setCurrentLogoSrc(siteConfig.logoUrl);
+    }
+  }, [siteConfig?.logoUrl]);
 
   const scalePercent = Number(siteConfig?.logoScalePercent) || 100;
   const scaleFactor = Math.max(0.4, Math.min(2.5, scalePercent / 100));

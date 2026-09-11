@@ -632,14 +632,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const unsubConfig = listenToSiteConfig((remoteConfig) => {
       if (remoteConfig) {
+        const sanitizeLogo = (url?: string) => {
+          if (url && url.startsWith('data:image/')) return url;
+          return '/vanjari-jodi-official-logo-v3.png?v=3';
+        };
+        const sanitizeBhagwangad = (url?: string) => {
+          if (!url || url.includes('wikimedia') || url.includes('http://') || url.includes('https://')) {
+            return '/vanjari-jodi-official-logo-v3.png?v=3';
+          }
+          return url;
+        };
         const safeRemoteConfig = {
           ...remoteConfig,
-          logoUrl: '/vanjari-jodi-official-logo.png',
+          logoUrl: sanitizeLogo(remoteConfig.logoUrl),
+          bhagwangadImg: sanitizeBhagwangad(remoteConfig.bhagwangadImg),
         };
         setSiteConfig((prev) => ({
           ...prev,
           ...safeRemoteConfig,
-          logoUrl: '/vanjari-jodi-official-logo.png',
         }));
       }
     }, INITIAL_SITE_CONFIG);
@@ -770,7 +780,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return {
           ...INITIAL_SITE_CONFIG,
           ...parsed,
-          logoUrl: '/vanjari-jodi-official-logo.png',
+          logoUrl: (parsed.logoUrl && parsed.logoUrl.startsWith('data:image/')) ? parsed.logoUrl : '/vanjari-jodi-official-logo-v3.png?v=3',
+          bhagwangadImg: (parsed.bhagwangadImg && !parsed.bhagwangadImg.includes('wikimedia') && !parsed.bhagwangadImg.includes('http')) ? parsed.bhagwangadImg : '/vanjari-jodi-official-logo-v3.png?v=3',
           adminCredentials: {
             name: parsed.adminCredentials?.name || 'मुख्य मास्टर ॲडमिन',
             username: parsed.adminCredentials?.username || 'admin',
@@ -3977,7 +3988,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         privacy: { hideContact: false, hidePhoto: false },
         completionPercentage: 45,
         registrationType: 'manual',
-        bio: 'गुगल खात्याशी लिंक केलेले वंजारी जोडी प्रोफाइल'
+        bio: ''
       };
 
       setProfiles((prev) => [newProfile, ...prev]);

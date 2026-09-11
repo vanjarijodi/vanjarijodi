@@ -6,8 +6,10 @@ import { useApp } from '../context/AppContext';
 export const BlessingsSection: React.FC = () => {
   const { siteConfig, language } = useApp();
 
-  // The authentic historical photograph of Shree Kshetra Bhagwangad Temple
-  const bhagwangadImg = siteConfig.bhagwangadImg || "https://upload.wikimedia.org/wikipedia/mr/f/f3/%E0%A4%AD%E0%A4%97%E0%A4%B5%E0%A4%BE%E0%A4%A8%E0%A4%97%E0%A4%A1.JPG";
+  // The official Vanjari Jodi logo image & local Bhagwangad temple presentation
+  const bhagwangadImg = (siteConfig.bhagwangadImg && !siteConfig.bhagwangadImg.includes('wikimedia') && !siteConfig.bhagwangadImg.includes('http')) 
+    ? siteConfig.bhagwangadImg 
+    : "/vanjari-jodi-official-logo-v3.png?v=3";
   const bhagwangadBadgeText = siteConfig.bhagwangadBadgeText || "॥ पावन तीर्थक्षेत्र ॥";
   const bhagwangadHeading = siteConfig.bhagwangadHeading || "श्री क्षेत्र भगवानगड (खरवंडी)";
   const bhagwangadSubtitle = siteConfig.bhagwangadSubtitle || "वंजारी समाजाची सर्वात मोठी सांस्कृतिक व आध्यात्मिक राजधानी";

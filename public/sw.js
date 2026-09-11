@@ -1,7 +1,9 @@
-const CACHE_NAME = 'vanjarijodi-cache-v2026-09-08-02';
+const CACHE_NAME = 'vanjarijodi-cache-v2026-09-11-03';
 const URLS_TO_CACHE = [
   '/',
   '/manifest.json',
+  '/vanjari-jodi-official-logo-v3.png?v=3',
+  '/vanjari-jodi-official-logo-v2.png',
   '/vanjari-jodi-official-logo.png',
   '/logo.png',
   '/icon-192.png',

@@ -28,6 +28,7 @@ import {
   Bell,
   LogOut,
   Home,
+  ArrowLeft,
 } from 'lucide-react';
 import { VerifiedBadge } from './VerifiedBadge';
 import { NoticeBanner } from './NoticeBanner';
@@ -48,7 +49,10 @@ export const Navbar: React.FC<{
     setIsRegisterOpen,
     setIsAdminOpen,
     siteConfig,
+    currentView,
     setCurrentView,
+    selectedProfileForModal,
+    setSelectedProfileForModal,
     incrementApkDownloadCount,
     setLoginModalMode,
     setIsLeftDrawerOpen,
@@ -201,16 +205,31 @@ export const Navbar: React.FC<{
           {/* RIGHT SIDE CONTROLS: Strictly [🔍] and [👤] on Mobile! Desktop gets extra badges */}
           <div className="flex items-center gap-2 shrink-0">
             
-            {/* 0. QUICK PDF BIODATA BUTTON (VISIBLE ON MOBILE & DESKTOP) */}
-            <button
-              onClick={() => setIsBioDataMakerOpen(true)}
-              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-50 to-amber-50 hover:bg-rose-100 border border-rose-300 text-[#800C1E] font-black text-xs flex items-center gap-1 active:scale-95 cursor-pointer shadow-2xs transition shrink-0 min-h-[44px]"
-              title={isEn ? 'Create Free PDF BioData' : 'मोफत PDF बायोडाटा बनवा'}
-            >
-              <Scroll className="w-4 h-4 text-[#800C1E]" />
-              <span className="hidden sm:inline">📄 PDF बायोडाटा</span>
-              <span className="sm:hidden">📄 बायोडाटा</span>
-            </button>
+            {/* 0. NAVIGATION / BACK BUTTON (WHEN LOGGED IN OR IN SUB-VIEW) OR BIODATA MAKER */}
+            {currentUser || currentView !== 'home' || selectedProfileForModal ? (
+              <button
+                onClick={() => {
+                  setSelectedProfileForModal(null);
+                  setCurrentView('home');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-100 to-amber-200 hover:from-amber-200 hover:to-amber-300 border border-amber-400 text-[#800C1E] font-black text-xs flex items-center gap-1 active:scale-95 cursor-pointer shadow-xs transition shrink-0 min-h-[44px]"
+                title="मागे जा (मुख्यपृष्ठावर जा)"
+              >
+                <ArrowLeft className="w-4 h-4 text-[#800C1E]" />
+                <span>मागे जा</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsBioDataMakerOpen(true)}
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-50 to-amber-50 hover:bg-rose-100 border border-rose-300 text-[#800C1E] font-black text-xs flex items-center gap-1 active:scale-95 cursor-pointer shadow-2xs transition shrink-0 min-h-[44px]"
+                title={isEn ? 'Create Free PDF BioData' : 'मोफत PDF बायोडाटा बनवा'}
+              >
+                <Scroll className="w-4 h-4 text-[#800C1E]" />
+                <span className="hidden sm:inline">📄 PDF बायोडाटा</span>
+                <span className="sm:hidden">📄 बायोडाटा</span>
+              </button>
+            )}
 
             {/* 1. QUICK SEARCH [🔍] */}
             <button

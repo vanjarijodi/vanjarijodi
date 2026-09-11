@@ -31,8 +31,6 @@ export const AdminCustomPlanGrantModal: React.FC<AdminCustomPlanGrantModalProps>
 }) => {
   const { updateProfileDirect, sendPushNotification, logActivity, plansList } = useApp();
 
-  if (!profile) return null;
-
   // Plan Type State
   const [selectedTier, setSelectedTier] = useState<string>('free_gift');
   const [customPlanTitle, setCustomPlanTitle] = useState<string>('');
@@ -45,7 +43,7 @@ export const AdminCustomPlanGrantModal: React.FC<AdminCustomPlanGrantModalProps>
 
   // Extend strategy: 'from_today' vs 'from_existing_expiry'
   const hasActiveExpiry = Boolean(
-    profile.membershipExpiryDate && new Date(profile.membershipExpiryDate) > new Date()
+    profile?.membershipExpiryDate && new Date(profile.membershipExpiryDate) > new Date()
   );
   const [extendFromCurrent, setExtendFromCurrent] = useState<boolean>(hasActiveExpiry);
 
@@ -65,6 +63,8 @@ export const AdminCustomPlanGrantModal: React.FC<AdminCustomPlanGrantModalProps>
 
   // Calculate Expiry Date in Real Time
   const calculatedExpiry = useMemo(() => {
+    if (!profile) return { iso: '', formatted: '', durationText: '' };
+
     if (isLifetime) {
       const d = new Date();
       d.setFullYear(d.getFullYear() + 50);
@@ -128,7 +128,7 @@ export const AdminCustomPlanGrantModal: React.FC<AdminCustomPlanGrantModalProps>
       formatted,
       durationText
     };
-  }, [durationPreset, customNumber, customUnit, isLifetime, extendFromCurrent, hasActiveExpiry, profile.membershipExpiryDate]);
+  }, [durationPreset, customNumber, customUnit, isLifetime, extendFromCurrent, hasActiveExpiry, profile]);
 
   // Determine Effective Plan Title
   const effectivePlanName = useMemo(() => {
@@ -140,6 +140,8 @@ export const AdminCustomPlanGrantModal: React.FC<AdminCustomPlanGrantModalProps>
     if (selectedTier === 'vip' || selectedTier === 'lifetime') return 'व्हीआयपी लाइफटाईम प्लॅन (VIP Unlimited)';
     return customPlanTitle.trim() || selectedTier;
   }, [selectedTier, customPlanTitle]);
+
+  if (!profile) return null;
 
   const handleApplyPreset = (preset: string) => {
     setDurationPreset(preset);
