@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { SafeAvatar } from './SafeAvatar';
 import { getPhotoAccessStatus } from '../utils/photoAccess';
+import { formatProfileDisplayName } from '../utils/nameFormatter';
 
 export type MatchesSubTab = 'mutual' | 'you_liked' | 'liked_you' | 'contact_requests' | 'blocked';
 
@@ -44,6 +45,9 @@ export const MatchesScreen: React.FC = () => {
     plansList,
     siteConfig,
     isProfilePlanExpired,
+    isAdminLoggedIn,
+    language,
+    isContactAuthorizedForUser,
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<MatchesSubTab>('mutual');
@@ -120,7 +124,11 @@ export const MatchesScreen: React.FC = () => {
     const chatStatus = checkCanUserChatWithMember(profile);
     if (!chatStatus.allowed) {
       if (!chatStatus.isPaidPlan) {
-        const activePlan = plansList.find((p) => p.isActive !== false && p.id !== 'free') || plansList[0];
+        const activePlan =
+          plansList.find((p) => p.id === 'welcome_offer' && p.isActive !== false) ||
+          plansList.find((p) => p.isActive !== false && p.id !== 'free' && p.id !== 'single_kundli' && p.planType !== 'single_use') ||
+          plansList.find((p) => p.id !== 'single_kundli' && p.planType !== 'single_use') ||
+          plansList[0];
         setSelectedPlanForPayment(activePlan);
         setIsPaymentOpen(true);
         alert('💬 चॅट सुरू करण्यासाठी सबस्क्रिप्शन प्लॅन आवश्यक आहे.');
@@ -308,7 +316,16 @@ export const MatchesScreen: React.FC = () => {
                             )}
                           </div>
                           <h4 className="font-bold text-slate-900 text-sm truncate mt-1">
-                            {profile.fullName || `सदस्य (${profile.registrationId || profile.id})`}
+                            {formatProfileDisplayName(
+                              profile.fullName,
+                              currentUser,
+                              isAdminLoggedIn,
+                              Boolean(isContactAuthorizedForUser && isContactAuthorizedForUser(profile.id)),
+                              siteConfig,
+                              language,
+                              true,
+                              profile.id
+                            ) || `सदस्य (${profile.registrationId || profile.id})`}
                           </h4>
                           <p className="text-xs text-slate-500">
                             {profile.age} वर्षे • {profile.education || 'शिक्षण माहिती'}
@@ -401,7 +418,16 @@ export const MatchesScreen: React.FC = () => {
                           </span>
                           <h4 className="font-bold text-slate-900 text-sm truncate mt-1">
                             {isAlreadyLikedByMe
-                              ? profile.fullName
+                              ? formatProfileDisplayName(
+                                  profile.fullName,
+                                  currentUser,
+                                  isAdminLoggedIn,
+                                  Boolean(isContactAuthorizedForUser && isContactAuthorizedForUser(profile.id)),
+                                  siteConfig,
+                                  language,
+                                  true,
+                                  profile.id
+                                )
                               : `VJ-${profile.registrationId || profile.id} (पडताळणीकृत)`}
                           </h4>
                           <p className="text-xs text-slate-500">

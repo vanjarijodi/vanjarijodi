@@ -1839,6 +1839,7 @@ export const MemberDashboard: React.FC = () => {
             updateProfileDirect(profileId, updatedFields);
           }}
           canEdit={true}
+          isSelfEdit={true}
         />
       )}
     </div>

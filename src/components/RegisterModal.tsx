@@ -1961,7 +1961,7 @@ export const RegisterModal: React.FC<{
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {(siteConfig?.showOnlyWelcomePlan !== false
                           ? plansList.filter((p) => p.id === 'welcome_offer' && p.isActive !== false)
-                          : plansList.filter((p) => p.isActive !== false)
+                          : plansList.filter((p) => p.isActive !== false && p.id !== 'single_kundli' && p.planType !== 'single_use')
                         ).map((p) => {
                           const isSelected = selectedPlanId === p.id;
                           return (

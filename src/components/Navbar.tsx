@@ -158,14 +158,17 @@ export const Navbar: React.FC<{
             <span>{isEn ? 'Download App' : 'ॲप डाऊनलोड'}</span>
           </button>
 
-          <button
-            onClick={() => setIsAdminOpen(true)}
-            className="px-2 sm:px-2.5 py-0.5 rounded-md bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 hover:text-white border border-amber-400/60 font-black text-[10px] sm:text-[11px] flex items-center gap-1 transition active:scale-95 cursor-pointer shadow-xs"
-            title="Admin Login"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
-            <span>Admin</span>
-          </button>
+          {/* Admin Login Button (Only for Guest or Admin) */}
+          {(!currentUser || isAdminLoggedIn || currentUser?.isAdmin) && (
+            <button
+              onClick={() => setIsAdminOpen(true)}
+              className="px-2 sm:px-2.5 py-0.5 rounded-md bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 hover:text-white border border-amber-400/60 font-black text-[10px] sm:text-[11px] flex items-center gap-1 transition active:scale-95 cursor-pointer shadow-xs"
+              title="Admin Login"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
+              <span>Admin</span>
+            </button>
+          )}
         </div>
       </div>
 

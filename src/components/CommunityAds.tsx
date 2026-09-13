@@ -23,7 +23,16 @@ import {
 import { CommunityAd } from '../types';
 
 export const CommunityAds: React.FC = () => {
-  const { communityAds, language, setIsAdminOpen, isAdsEnabled, setIsMarketingAdModalOpen, siteConfig } = useApp();
+  const {
+    communityAds,
+    language,
+    setIsAdminOpen,
+    isAdsEnabled,
+    setIsMarketingAdModalOpen,
+    siteConfig,
+    currentUser,
+    isAdminLoggedIn,
+  } = useApp();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [activeAdModal, setActiveAdModal] = useState<CommunityAd | null>(null);
 
@@ -76,13 +85,15 @@ export const CommunityAds: React.FC = () => {
               <span>{language === 'en' ? 'Digital Marketing Ads & Posters' : '📢 डिजिटल जाहिरात व व्हॉट्सॲप पोस्टर (₹४९९)'}</span>
             </button>
 
-            <button
-              onClick={() => setIsAdminOpen(true)}
-              className="px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs sm:text-sm border border-amber-300 shadow-xl flex items-center gap-2 transition-all transform hover:scale-105 cursor-pointer"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>{language === 'en' ? 'Add / Edit Ad (Admin)' : 'जाहिरात जोडा / संपादन (Admin)'}</span>
-            </button>
+            {(isAdminLoggedIn || currentUser?.isAdmin) && (
+              <button
+                onClick={() => setIsAdminOpen(true)}
+                className="px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs sm:text-sm border border-amber-300 shadow-xl flex items-center gap-2 transition-all transform hover:scale-105 cursor-pointer"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>{language === 'en' ? 'Add / Edit Ad (Admin)' : 'जाहिरात जोडा / संपादन (Admin)'}</span>
+              </button>
+            )}
           </div>
         </div>
 

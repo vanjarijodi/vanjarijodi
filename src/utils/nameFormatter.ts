@@ -44,15 +44,22 @@ export function formatProfileDisplayName(
     return language === 'en' ? transliterateMarathiToEnglish(profileName) : profileName;
   }
 
-  // 2. If contact is already authorized or profiles are mutually liked (दोघांनी एकमेकांना लाईक केल्यावर पूर्ण नाव दिसेल)
+  // 2. PRIMARY RULE: "सदस्यांचे फक्त आडनाव दिसले पाहिजे, नाव दिसायचे असेल तर ॲडमिनने सेटिंगमधून टिक केल्यावरच नाव दिसले पाहिजे"
+  // If the Admin has NOT ticked showFullNameInProfiles (default: false), ONLY show the candidate's Surname!
+  const isFullNameTickedByAdmin = Boolean(siteConfig?.showFullNameInProfiles === true);
+  if (!isFullNameTickedByAdmin) {
+    return getProfileSurnameOnly(profileName, language);
+  }
+
+  // 3. When Admin ticks 'showFullNameInProfiles' to true:
+  // If contact is already authorized or profiles are mutually liked, show full name
   if (isAuthorized || isMutualLiked) {
     return language === 'en' ? transliterateMarathiToEnglish(profileName) : profileName;
   }
 
-  // 3. Mutual Like Name Privacy Setting (Admin Controlled - Default ON)
-  // जर हे चालू असेल तर जोपर्यंत दोघांनी एकमेकांना लाईक केलेले नसेल, तोपर्यंत फक्त 'आडनाव'च दिसेल.
+  // Mutual Like Name Privacy Setting (when full name is enabled by admin)
   const requireMutualLikeForFullName = siteConfig?.requireMutualLikeForFullName !== false;
-  if (requireMutualLikeForFullName) {
+  if (requireMutualLikeForFullName && !isMutualLiked) {
     return getProfileSurnameOnly(profileName, language);
   }
 

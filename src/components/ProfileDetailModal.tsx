@@ -196,6 +196,36 @@ export const ProfileDetailModal: React.FC<{
     }
   };
 
+    React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isLightboxOpen) {
+          setIsLightboxOpen(false);
+          e.stopPropagation();
+        } else if (isPrintModalOpen) {
+          setIsPrintModalOpen(false);
+          e.stopPropagation();
+        } else if (isReportModalOpen) {
+          setIsReportModalOpen(false);
+          e.stopPropagation();
+        } else if (isKundaliModalOpen) {
+          setIsKundaliModalOpen(false);
+          e.stopPropagation();
+        } else if (isTruecallerModalOpen) {
+          setIsTruecallerModalOpen(false);
+          e.stopPropagation();
+        } else if (previewAadhaarModalUrl) {
+          setPreviewAadhaarModalUrl(null);
+          e.stopPropagation();
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLightboxOpen, isPrintModalOpen, isReportModalOpen, isKundaliModalOpen, isTruecallerModalOpen, previewAadhaarModalUrl, onClose]);
+
   React.useEffect(() => {
     if (profile?.id) {
       incrementProfileViews(profile.id);
@@ -309,6 +339,15 @@ export const ProfileDetailModal: React.FC<{
           {/* Modal Header (Clean Compact Light Bar - No Dark Banner) */}
           <div className="sticky top-0 z-40 flex items-center justify-between px-3.5 sm:px-6 py-2 sm:py-2.5 bg-amber-50/95 backdrop-blur-md border-b border-amber-200 text-slate-800 shadow-xs">
             <div className="flex items-center gap-2 min-w-0">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-2.5 py-1.5 rounded-xl bg-white hover:bg-amber-100 text-[#800C1E] border border-amber-300 font-black text-xs flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95 shrink-0 transition"
+                title="मागे जा (Back)"
+              >
+                <ArrowLeft className="w-4 h-4 text-[#800C1E] stroke-[2.5]" />
+                <span className="font-black">मागे (Back)</span>
+              </button>
               <span className="text-[10px] sm:text-xs font-mono text-amber-950 bg-amber-200/80 px-2 py-0.5 rounded-full font-black border border-amber-300 shrink-0">
                 {profile.id}
               </span>
@@ -2326,6 +2365,34 @@ export const ProfileDetailModal: React.FC<{
           </SecurityWatermarkOverlay>
         )}
 
+        {/* MOBILE PERSISTENT BOTTOM NAVIGATION / BACK BAR (Match exact user request for simple back on mobile) */}
+        <div className="sticky bottom-0 z-40 sm:hidden bg-amber-50/95 backdrop-blur-md border-t-2 border-amber-300 p-2.5 shadow-2xl flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-3 px-4 rounded-xl bg-[#800C1E] hover:bg-[#670918] active:scale-95 text-amber-300 font-black text-xs flex items-center justify-center gap-2 shadow-lg transition cursor-pointer border border-amber-400/40"
+          >
+            <ArrowLeft className="w-4 h-4 text-amber-300 stroke-[3]" />
+            <span>⬅ मागे यादीकडे जा (Back)</span>
+          </button>
+          
+          {currentUser?.id !== profile.id && (
+            <button
+              type="button"
+              onClick={() => sendInterest(profile.id)}
+              disabled={Boolean(interestObj || likedProfileIds.includes(profile.id))}
+              className={`py-3 px-4 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition cursor-pointer shrink-0 border ${
+                interestObj || likedProfileIds.includes(profile.id)
+                  ? 'bg-rose-100 text-rose-800 border-rose-300'
+                  : 'bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500'
+              }`}
+            >
+              <Heart className={`w-4 h-4 ${interestObj || likedProfileIds.includes(profile.id) ? 'text-rose-600 fill-rose-600' : 'text-amber-950 fill-amber-950'}`} />
+              <span>{interestObj || likedProfileIds.includes(profile.id) ? 'लाईक केले' : 'लाईक करा'}</span>
+            </button>
+          )}
+        </div>
+
         </div>
 
         </div>
@@ -2355,7 +2422,7 @@ export const ProfileDetailModal: React.FC<{
           <div className="w-full max-w-5xl flex items-center justify-between text-white border-b border-slate-800 pb-3 z-50">
             <div>
               <h3 className="font-black text-amber-400 text-sm sm:text-base flex items-center gap-2">
-                <span>{profile.fullName}</span>
+                <span>{formatProfileDisplayName(profile.fullName, currentUser, isAdminLoggedIn, isAuthorized || isMutualMatch, siteConfig, language, isMutualMatch, profile.id)}</span>
                 <span className="text-[10px] bg-amber-400/20 text-amber-300 font-mono px-2 py-0.5 rounded-full border border-amber-300/30">
                   ID: {profile.id}
                 </span>

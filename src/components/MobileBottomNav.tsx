@@ -2,9 +2,8 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 import {
   Home,
-  Heart,
-  Search,
-  Sparkles,
+  MessageSquare,
+  Bell,
   User,
 } from 'lucide-react';
 
@@ -16,9 +15,7 @@ export const MobileBottomNav: React.FC = () => {
     currentUser,
     setIsLoginOpen,
     setLoginModalMode,
-    siteConfig,
-    setIsKundaliModalOpen,
-    setIsRightDrawerOpen,
+    notifications,
     isAdminOpen,
   } = useApp();
 
@@ -26,29 +23,39 @@ export const MobileBottomNav: React.FC = () => {
 
   const isEn = language === 'en';
 
+  const unreadCount = (notifications || []).filter(
+    (n) =>
+      !n.isRead &&
+      (n.userId === 'broadcast' || n.userId === 'all' || n.userId === currentUser?.id)
+  ).length;
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleTabClick = (tabId: string) => {
+  const handleTabClick = (tabId: 'home' | 'chat' | 'notifications' | 'account') => {
     if (tabId === 'home') {
       setCurrentView('home');
       scrollToTop();
-    } else if (tabId === 'matches') {
+    } else if (tabId === 'chat') {
       if (currentUser) {
-        setCurrentView('matches');
+        setCurrentView('chat');
         scrollToTop();
       } else {
         setLoginModalMode('member_otp');
         setIsLoginOpen(true);
       }
-    } else if (tabId === 'search') {
-      setIsRightDrawerOpen(true);
-    } else if (tabId === 'kundali') {
-      setIsKundaliModalOpen(true);
-    } else if (tabId === 'profile') {
+    } else if (tabId === 'notifications') {
       if (currentUser) {
-        setCurrentView('dashboard');
+        setCurrentView('notifications');
+        scrollToTop();
+      } else {
+        setLoginModalMode('member_otp');
+        setIsLoginOpen(true);
+      }
+    } else if (tabId === 'account') {
+      if (currentUser) {
+        setCurrentView('account');
         scrollToTop();
       } else {
         setLoginModalMode('member_otp');
@@ -57,105 +64,79 @@ export const MobileBottomNav: React.FC = () => {
     }
   };
 
+  const isHomeActive = currentView === 'home';
+  const isChatActive = currentView === 'chat';
+  const isNotificationsActive = currentView === 'notifications';
+  const isAccountActive = currentView === 'account' || currentView === 'dashboard';
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 block md:hidden w-full pointer-events-auto bg-white/95 backdrop-blur-md border-t border-amber-200/70 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] select-none pb-[max(0.4rem,env(safe-area-inset-bottom))]">
-      <div className="max-w-md mx-auto grid grid-cols-5 items-center px-1 pt-1.5">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 block md:hidden w-full pointer-events-auto bg-white border-t border-slate-200 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] select-none pb-[max(0.4rem,env(safe-area-inset-bottom))]">
+      <div className="max-w-md mx-auto grid grid-cols-4 items-center px-2 pt-1.5 pb-1">
         
         {/* 1. 🏠 Home */}
         <button
           type="button"
           onClick={() => handleTabClick('home')}
-          aria-label={isEn ? 'Home' : 'होम'}
-          className={`flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl transition-colors cursor-pointer ${
-            currentView === 'home'
-              ? 'text-[#800C1E] font-black'
-              : 'text-slate-600 hover:text-slate-900 font-bold'
+          aria-label={isEn ? 'Home' : 'Home'}
+          className={`flex flex-col items-center justify-center min-h-[48px] py-1 transition-colors cursor-pointer ${
+            isHomeActive ? 'text-[#A71930]' : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          <div className={`p-1 rounded-full transition-all ${currentView === 'home' ? 'bg-amber-100/90 text-[#800C1E]' : 'text-slate-600'}`}>
-            <Home className="w-5 h-5" />
-          </div>
-          <span className="text-[10px] leading-tight tracking-tight mt-0.5 whitespace-nowrap">
-            {isEn ? 'Home' : 'होम'}
+          <Home className={`w-5 h-5 ${isHomeActive ? 'fill-[#A71930]' : ''}`} />
+          <span className="text-[11px] leading-tight font-medium mt-1">
+            {isEn ? 'Home' : 'Home'}
           </span>
         </button>
 
-        {/* 2. ❤️ Matches / वर-वधू */}
+        {/* 2. 💬 Chat */}
         <button
           type="button"
-          onClick={() => handleTabClick('matches')}
-          aria-label={isEn ? 'Matches' : 'मॅचेस'}
-          className={`flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl transition-colors cursor-pointer ${
-            currentView === 'matches'
-              ? 'text-[#800C1E] font-black'
-              : 'text-slate-600 hover:text-slate-900 font-bold'
+          onClick={() => handleTabClick('chat')}
+          aria-label={isEn ? 'Chat' : 'Chat'}
+          className={`flex flex-col items-center justify-center min-h-[48px] py-1 transition-colors cursor-pointer ${
+            isChatActive ? 'text-[#A71930]' : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          <div className={`p-1 rounded-full transition-all ${currentView === 'matches' ? 'bg-amber-100/90 text-[#800C1E]' : 'text-slate-600'}`}>
-            <Heart className={`w-5 h-5 ${currentView === 'matches' ? 'fill-[#800C1E]' : ''}`} />
-          </div>
-          <span className="text-[10px] leading-tight tracking-tight mt-0.5 whitespace-nowrap">
-            {isEn ? 'Matches' : 'मॅचेस'}
+          <MessageSquare className={`w-5 h-5 ${isChatActive ? 'fill-[#A71930]' : ''}`} />
+          <span className="text-[11px] leading-tight font-medium mt-1">
+            {isEn ? 'Chat' : 'Chat'}
           </span>
         </button>
 
-        {/* 3. 🔍 Search */}
+        {/* 3. 🔔 Notifications (with red notification count badge) */}
         <button
           type="button"
-          onClick={() => handleTabClick('search')}
-          aria-label={isEn ? 'Search' : 'शोध'}
-          className="flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-slate-600 hover:text-[#800C1E] font-bold transition-colors cursor-pointer"
-        >
-          <div className="p-1 rounded-full hover:bg-slate-100">
-            <Search className="w-5 h-5" />
-          </div>
-          <span className="text-[10px] leading-tight tracking-tight mt-0.5 whitespace-nowrap">
-            {isEn ? 'Search' : 'शोध'}
-          </span>
-        </button>
-
-        {/* 4. ✨ Kundali */}
-        <button
-          type="button"
-          onClick={() => handleTabClick('kundali')}
-          aria-label={isEn ? 'Kundali' : 'कुंडली'}
-          className="flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl text-amber-800 hover:text-amber-900 font-bold transition-colors cursor-pointer"
-        >
-          <div className="p-1 rounded-full bg-amber-50 text-amber-700">
-            <Sparkles className="w-5 h-5 fill-amber-300" />
-          </div>
-          <span className="text-[10px] leading-tight tracking-tight mt-0.5 whitespace-nowrap">
-            {isEn ? 'Kundali' : 'कुंडली'}
-          </span>
-        </button>
-
-        {/* 5. 👤 Profile */}
-        <button
-          type="button"
-          onClick={() => handleTabClick('profile')}
-          aria-label={isEn ? 'Profile' : 'प्रोफाईल'}
-          className={`flex flex-col items-center justify-center min-h-[48px] py-1 rounded-xl transition-colors cursor-pointer ${
-            currentView === 'dashboard'
-              ? 'text-[#800C1E] font-black'
-              : 'text-slate-600 hover:text-slate-900 font-bold'
+          onClick={() => handleTabClick('notifications')}
+          aria-label={isEn ? 'Notifications' : 'Notifications'}
+          className={`flex flex-col items-center justify-center min-h-[48px] py-1 transition-colors cursor-pointer relative ${
+            isNotificationsActive ? 'text-[#A71930]' : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          <div className={`w-6 h-6 rounded-full overflow-hidden flex items-center justify-center border-2 transition-all ${
-            currentView === 'dashboard' ? 'border-[#800C1E] ring-2 ring-amber-200' : 'border-slate-300 bg-slate-100'
-          }`}>
-            {currentUser?.photos && currentUser.photos.length > 0 ? (
-              <img
-                src={currentUser.photos[0]}
-                alt={currentUser.fullName}
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <User className="w-3.5 h-3.5 text-slate-600" />
+          <div className="relative">
+            <Bell className={`w-5 h-5 ${isNotificationsActive ? 'fill-[#A71930]' : ''}`} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-[#A71930] text-white text-[10px] font-bold flex items-center justify-center border-2 border-white">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
             )}
           </div>
-          <span className="text-[10px] leading-tight tracking-tight mt-0.5 whitespace-nowrap">
-            {isEn ? 'Profile' : 'प्रोफाईल'}
+          <span className="text-[11px] leading-tight font-medium mt-1">
+            {isEn ? 'Notifications' : 'Notifications'}
+          </span>
+        </button>
+
+        {/* 4. 👤 Account */}
+        <button
+          type="button"
+          onClick={() => handleTabClick('account')}
+          aria-label={isEn ? 'Account' : 'Account'}
+          className={`flex flex-col items-center justify-center min-h-[48px] py-1 transition-colors cursor-pointer ${
+            isAccountActive ? 'text-[#A71930]' : 'text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <User className={`w-5 h-5 ${isAccountActive ? 'fill-[#A71930]' : ''}`} />
+          <span className="text-[11px] leading-tight font-medium mt-1">
+            {isEn ? 'Account' : 'Account'}
           </span>
         </button>
 
@@ -163,4 +144,3 @@ export const MobileBottomNav: React.FC = () => {
     </nav>
   );
 };
-

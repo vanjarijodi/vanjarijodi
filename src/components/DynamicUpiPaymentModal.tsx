@@ -70,7 +70,8 @@ export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
     plan ||
     selectedPlanForPayment ||
     plansList.find((p) => p.id === 'welcome_offer' && p.isActive !== false) ||
-    plansList.find((p) => p.isActive !== false) ||
+    plansList.find((p) => p.isActive !== false && p.id !== 'single_kundli' && p.planType !== 'single_use') ||
+    plansList.find((p) => p.id !== 'single_kundli' && p.planType !== 'single_use') ||
     plansList[0];
 
   // Promo Code State

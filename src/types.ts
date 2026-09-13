@@ -997,6 +997,7 @@ export interface SiteConfig {
   allowGuestsToViewPhotos?: boolean;
   allowPublicVisitorsToViewPhotos?: boolean;
   allowMembersToViewPhotos?: boolean;
+  showFullNameInProfiles?: boolean; // सदस्यांचे पूर्ण नाव दाखवा (एडमिनने टिक केले तरच नाव दिसेल, अन्यथा सर्वत्र फक्त 'आडनाव' दिसेल)
   nameDisplayModeForFreeUsers?: 'full_name' | 'first_name_only' | 'first_and_last' | 'surname_only' | 'hidden_star' | 'blurred_name';
   hideMiddleNameForFreeUsers?: boolean;
   hideLastNameForFreeUsers?: boolean;

@@ -317,31 +317,6 @@ export const SUCCESS_STORIES: SuccessStory[] = [];
 
 export const MEMBERSHIP_PLANS: Plan[] = [
   {
-    id: 'single_kundli',
-    name: 'Single Kundli Pass',
-    nameMr: 'एकाच जोडीची कुंडली जुळवणी - ₹४९ (Single Pass)',
-    price: 49,
-    durationMonths: 1,
-    durationLabelMr: '१ एकाच जोडीची ३६ गुण कुंडली जुळवणी',
-    planType: 'single_use',
-    unlockCount: 1,
-    recommended: false,
-    badgeText: '🔮 १ सिंगल कुंडली पास (रु. ४९/-)',
-    isActive: true,
-    features: [
-      '1 Single Kundali Matching & 36 Guna Ashtakoota Report',
-      'Instant Vedic Astrological Compatibility',
-      'Manglik & Nadi Dosha Analysis',
-      'Branded PDF Download & Verification QR'
-    ],
-    featuresMr: [
-      '१ एकाच जोडीची ३६ गुण कुंडली जुळवणी',
-      'सविस्तर अष्टकूट व गुणमेलन अहवाल',
-      'नाडी, भकूट व मंगळ दोष सखोल विश्लेषण',
-      'अधिक्कृत ब्रँडेड पीडीएफ रिपोर्ट डाऊनलोड व प्रिंट'
-    ]
-  },
-  {
     id: 'welcome_offer',
     name: 'Welcome Offer Membership Plan',
     nameMr: 'वेलकम स्पेशल ऑफर प्लॅन - ₹३९८ (६ महिने)',
@@ -461,6 +436,31 @@ export const MEMBERSHIP_PLANS: Plan[] = [
       'वैयक्तिक मॅचमेकिंग सहाय्यक मार्गदर्शन',
       'पूर्ण गोपनीयता नियंत्रण व आधार व्हेरीफाईड बॅज गॅरंटी',
       'तात्काळ डिजिटल सेवा ॲक्टिव्हेशन (० ते ५ मिनिटे)'
+    ]
+  },
+  {
+    id: 'single_kundli',
+    name: 'Single Kundli Pass',
+    nameMr: 'एकाच जोडीची कुंडली जुळवणी - ₹४९ (Single Pass)',
+    price: 49,
+    durationMonths: 1,
+    durationLabelMr: '१ एकाच जोडीची ३६ गुण कुंडली जुळवणी',
+    planType: 'single_use',
+    unlockCount: 1,
+    recommended: false,
+    badgeText: '🔮 १ सिंगल कुंडली पास (रु. ४९/-)',
+    isActive: true,
+    features: [
+      '1 Single Kundali Matching & 36 Guna Ashtakoota Report',
+      'Instant Vedic Astrological Compatibility',
+      'Manglik & Nadi Dosha Analysis',
+      'Branded PDF Download & Verification QR'
+    ],
+    featuresMr: [
+      '१ एकाच जोडीची ३६ गुण कुंडली जुळवणी',
+      'सविस्तर अष्टकूट व गुणमेलन अहवाल',
+      'नाडी, भकूट व मंगळ दोष सखोल विश्लेषण',
+      'अधिक्कृत ब्रँडेड पीडीएफ रिपोर्ट डाऊनलोड व प्रिंट'
     ]
   }
 ];
@@ -697,6 +697,7 @@ export const INITIAL_SITE_CONFIG: any = {
   allowGuestsToViewPhotos: false,
   allowPublicVisitorsToViewPhotos: false,
   allowMembersToViewPhotos: true,
+  showFullNameInProfiles: false, // सदस्यांचे फक्त आडनाव दिसेल; ॲडमिनने सेटिंगमधून टिक केल्यावरच पूर्ण नाव दिसेल
   blurPhotosForFreeUsers: true,
   photoBlurPercentage: 80,
   showOnlyWelcomePlan: true,

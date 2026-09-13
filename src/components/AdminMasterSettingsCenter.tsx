@@ -382,12 +382,12 @@ export const AdminMasterSettingsCenter: React.FC = () => {
             </div>
             <span
               className={`px-2 py-1 rounded-lg text-xs font-black border text-center ${
-                siteConfig.requirePaidForLikes !== false
+                Boolean(siteConfig.requirePaidForLikes)
                   ? 'bg-rose-100 text-rose-950 border-rose-300'
                   : 'bg-sky-100 text-sky-950 border-sky-300'
               }`}
             >
-              {siteConfig.requirePaidForLikes !== false ? '💎 फक्त पेड मेंबर्स' : '🌐 सर्वांना खुला'}
+              {Boolean(siteConfig.requirePaidForLikes) ? '💎 फक्त पेड मेंबर्स' : '🌐 सर्वांना खुला'}
             </span>
             <button
               type="button"
@@ -721,17 +721,17 @@ export const AdminMasterSettingsCenter: React.FC = () => {
                   onClick={() =>
                     handleToggle(
                       'requirePaidForLikes',
-                      siteConfig.requirePaidForLikes !== false,
+                      Boolean(siteConfig.requirePaidForLikes),
                       'फक्त पेमेंट सदस्यांना लाईक'
                     )
                   }
                   className={`px-4 py-2 rounded-xl text-xs font-black shrink-0 transition-all cursor-pointer ${
-                    siteConfig.requirePaidForLikes !== false
+                    Boolean(siteConfig.requirePaidForLikes)
                       ? 'bg-[#A71930] text-amber-100 shadow-md border border-amber-300'
                       : 'bg-slate-300 text-slate-700'
                   }`}
                 >
-                  {siteConfig.requirePaidForLikes !== false ? 'सक्रिय (Paid Only ON)' : 'सर्वांना खुला (OFF)'}
+                  {Boolean(siteConfig.requirePaidForLikes) ? 'सक्रिय (Paid Only ON)' : 'सर्वांना खुला (OFF)'}
                 </button>
               </div>
             </div>
@@ -768,6 +768,62 @@ export const AdminMasterSettingsCenter: React.FC = () => {
                 >
                   {siteConfig.enableMutualLikeContactUnlock !== false ? 'ऑटो अनलॉक चालू (ON)' : 'बंद (OFF)'}
                 </button>
+              </div>
+
+              {/* CANDIDATE NAME DISPLAY (SURNAME ONLY DEFAULT - TICK FOR FULL NAME) */}
+              <div className="pt-3 border-t-2 border-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-amber-100/70 p-3.5 rounded-2xl">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-md bg-[#800C1E] text-amber-300 font-black text-[11px]">
+                      गोपनीयता नियम
+                    </span>
+                    <span className="font-black text-slate-900 text-sm">
+                      सदस्यांचे नाव दाखवा (Tick to Show Full Name):
+                    </span>
+                  </div>
+                  <span className="text-xs text-slate-700 font-bold block mt-1">
+                    ℹ️ <strong>नियम:</strong> सदस्यांचे फक्त <strong>'आडनाव' (Surname Only)</strong> दिसेल. जर नाव दिसायचे असेल तर सेटिंगमधून ॲडमिनने नाव <strong>टिक (✓ ON)</strong> केले तरच पूर्ण नाव दिसेल.
+                  </span>
+                  <span className="text-[11px] font-bold block mt-1">
+                    {siteConfig.showFullNameInProfiles === true ? (
+                      <span className="text-emerald-800 font-black bg-emerald-100/90 px-2 py-0.5 rounded-md inline-block border border-emerald-300">
+                        ✅ ॲडमिनने नाव टिक केले आहे — सदस्यांचे पूर्ण नाव दिसत आहे (Full Name Visible)
+                      </span>
+                    ) : (
+                      <span className="text-[#800C1E] font-black bg-rose-100/90 px-2 py-0.5 rounded-md inline-block border border-rose-300">
+                        🔒 टिक केलेले नाही — सदस्यांचे फक्त 'आडनाव' दिसत आहे (Surname Only - Default Active)
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleToggle(
+                        'showFullNameInProfiles',
+                        siteConfig.showFullNameInProfiles === true,
+                        'सदस्यांचे पूर्ण नाव दृश्यमानता'
+                      )
+                    }
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer shadow-sm border-2 ${
+                      siteConfig.showFullNameInProfiles === true
+                        ? 'bg-emerald-600 text-white border-emerald-400'
+                        : 'bg-white text-slate-800 border-amber-400 hover:bg-amber-50'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={siteConfig.showFullNameInProfiles === true}
+                      readOnly
+                      className="w-4 h-4 rounded text-emerald-600 accent-emerald-600 cursor-pointer pointer-events-none"
+                    />
+                    <span>
+                      {siteConfig.showFullNameInProfiles === true ? 'नाव टिक केले (पूर्ण नाव चालू)' : 'फक्त आडनाव (नाव टिक करा)'}
+                    </span>
+                  </button>
+                </div>
               </div>
 
               {/* MUTUAL LIKE NAME PRIVACY TOGGLE */}
@@ -1751,8 +1807,58 @@ export const AdminMasterSettingsCenter: React.FC = () => {
               </button>
             </div>
 
-            {/* Name Display Control for Free Users */}
+            {/* Name Display Control */}
             <div className="p-4 rounded-2xl bg-amber-50/90 border-2 border-amber-300 space-y-3">
+              {/* PRIMARY USER MANDATE: CANDIDATE NAME VISIBILITY (SURNAME ONLY VS FULL NAME TICK) */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-amber-100/90 rounded-xl border-2 border-amber-400">
+                <div>
+                  <span className="font-black text-slate-900 block flex items-center gap-1.5 text-xs sm:text-sm">
+                    <span className="px-2 py-0.5 rounded-md bg-[#800C1E] text-amber-300 font-black text-[10px]">मुख्य सुरक्षा</span>
+                    <span>सदस्यांचे नाव दाखवा (Tick to Show Full Name):</span>
+                  </span>
+                  <span className="text-xs text-slate-800 font-bold block mt-1">
+                    ℹ️ <strong>नियम:</strong> सदस्यांचे फक्त <strong>'आडनाव' (Surname Only)</strong> दिसेल. जर नाव दिसायचे असेल तर सेटिंगमधून ॲडमिनने नाव <strong>टिक (✓ ON)</strong> केले तरच पूर्ण नाव दिसेल.
+                  </span>
+                  <span className="text-[11px] font-bold block mt-1">
+                    {siteConfig.showFullNameInProfiles === true ? (
+                      <span className="text-emerald-800 font-black bg-emerald-100 px-2 py-0.5 rounded-md inline-block border border-emerald-300">
+                        ✅ ॲडमिनने नाव टिक केले आहे — सदस्यांचे पूर्ण नाव दिसत आहे (Full Name Visible)
+                      </span>
+                    ) : (
+                      <span className="text-[#800C1E] font-black bg-rose-100 px-2 py-0.5 rounded-md inline-block border border-rose-300">
+                        🔒 टिक केलेले नाही — सदस्यांचे फक्त 'आडनाव' दिसत आहे (Surname Only - Default Active)
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleToggle(
+                      'showFullNameInProfiles',
+                      siteConfig.showFullNameInProfiles === true,
+                      'सदस्यांचे पूर्ण नाव दृश्यमानता'
+                    )
+                  }
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black shrink-0 transition-all cursor-pointer shadow-sm border-2 ${
+                    siteConfig.showFullNameInProfiles === true
+                      ? 'bg-emerald-600 text-white border-emerald-400'
+                      : 'bg-white text-slate-800 border-amber-400 hover:bg-amber-50'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={siteConfig.showFullNameInProfiles === true}
+                    readOnly
+                    className="w-4 h-4 rounded text-emerald-600 accent-emerald-600 cursor-pointer pointer-events-none"
+                  />
+                  <span>
+                    {siteConfig.showFullNameInProfiles === true ? 'नाव टिक केले (पूर्ण नाव)' : 'फक्त आडनाव (टिक करा)'}
+                  </span>
+                </button>
+              </div>
+
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-white/90 rounded-xl border border-amber-300">
                 <div>
                   <span className="font-black text-slate-900 block flex items-center gap-1.5 text-xs sm:text-sm">

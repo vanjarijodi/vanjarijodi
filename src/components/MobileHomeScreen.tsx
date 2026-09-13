@@ -1,15 +1,19 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { ModernProfileCard } from './ModernProfileCard';
+import { formatProfileDisplayName } from '../utils/nameFormatter';
 import {
+  Search,
+  SlidersHorizontal,
+  LayoutList,
+  LayoutGrid,
+  X,
   Sparkles,
-  FileText,
   Crown,
-  MessageCircle,
-  Send,
-  Shuffle,
   RotateCcw,
+  Shuffle,
   Users,
+  User,
 } from 'lucide-react';
 import { UserProfile } from '../types';
 
@@ -17,64 +21,47 @@ export const MobileHomeScreen: React.FC = () => {
   const {
     profiles,
     currentUser,
+    isAdminLoggedIn,
+    isContactAuthorizedForUser,
     setSearchFilters,
     setSelectedProfileForModal,
-    setIsRegisterOpen,
-    setIsKundaliModalOpen,
-    setIsBioDataMakerOpen,
-    setIsPaymentOpen,
+    setIsRightDrawerOpen,
     siteConfig,
+    language,
   } = useApp();
 
-  const [activeFilterChip, setActiveFilterChip] = useState('all');
+  const [activeFilterChip, setActiveFilterChip] = useState<'all' | 'verified' | 'doctors' | 'engineers' | 'govt' | 'business'>('all');
   const [selectedGender, setSelectedGender] = useState<'all' | 'bride' | 'groom'>('all');
-  const [shuffleKey, setShuffleKey] = useState(0);
-  const [isShuffling, setIsShuffling] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(12);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list'); // Default to clean simple list like in screenshot!
+  const [visibleCount, setVisibleCount] = useState(20);
 
-  // Track viewed profile IDs in localStorage
-  const [viewedProfileIds, setViewedProfileIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('vanjari_viewed_profile_ids');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
+  const isEn = language === 'en';
+
+  // Format height nicely (e.g. 5ft 2in)
+  const formatHeight = (heightStr?: string) => {
+    if (!heightStr) return '5ft 2in';
+    if (heightStr.includes('ft') || heightStr.includes("'")) return heightStr;
+    const num = parseFloat(heightStr);
+    if (!isNaN(num) && num > 100) {
+      // cm to ft in
+      const totalInches = num / 2.54;
+      const feet = Math.floor(totalInches / 12);
+      const inches = Math.round(totalInches % 12);
+      return `${feet}ft ${inches}in`;
     }
-  });
-
-  // Mark profile as viewed when opened
-  const handleProfileView = (profile: UserProfile) => {
-    if (profile?.id && !viewedProfileIds.includes(profile.id)) {
-      const updated = [...viewedProfileIds, profile.id];
-      setViewedProfileIds(updated);
-      try {
-        localStorage.setItem('vanjari_viewed_profile_ids', JSON.stringify(updated));
-      } catch (err) {
-        console.error('Failed to save viewed profiles', err);
-      }
-    }
-    setSelectedProfileForModal(profile);
+    return heightStr;
   };
 
-  // Reset viewed history
-  const handleResetViewed = () => {
-    setViewedProfileIds([]);
-    try {
-      localStorage.removeItem('vanjari_viewed_profile_ids');
-    } catch {}
-    setShuffleKey((prev) => prev + 1);
+  // Format location (e.g. "Pune, Maharashtra")
+  const formatLocation = (profile: UserProfile) => {
+    const city = profile.city || profile.district || 'महाराष्ट्र';
+    const state = (profile as any).state || 'Maharashtra';
+    return `${city}, ${state}`;
   };
 
-  // Trigger Random Shuffle
-  const handleShuffle = () => {
-    setIsShuffling(true);
-    setShuffleKey((prev) => prev + 1);
-    setTimeout(() => {
-      setIsShuffling(false);
-    }, 400);
-  };
-
-  // 1. Filter Profiles by gender and category, completely deduplicated
+  // 1. Filter Profiles by gender, search text, and category
   const filteredProfiles = useMemo(() => {
     const rawList = profiles || [];
     
@@ -88,9 +75,24 @@ export const MobileHomeScreen: React.FC = () => {
     const uniqueList = Array.from(uniqueMap.values());
 
     return uniqueList.filter((p) => {
+      // Gender filter
       if (selectedGender !== 'all' && p.gender !== selectedGender) {
         return false;
       }
+
+      // Search query filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matchesName = p.fullName?.toLowerCase().includes(q);
+        const matchesCity = p.city?.toLowerCase().includes(q) || p.district?.toLowerCase().includes(q);
+        const matchesEdu = p.education?.toLowerCase().includes(q);
+        const matchesOcc = p.occupation?.toLowerCase().includes(q);
+        if (!matchesName && !matchesCity && !matchesEdu && !matchesOcc) {
+          return false;
+        }
+      }
+
+      // Chip filters
       if (activeFilterChip === 'doctors') {
         return (
           p.education?.toLowerCase().includes('mbbs') ||
@@ -131,308 +133,261 @@ export const MobileHomeScreen: React.FC = () => {
       if (activeFilterChip === 'verified') {
         return Boolean(p.aadhaarVerified || p.isVerified);
       }
+
       return true;
     });
-  }, [profiles, selectedGender, activeFilterChip]);
+  }, [profiles, selectedGender, searchQuery, activeFilterChip]);
 
-  // 2. Smart Ordering & Random Shuffle Algorithm:
-  // Unviewed profiles are randomized and shown FIRST.
-  // Already viewed profiles are placed AFTER unviewed ones, also randomized.
-  const shuffledProfiles = useMemo(() => {
-    // Deterministic pseudo-random shuffle function based on shuffleKey
-    const shuffleArray = (arr: UserProfile[]) => {
-      const copy = [...arr];
-      for (let i = copy.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [copy[i], copy[j]] = [copy[j], copy[i]];
-      }
-      return copy;
-    };
-
-    const unviewed: UserProfile[] = [];
-    const viewed: UserProfile[] = [];
-
-    filteredProfiles.forEach((p) => {
-      if (viewedProfileIds.includes(p.id)) {
-        viewed.push(p);
-      } else {
-        unviewed.push(p);
-      }
-    });
-
-    const shuffledUnviewed = shuffleArray(unviewed);
-    const shuffledViewed = shuffleArray(viewed);
-
-    // Unviewed profiles come first, followed by viewed profiles
-    return [...shuffledUnviewed, ...shuffledViewed];
-  }, [filteredProfiles, viewedProfileIds, shuffleKey]);
-
-  const displayedProfiles = shuffledProfiles.slice(0, visibleCount);
+  const displayedProfiles = filteredProfiles.slice(0, visibleCount);
 
   const handleGenderChange = (gender: 'all' | 'bride' | 'groom') => {
     setSelectedGender(gender);
-    setVisibleCount(12);
+    setVisibleCount(20);
     setSearchFilters((prev: any) => ({
       ...prev,
       gender: gender,
     }));
   };
 
-  const handleChipClick = (chipId: string) => {
-    setActiveFilterChip(chipId);
-    setVisibleCount(12);
-    if (chipId === 'all') {
-      setSearchFilters((prev: any) => ({ ...prev, minEducation: '', occupationType: '', verifiedOnly: false }));
-    } else if (chipId === 'doctors') {
-      setSearchFilters((prev: any) => ({ ...prev, minEducation: 'MBBS/MD/BAMS/BHMS' }));
-    } else if (chipId === 'engineers') {
-      setSearchFilters((prev: any) => ({ ...prev, minEducation: 'BE/BTech/MCA' }));
-    } else if (chipId === 'govt') {
-      setSearchFilters((prev: any) => ({ ...prev, occupationType: 'Government' }));
-    } else if (chipId === 'business') {
-      setSearchFilters((prev: any) => ({ ...prev, occupationType: 'Business' }));
-    } else if (chipId === 'verified') {
-      setSearchFilters((prev: any) => ({ ...prev, verifiedOnly: true }));
-    }
+  const handleProfileClick = (profile: UserProfile) => {
+    setSelectedProfileForModal(profile);
   };
 
   return (
-    <div className="w-full space-y-3.5 px-3 pt-1 pb-10 text-slate-800">
+    <div className="w-full min-h-screen bg-white text-slate-800 pb-24 select-none">
       
-      {/* 1. TOP SLEEK GENDER TABS & QUICK FILTER PILLS */}
-      <div className="space-y-2 pt-0.5">
-        {/* Gender Segmented Control */}
-        <div className="bg-slate-100/90 p-1 rounded-2xl flex items-center gap-1 border border-slate-200/80 shadow-2xs">
+      {/* 1. TOP BRAND APP BAR - EXACT MATCH TO REFERENCE SCREENSHOT 1 */}
+      <div className="sticky top-0 z-30 bg-[#A71930] text-white px-4 py-3 flex items-center justify-between shadow-md">
+        <h1 className="text-xl font-bold tracking-tight">
+          {siteConfig?.logoTitle || (isEn ? 'Vanjari Jodi' : 'वंजारी जोडी')}
+        </h1>
+
+        <div className="flex items-center gap-3">
+          {/* 🔍 Search Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setIsSearchOpen((prev) => !prev)}
+            aria-label="Search"
+            className="p-1 text-white hover:text-amber-200 transition active:scale-95 cursor-pointer"
+          >
+            <Search className="w-5 h-5" />
+          </button>
+
+          {/* ☰ Filter Button */}
+          <button
+            type="button"
+            onClick={() => setIsRightDrawerOpen(true)}
+            aria-label="Filter"
+            className="p-1 text-white hover:text-amber-200 transition active:scale-95 cursor-pointer"
+          >
+            <SlidersHorizontal className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* 2. EXPANDABLE SEARCH BAR */}
+      {isSearchOpen && (
+        <div className="p-3 bg-slate-50 border-b border-slate-200 flex items-center gap-2 animate-fadeIn">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="नाव, शहर किंवा शिक्षण शोधा..."
+              autoFocus
+              className="w-full pl-9 pr-8 py-2 bg-white rounded-xl text-xs font-medium text-slate-800 outline-hidden border border-slate-300 focus:border-[#A71930]"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setIsSearchOpen(false);
+              setSearchQuery('');
+            }}
+            className="text-xs font-bold text-slate-600 hover:text-slate-900 px-2 py-1"
+          >
+            बंद
+          </button>
+        </div>
+      )}
+
+      {/* 3. CLEAN GENDER FILTER TABS & VIEW TOGGLE */}
+      <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
+        {/* Gender Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar scrollbar-none py-0.5">
           <button
             type="button"
             onClick={() => handleGenderChange('all')}
-            className={`flex-1 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`px-3 py-1 rounded-full text-xs font-bold transition cursor-pointer shrink-0 ${
               selectedGender === 'all'
-                ? 'bg-[#800C1E] text-white shadow-xs scale-[1.01]'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+                ? 'bg-[#A71930] text-white shadow-xs'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
             }`}
           >
-            <span>👥 सर्व स्थळे</span>
+            सर्व ({profiles?.length || 0})
           </button>
           <button
             type="button"
             onClick={() => handleGenderChange('bride')}
-            className={`flex-1 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`px-3 py-1 rounded-full text-xs font-bold transition cursor-pointer shrink-0 ${
               selectedGender === 'bride'
-                ? 'bg-gradient-to-r from-rose-600 to-[#800C1E] text-white shadow-xs scale-[1.01]'
-                : 'text-slate-600 hover:text-rose-700 hover:bg-rose-50/50'
+                ? 'bg-[#A71930] text-white shadow-xs'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
             }`}
           >
-            <span>👰 वधू (Brides)</span>
+            👰 वधू (Brides)
           </button>
           <button
             type="button"
             onClick={() => handleGenderChange('groom')}
-            className={`flex-1 py-2 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`px-3 py-1 rounded-full text-xs font-bold transition cursor-pointer shrink-0 ${
               selectedGender === 'groom'
-                ? 'bg-gradient-to-r from-sky-700 to-[#0F4C81] text-white shadow-xs scale-[1.01]'
-                : 'text-slate-600 hover:text-sky-700 hover:bg-sky-50/50'
+                ? 'bg-[#A71930] text-white shadow-xs'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
             }`}
           >
-            <span>🤵 वर (Grooms)</span>
+            🤵 वर (Grooms)
           </button>
         </div>
 
-        {/* Quick Category Chips Scroll */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar scrollbar-none">
-          {[
-            { id: 'all', label: 'सर्व' },
-            { id: 'verified', label: '🛡️ आधार सत्यापित' },
-            { id: 'doctors', label: '🩺 डॉक्टर / मेडिकल' },
-            { id: 'engineers', label: '💻 इंजिनिअर / IT' },
-            { id: 'govt', label: '🏛️ शासकीय सेवा' },
-            { id: 'business', label: '💼 व्यवसाय' },
-          ].map((chip) => (
-            <button
-              key={chip.id}
-              type="button"
-              onClick={() => handleChipClick(chip.id)}
-              className={`px-3 py-1.5 rounded-full text-[11px] font-extrabold whitespace-nowrap transition cursor-pointer shrink-0 min-h-[34px] border ${
-                activeFilterChip === chip.id
-                  ? 'bg-amber-400 text-slate-950 border-amber-500 shadow-xs scale-[1.02]'
-                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              {chip.label}
-            </button>
-          ))}
+        {/* View Switcher (List vs Grid) */}
+        <div className="flex items-center gap-1 bg-white border border-slate-200 p-0.5 rounded-lg shrink-0">
+          <button
+            type="button"
+            onClick={() => setViewMode('list')}
+            aria-label="List View"
+            className={`p-1 rounded transition ${
+              viewMode === 'list' ? 'bg-[#A71930] text-white' : 'text-slate-500 hover:text-slate-800'
+            }`}
+            title="साधी यादी (Simple List)"
+          >
+            <LayoutList className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('grid')}
+            aria-label="Grid View"
+            className={`p-1 rounded transition ${
+              viewMode === 'grid' ? 'bg-[#A71930] text-white' : 'text-slate-500 hover:text-slate-800'
+            }`}
+            title="ग्रिड व्ह्यू (Grid View)"
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
-      {/* 2. UNIFIED SINGLE MATCH FEED WITH RANDOM SHUFFLE */}
-      <div className="space-y-2.5 pt-1">
-        {/* Stream Header & Shuffle Button */}
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-            <h3 className="font-black text-xs sm:text-sm text-slate-900 flex items-center gap-1.5">
-              <span>सर्व स्थळे</span>
-              <span className="text-[10px] bg-amber-100 text-[#800C1E] font-black px-2 py-0.5 rounded-full border border-amber-300">
-                {shuffledProfiles.length} उपलब्ध
-              </span>
-            </h3>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            {viewedProfileIds.length > 0 && (
+      {/* 4. PROFILES STREAM: DEFAULT IS CLEAN SIMPLE LIST (EXACT MATCH TO SCREENSHOT 1) */}
+      {viewMode === 'list' ? (
+        <div className="divide-y divide-slate-100">
+          {displayedProfiles.length === 0 ? (
+            <div className="py-16 text-center space-y-2 px-4">
+              <p className="text-sm font-bold text-slate-700">कोणतेही स्थळ सापडले नाही</p>
+              <p className="text-xs text-slate-500">कृपया वरील फिल्टर बदलून पुन्हा प्रयत्न करा.</p>
               <button
                 type="button"
-                onClick={handleResetViewed}
-                title="पाहिलेली स्थळे रीसेट करा"
-                className="text-[10px] text-slate-500 hover:text-slate-700 flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 font-bold active:scale-95"
+                onClick={() => {
+                  setSelectedGender('all');
+                  setSearchQuery('');
+                  setActiveFilterChip('all');
+                }}
+                className="px-4 py-1.5 bg-[#A71930] text-white rounded-xl text-xs font-bold shadow-xs active:scale-95"
               >
-                <RotateCcw className="w-3 h-3" />
-                <span>रीसेट ({viewedProfileIds.length})</span>
+                सर्व स्थळे पहा
               </button>
-            )}
-
-            {/* 🔀 Interactive Shuffle Matches Button */}
-            <button
-              type="button"
-              onClick={handleShuffle}
-              className="px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-300 hover:to-amber-200 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-xs border border-amber-300 transition-all active:scale-95 cursor-pointer"
-              title="नवीन स्थळे रँडम शेफल करा"
-            >
-              <Shuffle className={`w-3.5 h-3.5 text-slate-950 ${isShuffling ? 'animate-spin' : ''}`} />
-              <span>शेफल करा</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Profiles Grid - 100% Unique / Deduplicated */}
-        {displayedProfiles.length > 0 ? (
-          <div className="grid grid-cols-2 gap-2.5">
-            {displayedProfiles.map((profile) => (
-              <ModernProfileCard
-                key={`unified-${profile.id}`}
-                profile={profile}
-                onView={handleProfileView}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-8 text-center space-y-2">
-            <p className="text-sm font-black text-slate-700">कोणतेही स्थळ सापडले नाही</p>
-            <p className="text-xs text-slate-500">कृपया वरील फिल्टर बदलून पुन्हा प्रयत्न करा.</p>
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedGender('all');
-                setActiveFilterChip('all');
-                handleChipClick('all');
-              }}
-              className="px-4 py-1.5 bg-[#800C1E] text-white rounded-xl text-xs font-bold shadow-xs active:scale-95"
-            >
-              सर्व स्थळे पहा
-            </button>
-          </div>
-        )}
-
-        {/* Load More Button */}
-        {visibleCount < shuffledProfiles.length && (
-          <div className="pt-2 text-center">
-            <button
-              type="button"
-              onClick={() => setVisibleCount((prev) => prev + 12)}
-              className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs transition active:scale-98 border border-slate-200 flex items-center justify-center gap-1.5"
-            >
-              <span>आणखी स्थळे पहा (+{shuffledProfiles.length - visibleCount} अधिक)</span>
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* 3. COMPACT QUICK SERVICES & TOOLS (Proportional, Non-Intrusive) */}
-      <div className="bg-white border border-amber-200 rounded-2xl p-3 shadow-xs space-y-2.5">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-black text-[#800C1E] flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span>त्वरित सेवा व साधने</span>
-          </span>
-          <span className="text-[10px] text-slate-500 font-medium">वंजारी जोडी मॅट्रिमोनी</span>
-        </div>
-
-        <div className={`grid ${currentUser ? 'grid-cols-2' : 'grid-cols-3'} gap-2`}>
-          {/* Kundali Milan Button */}
-          <button
-            type="button"
-            onClick={() => setIsKundaliModalOpen(true)}
-            className="p-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-left flex flex-col justify-between gap-1 transition active:scale-95 cursor-pointer"
-          >
-            <div className="flex items-center justify-between w-full">
-              <Sparkles className="w-4 h-4 text-amber-600" />
-              <span className="text-[9px] font-bold text-amber-800 bg-amber-200/70 px-1.5 py-0.5 rounded">वैदिक</span>
             </div>
-            <div>
-              <p className="text-xs font-black text-slate-900 leading-tight">३६ गुण कुंडली</p>
-              <p className="text-[10px] text-amber-700 leading-tight">गुण जुळवा</p>
-            </div>
-          </button>
+          ) : (
+            displayedProfiles.map((profile) => {
+              const hasPhoto = profile.photos && profile.photos.length > 0;
+              const photoUrl = hasPhoto ? profile.photos[0] : null;
+              const isAuthorized = Boolean(isContactAuthorizedForUser && isContactAuthorizedForUser(profile.id));
+              const displayName = formatProfileDisplayName(
+                profile.fullName,
+                currentUser,
+                isAdminLoggedIn,
+                isAuthorized,
+                siteConfig,
+                language,
+                false,
+                profile.id
+              );
 
-          {/* VIP Membership */}
-          <button
-            type="button"
-            onClick={() => {
-              if (currentUser) {
-                setIsPaymentOpen(true);
-              } else {
-                setIsRegisterOpen(true);
-              }
-            }}
-            className="p-2.5 rounded-xl bg-orange-50 hover:bg-orange-100 border border-orange-200 text-left flex flex-col justify-between gap-1 transition active:scale-95 cursor-pointer"
-          >
-            <div className="flex items-center justify-between w-full">
-              <Crown className="w-4 h-4 text-amber-600 fill-amber-500" />
-              <span className="text-[9px] font-bold text-orange-800 bg-orange-200/70 px-1.5 py-0.5 rounded">VIP</span>
-            </div>
-            <div>
-              <p className="text-xs font-black text-slate-900 leading-tight">सभासद योजना</p>
-              <p className="text-[10px] text-orange-700 leading-tight">योजना पहा</p>
-            </div>
-          </button>
+              return (
+                <div
+                  key={profile.id}
+                  onClick={() => handleProfileClick(profile)}
+                  className="px-4 py-3.5 flex items-center gap-4 hover:bg-slate-50 active:bg-slate-100 transition cursor-pointer"
+                >
+                  {/* Circular Avatar (Left) */}
+                  <div className="w-16 h-16 rounded-full overflow-hidden shrink-0 border border-slate-200 bg-slate-100 shadow-2xs">
+                    {photoUrl ? (
+                      <img
+                        src={photoUrl}
+                        alt={displayName}
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      /* Clean silhouette placeholder matching Screenshot 1 */
+                      <div className="w-full h-full bg-slate-200 flex items-center justify-center text-slate-400">
+                        <User className="w-10 h-10 stroke-1" />
+                      </div>
+                    )}
+                  </div>
 
-          {/* Guest Only: Free Biodata Maker */}
-          {!currentUser && (
-            <button
-              type="button"
-              onClick={() => setIsBioDataMakerOpen(true)}
-              className="p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-left flex flex-col justify-between gap-1 transition active:scale-95 cursor-pointer"
-            >
-              <div className="flex items-center justify-between w-full">
-                <FileText className="w-4 h-4 text-[#800C1E]" />
-                <span className="text-[9px] font-bold text-rose-800 bg-rose-200/70 px-1.5 py-0.5 rounded">PDF</span>
-              </div>
-              <div>
-                <p className="text-xs font-black text-slate-900 leading-tight">बायोडाटा मेकर</p>
-                <p className="text-[10px] text-rose-700 leading-tight">PDF बनवा</p>
-              </div>
-            </button>
+                  {/* Profile Details Stack (Right) */}
+                  <div className="flex-1 min-w-0">
+                    <h2 className="text-base font-bold text-slate-900 leading-snug truncate">
+                      {displayName}
+                    </h2>
+                    <p className="text-[13px] text-slate-600 leading-tight mt-0.5">
+                      {profile.age} yrs, {formatHeight(profile.height)},
+                    </p>
+                    <p className="text-[13px] text-slate-600 leading-tight mt-0.5 truncate">
+                      {formatLocation(profile)}
+                    </p>
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
-
-        {/* Telegram Chat Help Bar */}
-        <div className="pt-1 border-t border-slate-100 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
-            <MessageCircle className="w-3.5 h-3.5 text-[#800C1E]" />
-            <span>मदत हवी आहे? टेलिग्राम सहाय्यता</span>
-          </div>
-          <a
-            href={`https://t.me/${(siteConfig?.telegramUsername || 'Primemultiservice').replace(/^@/, '')}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-2.5 py-1 bg-[#800C1E] hover:bg-[#A71930] text-amber-200 font-bold rounded-lg text-[10px] flex items-center gap-1 transition active:scale-95"
-          >
-            <Send className="w-2.5 h-2.5" />
-            <span>चॅट</span>
-          </a>
+      ) : (
+        /* Grid Mode (Optional toggle) */
+        <div className="p-3 grid grid-cols-2 gap-2.5">
+          {displayedProfiles.map((profile) => (
+            <ModernProfileCard
+              key={`grid-${profile.id}`}
+              profile={profile}
+              onView={handleProfileClick}
+            />
+          ))}
         </div>
-      </div>
+      )}
 
+      {/* 5. LOAD MORE BUTTON */}
+      {visibleCount < filteredProfiles.length && (
+        <div className="p-4 text-center">
+          <button
+            type="button"
+            onClick={() => setVisibleCount((prev) => prev + 20)}
+            className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition active:scale-98 border border-slate-200"
+          >
+            आणखी स्थळे पहा (+{filteredProfiles.length - visibleCount} अधिक)
+          </button>
+        </div>
+      )}
     </div>
   );
 };

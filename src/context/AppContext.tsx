@@ -131,8 +131,8 @@ interface AppContextType {
   setActiveVideoUser: (user: UserProfile | null) => void;
 
   // Modals & UI States
-  currentView: 'home' | 'dashboard' | 'profiles' | 'matches';
-  setCurrentView: (view: 'home' | 'dashboard' | 'profiles' | 'matches') => void;
+  currentView: 'home' | 'dashboard' | 'profiles' | 'matches' | 'chat' | 'notifications' | 'account';
+  setCurrentView: (view: 'home' | 'dashboard' | 'profiles' | 'matches' | 'chat' | 'notifications' | 'account') => void;
   isLeftDrawerOpen: boolean;
   setIsLeftDrawerOpen: (open: boolean) => void;
   isRightDrawerOpen: boolean;
@@ -972,20 +972,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
 
-    // Check if Like option is restricted to Paid Members only
-    const isRequirePaidForLikes = siteConfig?.requirePaidForLikes !== false;
+    // Check if Like option is restricted to Paid Members only (Default is open & free for all registered members)
+    const isRequirePaidForLikes = Boolean(siteConfig?.requirePaidForLikes === true);
     const isUserPaidForLikes =
       currentUser.membership &&
       currentUser.membership !== 'free' &&
+      currentUser.membership !== 'single_kundli' &&
       !isProfilePlanExpired(currentUser);
 
     if (isRequirePaidForLikes && !isUserPaidForLikes && !isAdminLoggedIn) {
       const activeOfferPlan =
-        plansList.find((p) => p.isActive !== false && p.id !== 'free') || plansList[0];
+        plansList.find((p) => p.id === 'welcome_offer' && p.isActive !== false) ||
+        plansList.find((p) => p.isActive !== false && p.id !== 'free' && p.id !== 'single_kundli' && p.planType !== 'single_use') ||
+        plansList.find((p) => p.id !== 'single_kundli' && p.planType !== 'single_use') ||
+        plansList[0];
       setSelectedPlanForPayment(activeOfferPlan);
       setIsPaymentOpen(true);
       alert(
-        `❤️ प्रोफाईल लाईक करणे व संपर्क एक्सचेंज (Mutual Like Contact Exchange) करण्याची सुविधा फक्त चालू सबस्क्रिप्शन (Paid) प्लॅन असलेल्या सदस्यांसाठी आहे!\n\nकृपया खालीलपैकी कोणताही ऑफर प्लॅन निवडून आजच प्लॅन नूतनीकरण किंवा सुरू करा.`
+        `❤️ प्रोफाईल लाईक करण्यासाठी व थेट संपर्क साधण्यासाठी कृपया विवाह सदस्यता प्लॅन (Membership Plan) निवडा.\n\nप्रशासनाने लाईक सुविधा फक्त अधिकृत सदस्यता असलेल्या सदस्यांसाठी ठेवली आहे. कृपया खालीलपैकी कोणताही सदस्यता प्लॅन निवडून आजच सुरू करा.`
       );
       return;
     }
@@ -1069,10 +1073,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             messageMr: `तुम्ही व ${currentUser.fullName} यांनी एकमेकांना लाईक केले आहे! नंबर अनलॉक करण्यासाठी प्लॅन खरेदी करा.`,
             type: 'interest',
           });
-          const activeOfferPlan = plansList.find((p) => p.isActive !== false && p.id !== 'free') || plansList[0];
+          const activeOfferPlan =
+            plansList.find((p) => p.id === 'welcome_offer' && p.isActive !== false) ||
+            plansList.find((p) => p.isActive !== false && p.id !== 'free' && p.id !== 'single_kundli' && p.planType !== 'single_use') ||
+            plansList.find((p) => p.id !== 'single_kundli' && p.planType !== 'single_use') ||
+            plansList[0];
           setSelectedPlanForPayment(activeOfferPlan);
           setIsPaymentOpen(true);
-          alert(`🎉 म्युचुअल मॅच (Mutual Match)! ${targetUser.fullName || 'सदस्याने'} सुद्धा तुम्हाला आधीच लाईक केले होते!\n\n🔒 परंतु संपर्क क्रमांक अनलॉक करून पाहण्यासाठी व थेट संपर्क साधण्यासाठी कृपया ऑनलाईन पेमेंट / प्लॅन खरेदी करा.`);
+          alert(`🎉 म्युचुअल मॅच (Mutual Match)! ${targetUser.fullName || 'सदस्याने'} सुद्धा तुम्हाला आधीच लाईक केले होते!\n\n🔒 परस्पर संपर्क क्रमांक व व्हॉट्सॲप नंबर अनलॉक करण्यासाठी कृपया विवाह सदस्यता प्लॅन (Membership Plan) निवडा.`);
         }
       } else {
         addNotification({
@@ -1110,7 +1118,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const hasSingleKundli = parsed.some((p) => p.id === 'single_kundli');
       if (!hasSingleKundli) {
         const defaultSingle = MEMBERSHIP_PLANS.find((p) => p.id === 'single_kundli');
-        if (defaultSingle) parsed = [defaultSingle, ...parsed];
+        if (defaultSingle) parsed = [...parsed, defaultSingle];
       }
       // Update welcome offer defaults strictly to 398
       parsed = parsed.map((p) => {
@@ -1144,6 +1152,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         return p;
       });
+
+      // Always guarantee welcome_offer is at index 0 and single_kundli is at the end of the list
+      parsed.sort((a, b) => {
+        if (a.id === 'welcome_offer') return -1;
+        if (b.id === 'welcome_offer') return 1;
+        if (a.id === 'single_kundli' || a.planType === 'single_use') return 1;
+        if (b.id === 'single_kundli' || b.planType === 'single_use') return -1;
+        return 0;
+      });
+
       return parsed;
     } catch {
       return MEMBERSHIP_PLANS;
@@ -1279,7 +1297,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const isExpired = isProfilePlanExpired(currentUser);
       if (isExpired) {
         const activeOfferPlan =
-          plansList.find((p) => p.isActive !== false && p.id !== 'free') ||
+          plansList.find((p) => p.id === 'welcome_offer' && p.isActive !== false) ||
+          plansList.find((p) => p.isActive !== false && p.id !== 'free' && p.id !== 'single_kundli' && p.planType !== 'single_use') ||
+          plansList.find((p) => p.id !== 'single_kundli' && p.planType !== 'single_use') ||
           plansList[0];
 
         setSelectedPlanForPayment(activeOfferPlan);
@@ -1293,9 +1313,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       // Free user without active membership
       if (!currentUser.membership || currentUser.membership === 'free') {
-        const welcomePlan = plansList.find((p) => p.id === 'welcome_offer' && p.isActive !== false) ||
-                            plansList.find((p) => p.isActive !== false) ||
-                            MEMBERSHIP_PLANS[0];
+        const welcomePlan =
+          plansList.find((p) => p.id === 'welcome_offer' && p.isActive !== false) ||
+          plansList.find((p) => p.isActive !== false && p.id !== 'single_kundli' && p.planType !== 'single_use') ||
+          plansList.find((p) => p.id !== 'single_kundli' && p.planType !== 'single_use') ||
+          MEMBERSHIP_PLANS[0];
         setSelectedPlanForPayment(welcomePlan);
         setIsPaymentOpen(true);
         return;
@@ -1314,9 +1336,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // If limit reached and limits are NOT disabled
     if (!isLimitDisabled && unlockedContacts.length >= planUnlockLimit) {
       const targetUpgradePlanId = siteConfig?.upgradeRecommendedPlanId || 'monthly';
-      const upgradePlan = plansList.find((p) => p.id === targetUpgradePlanId && p.isActive !== false) ||
-                          plansList.find((p) => p.id !== 'welcome_offer' && p.id !== 'free' && p.isActive !== false) ||
-                          plansList[0];
+      const upgradePlan =
+        plansList.find((p) => p.id === targetUpgradePlanId && p.isActive !== false && p.id !== 'single_kundli') ||
+        plansList.find((p) => p.id !== 'welcome_offer' && p.id !== 'free' && p.id !== 'single_kundli' && p.planType !== 'single_use' && p.isActive !== false) ||
+        plansList.find((p) => p.id !== 'single_kundli' && p.planType !== 'single_use') ||
+        plansList[0];
 
       setSelectedPlanForPayment(upgradePlan);
       setIsPaymentOpen(true);
@@ -1413,10 +1437,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               messageMr: `तुम्ही व ${currentUser.fullName} यांनी एकमेकांना लाईक केले आहे! नंबर अनलॉक करण्यासाठी प्लॅन खरेदी करा.`,
               type: 'interest',
             });
-            const activeOfferPlan = plansList.find((p) => p.isActive !== false && p.id !== 'free') || plansList[0];
+            const activeOfferPlan =
+              plansList.find((p) => p.id === 'welcome_offer' && p.isActive !== false) ||
+              plansList.find((p) => p.isActive !== false && p.id !== 'free' && p.id !== 'single_kundli' && p.planType !== 'single_use') ||
+              plansList.find((p) => p.id !== 'single_kundli' && p.planType !== 'single_use') ||
+              plansList[0];
             setSelectedPlanForPayment(activeOfferPlan);
             setIsPaymentOpen(true);
-            alert(`🎉 म्युचुअल मॅच (Mutual Match)! ${targetUser.fullName || 'सदस्याने'} सुद्धा तुम्हाला आधीच लाईक केले होते!\n\n🔒 परंतु संपर्क क्रमांक अनलॉक करून पाहण्यासाठी व थेट संपर्क साधण्यासाठी कृपया ऑनलाईन पेमेंट / प्लॅन खरेदी करा.`);
+            alert(`🎉 म्युचुअल मॅच (Mutual Match)! ${targetUser.fullName || 'सदस्याने'} सुद्धा तुम्हाला आधीच लाईक केले होते!\n\n🔒 परस्पर संपर्क क्रमांक व व्हॉट्सॲप नंबर अनलॉक करण्यासाठी कृपया विवाह सदस्यता प्लॅन (Membership Plan) निवडा.`);
           }
         } else {
           addNotification({
@@ -2013,7 +2041,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // 11. Modal & View States
-  const [currentView, setCurrentView] = useState<'home' | 'dashboard' | 'profiles' | 'matches'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'dashboard' | 'profiles' | 'matches' | 'chat' | 'notifications' | 'account'>('home');
   const [isLeftDrawerOpen, setIsLeftDrawerOpen] = useState(false);
   const [isRightDrawerOpen, setIsRightDrawerOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -2029,9 +2057,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (open) {
       setSelectedPlanForPayment(prevPlan => {
         if (!prevPlan) {
-          return plansList.find((p) => p.id === 'welcome_offer' && p.isActive !== false) ||
-                 plansList.find((p) => p.isActive !== false) ||
-                 MEMBERSHIP_PLANS[0];
+          return (
+            plansList.find((p) => p.id === 'welcome_offer' && p.isActive !== false) ||
+            plansList.find((p) => p.isActive !== false && p.id !== 'single_kundli' && p.planType !== 'single_use') ||
+            plansList.find((p) => p.id !== 'single_kundli' && p.planType !== 'single_use') ||
+            MEMBERSHIP_PLANS[0]
+          );
         }
         return prevPlan;
       });

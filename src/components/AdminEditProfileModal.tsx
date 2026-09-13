@@ -16,6 +16,7 @@ interface AdminEditProfileModalProps {
   onClose: () => void;
   onSave: (profileId: string, updatedFields: Partial<UserProfile>) => void;
   canEdit?: boolean;
+  isSelfEdit?: boolean;
 }
 
 export const PRESET_BADGES = [
@@ -37,8 +38,10 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
   onClose,
   onSave,
   canEdit = true,
+  isSelfEdit = false,
 }) => {
-  const { trashPhoto, sendPushNotification, siteConfig } = useApp();
+  const { trashPhoto, sendPushNotification, siteConfig, currentUser, isAdminLoggedIn } = useApp();
+  const isActualAdmin = Boolean((isAdminLoggedIn || currentUser?.isAdmin) && !isSelfEdit);
   const [activeSubTab, setActiveSubTab] = useState<
     'personal' | 'astrology' | 'location' | 'education' | 'family' | 'documents' | 'badge'
   >('personal');
@@ -415,21 +418,10 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
       expectations,
 
       photos,
+      photoUrl: photos[0] || profile.photoUrl,
       idProofUrl,
       idVerificationNumber,
       aadhaarCardUrl,
-      aadhaarVerified: isIdVerified,
-      isVerified,
-      isIdVerified,
-      isPhotoVerified,
-      isPremiumVerified,
-      isFaceVerified,
-      faceVerifiedAt: isFaceVerified ? (faceVerifiedAt || new Date().toISOString()) : '',
-      membership,
-
-      badge: finalBadge,
-      customBadge: finalBadge,
-      hideBadge,
 
       privacy: {
         ...(profile.privacy || { hideContact: false, hidePhoto: false }),
@@ -438,10 +430,40 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
       }
     };
 
+    // ONLY Authorized Admin can modify verification badges, flags, approval, and membership tier
+    if (isActualAdmin) {
+      updatedFields.aadhaarVerified = isIdVerified;
+      updatedFields.isVerified = isVerified;
+      updatedFields.isIdVerified = isIdVerified;
+      updatedFields.isPhotoVerified = isPhotoVerified;
+      updatedFields.isPremiumVerified = isPremiumVerified;
+      updatedFields.isFaceVerified = isFaceVerified;
+      updatedFields.faceVerifiedAt = isFaceVerified ? (faceVerifiedAt || new Date().toISOString()) : '';
+      updatedFields.membership = membership;
+      updatedFields.badge = finalBadge;
+      updatedFields.customBadge = finalBadge;
+      updatedFields.hideBadge = hideBadge;
+      updatedFields.isApproved = isApproved;
+    }
+
     onSave(profile.id, updatedFields);
-    alert('✅ सदस्याची माहिती, दस्तावेज आणि बॅच यशस्वीरित्या अद्ययावत केले!');
+    alert(
+      isActualAdmin
+        ? '✅ सदस्याची माहिती, दस्तावेज आणि बॅच यशस्वीरित्या अद्ययावत केले!'
+        : '✅ तुमची प्रोफाईल माहिती यशस्वीरित्या सेव्ह झाली!'
+    );
     onClose();
   };
+
+  const visibleSubTabs = [
+    { id: 'personal', label: '👤 वैयक्तिक माहिती' },
+    { id: 'astrology', label: '🪐 कुंडली व पंचांग' },
+    { id: 'location', label: '📍 पत्ता व संपर्क' },
+    { id: 'education', label: '🎓 शिक्षण व नोकरी' },
+    { id: 'family', label: '👨‍👩‍👦 कौटुंबिक माहिती' },
+    { id: 'documents', label: isActualAdmin ? '📄 फोटो, दस्तावेज व पडताळणी' : '📷 फोटो व आधार दस्तावेज' },
+    ...(isActualAdmin ? [{ id: 'badge', label: '🏅 विशेष बॅचेस व मेम्बरशिप' }] : []),
+  ];
 
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-0 sm:p-4 z-50 overflow-hidden pt-safe pb-safe">
@@ -455,10 +477,18 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
             </div>
             <div>
               <h3 className="text-sm sm:text-base font-black text-[#A71930] flex items-center gap-2">
-                <span>सदस्य प्रोफाईल व दस्तावेज संपादन कक्ष (Full Member Profile Editor)</span>
+                <span>
+                  {isActualAdmin
+                    ? 'सदस्य प्रोफाईल व दस्तावेज संपादन कक्ष (Full Member Profile Editor)'
+                    : 'माझी प्रोफाईल व बायोडाटा संपादन (Edit My Profile)'}
+                </span>
               </h3>
               <p className="text-[11px] text-slate-700 font-bold mt-0.5">
-                आयडी: <span className="font-mono text-slate-900 font-black">{profile.id}</span> • नाव: <span className="text-slate-900 font-black">{profile.fullName}</span> • संपर्क: <span className="font-mono text-slate-900">{profile.mobile}</span>
+                {isActualAdmin ? (
+                  <>आयडी: <span className="font-mono text-slate-900 font-black">{profile.id}</span> • नाव: <span className="text-slate-900 font-black">{profile.fullName}</span> • संपर्क: <span className="font-mono text-slate-900">{profile.mobile}</span></>
+                ) : (
+                  'तुमची वैयक्तिक माहिती, जन्मकुंडली, संपर्क, शिक्षण व फोटो अद्ययावत करा'
+                )}
               </p>
             </div>
           </div>
@@ -472,15 +502,7 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
 
         {/* Modal Sub-Tab Navigation */}
         <div className="bg-amber-100/60 border-b border-amber-300 p-2 overflow-x-auto flex items-center gap-1.5 shrink-0 scrollbar-none">
-          {[
-            { id: 'personal', label: '👤 वैयक्तिक माहिती' },
-            { id: 'astrology', label: '🪐 कुंडली व पंचांग' },
-            { id: 'location', label: '📍 पत्ता व संपर्क' },
-            { id: 'education', label: '🎓 शिक्षण व नोकरी' },
-            { id: 'family', label: '👨‍👩‍👦 कौटुंबिक माहिती' },
-            { id: 'documents', label: '📄 फोटो, दस्तावेज व पडताळणी' },
-            { id: 'badge', label: '🏅 विशेष बॅचेस व मेम्बरशिप' },
-          ].map((tab) => (
+          {visibleSubTabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveSubTab(tab.id as any)}
@@ -1513,101 +1535,131 @@ export const AdminEditProfileModal: React.FC<AdminEditProfileModalProps> = ({
                 )}
               </div>
 
-              {/* Face Verification & Selfie Inspection */}
-              <div className="p-4 bg-white rounded-2xl border-2 border-amber-300 space-y-3 shadow-xs">
-                <div className="flex items-center justify-between border-b border-amber-200 pb-2">
-                  <h4 className="font-extrabold text-xs text-[#A71930] flex items-center gap-1.5">
-                    <UserCheck className="w-4 h-4 text-blue-600" />
-                    <span>फेस व्हेरीफिकेशन स्थिती व सेल्फी (Face Verification & Selfie Inspector)</span>
-                  </h4>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={isFaceVerified}
-                      onChange={(e) => {
-                        setIsFaceVerified(e.target.checked);
-                        if (e.target.checked && !faceVerifiedAt) {
-                          setFaceVerifiedAt(new Date().toISOString());
-                        }
-                      }}
-                      className="w-4 h-4 rounded text-[#A71930] focus:ring-0 cursor-pointer"
-                    />
-                    <span className="text-xs font-black text-slate-800">फेस व्हेरीफाईड घोषित करा</span>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-blue-50/70 rounded-xl border border-blue-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-200 flex items-center justify-center font-black text-blue-900">
-                      👤
+              {/* Face Verification & Verification Badges - Admin Controls vs Member View */}
+              {isActualAdmin ? (
+                <>
+                  {/* Face Verification & Selfie Inspection */}
+                  <div className="p-4 bg-white rounded-2xl border-2 border-amber-300 space-y-3 shadow-xs">
+                    <div className="flex items-center justify-between border-b border-amber-200 pb-2">
+                      <h4 className="font-extrabold text-xs text-[#A71930] flex items-center gap-1.5">
+                        <UserCheck className="w-4 h-4 text-blue-600" />
+                        <span>फेस व्हेरीफिकेशन स्थिती व सेल्फी (Face Verification & Selfie Inspector)</span>
+                      </h4>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isFaceVerified}
+                          onChange={(e) => {
+                            setIsFaceVerified(e.target.checked);
+                            if (e.target.checked && !faceVerifiedAt) {
+                              setFaceVerifiedAt(new Date().toISOString());
+                            }
+                          }}
+                          className="w-4 h-4 rounded text-[#A71930] focus:ring-0 cursor-pointer"
+                        />
+                        <span className="text-xs font-black text-slate-800">फेस व्हेरीफाईड घोषित करा</span>
+                      </label>
                     </div>
-                    <div>
-                      <p className="font-black text-xs text-slate-900">
-                        फेस पडताळणी स्थिती: {isFaceVerified ? '✅ पूर्ण (Face Verified)' : '❌ अपूर्ण / प्रलंबित'}
-                      </p>
-                      {faceVerifiedAt && (
-                        <p className="text-[10px] text-slate-500 font-bold">
-                          प्रमाणित वेळ: {new Date(faceVerifiedAt).toLocaleString('mr-IN')}
-                        </p>
-                      )}
+
+                    <div className="flex items-center justify-between p-3 bg-blue-50/70 rounded-xl border border-blue-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-200 flex items-center justify-center font-black text-blue-900">
+                          👤
+                        </div>
+                        <div>
+                          <p className="font-black text-xs text-slate-900">
+                            फेस पडताळणी स्थिती: {isFaceVerified ? '✅ पूर्ण (Face Verified)' : '❌ अपूर्ण / प्रलंबित'}
+                          </p>
+                          {faceVerifiedAt && (
+                            <p className="text-[10px] text-slate-500 font-bold">
+                              प्रमाणित वेळ: {new Date(faceVerifiedAt).toLocaleString('mr-IN')}
+                            </p>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Quick Verification Flags */}
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-300 space-y-3">
+                    <h4 className="font-extrabold text-xs text-slate-800 border-b pb-2">
+                      🛡️ पडताळणी खुणा (Verification Badges Flags)
+                    </h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <label className="flex items-center gap-2 cursor-pointer p-2 bg-white rounded-xl border border-slate-200">
+                        <input
+                          type="checkbox"
+                          checked={isVerified}
+                          onChange={(e) => setIsVerified(e.target.checked)}
+                          className="w-4 h-4 rounded text-[#A71930] focus:ring-0"
+                        />
+                        <span className="text-xs font-bold text-slate-800">सामान्य प्रमाणित</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer p-2 bg-white rounded-xl border border-slate-200">
+                        <input
+                          type="checkbox"
+                          checked={isIdVerified}
+                          onChange={(e) => setIsIdVerified(e.target.checked)}
+                          className="w-4 h-4 rounded text-[#A71930] focus:ring-0"
+                        />
+                        <span className="text-xs font-bold text-slate-800">ID प्रमाणित</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer p-2 bg-white rounded-xl border border-slate-200">
+                        <input
+                          type="checkbox"
+                          checked={isPhotoVerified}
+                          onChange={(e) => setIsPhotoVerified(e.target.checked)}
+                          className="w-4 h-4 rounded text-[#A71930] focus:ring-0"
+                        />
+                        <span className="text-xs font-bold text-slate-800">फोटो प्रमाणित</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 cursor-pointer p-2 bg-white rounded-xl border border-slate-200">
+                        <input
+                          type="checkbox"
+                          checked={isPremiumVerified}
+                          onChange={(e) => setIsPremiumVerified(e.target.checked)}
+                          className="w-4 h-4 rounded text-[#A71930] focus:ring-0"
+                        />
+                        <span className="text-xs font-bold text-slate-800">प्रीमियम प्रमाणित</span>
+                      </label>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* Member's Secure Verification Status (Read-only) */
+                <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-200 space-y-3 shadow-xs">
+                  <div className="flex items-center gap-2 text-emerald-950 font-black text-xs border-b border-emerald-200/80 pb-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                    <span>खाते पडताळणी स्थिती (Profile Verification Status)</span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                    <div className="p-2.5 bg-white rounded-xl border border-emerald-100 flex items-center justify-between">
+                      <span className="text-slate-600 font-bold">आधार / ओळखपत्र:</span>
+                      <span className={`font-black ${isIdVerified ? 'text-emerald-700' : 'text-amber-700'}`}>
+                        {isIdVerified ? '✅ प्रमाणित (Verified)' : '⏳ पडताळणी प्रलंबित'}
+                      </span>
+                    </div>
+                    <div className="p-2.5 bg-white rounded-xl border border-emerald-100 flex items-center justify-between">
+                      <span className="text-slate-600 font-bold">प्रोफाईल फोटो:</span>
+                      <span className={`font-black ${isPhotoVerified ? 'text-emerald-700' : 'text-amber-700'}`}>
+                        {isPhotoVerified ? '✅ प्रमाणित (Verified)' : '⏳ पडताळणी प्रलंबित'}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-600 font-medium">
+                    🛡️ आपण नवीन आधार कार्ड किंवा फोटो जोडल्यास सुरक्षिततेसाठी ॲडमिनद्वारे पडताळणी करून व्हेरिफाईड बॅज दिला जातो.
+                  </p>
                 </div>
-              </div>
-
-              {/* Quick Verification Flags */}
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-300 space-y-3">
-                <h4 className="font-extrabold text-xs text-slate-800 border-b pb-2">
-                  🛡️ पडताळणी खुणा (Verification Badges Flags)
-                </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <label className="flex items-center gap-2 cursor-pointer p-2 bg-white rounded-xl border border-slate-200">
-                    <input
-                      type="checkbox"
-                      checked={isVerified}
-                      onChange={(e) => setIsVerified(e.target.checked)}
-                      className="w-4 h-4 rounded text-[#A71930] focus:ring-0"
-                    />
-                    <span className="text-xs font-bold text-slate-800">सामान्य प्रमाणित</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 cursor-pointer p-2 bg-white rounded-xl border border-slate-200">
-                    <input
-                      type="checkbox"
-                      checked={isIdVerified}
-                      onChange={(e) => setIsIdVerified(e.target.checked)}
-                      className="w-4 h-4 rounded text-[#A71930] focus:ring-0"
-                    />
-                    <span className="text-xs font-bold text-slate-800">ID प्रमाणित</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 cursor-pointer p-2 bg-white rounded-xl border border-slate-200">
-                    <input
-                      type="checkbox"
-                      checked={isPhotoVerified}
-                      onChange={(e) => setIsPhotoVerified(e.target.checked)}
-                      className="w-4 h-4 rounded text-[#A71930] focus:ring-0"
-                    />
-                    <span className="text-xs font-bold text-slate-800">फोटो प्रमाणित</span>
-                  </label>
-
-                  <label className="flex items-center gap-2 cursor-pointer p-2 bg-white rounded-xl border border-slate-200">
-                    <input
-                      type="checkbox"
-                      checked={isPremiumVerified}
-                      onChange={(e) => setIsPremiumVerified(e.target.checked)}
-                      className="w-4 h-4 rounded text-[#A71930] focus:ring-0"
-                    />
-                    <span className="text-xs font-bold text-slate-800">प्रीमियम प्रमाणित</span>
-                  </label>
-                </div>
-              </div>
+              )}
 
             </div>
           )}
 
-          {/* TAB 7: BADGES & MEMBERSHIP SYSTEM */}
-          {activeSubTab === 'badge' && (
+          {/* TAB 7: BADGES & MEMBERSHIP SYSTEM (ADMIN ONLY) */}
+          {activeSubTab === 'badge' && isActualAdmin && (
             <div className="space-y-5">
               
               {/* Membership Tier Picker */}

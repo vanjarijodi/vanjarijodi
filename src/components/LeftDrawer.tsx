@@ -578,29 +578,31 @@ export const LeftDrawer: React.FC = () => {
               </button>
             )}
 
-            {/* 9. Administrator Portal */}
-            <button
-              onClick={() => {
-                setIsAdminOpen(true);
-                setIsLeftDrawerOpen(false);
-              }}
-              className="w-full flex items-center justify-between p-3.5 rounded-2xl text-[#800C1E] bg-gradient-to-r from-amber-100/90 to-amber-50 border-2 border-amber-400 font-extrabold transition-all cursor-pointer shadow-sm hover:bg-amber-100 min-h-[50px] active:scale-98"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-[#800C1E] text-amber-300 shadow-sm shrink-0">
-                  <ShieldCheck className="w-4 h-4 text-amber-300" />
+            {/* 9. Administrator Portal (Admin Only / Guest) */}
+            {(!currentUser || isAdminLoggedIn || currentUser?.isAdmin) && (
+              <button
+                onClick={() => {
+                  setIsAdminOpen(true);
+                  setIsLeftDrawerOpen(false);
+                }}
+                className="w-full flex items-center justify-between p-3.5 rounded-2xl text-[#800C1E] bg-gradient-to-r from-amber-100/90 to-amber-50 border-2 border-amber-400 font-extrabold transition-all cursor-pointer shadow-sm hover:bg-amber-100 min-h-[50px] active:scale-98"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-[#800C1E] text-amber-300 shadow-sm shrink-0">
+                    <ShieldCheck className="w-4 h-4 text-amber-300" />
+                  </div>
+                  <div className="text-left">
+                    <span className="block text-xs font-black text-[#800C1E]">
+                      {isEn ? 'Admin Panel Login' : 'प्रशासक प्रवेश (Admin Login)'}
+                    </span>
+                    <span className="block text-[10px] text-amber-900 font-semibold">
+                      {isEn ? 'Authorized Master Control' : 'अधिकृत नियंत्रण कक्ष'}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-left">
-                  <span className="block text-xs font-black text-[#800C1E]">
-                    {isEn ? 'Admin Panel Login' : 'प्रशासक प्रवेश (Admin Login)'}
-                  </span>
-                  <span className="block text-[10px] text-amber-900 font-semibold">
-                    {isEn ? 'Authorized Master Control' : 'अधिकृत नियंत्रण कक्ष'}
-                  </span>
-                </div>
-              </div>
-              <ChevronRight className="w-4 h-4 text-[#800C1E] shrink-0" />
-            </button>
+                <ChevronRight className="w-4 h-4 text-[#800C1E] shrink-0" />
+              </button>
+            )}
           </div>
 
           {/* Footer of Left Drawer with Safe Area Padding */}

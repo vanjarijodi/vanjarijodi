@@ -42,7 +42,10 @@ export const DigitalMarketingAdModal: React.FC<DigitalMarketingAdModalProps> = (
   const tgUsername = (siteConfig?.telegramUsername || 'Primemultiservice').replace(/^@/, '');
   const supportEmail = siteConfig?.contactEmail || 'gitevijay123@gmail.com';
   const websiteUrl = window.location.origin;
-  const welcomePlan = plansList?.find((p) => p.id === 'welcome_offer') || plansList?.[0];
+  const welcomePlan =
+    plansList?.find((p) => p.id === 'welcome_offer') ||
+    plansList?.find((p) => p.id !== 'single_kundli' && p.planType !== 'single_use') ||
+    plansList?.[0];
   const promoPrice = welcomePlan?.price || 398;
 
   // Viral Ready-Made Marathi Ad Copies

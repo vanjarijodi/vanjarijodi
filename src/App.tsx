@@ -28,6 +28,9 @@ import { WelcomeScreen } from './components/WelcomeScreen';
 import { MatchesScreen } from './components/MatchesScreen';
 import { BlessingsSection } from './components/BlessingsSection';
 import { MobileBottomNav } from './components/MobileBottomNav';
+import { MobileAccountScreen } from './components/MobileAccountScreen';
+import { MobileChatScreen } from './components/MobileChatScreen';
+import { MobileNotificationScreen } from './components/MobileNotificationScreen';
 import { LeftDrawer } from './components/LeftDrawer';
 import { RightFilterDrawer } from './components/RightFilterDrawer';
 import { FlashAdPopup } from './components/FlashAdPopup';
@@ -143,14 +146,16 @@ const MainAppContent: React.FC = () => {
         </main>
       ) : (
         <>
-          {/* Header with Sticky Container & Integrated Site-wide Notice Banner */}
-          <Navbar />
+          {/* Header with Sticky Container on Desktop (on mobile, each screen has its dedicated clean app bar) */}
+          <div className="hidden md:block">
+            <Navbar />
+          </div>
 
           {/* Main Content Area for Authenticated Members */}
           {currentView === 'home' && (
             <main className="flex-1 pb-24 md:pb-0 w-full max-w-full overflow-x-hidden">
-              {/* Mobile-first compact Android home screen */}
-              <div className="block md:hidden pt-1">
+              {/* Mobile-first clean screen matching user reference screenshot */}
+              <div className="block md:hidden">
                 <MobileHomeScreen />
               </div>
 
@@ -166,6 +171,24 @@ const MainAppContent: React.FC = () => {
             </main>
           )}
 
+          {currentView === 'chat' && (
+            <main className="flex-1 pb-24 md:pb-0 w-full max-w-full overflow-x-hidden">
+              <MobileChatScreen />
+            </main>
+          )}
+
+          {currentView === 'notifications' && (
+            <main className="flex-1 pb-24 md:pb-0 w-full max-w-full overflow-x-hidden">
+              <MobileNotificationScreen />
+            </main>
+          )}
+
+          {currentView === 'account' && (
+            <main className="flex-1 pb-24 md:pb-0 w-full max-w-full overflow-x-hidden">
+              <MobileAccountScreen />
+            </main>
+          )}
+
           {currentView === 'matches' && (
             <main className="flex-1 pb-24 md:pb-0 pt-2 w-full max-w-full overflow-x-hidden">
               <MatchesScreen />
@@ -174,7 +197,12 @@ const MainAppContent: React.FC = () => {
 
           {currentView === 'dashboard' && (
             <main className="flex-1 pb-24 md:pb-0 w-full max-w-full overflow-x-hidden">
-              <MemberDashboard />
+              <div className="block md:hidden">
+                <MobileAccountScreen />
+              </div>
+              <div className="hidden md:block">
+                <MemberDashboard />
+              </div>
             </main>
           )}
 
