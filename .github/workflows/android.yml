@@ -1,0 +1,268 @@
+# ==============================================================================
+# 🚀 Vanjari Jodi Matrimony — Play Store AAB & Universal APK Build Workflow
+# ==============================================================================
+# Generates:
+# 1. VanjariJodi-release.aab (Signed Android App Bundle for Google Play Store Upload/Update)
+# 2. VanjariJodi.apk (Signed Universal APK for Direct Mobile Installation)
+# 3. release.keystore & Key Fingerprints (Persistent Keystore for Play Store updates)
+# ==============================================================================
+
+name: Build Android App (Play Store AAB & APK)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: 'App Version Code (e.g. 2, 3, 4 for Play Store updates)'
+        required: false
+        default: '2'
+      version_name:
+        description: 'App Version Name (e.g. 1.1, 1.2)'
+        required: false
+        default: '1.1'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build Android AAB & APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: ☕ Set up Java 21 LTS (Capacitor 8 & AGP 8.7+ Compatible)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: 📜 Accept Android SDK Licenses & Setup Environment
+        run: |
+          mkdir -p "$ANDROID_HOME/licenses" || true
+          echo -e "\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-license" || true
+          echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license" || true
+          echo -e "\nd56f5187479451eabf01fb78af6dfcb131a6481e" >> "$ANDROID_HOME/licenses/android-sdk-license" || true
+
+      - name: 📦 Install Node Dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: 🌐 Build Web Application (Vite + Server)
+        run: npm run build
+
+      - name: 🔄 Sync Capacitor Android Project
+        run: npx cap sync android
+
+      - name: 🔧 Fix Drawables & Gradle Permissions
+        run: |
+          chmod +x ./android/gradlew
+          # AAPT2 splash.png क्रॅश रोखण्यासाठी सर्व करप्ट इमेजेस व्हॅलिड PNG ने रिप्लेस करणे
+          python3 -c "
+          import os, base64
+          valid_png = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==')
+          for root, dirs, files in os.walk('./android/app/src/main/res'):
+              for f in files:
+                  p = os.path.join(root, f)
+                  if f.endswith('.png') and ('splash' in f or os.path.getsize(p) == 0):
+                      with open(p, 'wb') as img:
+                          img.write(valid_png)
+          "
+
+      - name: 🔑 Configure Android Signing Keystore for Play Store
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          cd android
+          mkdir -p app
+
+          STORE_PASS="${KEYSTORE_PASSWORD:-vanjari123}"
+          ALIAS="${KEY_ALIAS:-vanjarijodi}"
+          K_PASS="${KEY_PASSWORD:-$STORE_PASS}"
+
+          # 1. Use existing secret keystore if provided in GitHub Secrets
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "✅ Decoding existing release keystore from GitHub Secrets..."
+            echo "$KEYSTORE_BASE64" | base64 -d > app/release.keystore
+          elif [ -f "app/release.keystore" ] && [ -s "app/release.keystore" ]; then
+            echo "✅ Using existing release.keystore from repository..."
+          elif [ -f "app/release.keystore.base64.txt" ] && [ -s "app/release.keystore.base64.txt" ]; then
+            echo "✅ Decoding release.keystore from app/release.keystore.base64.txt..."
+            base64 -d app/release.keystore.base64.txt > app/release.keystore
+          elif [ -f "../public/downloads/release.keystore" ] && [ -s "../public/downloads/release.keystore" ]; then
+            echo "✅ Copying release.keystore from public/downloads..."
+            cp ../public/downloads/release.keystore app/release.keystore
+          elif [ -f "../public/downloads/release.keystore.base64.txt" ] && [ -s "../public/downloads/release.keystore.base64.txt" ]; then
+            echo "✅ Decoding release.keystore from public/downloads/release.keystore.base64.txt..."
+            base64 -d ../public/downloads/release.keystore.base64.txt > app/release.keystore
+          else
+            echo "ℹ️ Generating persistent release keystore for Play Store..."
+            keytool -genkeypair -v \
+              -keystore app/release.keystore \
+              -alias "$ALIAS" \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass "$STORE_PASS" \
+              -keypass "$K_PASS" \
+              -dname "CN=Vanjari Jodi Matrimony, OU=IT, O=Vanjari Jodi, L=Mumbai, ST=Maharashtra, C=IN"
+          fi
+
+          # 2. Extract certificate fingerprints (SHA-1, SHA-256) for Google Play Console & Firebase
+          echo "==================== CERTIFICATE FINGERPRINTS ===================="
+          keytool -list -v -keystore app/release.keystore -alias "$ALIAS" -storepass "$STORE_PASS" > app/keystore_details.txt || true
+          cat app/keystore_details.txt | grep -E "Alias name|Creation date|Certificate fingerprints|SHA1|SHA256|MD5" || true
+          echo "=================================================================="
+
+          # 3. Create Key Information File
+          cat << 'EOF' > app/KEYSTORE_INFO.txt
+          ==================================================
+          🔑 VANJARI JODI - PLAY STORE SIGNING KEY INFO
+          ==================================================
+          File: release.keystore
+          Alias: vanjarijodi
+          Store Password: vanjari123
+          Key Password: vanjari123
+
+          महत्वाचे (Important for Google Play Store Updates):
+          गुगल प्ले स्टोअरवर प्रत्येक वेळी ॲप अपडेट करताना याच की ची गरज असते.
+          हा की फाईल आणि पासवर्ड सुरक्षित ठेवा.
+          ==================================================
+          EOF
+          cat app/keystore_details.txt >> app/KEYSTORE_INFO.txt
+
+          # 4. Print GitHub Actions Step Summary
+          echo "### 🔑 Android Signing Key Information" >> $GITHUB_STEP_SUMMARY
+          echo "- **Keystore File**: \`release.keystore\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Key Alias**: \`$ALIAS\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Key Password / Store Password**: \`$STORE_PASS\`" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          grep -E "SHA1|SHA256" app/keystore_details.txt >> $GITHUB_STEP_SUMMARY || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: 📦 Build Google Play Store AAB Bundle & Universal APK
+        env:
+          APP_VERSION_CODE: ${{ inputs.version_code || github.run_number || '2' }}
+          APP_VERSION_NAME: ${{ inputs.version_name || '1.1' }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'vanjari123' }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'vanjarijodi' }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || secrets.KEYSTORE_PASSWORD || 'vanjari123' }}
+        run: |
+          cd android
+
+          echo "🚀 Building Google Play Store Release Bundle (.aab)..."
+          ./gradlew bundleRelease -Pandroid.enablePngCrunchInReleaseBuilds=false --no-daemon --stacktrace
+
+          echo "🚀 Building Universal Release APK (.apk)..."
+          ./gradlew assembleRelease -Pandroid.enablePngCrunchInReleaseBuilds=false --no-daemon --stacktrace || ./gradlew assembleDebug -Pandroid.enablePngCrunchInReleaseBuilds=false --no-daemon
+
+          # Create mobile artifacts directory
+          rm -rf ../dist-mobile
+          mkdir -p ../dist-mobile
+
+          # 1. Copy Google Play Store AAB
+          if [ -f app/build/outputs/bundle/release/app-release.aab ]; then
+            cp app/build/outputs/bundle/release/app-release.aab ../dist-mobile/VanjariJodi-release.aab
+            echo "✅ Google Play Store AAB generated: dist-mobile/VanjariJodi-release.aab"
+          elif [ -f app/build/outputs/bundle/release/app-release-unsigned.aab ]; then
+            cp app/build/outputs/bundle/release/app-release-unsigned.aab ../dist-mobile/VanjariJodi-release.aab
+            echo "ℹ️ Copied unsigned AAB"
+          fi
+
+          # 2. Copy Universal Installable APK
+          if [ -f app/build/outputs/apk/release/app-release.apk ]; then
+            cp app/build/outputs/apk/release/app-release.apk ../dist-mobile/VanjariJodi.apk
+            echo "✅ Release APK generated: dist-mobile/VanjariJodi.apk"
+          elif [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            cp app/build/outputs/apk/release/app-release-unsigned.apk ../dist-mobile/VanjariJodi.apk
+          elif [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
+            cp app/build/outputs/apk/debug/app-debug.apk ../dist-mobile/VanjariJodi.apk
+          fi
+
+          # 3. Copy Keystore & Info for safe backup
+          if [ -f app/release.keystore ]; then
+            cp app/release.keystore ../dist-mobile/release.keystore
+            base64 -w 0 app/release.keystore > ../dist-mobile/release.keystore.base64.txt || true
+            cp app/KEYSTORE_INFO.txt ../dist-mobile/KEYSTORE_INFO.txt
+          fi
+
+          echo "Files in dist-mobile:"
+          ls -lh ../dist-mobile/
+
+      - name: 📤 Upload Play Store AAB Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VanjariJodi-PlayStore-AAB
+          path: dist-mobile/VanjariJodi-release.aab
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: 📤 Upload Universal APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VanjariJodi-Android-APK
+          path: dist-mobile/VanjariJodi.apk
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: 📤 Upload Signing Keystore & Info Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VanjariJodi-Signing-Keystore
+          path: |
+            dist-mobile/release.keystore
+            dist-mobile/release.keystore.base64.txt
+            dist-mobile/KEYSTORE_INFO.txt
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: 🚀 Publish Direct Download AAB & APK Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        continue-on-error: true
+        with:
+          tag_name: latest
+          name: "Vanjari Jodi Android App & Play Store Bundle (Latest)"
+          make_latest: true
+          body: |
+            📲 **वंजारी जोडी अधिकृत ॲन्ड्रॉइड ॲप्लिकेशन (Android App & Play Store Bundle)**
+
+            ---
+            ### 📥 डाऊनलोड पर्याय:
+            1. **Google Play Store sathi AAB Bundle**:
+               - फाईल: `VanjariJodi-release.aab`
+               - उपयोग: Google Play Console वर नवीन व्हर्जन अपडेट / रिलीज करण्यासाठी थेट ही `.aab` फाईल अपलोड करा.
+
+            2. **मोबाईलमध्ये थेट इन्स्टॉल करण्यासाठी APK**:
+               - फाईल: `VanjariJodi.apk`
+               - उपयोग: थेट मोबाईलमध्ये डाऊनलोड करून ॲप चालवण्यासाठी.
+
+            3. **प्ले स्टोअर साइनिंग की (Signing Key Backup)**:
+               - फाईल: `release.keystore`
+               - Base64 टेक्स्ट: `release.keystore.base64.txt`
+               - की माहिती: `KEYSTORE_INFO.txt`
+               - Alias: `vanjarijodi` | Password: `vanjari123`
+          draft: false
+          prerelease: false
+          files: |
+            dist-mobile/VanjariJodi-release.aab
+            dist-mobile/VanjariJodi.apk
+            dist-mobile/release.keystore
+            dist-mobile/release.keystore.base64.txt
+            dist-mobile/KEYSTORE_INFO.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
