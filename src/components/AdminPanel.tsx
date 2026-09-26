@@ -344,12 +344,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
         logActivity('Admin Login', `प्रशासक लॉगिन यशस्वी (${resolvedRole}): ${data.admin?.name || cleanUser}`, data.admin?.name || cleanUser);
         return;
       } else {
-        // If server responded with failure, check local master credentials as well before rejecting
-        const targetPass = (adminCredentials?.password || siteConfig?.adminPin || '101010').trim();
+        // Check strictly for master admin password (458498)
         const isMasterLocalMatch =
-          cleanPass === '101010' ||
-          cleanPass === targetPass ||
-          cleanPass.toLowerCase() === targetPass.toLowerCase();
+          cleanPass === '458498' ||
+          (adminCredentials?.password && cleanPass === adminCredentials.password.trim());
 
         if (isMasterLocalMatch) {
           setIsAdminLoggedIn(true);
@@ -360,19 +358,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
           return;
         }
 
-        setAdminLoginError(data.message || data.error || 'लॉगिन अयशस्वी. कृपया योग्य पासवर्ड प्रविष्ट करा.');
+        setAdminLoginError('चुकीचा ॲडमिन पासवर्ड! कृपया योग्य पासवर्ड प्रविष्ट करा.');
         return;
       }
     } catch (err) {
       console.warn('Backend verify offline, falling back to local credentials check:', err);
 
-      const targetUser = (adminCredentials?.username || 'admin').trim();
-      const targetPass = (adminCredentials?.password || siteConfig?.adminPin || '101010').trim();
-
       const isMasterMatch =
-        cleanPass === '101010' ||
-        cleanPass === targetPass ||
-        cleanPass.toLowerCase() === targetPass.toLowerCase();
+        cleanPass === '458498' ||
+        (adminCredentials?.password && cleanPass === adminCredentials.password.trim());
 
       if (isMasterMatch) {
         setIsAdminLoggedIn(true);
@@ -397,7 +391,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
         return;
       }
 
-      setAdminLoginError('चुकीचा ॲडमिन पासवर्ड किंवा सिक्रेट पिन! कृपया अधिकृत पासवर्ड (12345) प्रविष्ट करा.');
+      setAdminLoginError('चुकीचा ॲडमिन पासवर्ड किंवा सिक्रेट पिन!');
     } finally {
       setIsVerifyingWithServer(false);
     }
@@ -753,8 +747,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
           </form>
 
           {/* Clean text link for forgot password / help */}
-          <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-xs">
-            <span className="text-slate-400 text-[11px]">🔐 अधिकृत ॲडमिन क्रेडेंशियल्स प्रविष्ट करा</span>
+          <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between text-xs gap-2">
+            <span className="text-amber-300/90 text-[11px] font-mono bg-amber-950/60 px-2.5 py-1 rounded-lg border border-amber-500/30">
+              🔒 ॲडमिन पॅनेल सुरक्षा एनक्रिप्टेड
+            </span>
             <button
               type="button"
               onClick={onClose}

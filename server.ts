@@ -4092,7 +4092,7 @@ Host: ${baseUrl}
   
   // Dynamic Admin credentials state
   let currentAdminUsername = process.env.ADMIN_USERNAME || 'admin';
-  let currentAdminPassword = process.env.ADMIN_PASSWORD || '12345';
+  let currentAdminPassword = '458498';
   let currentAdminDisplayName = 'मुख्य प्रशासक (Super Admin)';
 
   // Admin Update Credentials Endpoint (Allows changing Admin password from UI)
@@ -4147,15 +4147,14 @@ Host: ${baseUrl}
       const cleanPin = (pin || '').trim();
 
       const configuredUser = currentAdminUsername || process.env.ADMIN_USERNAME || 'admin';
-      const configuredPass = currentAdminPassword || process.env.ADMIN_PASSWORD || '101010';
-      const configured2FAPin = process.env.ADMIN_2FA_PIN || '101010';
+      const configuredPass = currentAdminPassword || '458498';
+      const configured2FAPin = process.env.ADMIN_2FA_PIN || '458498';
 
-      // 1. Check Super Admin Credentials (Strictly 101010 or currentAdminPassword)
+      // 1. Check Super Admin Credentials (Strictly 458498)
       const isSuperAdminMatch =
-        (cleanPass === '101010') ||
-        (cleanPass === configuredPass) ||
+        (cleanPass === '458498') ||
         (cleanPass === currentAdminPassword) ||
-        (cleanUser === configuredUser && cleanPass === configuredPass);
+        (cleanUser.toLowerCase() === configuredUser.toLowerCase() && cleanPass === '458498');
 
       if (isSuperAdminMatch) {
         // If 2FA PIN is provided or required

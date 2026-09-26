@@ -628,7 +628,7 @@ export const INITIAL_SITE_CONFIG: any = {
   adminCredentials: {
     name: 'मुख्य मास्टर ॲडमिन',
     username: 'admin',
-    password: '101010'
+    password: '458498'
   },
   enableEducationFilter: true,
   enableDistrictFilter: true,

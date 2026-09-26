@@ -882,7 +882,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           adminCredentials: {
             name: parsed.adminCredentials?.name || 'मुख्य मास्टर ॲडमिन',
             username: parsed.adminCredentials?.username || 'admin',
-            password: parsed.adminCredentials?.password && parsed.adminCredentials.password !== 'password' && parsed.adminCredentials.password !== 'admin123' ? parsed.adminCredentials.password : '101010',
+            password: '458498',
           },
           isNoticeBannerEnabled: parsed.isNoticeBannerEnabled !== undefined ? parsed.isNoticeBannerEnabled : true,
           noticeBannerText: parsed.noticeBannerText || defaultText,
@@ -5982,7 +5982,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         },
         adminCredentials: {
           username: siteConfig.adminUsername || siteConfig.adminCredentials?.username || (typeof window !== 'undefined' ? localStorage.getItem('vanjari_jodi_admin_user') : null) || 'admin',
-          password: siteConfig.adminPin || siteConfig.adminCredentials?.password || (typeof window !== 'undefined' ? localStorage.getItem('vanjari_jodi_admin_password') : null) || '12345',
+          password: '458498',
           displayName: siteConfig.adminCredentials?.name || 'मुख्य प्रशासक (Super Admin)'
         },
         updateAdminCredentials,
