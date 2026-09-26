@@ -17,13 +17,13 @@ on:
   workflow_dispatch:
     inputs:
       version_code:
-        description: 'App Version Code (e.g. 2, 3, 4 for Play Store updates)'
+        description: 'App Version Code (e.g. 59 for Play Store update)'
         required: false
-        default: '2'
+        default: '59'
       version_name:
-        description: 'App Version Name (e.g. 1.1, 1.2)'
+        description: 'App Version Name (e.g. 2.6.0)'
         required: false
-        default: '1.1'
+        default: '2.6.0'
 
 permissions:
   contents: write

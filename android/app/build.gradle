@@ -5,11 +5,11 @@ def getAppVersionCode = { ->
     if (envCode != null && envCode.isInteger()) {
         return envCode.toInteger()
     }
-    return 2 // Incremented for Google Play Store updates
+    return 59 // Incremented for Google Play Store updates (versionCode 59)
 }
 
 def getAppVersionName = { ->
-    return System.getenv("APP_VERSION_NAME") ?: "1.1"
+    return System.getenv("APP_VERSION_NAME") ?: "2.6.0"
 }
 
 android {
