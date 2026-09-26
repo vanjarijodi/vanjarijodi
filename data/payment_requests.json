@@ -1,0 +1,20 @@
+[
+  {
+    "id": "PAY-pay_test_123456",
+    "user_id": "guest-user",
+    "user_name": "सन्माननीय सदस्य",
+    "user_mobile": "",
+    "plan_id": "welcome_offer",
+    "plan_name": "वेलकम स्पेशल ऑफर प्लॅन (रु. ३९८/-)",
+    "amount": 398,
+    "utr_number": "pay_test_123456",
+    "screenshot_url": "",
+    "status": "approved",
+    "admin_note": "Razorpay Online Payment Verified. Order: order_Tg9rFgRuvcl5gH",
+    "created_at": "2026-09-25T05:42:05.001Z",
+    "updated_at": "2026-09-25T05:42:05.001Z",
+    "approved_at": "2026-09-25T05:42:05.001Z",
+    "membership_id": "MEM-guest-user",
+    "payment_method": "razorpay"
+  }
+]

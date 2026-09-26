@@ -1,0 +1,627 @@
+import React, { useState } from 'react';
+import { useApp } from '../context/AppContext';
+import { downloadApkFile } from '../utils/apkDownloader';
+import {
+  Heart,
+  Globe,
+  LogIn,
+  ShieldCheck,
+  Menu,
+  X,
+  Sparkles,
+  UserCheck,
+  LayoutDashboard,
+  Download,
+  Smartphone,
+  SlidersHorizontal,
+  Handshake,
+  Building2,
+  Scroll,
+  Headphones,
+  Send,
+  MessageCircle,
+  Search,
+  User,
+  Crown,
+  Lock,
+  Share2,
+  Bell,
+  LogOut,
+  Home,
+  ArrowLeft,
+  GitBranch,
+} from 'lucide-react';
+import { VerifiedBadge } from './VerifiedBadge';
+import { NoticeBanner } from './NoticeBanner';
+import { VanjariJodiLogo } from './VanjariJodiLogo';
+
+export const Navbar: React.FC<{
+  onOpenSearch?: () => void;
+  onNavigateSection?: (sectionId: string) => void;
+}> = ({ onOpenSearch }) => {
+  const {
+    language,
+    setLanguage,
+    currentUser,
+    logout,
+    notifications,
+    setIsNotificationCenterOpen,
+    setIsLoginOpen,
+    setIsRegisterOpen,
+    setIsAdminOpen,
+    siteConfig,
+    currentView,
+    setCurrentView,
+    selectedProfileForModal,
+    setSelectedProfileForModal,
+    incrementApkDownloadCount,
+    setLoginModalMode,
+    setIsLeftDrawerOpen,
+    setIsRightDrawerOpen,
+    setIsBusinessVendorDirectoryOpen,
+    setIsBusinessVendorRegisterModalOpen,
+    setIsBioDataMakerOpen,
+    setIsUserSecurityOpen,
+    setIsAdminSecurityOpen,
+    isAdminLoggedIn,
+    setIsPaymentOpen,
+    setIsGitHubSyncOpen,
+    setIsAppShareOpen,
+  } = useApp();
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isVendorStripDismissed, setIsVendorStripDismissed] = useState(false);
+  const isEn = language === 'en';
+
+  const unreadNotificationCount = notifications.filter(
+    (n) =>
+      !n.isRead &&
+      (n.userId === 'broadcast' || n.userId === 'all' || n.userId === currentUser?.id)
+  ).length;
+
+  const handleApkDownload = () => {
+    downloadApkFile(
+      siteConfig?.apkSettings?.apkUrl,
+      siteConfig?.apkSettings?.appVersion || 'v2.4.0',
+      incrementApkDownloadCount
+    );
+  };
+
+  return (
+    <header className="sticky top-0 z-50 w-full shadow-md bg-white/95 backdrop-blur-md border-b border-amber-200 text-slate-800 flex flex-col transition-all">
+      {/* 🚩 TOP DEVOTIONAL STRIP */}
+      <div
+        className="w-full bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] text-amber-100 py-1 px-3 sm:px-6 flex items-center justify-between text-xs font-black select-none border-b border-amber-500/40"
+      >
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <span className="text-amber-300 text-xs sm:text-sm">॥</span>
+          <span className="text-amber-100 font-extrabold text-[11px] sm:text-xs tracking-wider">
+            श्री संत भगवान बाबा प्रसन्न
+          </span>
+          <span className="text-amber-300 text-xs sm:text-sm">॥</span>
+        </div>
+
+        <div className="flex items-center gap-2 text-[11px] font-semibold text-amber-200/90">
+          <span className="px-2 py-0.5 rounded bg-amber-400/20 text-amber-200 border border-amber-300/40 text-[10px] font-black">
+            🚩 वंजारी समाज अधिकृत वधू-वर सूचक केंद्र
+          </span>
+        </div>
+      </div>
+
+      {/* 🏛️ TOP COMMUNITY TRUST RIBBON (Visible on desktop) */}
+      <div className="hidden md:flex w-full bg-gradient-to-r from-[#0F4C81] via-[#1E5F99] to-[#0F4C81] text-white py-1 px-3 sm:px-6 items-center justify-between text-[11px] font-extrabold border-b border-sky-400/30 select-none shadow-xs">
+        <div className="flex items-center gap-1.5 overflow-hidden">
+          <span className="px-2 py-0.5 rounded-md bg-[#0066FF] text-white text-[10px] sm:text-[11px] font-black shadow-xs flex items-center gap-1 shrink-0">
+            🚩 <span>{isEn ? 'Maharashtra - Vanjari Community' : 'महाराष्ट्र - वंजारी समाज सेवा'}</span>
+          </span>
+          <span className="text-sky-200 font-semibold text-[11px]">
+            • अधिकृत व विश्वसनीय वधू-वर सूचक केंद्र
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          {/* Top Bar PDF BioData Maker Button */}
+          <button
+            onClick={() => setIsBioDataMakerOpen(true)}
+            className="px-2.5 sm:px-3 py-0.5 rounded-md bg-gradient-to-r from-rose-700 via-[#800C1E] to-rose-800 hover:from-rose-600 hover:to-rose-700 text-amber-200 font-black text-[10px] sm:text-[11px] flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs border border-amber-400/40 shrink-0"
+            title={isEn ? 'Create Free PDF BioData' : 'मोफत PDF बायोडाटा बनवा'}
+          >
+            <Scroll className="w-3.5 h-3.5 text-amber-300" />
+            <span>{isEn ? '📄 Create PDF BioData' : '📄 मोफत PDF बायोडाटा बनवा'}</span>
+            <span className="text-[9px] bg-amber-400 text-slate-950 px-1.5 py-0.2 rounded font-black">Free</span>
+          </button>
+
+          {/* Wedding Vendor Registration Button (Catering, Decor, Flowers, Halls etc.) - Shown only when not logged in */}
+          {!currentUser && siteConfig?.enableBusinessVendors !== false && (
+            <button
+              onClick={() => setIsBusinessVendorRegisterModalOpen(true)}
+              className="px-2.5 sm:px-3 py-0.5 rounded-md bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-300 hover:to-amber-200 text-slate-950 font-black text-[10px] sm:text-[11px] flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs border border-amber-200 shrink-0"
+              title={isEn ? 'Vendor Registration (Catering, Decoration, Florist, Hall)' : 'व्हेंडर नोंदणी — जेवण, डेकोरेशन, फुलवाले, हॉल (दर व माहिती भरा)'}
+            >
+              <Handshake className="w-3.5 h-3.5 text-slate-950" />
+              <span>{isEn ? '🤝 Vendor Registration' : '🤝 व्हेंडर नोंदणी (Vendor Registration)'}</span>
+              <span className="text-[9px] bg-[#800C1E] text-amber-200 px-1.5 py-0.2 rounded font-black">दर व माहिती</span>
+            </button>
+          )}
+
+          {/* Top Ribbon Official Telegram Support */}
+          {siteConfig?.showTelegramBanner !== false && (
+            <a
+              href={`https://t.me/${(siteConfig?.telegramUsername || 'Primemultiservice').replace(/^@/, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2.5 sm:px-3 py-0.5 rounded-md bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 text-white font-black text-[10px] sm:text-[11px] flex items-center gap-1.5 transition active:scale-95 cursor-pointer shadow-xs border border-sky-400"
+              title="टेलिग्रामद्वारे थेट ॲडमिन संपर्क व मदत"
+            >
+              <Send className="w-3.5 h-3.5 text-white animate-pulse" />
+              <span>{isEn ? 'Telegram Support' : 'टेलिग्राम सपोर्ट'}</span>
+            </a>
+          )}
+
+          {/* Top Bar Share App Button */}
+          <button
+            onClick={() => setIsAppShareOpen(true)}
+            className="px-2 sm:px-2.5 py-0.5 rounded-md bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[10px] sm:text-[11px] flex items-center gap-1 transition active:scale-95 cursor-pointer shadow-xs border border-emerald-300/50"
+            title={isEn ? 'Share App' : 'ॲप शेअर करा'}
+          >
+            <Share2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />
+            <span>{isEn ? 'Share App' : 'ॲप शेअर करा'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Brand Logo & Navigation Bar */}
+      <div className="max-w-7xl w-full mx-auto px-3 sm:px-4 lg:px-8">
+        <div className="flex items-center justify-between h-13 sm:h-15 gap-2">
+          
+          {/* Left section: Drawer Menu [☰] + Brand Logo */}
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            {/* Hamburger Menu Trigger [☰] */}
+            <button
+              onClick={() => setIsLeftDrawerOpen(true)}
+              className="flex p-2 rounded-xl bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 transition-all text-slate-800 active:scale-95 cursor-pointer items-center justify-center shadow-2xs shrink-0 min-h-[44px] min-w-[44px]"
+              title={isEn ? 'Main Menu' : 'मुख्य मेनू'}
+              aria-label="Toggle drawer menu"
+            >
+              <Menu className="w-5 h-5 text-[#800C1E]" />
+            </button>
+
+            {/* BRAND LOGO - Clicking navigates to Home */}
+            <button
+              type="button"
+              className="flex items-center cursor-pointer group min-w-0 shrink-0 border-0 bg-transparent p-0 text-left"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setSelectedProfileForModal(null);
+                setCurrentView('home');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              title="वंजारी जोडी - मुख्यपृष्ठ"
+            >
+              <VanjariJodiLogo
+                variant="full"
+                size={44}
+                autoCompactOnMobile={false}
+                className="transition-transform duration-200 group-hover:scale-[1.02]"
+              />
+            </button>
+          </div>
+
+          {/* RIGHT SIDE CONTROLS: Strictly [🔍] and [👤] on Mobile! Desktop gets extra badges */}
+          <div className="flex items-center gap-2 shrink-0">
+            
+            {/* 0. NAVIGATION / BACK BUTTON (WHEN LOGGED IN OR IN SUB-VIEW) OR BIODATA MAKER */}
+            {currentUser || currentView !== 'home' || selectedProfileForModal ? (
+              <button
+                onClick={() => {
+                  setSelectedProfileForModal(null);
+                  setCurrentView('home');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-100 to-amber-200 hover:from-amber-200 hover:to-amber-300 border border-amber-400 text-[#800C1E] font-black text-xs flex items-center gap-1 active:scale-95 cursor-pointer shadow-xs transition shrink-0 min-h-[44px]"
+                title="मागे जा (मुख्यपृष्ठावर जा)"
+              >
+                <ArrowLeft className="w-4 h-4 text-[#800C1E]" />
+                <span>मागे जा</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setIsBioDataMakerOpen(true)}
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-50 to-amber-50 hover:bg-rose-100 border border-rose-300 text-[#800C1E] font-black text-xs flex items-center gap-1 active:scale-95 cursor-pointer shadow-2xs transition shrink-0 min-h-[44px]"
+                title={isEn ? 'Create Free PDF BioData' : 'मोफत PDF बायोडाटा बनवा'}
+              >
+                <Scroll className="w-4 h-4 text-[#800C1E]" />
+                <span className="hidden sm:inline">📄 PDF बायोडाटा</span>
+                <span className="sm:hidden">📄 बायोडाटा</span>
+              </button>
+            )}
+
+            {/* 1. QUICK SEARCH [🔍] */}
+            <button
+              onClick={() => {
+                if (onOpenSearch) onOpenSearch();
+                else setIsRightDrawerOpen(true);
+              }}
+              className="p-2 rounded-xl bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 text-slate-700 active:scale-95 cursor-pointer flex items-center justify-center shadow-2xs transition min-h-[44px] min-w-[44px]"
+              title={isEn ? 'Search Profiles' : 'वर-वधू शोध'}
+              aria-label="Search"
+            >
+              <Search className="w-5 h-5 text-slate-700" />
+            </button>
+
+            {/* 2. NOTIFICATIONS BELL [🔔] */}
+            <button
+              onClick={() => setIsNotificationCenterOpen(true)}
+              className="relative p-2 rounded-xl bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 text-slate-700 active:scale-95 cursor-pointer flex items-center justify-center shadow-2xs transition min-h-[44px] min-w-[44px]"
+              title={isEn ? 'Notification Center' : 'सूचना केंद्र'}
+              aria-label="Notifications"
+            >
+              <Bell className="w-5 h-5 text-slate-700" />
+              {unreadNotificationCount > 0 && (
+                <span className="absolute -top-1 -right-1 px-1.5 py-0.2 min-w-[18px] h-[18px] text-[10px] font-black text-white bg-[#A71930] rounded-full flex items-center justify-center border-2 border-white shadow-xs animate-pulse">
+                  {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                </span>
+              )}
+            </button>
+
+            {/* 3. PROFILE / LOGIN [👤] */}
+            {currentUser ? (
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => {
+                    setCurrentView('home');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-100/90 hover:bg-amber-200 text-[#800C1E] text-xs font-black border border-amber-300 transition shadow-2xs cursor-pointer min-h-[44px]"
+                  title={isEn ? 'Go to Home' : 'मुख्यपृष्ठावर जा'}
+                >
+                  <Home className="w-4 h-4 text-[#800C1E]" />
+                  <span>{isEn ? 'Home' : 'मुख्यपृष्ठ'}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setCurrentView('dashboard');
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="p-2 sm:px-3 sm:py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-[#800C1E] text-xs font-bold border border-rose-200 flex items-center gap-1.5 transition shadow-2xs cursor-pointer min-h-[44px] min-w-[44px]"
+                  title={isEn ? 'My Profile' : 'माझे प्रोफाईल'}
+                  aria-label="Profile"
+                >
+                  <User className="w-5 h-5 text-[#800C1E]" />
+                  <span className="hidden sm:inline-block truncate max-w-[80px] font-black">{currentUser.fullName.split(' ')[0]}</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    logout();
+                  }}
+                  className="flex items-center gap-1 p-2 sm:px-2.5 sm:py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 text-xs font-bold border border-rose-200 hover:border-rose-300 transition shadow-2xs cursor-pointer min-h-[44px] active:scale-95"
+                  title={isEn ? 'Log Out' : 'लॉग आऊट'}
+                  aria-label="Log Out"
+                >
+                  <LogOut className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span className="hidden sm:inline-block font-black">{isEn ? 'Log Out' : 'लॉग आऊट'}</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  setLoginModalMode('member_otp');
+                  setIsLoginOpen(true);
+                }}
+                className="p-2 sm:px-3 sm:py-2 rounded-xl bg-[#800C1E] hover:bg-[#A71930] text-amber-100 text-xs font-black border border-amber-400/40 flex items-center gap-1.5 transition shadow-xs cursor-pointer min-h-[44px] min-w-[44px]"
+                title={isEn ? 'Login' : 'लॉगिन करा'}
+                aria-label="Login"
+              >
+                <LogIn className="w-5 h-5 text-amber-300" />
+                <span className="hidden sm:inline-block">{isEn ? 'Login' : 'लॉगिन'}</span>
+              </button>
+            )}
+
+            {/* DESKTOP-ONLY EXTRA BADGES (Language, VIP, APK, Menu) */}
+            <div className="hidden md:flex items-center gap-2">
+              {/* Vendor Registration Button (Only when not logged in) */}
+              {!currentUser && siteConfig?.enableBusinessVendors !== false && (
+                <button
+                  onClick={() => setIsBusinessVendorRegisterModalOpen(true)}
+                  className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-100 to-orange-100 hover:from-amber-200 hover:to-orange-200 text-[#800C1E] border border-amber-300 font-black text-xs transition-all shadow-xs cursor-pointer active:scale-95 shrink-0"
+                  title="व्हेंडर नोंदणी — जेवण, डेकोरेशन, फुलवाले, मंगल कार्यालय (दर व माहिती भरा)"
+                >
+                  <Handshake className="w-4 h-4 text-[#800C1E]" />
+                  <span>🤝 व्हेंडर नोंदणी</span>
+                  <span className="text-[9px] bg-[#800C1E] text-amber-100 px-1.5 py-0.5 rounded font-bold">दर व माहिती</span>
+                </button>
+              )}
+
+              {/* Dual Language Toggle */}
+              <div className="flex items-center p-0.5 bg-slate-100 border border-slate-200 rounded-xl text-[11px] font-black shadow-inner">
+                <button
+                  onClick={() => setLanguage('mr')}
+                  className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
+                    language === 'mr'
+                      ? 'bg-[#0066FF] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="मराठी भाषा"
+                >
+                  मराठी
+                </button>
+                <button
+                  onClick={() => setLanguage('en')}
+                  className={`px-2 py-1 rounded-lg transition-all cursor-pointer ${
+                    language === 'en'
+                      ? 'bg-[#0066FF] text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  title="English Language"
+                >
+                  EN
+                </button>
+              </div>
+
+              {/* VIP Badge */}
+              <button
+                onClick={() => {
+                  if (currentUser) {
+                    setIsPaymentOpen(true);
+                  } else {
+                    setIsRegisterOpen(true);
+                  }
+                }}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:brightness-110 text-white text-xs font-black shadow-xs border border-amber-300/60 flex items-center gap-1 cursor-pointer transition active:scale-95"
+                title="मोफत नोंदणी / VIP Membership"
+              >
+                <Crown className="w-3.5 h-3.5 text-amber-200 fill-amber-200" />
+                <span>{currentUser?.membershipTier === 'free' || !currentUser ? '₹० मोफत' : 'VIP'}</span>
+              </button>
+
+              {/* Share App Button */}
+              <button
+                onClick={() => setIsAppShareOpen(true)}
+                title={isEn ? 'Share App with Friends & Family' : 'नातेवाईक व मित्रांना ॲप शेअर करा'}
+                className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-sky-600 to-blue-700 hover:brightness-110 text-white text-xs font-black shadow-xs border border-sky-400 flex items-center gap-1 cursor-pointer transition active:scale-95 shrink-0"
+              >
+                <Share2 className="w-3.5 h-3.5 text-white" />
+                <span>ॲप शेअर</span>
+              </button>
+            </div>
+
+            {/* DESKTOP MENU TRIGGER & DROPDOWN */}
+            <div className="relative shrink-0 hidden md:block">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 border border-slate-200 transition-all flex items-center justify-center cursor-pointer shadow-2xs min-h-[44px] min-w-[44px]"
+                aria-label="Menu"
+              >
+                {menuOpen ? <X className="w-4 h-4 text-[#A71930]" /> : <Menu className="w-4 h-4 text-slate-700" />}
+              </button>
+
+              {/* Menu Dropdown Modal / Popup */}
+              {menuOpen && (
+                <div className="absolute right-0 mt-3 w-64 bg-white border border-amber-300 rounded-2xl shadow-2xl p-4 text-xs space-y-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="pb-2 border-b border-amber-100 flex justify-between items-center">
+                    <span className="font-bold text-[#A71930] text-xs uppercase tracking-wider">{isEn ? 'Navigation & Options' : 'नेव्हिगेशन व पर्याय'}</span>
+                    <button
+                      onClick={() => setMenuOpen(false)}
+                      className="text-slate-400 hover:text-slate-700"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Quick Action Links inside Dropdown Menu */}
+                  <div className="space-y-1.5 pt-1">
+                    {/* Free PDF BioData Maker in Menu */}
+                    <button
+                      onClick={() => { setIsBioDataMakerOpen(true); setMenuOpen(false); }}
+                      className="w-full flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-rose-100 via-amber-50 to-rose-50 hover:from-rose-200 hover:to-amber-100 text-[#800C1E] font-black cursor-pointer border border-rose-300 shadow-xs"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Scroll className="w-4 h-4 text-[#A71930]" />
+                        <span>{isEn ? 'Create PDF BioData' : '📄 मोफत PDF बायोडाटा बनवा'}</span>
+                      </div>
+                      <span className="text-[9px] bg-[#A71930] text-amber-100 px-1.5 py-0.5 rounded font-bold">
+                        १००% मोफत
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => { setIsRegisterOpen(true); setMenuOpen(false); }}
+                      className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-gradient-to-r from-[#A71930] to-[#800C1E] text-amber-100 font-extrabold cursor-pointer shadow-sm"
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-300" />
+                      <span>{isEn ? 'Register Profile' : 'नोंदणी करा'}</span>
+                    </button>
+
+                    {!currentUser && siteConfig?.enableBusinessVendors !== false && (
+                      <button
+                        onClick={() => {
+                          setIsBusinessVendorDirectoryOpen(true);
+                          setMenuOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between p-2.5 rounded-xl bg-amber-100/90 hover:bg-amber-200 text-[#800C1E] font-black cursor-pointer border border-amber-300 shadow-sm"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Handshake className="w-4 h-4 text-[#A71930]" />
+                          <span>{isEn ? 'Wedding Vendors & Halls' : 'लग्न व्यवसाय व नेटवर्किंग'}</span>
+                        </div>
+                        <span className="text-[9px] bg-[#A71930] text-amber-100 px-1.5 py-0.5 rounded font-bold">
+                          10% OFF
+                        </span>
+                      </button>
+                    )}
+
+                    {!currentUser && siteConfig?.enableBusinessVendors !== false && (
+                      <button
+                        onClick={() => {
+                          setIsBusinessVendorRegisterModalOpen(true);
+                          setMenuOpen(false);
+                        }}
+                        className="w-full flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 hover:from-amber-300 hover:to-orange-300 text-slate-950 font-black cursor-pointer border border-amber-300 shadow-sm"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Handshake className="w-4 h-4 text-slate-950" />
+                          <span>{isEn ? '🤝 Vendor Registration' : '🤝 व्हेंडर नोंदणी (Vendor Registration)'}</span>
+                        </div>
+                        <span className="text-[9px] bg-slate-950 text-amber-300 px-1.5 py-0.5 rounded font-black">
+                          दर नोंदवा
+                        </span>
+                      </button>
+                    )}
+
+                     {/* USER SECURITY & SESSIONS MODAL TRIGGER */}
+                    {currentUser && (
+                      <button
+                        onClick={() => {
+                          setIsUserSecurityOpen(true);
+                          setMenuOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 font-bold cursor-pointer border border-slate-200 shadow-xs"
+                      >
+                        <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                        <span>{isEn ? '🛡️ Security & Active Sessions' : '🛡️ खाते सुरक्षा व सेशन्स'}</span>
+                      </button>
+                    )}
+
+                    {/* ADMIN SECURITY & THREAT MONITORING */}
+                    {(isAdminLoggedIn || currentUser?.isAdmin) && (
+                      <button
+                        onClick={() => {
+                          setIsAdminSecurityOpen(true);
+                          setMenuOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-800 font-bold cursor-pointer border border-red-200 shadow-xs"
+                      >
+                        <ShieldCheck className="w-4 h-4 text-red-600" />
+                        <span>{isEn ? '🚨 Security & Cyber Defense' : '🚨 सायबर सुरक्षा नियंत्रण केंद्र'}</span>
+                      </button>
+                    )}
+
+                    {!currentUser && (
+                      <>
+                        <button
+                          onClick={() => {
+                            setLoginModalMode('member_otp');
+                            setIsLoginOpen(true);
+                            setMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold cursor-pointer"
+                        >
+                          <LogIn className="w-4 h-4 text-[#A71930]" />
+                          <span>{isEn ? 'Member Login' : 'सदस्य लॉगिन'}</span>
+                        </button>
+
+                      </>
+                    )}
+
+                    {siteConfig?.apkSettings?.isEnabled && (
+                      <button
+                        onClick={() => { handleApkDownload(); setMenuOpen(false); }}
+                        className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold cursor-pointer border border-emerald-200"
+                      >
+                        <Smartphone className="w-4 h-4 text-emerald-600" />
+                        <span>{isEn ? 'Download Android App (APK)' : 'एंड्रॉइड ॲप (APK) डाउनलोड'}</span>
+                      </button>
+                    )}
+
+                    {siteConfig?.showTelegramBanner !== false && (
+                      <a
+                        href={siteConfig?.telegramGroupUrl || 'https://t.me/+LcV24fm6QboxZWM1'}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setMenuOpen(false)}
+                        className="w-full flex items-center gap-2.5 p-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-sky-500 hover:from-sky-500 hover:to-sky-400 text-white font-black cursor-pointer border border-sky-400 shadow-xs"
+                      >
+                        <Send className="w-4 h-4 text-white animate-pulse shrink-0" />
+                        <div className="text-left">
+                          <div className="text-xs font-black">{isEn ? '📢 Official Telegram Group' : '📢 अधिकृत टेलिग्राम ग्रुप जॉईन करा'}</div>
+                          <div className="text-[10px] text-sky-100 font-medium">{isEn ? 'Get daily new match updates' : 'मोफत स्थळे व दैनंदिन अपडेट्स मिळवा'}</div>
+                        </div>
+                      </a>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        const supportBtn = document.getElementById('support-chat-trigger-btn');
+                        if (supportBtn) {
+                          supportBtn.click();
+                        } else {
+                          alert(isEn ? 'Please click the Admin Chat icon on the screen.' : 'मदत व सहाय्यासाठी कृपया स्क्रीनवरील ॲडमिन चॅट आयकॉनवर क्लिक करा.');
+                        }
+                        setMenuOpen(false);
+                      }}
+                      className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-gradient-to-r from-amber-100 to-amber-200 text-[#800C1E] font-extrabold cursor-pointer border border-amber-300 shadow-xs"
+                    >
+                      <Headphones className="w-4 h-4 text-[#A71930] animate-pulse" />
+                      <span>{isEn ? '🎧 Support & Admin Chat' : '🎧 मदत व ॲडमिन सपोर्ट चॅट'}</span>
+                    </button>
+                  </div>
+
+                  {/* Language Selector */}
+                  <div className="space-y-1 pt-2 border-t border-amber-100">
+                    <p className="text-[11px] text-slate-500 font-semibold">{isEn ? 'Select Language:' : 'भाषा निवडा (Language):'}</p>
+                    <button
+                      onClick={() => setLanguage(language === 'mr' ? 'en' : 'mr')}
+                      className="w-full flex items-center justify-between p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-[#A71930] font-bold transition-all hover:bg-amber-100 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-[#A71930]" />
+                        <span>{language === 'mr' ? 'मराठी (Marathi)' : 'English'}</span>
+                      </div>
+                      <span className="text-[10px] bg-[#A71930] text-amber-100 px-2 py-0.5 rounded-full font-bold">
+                        {language === 'mr' ? 'मराठी चालू' : 'Active'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+      {/* 🤝 PROMINENT WEDDING VENDOR CALLOUT STRIP - ONLY FOR GUESTS / VISITORS */}
+      {!currentUser && !isVendorStripDismissed && siteConfig?.enableBusinessVendors !== false && (
+        <div className="w-full bg-gradient-to-r from-[#800C1E] via-[#9B1229] to-[#800C1E] text-amber-100 py-1.5 px-3 sm:px-6 flex items-center justify-between gap-2 border-b border-amber-400/40 shadow-xs z-30">
+          <div className="flex items-center gap-2 min-w-0 truncate">
+            <span className="p-1 rounded-lg bg-amber-400 text-slate-950 shadow-xs shrink-0 flex items-center justify-center font-black animate-pulse">
+              <Handshake className="w-3.5 h-3.5" />
+            </span>
+            <div className="min-w-0 truncate flex items-center gap-1.5">
+              <span className="font-black text-xs text-amber-300 truncate">
+                🤝 {isEn ? 'Vendor Registration:' : 'व्हेंडर नोंदणी (Vendor Registration):'}
+              </span>
+              <span className="text-[11px] font-semibold text-white hidden sm:inline truncate">
+                {isEn ? 'Catering, Decoration, Florists, Halls — Submit Rates & Details' : 'जेवण (कॅटरिंग), डेकोरेशन, फुलवाले, मंगल कार्यालय — आपले दर व माहिती भरा'}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => setIsBusinessVendorRegisterModalOpen(true)}
+              className="px-3 py-1 rounded-full bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 text-slate-950 font-black text-xs shrink-0 active:scale-95 shadow-sm border border-amber-200 flex items-center gap-1 cursor-pointer transition-all"
+            >
+              <span>{isEn ? 'Register Rates & Info →' : 'दर व माहिती भरा →'}</span>
+            </button>
+            <button
+              onClick={() => setIsVendorStripDismissed(true)}
+              className="p-1 text-amber-200/70 hover:text-white hover:bg-black/20 rounded-full transition cursor-pointer"
+              title={isEn ? 'Close' : 'बंद करा'}
+              aria-label="Close"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Notice Banner strip rendered directly below the main white logo bar */}
+      <NoticeBanner />
+    </header>
+  );
+};

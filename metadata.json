@@ -1,0 +1,8 @@
+{
+  "name": "VanjariJodi Matrimony",
+  "description": "वंजारी समाजासाठी अत्याधुनिक आणि सुरक्षित वधू-वर सूचक व्यासपीठ (Vanjari Community Matrimony PWA)",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

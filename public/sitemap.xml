@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+
+  <!-- 1. मुख्य पृष्ठ (Home Page) -->
+  <url>
+    <loc>https://vanjarijodi.web.app/</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>always</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- 2. नवीन वधू-वर मोफत नोंदणी (Registration Portal) -->
+  <url>
+    <loc>https://vanjarijodi.web.app/#register</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.95</priority>
+  </url>
+
+  <!-- 3. वंजारी वधू-वर शोध व स्थळे (Explore Verified Profiles) -->
+  <url>
+    <loc>https://vanjarijodi.web.app/#profiles</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>hourly</changefreq>
+    <priority>0.95</priority>
+  </url>
+
+  <!-- 4. मोफत विवाह बायोडाटा मेकर (Free Marriage BioData Maker) -->
+  <url>
+    <loc>https://vanjarijodi.web.app/#biodatamaker</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.90</priority>
+  </url>
+
+  <!-- 5. विवाह हॉल, मंगल कार्यालय व वेंडर डिरेक्टरी (Vendors & Halls) -->
+  <url>
+    <loc>https://vanjarijodi.web.app/#vendors</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <!-- 6. सदस्यत्व योजना व ऑफर्स (Membership Plans) -->
+  <url>
+    <loc>https://vanjarijodi.web.app/#plans</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.85</priority>
+  </url>
+
+  <!-- 7. गोपनीयता धोरण (Privacy Policy & DPDP Act 2023) -->
+  <url>
+    <loc>https://vanjarijodi.web.app/#privacy</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.70</priority>
+  </url>
+
+  <!-- 8. नियम व अटी (Terms & Conditions) -->
+  <url>
+    <loc>https://vanjarijodi.web.app/#terms</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.70</priority>
+  </url>
+
+  <!-- 9. तक्रार निवारण व संपर्क अधिकारी (Grievance Officer & Contact) -->
+  <url>
+    <loc>https://vanjarijodi.web.app/#contact</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+  </url>
+
+  <!-- 10. परतावा व रद्द धोरण (Refund & Cancellation Policy) -->
+  <url>
+    <loc>https://vanjarijodi.web.app/#refund</loc>
+    <lastmod>2026-08-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.65</priority>
+  </url>
+
+</urlset>

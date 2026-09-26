@@ -1,0 +1,498 @@
+import { db } from '../firebase';
+import {
+  collection,
+  doc,
+  setDoc,
+  deleteDoc,
+  onSnapshot,
+  getDocs
+} from 'firebase/firestore';
+import { UserProfile, SiteConfig, ChatMessage, SuccessStory, PaymentRequest, ContactRequest, AdminSupportMessage, NotificationItem, PaymentConfig, Plan, BusinessVendor, VendorSettings, VendorActivityLog } from '../types';
+
+export const DEFAULT_VENDOR_SETTINGS: VendorSettings = {
+  enableVendorModule: true,
+  vendorBusinessMode: 'information_collection_only',
+  enableVendorDirectory: true,
+  enableVendorBooking: false,
+  enableVendorEnquiry: false,
+  enableVendorCustomerPricing: false,
+  enableVendorPayment: false,
+  enableVendorPublicMobile: true,
+  enableVendorPublicWhatsapp: true,
+  enableVendorPublicAddress: true,
+  enableVendorPublicRates: false,
+  enableVendorPdf: true,
+  enableVendorRegistration: true,
+  updatedAt: new Date().toISOString()
+};
+
+export const DEFAULT_PAYMENT_CONFIG: PaymentConfig = {
+  upiId: 'paytm.s3ms5x7@pty',
+  payeeName: 'Vanjari Jodi Matrimony',
+  amount: '398.00',
+  transactionNote: 'Vanjari Jodi Membership',
+  phonepeUpiId: 'paytm.s3ms5x7@pty',
+  gpayUpiId: 'paytm.s3ms5x7@pty',
+  paytmUpiId: 'paytm.s3ms5x7@pty',
+  bhimUpiId: 'paytm.s3ms5x7@pty',
+  adminMobileNumber: '',
+  whatsappNumber: '',
+  merchantQrImageUrl: '',
+  enableDirectQrOnlyMode: true,
+  autoOpenUpiAppOnMobile: true,
+  updatedAt: new Date().toISOString()
+};
+
+// Generic document write helper with graceful error handling
+export const syncDocToFirestore = async (colName: string, docId: string, data: any) => {
+  try {
+    if (!colName || !docId || !data) return;
+    const docRef = doc(db, colName, docId);
+    await setDoc(docRef, JSON.parse(JSON.stringify(data)), { merge: true });
+  } catch (err) {
+    console.warn(`Firestore sync error for ${colName}/${docId}:`, err);
+  }
+};
+
+// Generic document delete helper
+export const deleteDocFromFirestore = async (colName: string, docId: string) => {
+  try {
+    if (!colName || !docId) return;
+    const cleanId = String(docId).trim();
+    const docRef = doc(db, colName, cleanId);
+
+    // If deleting a profile, also set isDeleted flag first to instantly hide it across all active listeners
+    if (colName === 'profiles') {
+      try {
+        await setDoc(docRef, { isDeleted: true, isApproved: false, deletedAt: new Date().toISOString() }, { merge: true });
+      } catch (e) {
+        // ignore fallback
+      }
+      try {
+        const delRef = doc(db, 'deleted_profiles', cleanId);
+        await setDoc(delRef, { profileId: cleanId, deletedAt: new Date().toISOString() }, { merge: true });
+      } catch (e) {
+        // ignore fallback
+      }
+    }
+
+    await deleteDoc(docRef);
+  } catch (err) {
+    console.warn(`Firestore delete error for ${colName}/${docId}:`, err);
+  }
+};
+
+// Profiles real-time listener
+export const listenToProfiles = (
+  onUpdate: (profiles: UserProfile[]) => void,
+  initialSeed: UserProfile[]
+) => {
+  try {
+    const colRef = collection(db, 'profiles');
+    return onSnapshot(colRef, async (snapshot) => {
+      // Collect deleted profile IDs to strictly exclude
+      let deletedIds: string[] = [];
+      try {
+        const raw = localStorage.getItem('vanjari_jodi_deleted_profile_ids');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) deletedIds = parsed.map(x => String(x).trim());
+        }
+      } catch (e) {}
+
+      if (snapshot.empty && initialSeed && initialSeed.length > 0) {
+        // Seed initial profiles to Firestore if database is fresh/empty (excluding any deleted ones)
+        const activeSeed = initialSeed.filter(p => p && p.id && !deletedIds.includes(String(p.id).trim()));
+        for (const p of activeSeed) {
+          if (p && p.id) {
+            syncDocToFirestore('profiles', p.id, p);
+          }
+        }
+        onUpdate(activeSeed);
+      } else {
+        const items: UserProfile[] = [];
+        snapshot.forEach((d) => {
+          const data = d.data() as UserProfile & { isDeleted?: boolean };
+          const cleanId = String(data?.id || d.id).trim();
+          if (data && cleanId && !data.isDeleted && !deletedIds.includes(cleanId)) {
+            items.push({ ...data, id: cleanId });
+          }
+        });
+        onUpdate(items);
+      }
+    }, (err) => {
+      console.warn('Firestore snapshot error for profiles:', err);
+    });
+  } catch (err) {
+    console.warn('Firestore listen error:', err);
+    return () => {};
+  }
+};
+
+// Site Config listener
+export const listenToSiteConfig = (
+  onUpdate: (config: SiteConfig) => void,
+  initialConfig: SiteConfig
+) => {
+  try {
+    const docRef = doc(db, 'siteConfig', 'mainConfig');
+    return onSnapshot(docRef, async (snapshot) => {
+      if (!snapshot.exists() && initialConfig) {
+        syncDocToFirestore('siteConfig', 'mainConfig', initialConfig);
+        onUpdate(initialConfig);
+      } else if (snapshot.exists()) {
+        const data = snapshot.data() as SiteConfig;
+        onUpdate(data);
+      }
+    }, (err) => {
+      console.warn('Firestore snapshot error for siteConfig:', err);
+    });
+  } catch (err) {
+    console.warn('Firestore listen error:', err);
+    return () => {};
+  }
+};
+
+// Chat messages listener
+export const listenToChatMessages = (onUpdate: (messages: ChatMessage[]) => void) => {
+  try {
+    const colRef = collection(db, 'chatMessages');
+    return onSnapshot(colRef, (snapshot) => {
+      const items: ChatMessage[] = [];
+      snapshot.forEach((d) => {
+        const data = d.data() as ChatMessage;
+        if (data && data.id) {
+          items.push(data);
+        }
+      });
+      if (items.length > 0) {
+        onUpdate(items);
+      }
+    }, (err) => {
+      console.warn('Firestore snapshot error for chatMessages:', err);
+    });
+  } catch (err) {
+    console.warn('Firestore listen error:', err);
+    return () => {};
+  }
+};
+
+// Admin support chat listener
+export const listenToAdminSupport = (onUpdate: (messages: AdminSupportMessage[]) => void) => {
+  try {
+    const colRef = collection(db, 'adminSupportMessages');
+    return onSnapshot(colRef, (snapshot) => {
+      const items: AdminSupportMessage[] = [];
+      snapshot.forEach((d) => {
+        const data = d.data() as AdminSupportMessage;
+        if (data && data.id) {
+          items.push(data);
+        }
+      });
+      if (items.length > 0) {
+        onUpdate(items);
+      }
+    }, (err) => {
+      console.warn('Firestore snapshot error for adminSupportMessages:', err);
+    });
+  } catch (err) {
+    console.warn('Firestore listen error:', err);
+    return () => {};
+  }
+};
+
+// Real-time notifications listener
+export const listenToNotifications = (onUpdate: (notifications: NotificationItem[]) => void) => {
+  try {
+    const colRef = collection(db, 'notifications');
+    return onSnapshot(colRef, (snapshot) => {
+      const items: NotificationItem[] = [];
+      snapshot.forEach((d) => {
+        const data = d.data() as NotificationItem;
+        if (data && data.id) {
+          items.push(data);
+        }
+      });
+      items.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      if (items.length > 0) {
+        onUpdate(items);
+      }
+    }, (err) => {
+      console.warn('Firestore snapshot error for notifications:', err);
+    });
+  } catch (err) {
+    console.warn('Firestore listen error for notifications:', err);
+    return () => {};
+  }
+};
+
+// Real-time Payment Settings listener (Collection: settings, Doc: payment_config)
+export const listenToPaymentConfig = (
+  onUpdate: (config: PaymentConfig) => void
+) => {
+  try {
+    const docRef = doc(db, 'settings', 'payment_config');
+    return onSnapshot(docRef, async (snapshot) => {
+      if (!snapshot.exists()) {
+        await syncDocToFirestore('settings', 'payment_config', DEFAULT_PAYMENT_CONFIG);
+        onUpdate(DEFAULT_PAYMENT_CONFIG);
+      } else {
+        const data = snapshot.data();
+        const upi = (data.upiId || data.upi_id || DEFAULT_PAYMENT_CONFIG.upiId).trim();
+        const merged: PaymentConfig = {
+          upiId: upi,
+          payeeName: (data.payeeName || data.business_name || DEFAULT_PAYMENT_CONFIG.payeeName).trim(),
+          amount: data.amount !== undefined ? String(data.amount).trim() : DEFAULT_PAYMENT_CONFIG.amount,
+          transactionNote: (data.transactionNote || data.payment_note || DEFAULT_PAYMENT_CONFIG.transactionNote).trim(),
+          phonepeUpiId: (data.phonepeUpiId || upi || DEFAULT_PAYMENT_CONFIG.phonepeUpiId).trim(),
+          gpayUpiId: (data.gpayUpiId || '').trim(),
+          paytmUpiId: (data.paytmUpiId || upi).trim(),
+          bhimUpiId: (data.bhimUpiId || upi).trim(),
+          adminMobileNumber: (data.adminMobileNumber || '').trim(),
+          whatsappNumber: (data.whatsappNumber || DEFAULT_PAYMENT_CONFIG.whatsappNumber).trim(),
+          merchantQrImageUrl: (data.merchantQrImageUrl || data.qrCodeUrl || data.qr_code_url || '').trim(),
+          qrCodeUrl: (data.qrCodeUrl || data.qr_code_url || data.merchantQrImageUrl || '').trim(),
+          updatedAt: data.updatedAt || data.updated_at || new Date().toISOString()
+        };
+        try {
+          localStorage.setItem('vanjari_jodi_payment_config', JSON.stringify(merged));
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('payment_config_updated', { detail: merged }));
+          }
+        } catch (e) {}
+        onUpdate(merged);
+      }
+    }, (err) => {
+      console.warn('Firestore snapshot error for settings/payment_config:', err);
+    });
+  } catch (err) {
+    console.warn('Firestore listen error for payment_config:', err);
+    return () => {};
+  }
+};
+
+// Save payment config to Firestore and sync across legacy fields & site config
+export const savePaymentConfigToFirestore = async (config: PaymentConfig): Promise<boolean> => {
+  try {
+    const cleanUpi = (config.upiId || DEFAULT_PAYMENT_CONFIG.upiId).trim();
+    const qrImg = (config.merchantQrImageUrl || config.qrCodeUrl || '').trim();
+
+    const cleanConfig: PaymentConfig = {
+      upiId: cleanUpi,
+      payeeName: (config.payeeName || DEFAULT_PAYMENT_CONFIG.payeeName).trim(),
+      amount: String(config.amount || DEFAULT_PAYMENT_CONFIG.amount).trim(),
+      transactionNote: (config.transactionNote || DEFAULT_PAYMENT_CONFIG.transactionNote).trim(),
+      phonepeUpiId: (config.phonepeUpiId || cleanUpi).trim(),
+      gpayUpiId: (config.gpayUpiId || '').trim(),
+      paytmUpiId: (config.paytmUpiId || cleanUpi).trim(),
+      bhimUpiId: (config.bhimUpiId || cleanUpi).trim(),
+      adminMobileNumber: (config.adminMobileNumber || '').trim(),
+      whatsappNumber: (config.whatsappNumber || '7083070830').trim(),
+      merchantQrImageUrl: qrImg,
+      qrCodeUrl: qrImg,
+      updatedAt: new Date().toISOString()
+    };
+
+    // Instant local broadcast & storage update
+    try {
+      localStorage.setItem('vanjari_jodi_payment_config', JSON.stringify(cleanConfig));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('payment_config_updated', { detail: cleanConfig }));
+      }
+    } catch (e) {}
+
+    // 1. Save to settings/payment_config
+    await syncDocToFirestore('settings', 'payment_config', {
+      ...cleanConfig,
+      upi_id: cleanConfig.upiId,
+      business_name: cleanConfig.payeeName,
+      payment_note: cleanConfig.transactionNote,
+      qr_code_url: cleanConfig.merchantQrImageUrl,
+      updated_at: cleanConfig.updatedAt
+    });
+
+    // 2. Also update siteConfig/mainConfig for instant backward compatibility
+    await syncDocToFirestore('siteConfig', 'mainConfig', {
+      paymentUpiId: cleanConfig.upiId,
+      paymentPayeeName: cleanConfig.payeeName,
+      paymentNote: cleanConfig.transactionNote,
+      paymentQrUrl: qrImg,
+      paymentQrCodeUrl: qrImg
+    });
+
+    // 3. Also send to backend API to update in-memory server state
+    try {
+      await fetch('/api/payment/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          upi_id: cleanConfig.upiId,
+          business_name: cleanConfig.payeeName,
+          payment_note: cleanConfig.transactionNote,
+          qr_code_url: qrImg
+        })
+      });
+    } catch (e) {
+      // Backend API call optional
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Error saving payment config to Firestore:', err);
+    return false;
+  }
+};
+
+// Real-time Plans Settings listener (Collection: settings, Doc: plans_config)
+export const listenToPlans = (
+  onUpdate: (plans: Plan[]) => void
+) => {
+  try {
+    const docRef = doc(db, 'settings', 'plans_config');
+    return onSnapshot(docRef, async (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data?.plans && Array.isArray(data.plans) && data.plans.length > 0) {
+          onUpdate(data.plans);
+        }
+      }
+    }, (err) => {
+      console.warn('Firestore snapshot error for settings/plans_config:', err);
+    });
+  } catch (err) {
+    console.warn('Firestore listen error for plans_config:', err);
+    return () => {};
+  }
+};
+
+// Save membership plans to Firestore for cross-device real-time consistency
+export const savePlansToFirestore = async (plans: Plan[]): Promise<boolean> => {
+  try {
+    await syncDocToFirestore('settings', 'plans_config', {
+      plans,
+      updatedAt: new Date().toISOString()
+    });
+    return true;
+  } catch (err) {
+    console.error('Error saving plans to Firestore:', err);
+    return false;
+  }
+};
+
+// Real-time Business Vendors & Mangal Karyalaya listener (Collection: business_vendors)
+export const listenToBusinessVendors = (
+  onUpdate: (vendors: BusinessVendor[]) => void,
+  initialSeed?: BusinessVendor[]
+) => {
+  try {
+    const colRef = collection(db, 'business_vendors');
+    return onSnapshot(colRef, async (snapshot) => {
+      if (snapshot.empty && initialSeed && initialSeed.length > 0) {
+        for (const v of initialSeed) {
+          if (v && v.id) {
+            syncDocToFirestore('business_vendors', v.id, v);
+          }
+        }
+        onUpdate(initialSeed);
+      } else {
+        const items: BusinessVendor[] = [];
+        snapshot.forEach((d) => {
+          const data = d.data() as BusinessVendor;
+          if (data && data.id) {
+            items.push(data);
+          }
+        });
+        if (items.length > 0) {
+          onUpdate(items);
+        }
+      }
+    }, (err) => {
+      console.warn('Firestore snapshot error for business_vendors:', err);
+    });
+  } catch (err) {
+    console.warn('Firestore listen error for business_vendors:', err);
+    return () => {};
+  }
+};
+
+// Real-time Vendor Settings listener (Doc: siteConfig/vendorSettings)
+export const listenToVendorSettings = (
+  onUpdate: (settings: VendorSettings) => void
+) => {
+  try {
+    const docRef = doc(db, 'siteConfig', 'vendorSettings');
+    return onSnapshot(docRef, async (snapshot) => {
+      if (!snapshot.exists()) {
+        await syncDocToFirestore('siteConfig', 'vendorSettings', DEFAULT_VENDOR_SETTINGS);
+        await syncDocToFirestore('settings', 'vendor_config', DEFAULT_VENDOR_SETTINGS);
+        onUpdate(DEFAULT_VENDOR_SETTINGS);
+      } else {
+        const data = snapshot.data() as VendorSettings;
+        const merged: VendorSettings = {
+          ...DEFAULT_VENDOR_SETTINGS,
+          ...data
+        };
+        onUpdate(merged);
+      }
+    }, (err) => {
+      console.warn('Firestore snapshot error for vendorSettings:', err);
+    });
+  } catch (err) {
+    console.warn('Firestore listen error for vendorSettings:', err);
+    return () => {};
+  }
+};
+
+export const saveVendorSettingsToFirestore = async (settings: VendorSettings): Promise<boolean> => {
+  try {
+    const cleanSettings: VendorSettings = {
+      ...settings,
+      updatedAt: new Date().toISOString()
+    };
+
+    await syncDocToFirestore('siteConfig', 'vendorSettings', cleanSettings);
+    await syncDocToFirestore('settings', 'vendor_config', cleanSettings);
+    await syncDocToFirestore('siteConfig', 'mainConfig', {
+      enableBusinessVendors: cleanSettings.enableVendorModule,
+      vendorSettings: cleanSettings
+    });
+
+    try {
+      localStorage.setItem('vanjari_jodi_vendor_settings', JSON.stringify(cleanSettings));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('vendor_settings_updated', { detail: cleanSettings }));
+      }
+    } catch (e) {}
+
+    return true;
+  } catch (err) {
+    console.error('Error saving vendor settings to Firestore:', err);
+    return false;
+  }
+};
+
+export const listenToVendorActivityLogs = (
+  onUpdate: (logs: VendorActivityLog[]) => void
+) => {
+  try {
+    const colRef = collection(db, 'vendor_activity_logs');
+    return onSnapshot(colRef, (snapshot) => {
+      const items: VendorActivityLog[] = [];
+      snapshot.forEach((d) => {
+        const data = d.data() as VendorActivityLog;
+        if (data && data.id) {
+          items.push(data);
+        }
+      });
+      items.sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
+      onUpdate(items);
+    }, (err) => {
+      console.warn('Firestore snapshot error for vendor_activity_logs:', err);
+    });
+  } catch (err) {
+    console.warn('Firestore listen error for vendor_activity_logs:', err);
+    return () => {};
+  }
+};
+
+

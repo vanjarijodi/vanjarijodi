@@ -1,0 +1,220 @@
+# ==============================================================================
+# 🚀 Vanjari Jodi Matrimony — Manual Android APK & AAB Build Workflow
+# ==============================================================================
+# Automates the compilation of installable Android APKs (Debug & Release) and AAB
+# Triggers on manual workflow dispatch from GitHub Actions.
+# ==============================================================================
+
+name: Build Android APK (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build Type (all, debug, release)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - debug
+          - release
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: Build & Package Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repository code
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      # 2. Setup Node.js Environment
+      - name: 🟢 Setup Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      # 3. Setup Java 21 (Temurin Distribution for AGP 8.7+ & Capacitor 8)
+      - name: ☕ Setup Java 21 LTS
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      # 4. Setup Java 21 (Temurin Distribution for AGP 8.7+ & Capacitor 8)
+      - name: ☕ Setup Java 21 LTS
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      # 5. Accept SDK Licenses
+      - name: 📜 Accept Android SDK Licenses & Setup Environment
+        run: |
+          mkdir -p "$ANDROID_HOME/licenses" || true
+          echo -e "\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-license" || true
+          echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license" || true
+          echo -e "\nd56f5187479451eabf01fb78af6dfcb131a6481e" >> "$ANDROID_HOME/licenses/android-sdk-license" || true
+
+      # 6. Install Node Modules
+      - name: 📦 Install Node Dependencies
+        run: npm install --legacy-peer-deps
+
+      # 7. Build Web Application Assets
+      - name: 🌐 Build Vite Web Assets
+        run: npm run build
+
+      # 8. Sync Web Assets with Capacitor Android Platform
+      - name: 🔄 Sync Capacitor Android
+        run: npx cap sync android
+
+      # 9. Verify Gradle Wrapper & Prepare Android Environment
+      - name: 🔧 Prepare Gradle & Resource Assets
+        run: |
+          chmod +x ./android/gradlew
+
+          # Ensure all PNG drawables are valid to prevent AAPT2 compile errors
+          python3 -c "
+          import os, base64
+          valid_png = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==')
+          for root, dirs, files in os.walk('./android/app/src/main/res'):
+              for f in files:
+                  p = os.path.join(root, f)
+                  if f.endswith('.png') and ('splash' in f or os.path.getsize(p) == 0):
+                      with open(p, 'wb') as img:
+                          img.write(valid_png)
+          "
+
+      # 10. Handle Release Signing Keystore
+      - name: 🔑 Configure Android Signing Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          cd android
+          mkdir -p app
+          STORE_PASS="${KEYSTORE_PASSWORD:-vanjari123}"
+          ALIAS="${KEY_ALIAS:-vanjarijodi}"
+          K_PASS="${KEY_PASSWORD:-$STORE_PASS}"
+
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "Decoding release keystore from GitHub Secrets..."
+            echo "$KEYSTORE_BASE64" | base64 -d > app/release.keystore
+            echo "KEYSTORE_FILE=release.keystore" >> $GITHUB_ENV
+          elif [ -f "app/release.keystore" ] && [ -s "app/release.keystore" ]; then
+            echo "Using existing release.keystore..."
+            echo "KEYSTORE_FILE=release.keystore" >> $GITHUB_ENV
+          elif [ -f "app/release.keystore.base64.txt" ] && [ -s "app/release.keystore.base64.txt" ]; then
+            echo "Decoding release.keystore from app/release.keystore.base64.txt..."
+            base64 -d app/release.keystore.base64.txt > app/release.keystore
+            echo "KEYSTORE_FILE=release.keystore" >> $GITHUB_ENV
+          elif [ -f "../public/downloads/release.keystore" ] && [ -s "../public/downloads/release.keystore" ]; then
+            echo "Copying release.keystore from public/downloads..."
+            cp ../public/downloads/release.keystore app/release.keystore
+            echo "KEYSTORE_FILE=release.keystore" >> $GITHUB_ENV
+          elif [ -f "../public/downloads/release.keystore.base64.txt" ] && [ -s "../public/downloads/release.keystore.base64.txt" ]; then
+            echo "Decoding release.keystore from public/downloads..."
+            base64 -d ../public/downloads/release.keystore.base64.txt > app/release.keystore
+            echo "KEYSTORE_FILE=release.keystore" >> $GITHUB_ENV
+          else
+            echo "Generating build release keystore..."
+            keytool -genkeypair -v \
+              -keystore app/release.keystore \
+              -alias "$ALIAS" \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -storepass "$STORE_PASS" \
+              -keypass "$K_PASS" \
+              -dname "CN=Vanjari Jodi Matrimony, OU=Mobile App, O=Vanjari Jodi, L=Mumbai, ST=Maharashtra, C=IN"
+            echo "KEYSTORE_FILE=release.keystore" >> $GITHUB_ENV
+          fi
+
+      # 11. Compile Android Debug APK
+      - name: 🔨 Build Android Debug APK
+        if: ${{ inputs.build_type == 'all' || inputs.build_type == 'debug' }}
+        run: |
+          cd android
+          ./gradlew assembleDebug -Pandroid.enablePngCrunchInReleaseBuilds=false --no-daemon --stacktrace
+
+      # 12. Compile Android Release APK & Play Store AAB Bundle
+      - name: 🚀 Build Android Release APK & AAB Bundle
+        if: ${{ inputs.build_type == 'all' || inputs.build_type == 'release' }}
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'vanjari123' }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'vanjarijodi' }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || secrets.KEYSTORE_PASSWORD || 'vanjari123' }}
+        run: |
+          cd android
+          echo "Building Google Play Store AAB Bundle..."
+          ./gradlew bundleRelease -Pandroid.enablePngCrunchInReleaseBuilds=false --no-daemon --stacktrace || true
+
+          echo "Building Universal Release APK..."
+          ./gradlew assembleRelease -Pandroid.enablePngCrunchInReleaseBuilds=false --no-daemon --stacktrace || true
+
+      # 13. Organize Output APK and AAB Files
+      - name: 📁 Prepare APK & AAB Artifacts
+        run: |
+          mkdir -p apk-output
+
+          # Copy Play Store AAB
+          if [ -f android/app/build/outputs/bundle/release/app-release.aab ]; then
+            cp android/app/build/outputs/bundle/release/app-release.aab apk-output/VanjariJodi-release.aab
+            echo "✅ Play Store AAB copied successfully"
+          elif [ -f android/app/build/outputs/bundle/release/app-release-unsigned.aab ]; then
+            cp android/app/build/outputs/bundle/release/app-release-unsigned.aab apk-output/VanjariJodi-release.aab
+          fi
+
+          # Copy Debug APK
+          if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
+            cp android/app/build/outputs/apk/debug/app-debug.apk apk-output/app-debug.apk
+            cp android/app/build/outputs/apk/debug/app-debug.apk apk-output/VanjariJodi-debug.apk
+            echo "✅ Debug APK built successfully"
+          fi
+
+          # Copy Release APK
+          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            cp android/app/build/outputs/apk/release/app-release.apk apk-output/app-release.apk
+            cp android/app/build/outputs/apk/release/app-release.apk apk-output/VanjariJodi-release.apk
+            echo "✅ Release APK built successfully"
+          elif [ -f android/app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+            cp android/app/build/outputs/apk/release/app-release-unsigned.apk apk-output/app-release-unsigned.apk
+            echo "ℹ️ Unsigned Release APK copied"
+          fi
+
+          # Copy Keystore & Info if exists
+          if [ -f android/app/release.keystore ]; then
+            cp android/app/release.keystore apk-output/release.keystore
+            base64 -w 0 android/app/release.keystore > apk-output/release.keystore.base64.txt || true
+          fi
+          if [ -f android/app/KEYSTORE_INFO.txt ]; then
+            cp android/app/KEYSTORE_INFO.txt apk-output/KEYSTORE_INFO.txt
+          fi
+
+          ls -lah apk-output/
+
+      # 14. Upload Play Store AAB Artifact
+      - name: 📤 Upload Play Store AAB (VanjariJodi-release.aab)
+        uses: actions/upload-artifact@v4
+        with:
+          name: PlayStore-Bundle-AAB
+          path: apk-output/*.aab
+          retention-days: 30
+          if-no-files-found: warn
+
+      # 15. Upload Complete APK Package Artifact
+      - name: 📤 Upload All APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: VanjariJodi-Android-APKs
+          path: apk-output/
+          retention-days: 30
+          if-no-files-found: error

@@ -1,0 +1,23 @@
+[
+  {
+    "success": true,
+    "verified": true,
+    "statusCode": 200,
+    "isDuplicate": false,
+    "message": "पेमेंट यशस्वीरित्या पूर्ण झाले! आपली मेंबरशिप तात्काळ सक्रिय करण्यात आली आहे.",
+    "paymentId": "pay_test_123456",
+    "orderId": "order_Tg9rFgRuvcl5gH",
+    "planId": "welcome_offer",
+    "planName": "वेलकम स्पेशल ऑफर प्लॅन (रु. ३९८/-)",
+    "amount": 398,
+    "currency": "INR",
+    "userId": "guest-user",
+    "userName": "सन्माननीय सदस्य",
+    "userMobileMasked": "XXXXXX0000",
+    "membershipExpiryDate": "2027-03-24T05:42:05.000Z",
+    "receiptNumber": "VJ-RCPT-925000-209",
+    "env": "TEST",
+    "gateway": "razorpay",
+    "status": "paid"
+  }
+]

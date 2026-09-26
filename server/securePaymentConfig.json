@@ -1,0 +1,12 @@
+{
+  "enabled": true,
+  "env": "TEST",
+  "keyId": "rzp_test_Tg9qLeoUZ9cUe0",
+  "secretKey": "D12cfZrfr5Nj13MAqinD2XUL",
+  "webhookSecret": "",
+  "currency": "INR",
+  "displayName": "वंजारी जोडी (Vanjari Jodi Matrimony)",
+  "successMessage": "पेमेंट यशस्वीरित्या पूर्ण झाले! आपली मेंबरशिप तात्काळ सक्रिय करण्यात आली आहे.",
+  "failureMessage": "पेमेंट पूर्ण होऊ शकले नाही. कृपया पुन्हा प्रयत्न करा.",
+  "updatedAt": "2026-09-24T22:41:00.000Z"
+}

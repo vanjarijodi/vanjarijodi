@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>खाते व डेटा हटविण्याची विनंती | Account Deletion Request — Vanjari Jodi Matrimony</title>
+  <meta name="description" content="Official User Account & Data Deletion portal for Vanjari Jodi Matrimony App, complying with Google Play Store User Data & Account Deletion Policies.">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #2d3748; background: #fffdfa; margin: 0; padding: 20px; }
+    .container { max-width: 760px; margin: 0 auto; background: #ffffff; padding: 32px; border-radius: 20px; box-shadow: 0 4px 24px rgba(128,12,30,0.08); border: 2px solid #fbd38d; }
+    .header { text-align: center; margin-bottom: 24px; border-bottom: 2px solid #fed7d7; padding-bottom: 20px; }
+    .header h1 { color: #800C1E; font-size: 24px; margin: 8px 0; }
+    .badge { display: inline-block; background: #800C1E; color: #fefcbf; font-weight: bold; font-size: 11px; padding: 4px 12px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .info-box { background: #fffaf0; border-left: 4px solid #dd6b20; padding: 16px; margin: 18px 0; border-radius: 0 12px 12px 0; font-size: 14px; }
+    .warning-box { background: #fff5f5; border-left: 4px solid #e53e3e; padding: 16px; margin: 18px 0; border-radius: 0 12px 12px 0; font-size: 14px; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-weight: bold; font-size: 13px; margin-bottom: 6px; color: #4a5568; }
+    input[type="tel"], input[type="text"], input[type="email"], textarea { width: 100%; box-sizing: border-box; padding: 12px 14px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none; transition: border-color 0.2s; }
+    input:focus, textarea:focus { border-color: #800C1E; }
+    button.submit-btn { width: 100%; background: linear-gradient(135deg, #800C1E, #A71930); color: white; border: none; padding: 14px; font-size: 15px; font-weight: bold; border-radius: 12px; cursor: pointer; transition: opacity 0.2s; box-shadow: 0 4px 12px rgba(128,12,30,0.25); }
+    button.submit-btn:hover { opacity: 0.95; }
+    .success-message { display: none; background: #f0fff4; border: 2px solid #68d391; padding: 20px; border-radius: 12px; color: #22543d; text-align: center; margin-top: 20px; }
+    .footer { margin-top: 36px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #718096; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span class="badge">Google Play Store Policy Compliant</span>
+      <h1>खाते व डेटा हटविण्याची विनंती</h1>
+      <p style="color: #718096; font-size: 14px; margin: 0;">User Account & Personal Data Deletion Request Portal<br>
+      <strong>Vanjari Jodi Matrimony (वंजारी जोडी मॅट्रिमोनी)</strong></p>
+    </div>
+
+    <div class="info-box">
+      <strong>खाते हटविण्याचा अधिकार (Your Right to Erasure):</strong><br>
+      Google Play Store च्या युझर डेटा सुरक्षा धोरणांनुसार (Data Safety & Account Deletion Policy), कोणत्याही सदस्याला आपले खाते आणि ॲपमध्ये असलेला सर्व वैयक्तिक डेटा कायमस्वरूपी नष्ट करण्याचा पूर्ण अधिकार आहे.
+    </div>
+
+    <div class="warning-box">
+      <strong>⚠️ काय डिलीट केले जाईल? (What data is deleted?):</strong>
+      <ul style="margin: 6px 0 0 0; padding-left: 20px;">
+        <li>तुमचे पूर्ण नाव, वय, जन्मतारीख व पत्रिका माहिती</li>
+        <li>नोंदणीकृत मोबाईल नंबर, ईमेल आणि पत्ता</li>
+        <li>अपलोड केलेले सर्व अधिकृत फोटो, गॅलरी आणि कागदपत्रे (Aadhaar / KYC)</li>
+        <li>सर्व चॅट संभाषणे, आवडी-निवडी (Likes), शॉर्टलिस्ट आणि मॅचेस</li>
+        <li>सक्रिय सदस्यता किंवा प्रोफाइल रेकॉर्ड</li>
+      </ul>
+      <p style="margin: 8px 0 0 0; font-size: 12px; color: #c53030;"><strong>टीप:</strong> एकदा खाते हटविल्यानंतर ते पुन्हा रिकव्हर (पूर्ववत) करता येणार नाही.</p>
+    </div>
+
+    <form id="deleteForm" onsubmit="handleDeleteSubmit(event)">
+      <div class="form-group">
+        <label for="mobile">नोंदणीकृत १०-अंकी मोबाईल नंबर (Registered Mobile Number) *</label>
+        <input type="tel" id="mobile" name="mobile" maxlength="10" placeholder="उदा. 9822012345" required pattern="[0-9]{10}">
+      </div>
+
+      <div class="form-group">
+        <label for="fullName">पूर्ण नाव (Full Name on Profile)</label>
+        <input type="text" id="fullName" name="fullName" placeholder="प्रोफाईलवरील तुमचे नाव">
+      </div>
+
+      <div class="form-group">
+        <label for="reason">खाते हटविण्याचे कारण (Reason for Deletion - Optional)</label>
+        <textarea id="reason" name="reason" rows="3" placeholder="उदा. विवाह जमला आहे / इतर कारण"></textarea>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">
+        🗑️ माझे खाते व डेटा कायमचा हटवा (Submit Account Deletion)
+      </button>
+    </form>
+
+    <div class="success-message" id="successMsg">
+      <h3 style="margin-top: 0; color: #276749;">🎉 विनंती यशस्वीरित्या प्राप्त झाली!</h3>
+      <p>तुमच्या खात्याची पडताळणी करून पुढील २४ ते ४८ तासांच्या आत सर्व्हरवरून तुमचा सर्व वैयक्तिक डेटा, फोटो व रेकॉर्ड कायमस्वरूपी नष्ट करण्यात येईल.</p>
+      <p style="font-size: 12px; margin-bottom: 0;">कोणतीही तातडीची मदत हवी असल्यास <strong>gitevijay123@gmail.com</strong> वर संपर्क साधा.</p>
+    </div>
+
+    <div class="footer">
+      <strong>ॲपमधून थेट पर्याय:</strong> ॲप सुरू करून <strong>'माझे खाते' &gt; 'सेटिंग्ज' &gt; 'खाते हटवा (Delete Account)'</strong> वर क्लिक करूनही तुम्ही स्वतः त्वरित खाते बंद करू शकता.<br><br>
+      © 2026 Vanjari Jodi Matrimony • PRIME MULTI SERVICES AND SUPPLIERS, Beed • All rights reserved.
+    </div>
+  </div>
+
+  <script>
+    async function handleDeleteSubmit(e) {
+      e.preventDefault();
+      const btn = document.getElementById('submitBtn');
+      const mobile = document.getElementById('mobile').value.trim();
+      const fullName = document.getElementById('fullName').value.trim();
+      const reason = document.getElementById('reason').value.trim();
+
+      if (!mobile || mobile.length !== 10) {
+        alert('कृपया योग्य १०-अंकी मोबाईल नंबर प्रविष्ट करा.');
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerText = 'प्रक्रिया सुरू आहे...';
+
+      try {
+        const res = await fetch('/api/account/delete-request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mobile, fullName, reason })
+        });
+        const data = await res.json();
+        document.getElementById('deleteForm').style.display = 'none';
+        document.getElementById('successMsg').style.display = 'block';
+      } catch (err) {
+        document.getElementById('deleteForm').style.display = 'none';
+        document.getElementById('successMsg').style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>

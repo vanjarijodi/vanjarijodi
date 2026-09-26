@@ -1,0 +1,1571 @@
+export type Language = 'mr' | 'en';
+
+export type ThemeMode = 'crimson-gold' | 'dark-obsidian' | 'classic-emerald';
+
+export type ThemePreset =
+  | 'modern_ruby'
+  | 'auspicious_crimson'
+  | 'royal_trust_blue'
+  | 'parents_easy_mode'
+  | 'velvet_dark';
+
+export type GestureMode =
+  | 'vertical_reels'
+  | 'four_way_swipe'
+  | 'three_d_flip'
+  | 'story_tap_pullup';
+
+export type ActionDockType =
+  | 'floating_speed_dial'
+  | 'collapsible_side_rail'
+  | 'category_chip_bar'
+  | 'bottom_sheet_dock';
+
+export type HoroscopeManglik = 'non_manglik' | 'manglik' | 'partial' | 'not_applicable';
+
+export type ProfessionCategory =
+  | 'govt_job'
+  | 'mnc_it'
+  | 'business_self'
+  | 'doctor_engineer'
+  | 'agriculture_business'
+  | 'other';
+
+export type Gender = 'bride' | 'groom';
+
+export type MaritalStatus = 'never_married' | 'divorced' | 'widowed' | 'awaiting_divorce' | 'separated';
+
+export type MembershipTier = 'free' | 'monthly' | 'yearly' | 'lifetime' | 'silver' | 'gold' | 'diamond' | 'vip' | string;
+
+export interface ContactRequest {
+  id: string;
+  requesterId: string;
+  requesterName: string;
+  requesterMobile?: string;
+  targetProfileId: string;
+  targetProfileName: string;
+  status: 'pending' | 'authorized' | 'rejected';
+  createdAt: string;
+  note?: string;
+}
+
+export interface CommunityAd {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  linkUrl?: string;
+  type: 'banner' | 'meetup' | 'sponsor' | 'business';
+  categoryTag?: string;
+  badgeText?: string;
+  contactPhone?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface UserProfile {
+  id: string;
+  fullName: string;
+  gender: Gender;
+  dob: string;
+  age: number;
+  birthTime?: string;
+  birthPlace?: string;
+  mobile: string;
+  secondaryMobile?: string;
+  email: string;
+  district: string;
+  taluka: string;
+  city: string;
+  village?: string;
+  currentAddress?: string;
+  nativeAddress?: string;
+  education: string;
+  occupation: string;
+  companyName?: string;
+  income: string;
+  height: string;
+  weight: string;
+  bloodGroup: string;
+  complexion?: string; // गोरा, निमगोरा, गव्हाळ, सावळा
+  maritalStatus: MaritalStatus;
+  religion: string;
+  subCaste: string;
+  gotra?: string;
+  rashi?: string;
+  nakshatra?: string;
+  gan?: string;
+  nadi?: string;
+  fatherName?: string;
+  fatherOccupation: string;
+  motherName?: string;
+  motherOccupation: string;
+  brothers: number;
+  brotherDetails?: string;
+  sisters: number;
+  sisterDetails?: string;
+  relativeSurnames?: string[]; // e.g. ["मुंडे", "सानप", "नागरे", "काकड", "घूगे"]
+  mamaName?: string;
+  mamaNative?: string;
+  familyType: string;
+  expectations: string;
+  aboutMe?: string;
+  photos: string[];
+  photoUrl?: string;
+  horoscopeUrl?: string;
+  aadhaarVerified: boolean;
+  aadhaar_number?: string;
+  aadhaar_front_image?: string;
+  aadhaar_back_image?: string;
+  selfie_image?: string;
+  verification_status?: 'Not Submitted' | 'Pending Review' | 'Approved' | 'Rejected';
+  verification_submitted_at?: string;
+  verification_approved_at?: string;
+  approved_by_admin?: string;
+  rejection_reason?: string;
+  is_hidden?: boolean;
+  visibility_type?: 'public' | 'members_only' | 'verified_only' | 'hidden';
+  isIdVerified?: boolean;
+  isPhotoVerified?: boolean;
+  isPremiumVerified?: boolean;
+  isFaceVerified?: boolean;
+  faceVerifiedAt?: string;
+  isPhoneVerified?: boolean;
+  phoneVerifiedAt?: string;
+  phoneVerificationMethod?: 'truecaller' | 'otp' | 'admin' | 'mobile_otp' | 'password';
+  truecallerName?: string;
+  truecallerVerified?: boolean;
+  telegramUsername?: string;
+  idProofUrl?: string;
+  aadhaarCardUrl?: string;
+  aadhaarFrontUrl?: string;
+  aadhaarBackUrl?: string;
+  isAadhaarMasked?: boolean;
+  idProofType?: 'aadhaar' | 'pan' | 'voter_id' | 'driving_license' | 'other';
+  idVerificationNumber?: string; // Optional Govt ID / Aadhaar Number
+  isVerified: boolean;
+  isAdmin?: boolean;
+  isGuest?: boolean;
+  shortlistedByUsers?: string[];
+  shortlistedProfiles?: string[];
+  likedByUsers?: string[];
+  likedProfileIds?: string[];
+  mobileNumber?: string;
+  showVerifiedBadge?: boolean;
+  manuallyVerified?: boolean;
+  charan?: string;
+  kuldaivat?: string;
+  isFeatured: boolean;
+  isApproved: boolean;
+  isEmailVerified?: boolean;
+  emailVerifiedAt?: string;
+  isSuspended?: boolean;
+  suspendedReason?: string;
+  rejectionReason?: string;
+  blockedUserIds?: string[];
+  biodataPdfUrl?: string;
+  biodataPdfName?: string;
+  membership: MembershipTier;
+  createdAt: string;
+  lastActive: string;
+  bio?: string;
+  privacy: {
+    hideContact: boolean;
+    hidePhoto: boolean;
+    restrictDetails?: boolean;
+    contactVisibility?: 'visible_to_all' | 'visible_to_verified_only' | 'hidden';
+    photoVisibility?: 'visible_to_all' | 'visible_to_verified_only' | 'hidden';
+    biodataVisibility?: 'visible_to_all' | 'visible_to_verified_only' | 'hidden';
+  };
+  completionPercentage?: number;
+  pendingUpdates?: Partial<UserProfile>;
+  registrationType?: 'manual' | 'ocr_ai' | 'admin_direct';
+  isRegisteredByAdmin?: boolean;
+  isChatBlocked?: boolean;
+  isBlocked?: boolean;
+  isCustomAccessGranted?: boolean;
+  badge?: string;
+  customBadge?: string;
+  adminBadge?: string;
+  horoscopeManglik?: HoroscopeManglik;
+  professionCategory?: ProfessionCategory;
+  hideBadge?: boolean;
+  isHiddenByAdmin?: boolean;
+  viewsCount?: number;
+  pendingPhotoApproval?: boolean;
+  allowGuestContactView?: boolean;
+  forceShowContact?: boolean;
+  forceHideContact?: boolean;
+  forceShowPhoto?: boolean;
+  forceHidePhoto?: boolean;
+  photoRequestAlert?: boolean;
+  photoRequestedAt?: string;
+  professionTags?: string[]; // e.g. ['🩺 डॉक्टर', '🏛️ सरकारी नोकरी', '💻 इंजिनिअर', '👨‍🏫 शिक्षक']
+  paidAt?: string;
+  paymentApprovedAt?: string;
+  paymentAmount?: number;
+  paymentUtr?: string;
+  paymentPlanName?: string;
+  membershipExpiryDate?: string;
+  isPlanExpired?: boolean;
+  freePlanGrantedAt?: string;
+  freePlanAdminNote?: string;
+  freePlanGrantedBy?: string;
+  isFreeAdminPlan?: boolean;
+  isFestiveFree?: boolean;
+  lastPaymentId?: string;
+  lastOrderId?: string;
+  specialPremiumAccess?: {
+    enabled: boolean;
+    grantedAt: string;
+    expiryDate?: string | null;
+    note?: string;
+  };
+  adminNotice?: string;
+  adminNoticeTitle?: string;
+  adminNoticeCreatedAt?: string;
+  adminNoticeRead?: boolean;
+  unlockedContactsCount?: number;
+  kundliCredits?: number;
+  unlockedKundliProfileIds?: string[];
+  registrationId?: string;
+  // Referral Program Fields
+  referralCode?: string;
+  referredByCode?: string;
+  referredByName?: string;
+  referredByMobile?: string;
+  referralCount?: number;
+  referralRewardsGiven?: string[];
+  authProvider?: 'google' | 'email' | 'mobile' | 'mobile_otp' | 'truecaller' | 'guest';
+  isGoogleUser?: boolean;
+  password?: string;
+  whatsappNumber?: string;
+  membershipTier?: MembershipTier;
+  status?: 'pending' | 'approved' | 'rejected';
+  isSoftDeleted?: boolean;
+  qualityScore?: number;
+  activeSessions?: UserActiveSession[];
+  loginHistory?: UserLoginHistoryItem[];
+}
+
+export interface ProfileReport {
+  id: string;
+  reporterUserId: string;
+  reporterUserName: string;
+  reporterUserMobile?: string;
+  reportedProfileId: string;
+  reportedProfileName: string;
+  reportedProfileMobile?: string;
+  category: 'fake_abusive' | 'misleading_info' | 'financial_fraud' | 'unauthorized_photos' | 'unprofessional_behavior' | 'other';
+  categoryLabel: string;
+  description: string;
+  proofImageUrl?: string;
+  createdAt: string;
+  status: 'pending' | 'warning_sent' | 'hidden' | 'suspended' | 'dismissed' | 'resolved';
+  resolvedAction?: 'suspend' | 'warning' | 'hide' | 'dismiss' | string;
+}
+
+export interface ProfileRemovalRequest {
+  id: string;
+  profileId: string;
+  profileName: string;
+  profileMobile: string;
+  reason: 'marriage_fixed' | 'personal_reasons' | 'other';
+  partnerDetails?: string;
+  feedbackText?: string; // Feedback/review for home page success story
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+}
+
+export interface SuccessStory {
+  id: string;
+  coupleName?: string;
+  groomName?: string;
+  brideName?: string;
+  marriageDate?: string;
+  weddingDate?: string;
+  heading?: string;
+  description?: string;
+  district?: string;
+  image?: string;
+  photoUrl?: string;
+  story?: string;
+  storyMr?: string;
+  status?: 'pending' | 'approved' | 'rejected';
+  submittedByUserId?: string;
+  submittedByUserName?: string;
+  partnerProfileId?: string;
+  createdAt?: string;
+  likes?: number;
+}
+
+export interface Plan {
+  id: MembershipTier;
+  name: string;
+  nameMr: string;
+  price: number;
+  originalPrice?: number;
+  contactLimit?: number;
+  durationMonths: number;
+  duration?: string;
+  durationLabelMr?: string;
+  durationText?: string;
+  validityText?: string;
+  planType?: 'monthly' | 'yearly' | 'lifetime' | 'pay_per_contact' | 'welcome_offer' | string;
+  unlockCount?: number;
+  contacts?: string | number;
+  isLimitedSlotsPlan?: boolean;
+  maxMemberLimit?: number;
+  currentMemberCount?: number;
+  showRemainingSeatsToPublic?: boolean;
+  relaunchBannerText?: string;
+  customBadgeText?: string;
+  badgeText?: string;
+  badge?: string;
+  features: string[];
+  featuresMr: string[];
+  description?: string;
+  descriptionMr?: string;
+  recommended?: boolean;
+  isActive?: boolean;
+}
+
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  text: string;
+  timestamp: string;
+  isRead: boolean;
+  imageUrl?: string;
+  pdfUrl?: string;
+  pdfName?: string;
+  fileType?: 'image' | 'pdf' | 'voice';
+  voiceUrl?: string;
+}
+
+export interface Interest {
+  id: string;
+  fromUserId: string;
+  toUserId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: string;
+}
+
+export interface NotificationItem {
+  id: string;
+  userId: string;
+  title: string;
+  titleMr: string;
+  message: string;
+  messageMr: string;
+  type: 'interest' | 'chat' | 'system' | 'approval' | string;
+  createdAt: string;
+  isRead: boolean;
+  actionUrl?: string;
+}
+
+export interface AdminStats {
+  totalMembers: number;
+  totalBrides: number;
+  totalGrooms: number;
+  totalMarriages: number;
+  pendingApprovals: number;
+  monthlyRevenue: number;
+  activeChats: number;
+}
+
+export interface SearchFilterState {
+  gender: Gender | 'all';
+  minAge: number;
+  maxAge: number;
+  district: string;
+  taluka: string;
+  education: string;
+  occupation: string;
+  income: string;
+  maritalStatus: string;
+  subCaste: string;
+  gotra?: string;
+  minHeight?: string;
+  maxHeight?: string;
+  photoOnly?: boolean;
+  manglik?: string;
+  verifiedOnly: boolean;
+}
+
+export interface HeroSlide {
+  id: string;
+  imageUrl: string;
+  title: string;
+  subtitle: string;
+}
+
+export interface CounterItem {
+  id: string;
+  label: string;
+  labelMr: string;
+  value: string;
+  iconName: string;
+}
+
+export interface SystemSettings {
+  id: string;
+  upi_id: string;
+  business_name: string;
+  whatsapp_api_token: string;
+  currency: string;
+  qr_code_url?: string;
+  payment_note?: string;
+  support_mobile?: string;
+  updated_at?: string;
+}
+
+export interface PaymentConfig {
+  upiId: string;
+  payeeName: string;
+  amount: string;
+  transactionNote: string;
+  updatedAt?: string;
+  qrCodeUrl?: string;
+  phonepeUpiId?: string;
+  gpayUpiId?: string;
+  paytmUpiId?: string;
+  bhimUpiId?: string;
+  adminMobileNumber?: string;
+  whatsappNumber?: string;
+  merchantQrImageUrl?: string;
+  enableDirectQrOnlyMode?: boolean; // जेव्हा ही टिक सक्रिय असेल, तेव्हा इतर सर्व पेमेंट गेटवे बंद राहतील व फक्त थेट QR कोड आणि UPI ॲप्स चालतील
+  autoOpenUpiAppOnMobile?: boolean;
+}
+
+export interface UserMembership {
+  id: string;
+  user_id: string;
+  user_name?: string;
+  user_mobile?: string;
+  plan_name: string;
+  plan_id: string;
+  amount: number;
+  status: 'active' | 'expired';
+  expires_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaymentRequest {
+  id: string;
+  userId: string;
+  userName: string;
+  userMobile: string;
+  planId: MembershipTier;
+  planName: string;
+  amount: number;
+  utrNumber: string;
+  paymentMethod?: string;
+  screenshotUrl?: string;
+  userPhotoUrl?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  adminNote?: string;
+  createdAt: string;
+  updatedAt?: string;
+  approvedAt?: string;
+  isAutoApproved?: boolean;
+  isDuplicateUtr?: boolean;
+  isDuplicateScreenshot?: boolean;
+  planDurationText?: string;
+  validUntil?: string;
+  membershipId?: string;
+  promoCode?: string;
+  discountAmount?: number;
+  originalAmount?: number;
+}
+
+export interface GuestPermissions {
+  viewProfiles: boolean;
+  searchFilters: boolean;
+  kundaliView: boolean;
+  expressInterest: boolean;
+  viewPhotos: boolean;
+  directChat: boolean;
+}
+
+export interface PayPerContactRequest {
+  id: string;
+  userId: string;
+  userName: string;
+  userMobile: string;
+  targetProfileId: string;
+  targetProfileName: string;
+  targetProfileMobile?: string;
+  amount: number;
+  utrNumber: string;
+  screenshotUrl?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  adminNote?: string;
+  approvedAt?: string;
+  isDuplicateUtr?: boolean;
+  isDuplicateScreenshot?: boolean;
+}
+
+export interface GuestSessionLog {
+  sessionId: string;
+  guestName?: string;
+  guestMobile?: string;
+  location?: string;
+  deviceInfo: string;
+  ipAddress: string;
+  firstVisitTime: string;
+  lastActiveTime: string;
+  status?: 'active' | 'logged_out';
+  pagesViewed: string[];
+  actionsTaken: string[];
+}
+
+export interface UserActivityLog {
+  id: string;
+  userId: string;
+  userName: string;
+  userMobile?: string;
+  userType: 'registered' | 'guest';
+  action: string;
+  details: string;
+  timestamp: string;
+  targetProfileId?: string;
+  targetProfileName?: string;
+  deviceInfo?: string;
+  category?: 'login' | 'like' | 'chat' | 'payment' | 'profile_view' | 'verification' | 'biodata_kundali' | 'system' | 'edit';
+}
+
+export interface AdminSupportMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderRole: 'user' | 'admin';
+  message: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileType?: 'image' | 'pdf' | 'doc';
+  imageUrl?: string;
+  pdfUrl?: string;
+  pdfName?: string;
+  timestamp: string;
+  isReadByAdmin: boolean;
+  isReadByUser: boolean;
+  isRead?: boolean;
+  isAdminReply?: boolean;
+  userMobile?: string;
+  isArchived?: boolean;
+}
+
+export interface PromoCode {
+  id: string;
+  code: string;
+  discountType: 'percentage' | 'flat' | 'vip_free' | 'fixed';
+  discountValue: number;
+  maxUses?: number;
+  usedCount: number;
+  expiryDate?: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface PendingProfileEdit {
+  id: string;
+  profileId: string;
+  profileName: string;
+  mobile: string;
+  originalData: Partial<UserProfile>;
+  updatedData: Partial<UserProfile>;
+  submittedAt: string;
+  status: 'pending' | 'approved' | 'rejected';
+}
+
+export interface RecycleBinItem {
+  id: string;
+  originalType: 'biodata' | 'photo' | 'story';
+  title: string;
+  deletedAt: string;
+  data: any;
+  profile?: UserProfile;
+}
+
+export interface AuditLog {
+  id: string;
+  action: string;
+  details: string;
+  user: string;
+  timestamp: string;
+  affectedProfileId?: string;
+  affectedProfileName?: string;
+}
+
+export interface FaceVerificationLog {
+  id: string;
+  userId: string;
+  userName: string;
+  userMobile: string;
+  capturedPhotoUrl: string;
+  profilePhotoUrl?: string;
+  matchScore: number;
+  livenessCheckPassed?: boolean;
+  livenessAction?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  submittedAt: string;
+  reviewedAt?: string;
+  notes?: string;
+}
+
+export interface MemberIdRequest {
+  id: string;
+  requesterId: string;
+  requesterName: string;
+  requesterMobile: string;
+  targetProfileId: string;
+  targetProfileName: string;
+  targetProfileMobile: string;
+  reason?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  reviewedAt?: string;
+  adminNotes?: string;
+  allowedFrontUrl?: string;
+  allowedBackUrl?: string;
+  isMaskedShared?: boolean;
+}
+
+export interface SocialLinkItem {
+  id: string;
+  platform: 'telegram' | 'whatsapp' | 'facebook' | 'instagram' | 'youtube' | 'custom';
+  name: string;
+  iconName?: string;
+  iconUrl?: string;
+  width: number;
+  height: number;
+  link: string;
+  isEnabled: boolean;
+}
+
+export interface ApkSettings {
+  apkUrl?: string;
+  appVersion?: string;
+  isEnabled?: boolean;
+  releaseNotes?: string;
+  downloadCount?: number;
+  fileSizeMb?: string;
+}
+
+export type AdminRoleType =
+  | 'super_admin'
+  | 'payment_admin'
+  | 'profile_admin'
+  | 'support_admin'
+  | 'viewer';
+
+export interface UserActiveSession {
+  sessionId: string;
+  deviceName: string;
+  browser: string;
+  os: string;
+  ip?: string;
+  loginTime: string;
+  lastActiveTime: string;
+  isCurrentSession?: boolean;
+}
+
+export interface UserLoginHistoryItem {
+  id: string;
+  method: 'mobile_otp' | 'google' | 'email_otp' | 'password' | 'truecaller' | 'guest';
+  timestamp: string;
+  ip?: string;
+  device?: string;
+  status: 'success' | 'failed';
+  failureReason?: string;
+}
+
+export type SubAdminPermission = 
+  | 'manage_profiles'
+  | 'add_profiles'
+  | 'edit_profiles'
+  | 'delete_profiles'
+  | 'bulk_delete'
+  | 'member_access_control'
+  | 'payment_requests'
+  | 'pricing_plans'
+  | 'auto_mode_master'
+  | 'face_verification'
+  | 'apk_manager'
+  | 'index_controls'
+  | 'support_chat'
+  | 'branding'
+  | 'guest_permissions'
+  | 'user_analytics'
+  | 'promo_codes'
+  | 'recycle_bin'
+  | 'audit_logs'
+  | 'site_settings'
+  | 'sub_admins';
+
+export interface SubAdmin {
+  id: string;
+  name: string;
+  username: string;
+  password: string;
+  pin?: string;
+  role: AdminRoleType | 'primary_admin' | 'sub_admin';
+  permissions: SubAdminPermission[];
+  createdAt: string;
+  lastLoginAt?: string;
+  isActive?: boolean;
+}
+
+export interface FeatureBoxItem {
+  id: string;
+  title: string;
+  desc: string;
+  iconName: string;
+  isEnabled: boolean;
+}
+
+export interface PendingLike {
+  id: string;
+  fromUserId: string;
+  fromUserName: string;
+  toUserId: string;
+  toUserName: string;
+  createdAt: string;
+  status: 'pending' | 'approved' | 'rejected';
+}
+
+export interface VendorSettings {
+  enableVendorModule: boolean;
+  vendorBusinessMode: 'information_collection_only' | 'full_services';
+  enableVendorDirectory: boolean;
+  enableVendorBooking: boolean;
+  enableVendorEnquiry: boolean;
+  enableVendorCustomerPricing: boolean;
+  enableVendorPayment: boolean;
+  enableVendorPublicMobile: boolean;
+  enableVendorPublicWhatsapp: boolean;
+  enableVendorPublicAddress: boolean;
+  enableVendorPublicRates: boolean;
+  enableVendorPdf: boolean;
+  enableVendorRegistration: boolean;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+export interface VendorActivityLog {
+  id: string;
+  timestamp: string;
+  adminUsername: string;
+  action:
+    | 'vendor_created'
+    | 'vendor_edited'
+    | 'vendor_approved'
+    | 'vendor_rejected'
+    | 'vendor_suspended'
+    | 'vendor_deleted'
+    | 'vendor_pricing_changed'
+    | 'vendor_settings_changed';
+  actionLabel: string;
+  vendorId?: string;
+  businessName?: string;
+  details: string;
+  oldValue?: string;
+  newValue?: string;
+}
+
+export interface BusinessVendor {
+  id: string;
+  businessName: string;
+  ownerName: string;
+  category: string;
+  subCategory?: string;
+  district: string;
+  taluka?: string;
+  village?: string;
+  address?: string;
+  mobile: string;
+  whatsapp?: string;
+  alternatePhone?: string;
+  email?: string;
+  ratesAndPackages?: string; // उदा. रु. १५,००० प्रति दिवस / रु. २५० प्रति ताट
+  hallRentDay?: string; // एका दिवसाचे / १ शिफ्टचे हॉल भाडे
+  perPlateRate?: string; // प्रति ताट / जेवणाचे दर
+  packageRate?: string; // एकत्रित पॅकेज दर
+  cateringServiceType?: 'cooking_only' | 'full_catering' | 'both' | string; // फक्त स्वयंपाक मजुरी / साहित्यासह कॅटरिंग / दोन्ही
+  cookingLaborRate?: string; // स्वयंपाक मजुरी दर (उदा. ₹४० प्रति ताट किंवा ₹२,००० प्रति क्विंटल)
+  cookingLaborType?: string; // मजुरी पद्धत (उदा. प्रति पंगत, प्रति क्विंटल, एकरकमी)
+  cookingTeamSize?: string; // स्वयंपाकी + मदतनीस संख्या
+  cookingServingStaff?: string; // पंगत वाढण्याची सोय (होय / नाही)
+  specialDishes?: string; // खास डिशेस व मेनू स्पेशालिटी
+  advanceBookingAmount?: string; // ॲडव्हान्स बुकिंग रक्कम
+  cancellationPolicy?: string; // रद्द करण्याचे नियम
+  hallCapacity?: string; // बैठक क्षमता (उदा. ५००, १००० लोक)
+  hallType?: string; // AC / Non-AC / Open Lawn / दोन्ही
+  roomsCount?: string; // खोल्यांची संख्या
+  diningHallAvailable?: string; // जेवणाचा स्वतंत्र हॉल
+  parkingCapacity?: string; // पार्किंग क्षमता
+  amenities?: string[]; // जनरेटर, AC, CCTV, इ.
+  services?: string;
+  facilities?: string;
+  workingDaysTiming?: string;
+  googleMapLocation?: string; // गुगल मॅप्स लिंक
+  memberDiscount?: string; // उदा. वंजारी जोडी सदस्यांना ५% किंवा १०% डिस्काउंट
+  commissionRate?: string; // उदा. ५% कमिशन, १०% कमिशन
+  
+  // Admin-Only Internal Pricing & Margin (Requirement 6 - ADMIN ONLY)
+  vendorBasePrice?: number | string; // Vendor base cost
+  platformMargin?: number | string; // Admin platform margin/commission
+  customerPrice?: number | string; // Customer-facing price (visible only when customer pricing enabled)
+  adminPricingNotes?: string;
+
+  photoUrl?: string;
+  photos?: string[];
+  pdfUrl?: string; // रेट कार्ड किंवा ब्रोशर PDF
+  description?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'suspended';
+  rejectionReason?: string;
+  suspendedReason?: string;
+  adminNotes?: string;
+  createdAt: string;
+  updatedAt?: string;
+  approvedAt?: string;
+  rejectedAt?: string;
+  suspendedAt?: string;
+  viewsCount?: number;
+  bookedDates?: string[]; // YYYY-MM-DD format (उदा. ['2025-11-25', '2025-12-02'])
+  pinPassword?: string; // व्हेंडर पोर्टल लॉगिनसाठी पिन/पासवर्ड
+}
+
+export interface VendorBookingInquiry {
+  id: string;
+  vendorId: string;
+  vendorName: string;
+  userName: string;
+  userMobile: string;
+  eventDate: string; // YYYY-MM-DD
+  eventType?: string; // उदा. लग्नकार्य, हळदी, साखरपुडा
+  notes?: string;
+  status: 'pending' | 'accepted' | 'date_unavailable' | 'completed';
+  createdAt: string;
+}
+
+export interface GeminiKeyItem {
+  id: string;
+  label: string; // e.g. "Primary Key", "Backup Key 1", "Backup Key 2"
+  apiKey: string;
+  isEnabled: boolean;
+  status: 'active' | 'rate_limited' | 'quota_exhausted' | 'invalid' | 'untested';
+  lastTestedAt?: string;
+  lastUsedAt?: string;
+  errorDetails?: string;
+  successCount?: number;
+  failureCount?: number;
+  latencyMs?: number;
+}
+
+export interface OcrConfigSettings {
+  geminiKeys: GeminiKeyItem[];
+  defaultEngine: 'gemini_with_fallback' | 'gemini_only' | 'tesseract_only';
+  enableTesseractFallback: boolean;
+  tesseractLanguages: string; // 'mar+eng'
+  maxImageDimension: number; // 1600
+  compressionQuality: number; // 0.75
+  maxFileSizeMb: number; // 1.0
+  activeKeyIndex?: number;
+}
+
+export interface SiteConfig {
+  topBarText: string;
+  logoTitle: string;
+  logoSubtitle: string;
+  logoTitleEn?: string;
+  logoSubtitleEn?: string;
+  logoUrl?: string;
+  logoHeight?: number;
+  logoWidth?: number;
+  logoScalePercent?: number; // Logo size adjustment in percentage (e.g. 50% to 150%)
+  logoSize?: number; // Explicit pixel size override if configured
+  hideLogoText?: boolean;
+  paymentQrUrl?: string;
+  paymentQrCodeUrl?: string;
+  paymentUpiId?: string;
+  paymentPayeeName?: string;
+  enableDirectUpiAppButtons?: boolean;
+  paymentNote?: string;
+  paymentMode?: 'both' | 'razorpay_only' | 'ccavenue_only' | 'online_gateways_only' | 'upi_qr_only';
+  enableDirectQrOnlyMode?: boolean; // फक्त थेट QR कोड व UPI Deep-Link मोड (सर्व इतर गेटवे बंद)
+  enableRazorpay?: boolean;
+  razorpayEnabled?: boolean;
+  qrPaymentEnabled?: boolean;
+  enableCcavenue?: boolean;
+  ccavenueMerchantId?: string;
+  ccavenueAccessCode?: string;
+  ccavenueWorkingKey?: string;
+  ccavenueRedirectUrl?: string;
+  enableInstamojo?: boolean;
+  instamojoUrl?: string;
+  enableUpiQr?: boolean;
+  enableFullAccessForPaidMembers?: boolean;
+  isFestivalFreeModeActive?: boolean;
+  upgradeRecommendedPlanId?: string;
+  razorpayKeyId?: string;
+  heroHeading: string;
+  heroSubheading: string;
+  heroDescription?: string;
+  ctaButtonText: string;
+  contactPhone: string;
+  contactWhatsapp: string;
+  contactEmail: string;
+  telegramGroupUrl?: string;
+  telegramUsername?: string;
+  telegramBotUrl?: string;
+  showTelegramBanner?: boolean;
+  hidePublicContactPhone?: boolean;
+  telegramSupportNote?: string;
+  contactAddress: string;
+  businessName?: string;
+  tradeName?: string;
+  operatingHours?: string;
+  contactHeaderTitle?: string;
+  contactHeaderSubtitle?: string;
+  aboutUsText: string;
+  aboutUsTextEn?: string;
+  disclaimerText: string;
+  disclaimerTextEn?: string;
+  isSuccessStoriesEnabled: boolean;
+  isAdsEnabled: boolean;
+  isPaidPlansEnabled: boolean;
+  isCountersEnabled: boolean;
+  hidePhoneNumbersGlobal?: boolean;
+  hideFullAddressGlobal?: boolean;
+  enableProfileLiking?: boolean;
+  autoApproveLikes?: boolean;
+  showLikesToUsers?: boolean;
+  enableChatGlobal?: boolean;
+  kundliSettings?: KundliSettings;
+  blockContactSharingInChat?: boolean;
+  showDistrictFilter?: boolean;
+  showProfilesOnIndexPage?: boolean;
+  hideEmptyProfilesSection?: boolean;
+  enableSearchFilters?: boolean;
+  filterShowGender?: boolean;
+  filterShowAge?: boolean;
+  filterShowDistrict?: boolean;
+  filterShowEducation?: boolean;
+  filterShowMaritalStatus?: boolean;
+  filterShowVerified?: boolean;
+  blurProfilePhotos?: boolean;
+  photoBlurPercent?: number;
+  blurProfileNames?: boolean;
+  blurNamePercent?: number;
+  blurMobilePercent?: number;
+  blurEducation?: boolean;
+  blurOccupation?: boolean;
+  blurIncome?: boolean;
+  blurRepresentativeNames?: boolean;
+  disablePhotoDownloadAndScreenshot?: boolean;
+  enableGuestLogin?: boolean;
+  tickerText?: string;
+  isTickerEnabled?: boolean;
+  specialNoticeTitle?: string;
+  specialNoticeText?: string;
+  isSpecialNoticeEnabled?: boolean;
+  hideContactAndAddressGlobal?: boolean;
+  hidePaymentDetailsGlobal?: boolean;
+  hideDistrictHeadquarters?: boolean;
+  hideOfficeAddress?: boolean;
+  enableAadhaarVerification?: boolean;
+  // Push Notification Settings
+  enableAutoPushNewBiodata?: boolean;
+  enableAutoPushPayments?: boolean;
+  enableAutoPushInteractions?: boolean;
+  enableSoundNotifications?: boolean;
+  // Truecaller & Phone Verification Settings
+  enableTruecallerVerification?: boolean;
+  truecallerPartnerKey?: string;
+  truecallerAppKey?: string;
+  autoApproveTruecallerVerified?: boolean;
+  requireTruecallerForMutualUnlock?: boolean; // केवळ Truecaller / मोबाईल व्हेरिफाय झालेल्या सदस्यांनाच म्युचुअल लाईक झाल्यावर नंबर दिसेल
+  requireMutualLikeAndVerificationToView?: boolean; // नंबर पाहण्यासाठी म्युचुअल लाईक + Truecaller दोन्ही आवश्यक करा
+  guestBannerTitle?: string;
+  guestBannerText?: string;
+  guestBannerButtonText?: string;
+  enableGuestBannerTrigger?: boolean;
+  unlockContactFee?: number;
+  isPayPerContactEnabled?: boolean;
+  isOfferModeEnabled?: boolean;
+  offerModeText?: string;
+  disableAllPaymentsInOfferMode?: boolean;
+  isAutoModeEnabled?: boolean;
+  autoModeType?: 'payment_required' | 'free_for_all';
+  autoApproveNewRegistrations?: boolean;
+  autoApprovePaidRegistrations?: boolean;
+  autoUnlockOnPayment?: boolean;
+  freeForAllMode?: boolean;
+  autoModeForGuests?: boolean;
+  autoShowTotalMetrics?: boolean;
+  guestPermissions?: GuestPermissions;
+  isNoticeBannerEnabled?: boolean;
+  noticeBannerText?: string;
+  noticeBannerTextEn?: string;
+  allowGuestsToViewContacts?: boolean;
+  allowPublicVisitorsToViewContacts?: boolean;
+  allowMembersToViewContacts?: boolean;
+  allowGuestsToViewPhotos?: boolean;
+  allowPublicVisitorsToViewPhotos?: boolean;
+  allowMembersToViewPhotos?: boolean;
+  showFullNameInProfiles?: boolean; // सदस्यांचे पूर्ण नाव दाखवा (एडमिनने टिक केले तरच नाव दिसेल, अन्यथा सर्वत्र फक्त 'आडनाव' दिसेल)
+  nameDisplayModeForFreeUsers?: 'full_name' | 'first_name_only' | 'first_and_last' | 'surname_only' | 'hidden_star' | 'blurred_name';
+  hideMiddleNameForFreeUsers?: boolean;
+  hideLastNameForFreeUsers?: boolean;
+  hideCandidateFirstNameForFreeUsers?: boolean; // विना-पेमेंट युझर्ससाठी उमेदवाराचे नाव ब्लर/लपवणे
+  hideFatherNameForFreeUsers?: boolean; // विना-पेमेंट युझर्ससाठी वडिलांचे नाव ब्लर/लपवणे
+  hideAddressForFreeUsers?: boolean; // विना-पेमेंट युझर्ससाठी पत्ता ब्लर/लपवणे
+  hideSurnameForFreeUsers?: boolean; // विना-पेमेंट युझर्ससाठी आडनाव सुद्धा ब्लर/लपवणे टॉगल
+  nameBlurPercentage?: number;
+  blurPhotosForFreeUsers?: boolean;
+  photoBlurPercentage?: number;
+  showOnlyWelcomePlan?: boolean;
+  enablePromoCodes?: boolean;
+  isFestiveFreeModeEnabled?: boolean; // सण-उत्सव मोफत मोड: चालू केल्यास दोघांनी एकमेकांना लाईक (Mutual Match) केल्यावर थेट १००% मोफत नंबर दिसेल!
+  festiveFreeModeTitle?: string; // उदा. "गुढीपाडवा विशेष मोफत संपर्क ऑफर!" किंवा "दिवाळी सण विशेष मोफत संपर्क"
+  enableMutualLikeContactUnlock?: boolean;
+  requireMutualLikeForPhone?: boolean;
+  requireMutualLikeForFullName?: boolean; // दोघांनी एकमेकांना लाईक (Mutual Like) केल्यावरच पहिलं व मधलं नाव अनलॉक करणे, अन्यथा फक्त आडनाव दिसणे
+  requirePaidForLikes?: boolean;
+  contactUnlockMode?: 'mutual_like_only' | 'all_paid_members' | 'both_allowed';
+  contactUnlockRule?: 'mutual_like_only' | 'paid_members' | 'paid_and_mutual' | 'paid_or_mutual';
+  disablePlanContactLimit?: boolean;
+  adminOverrideMemberPrivacy?: boolean;
+  allowMembersToControlPrivacy?: boolean;
+  noticeBannerBg?: 'saffron' | 'emerald' | 'crimson' | 'maroon';
+  regOption1Title?: string;
+  regOption1Icon?: string;
+  regOption2Title?: string;
+  regOption2Icon?: string;
+  bhagwangadImg?: string;
+  appUpdateConfig?: AppConfig;
+  termsOfServiceText?: string;
+  privacyPolicyText?: string;
+  bhagwangadBadgeText?: string;
+  bhagwangadHeading?: string;
+  bhagwangadSubtitle?: string;
+  bhagwangadDescription?: string;
+  bhagwangadHighlight1?: string;
+  bhagwangadHighlight2?: string;
+  bhagwangadHighlight3?: string;
+  metaTitle: string;
+  metaDescription: string;
+  metaKeywords: string;
+  showSupportFloatingWidget?: boolean;
+  enableSupportChatWidget?: boolean;
+  // Grievance Officer & Statutory Compliance (IT Act 2000 & DPDP Act 2023)
+  grievanceOfficerName?: string;
+  grievanceOfficerEmail?: string;
+  grievanceOfficerPhone?: string;
+  grievanceOfficerAddress?: string;
+  // Aadhaar & Govt ID Security Settings
+  showMaskedAadhaarNotice?: boolean;
+  maskedAadhaarNoticeText?: string;
+  enableAadhaarFrontBackUpload?: boolean;
+  allowMembersToRequestIdProof?: boolean;
+  autoMaskAadhaarForMembers?: boolean;
+  // Technical SEO & Fast-Indexing Architecture
+  googleSiteVerification?: string;
+  bingSiteVerification?: string;
+  ga4MeasurementId?: string;
+  canonicalDomain?: string;
+  indexNowApiKey?: string;
+  enableDynamicSitemap?: boolean;
+  enableAutoIndexPing?: boolean;
+  metaTitleMr?: string;
+  metaTitleEn?: string;
+  metaDescriptionMr?: string;
+  metaDescriptionEn?: string;
+  seoKeywordsMr?: string;
+  seoKeywordsEn?: string;
+  organizationName?: string;
+  organizationTelephone?: string;
+  adminCredentials?: {
+    name: string;
+    username: string;
+    password: string;
+  };
+  apkSettings?: ApkSettings;
+  showApkDownloadButton?: boolean;
+  apkDownloadUrl?: string;
+  apkVersion?: string;
+  socialLinks?: SocialLinkItem[];
+  featureBoxes?: FeatureBoxItem[];
+  enableBusinessVendors?: boolean;
+  showVendorContactsToPublic?: boolean;
+  customVendorCategories?: string[];
+  vendorSettings?: VendorSettings;
+  // Flash / Popup Ad Settings (आकर्षक जाहिरात / पॉपअप फोटो)
+  isFlashAdEnabled?: boolean;
+  flashAdImageUrl?: string;
+  flashAdTitle?: string;
+  flashAdTitleEn?: string;
+  flashAdSubtitle?: string;
+  flashAdSubtitleEn?: string;
+  flashAdLinkUrl?: string;
+  flashAdButtonText?: string;
+  flashAdButtonTextEn?: string;
+  flashAdBadgeText?: string;
+  flashAdTheme?: 'gold' | 'crimson' | 'emerald' | 'sapphire' | 'custom';
+  flashAdDisplayMode?: 'popup_modal' | 'top_slide' | 'bottom_float';
+  flashAdAutoCloseSeconds?: number;
+  flashAdDelaySeconds?: number;
+  // Chat Message Permissions
+  allowUsersToDeleteChatMessages?: boolean;
+  // BioData Maker / Watermark & Promotion settings
+  biodataWatermarkEnabled?: boolean;
+  biodataWatermarkUrl?: string;
+  biodataWatermarkOpacity?: number;
+  biodataWatermarkSize?: number;
+  biodataPlaystoreAdEnabled?: boolean;
+  biodataPlaystoreAdText?: string;
+  biodataPlaystoreUrl?: string;
+  biodataPlaystoreQrEnabled?: boolean;
+  // Search Filter & Badge Controls
+  enableProfessionFilter?: boolean;
+  enableEducationFilter?: boolean;
+  enableDistrictFilter?: boolean;
+  enableMaritalStatusFilter?: boolean;
+  enableAgeFilter?: boolean;
+  showProfessionBadgesOnCards?: boolean;
+  showGovtJobHighlight?: boolean;
+  // Module 3: Server-Driven Themes & Gestures
+  activeThemePreset?: ThemePreset;
+  activeGestureMode?: GestureMode;
+  activeActionDock?: ActionDockType;
+  // Dual-Engine OCR & Multi-API Key Architecture
+  ocrConfig?: OcrConfigSettings;
+  allowMemberIdRequest?: boolean;
+  themePreset?: string;
+  gestureMode?: string;
+  actionDockType?: string;
+  showQuickInfoChipsOnCards?: boolean;
+  adminUsername?: string;
+  adminPin?: string;
+}
+
+export interface SecurityLogEvent {
+  id: string;
+  userId: string;
+  userName?: string;
+  userEmail?: string;
+  userMobile?: string;
+  eventType:
+    | 'LOGIN_SUCCESS'
+    | 'LOGIN_FAILED'
+    | 'LOGOUT'
+    | 'PASSWORD_RESET_REQUEST'
+    | 'PASSWORD_RESET_SUCCESS'
+    | 'SESSION_REVOKED'
+    | 'SUSPICIOUS_LOGIN_ATTEMPT'
+    | 'ACCOUNT_LOCKED'
+    | 'ACCOUNT_UNLOCKED'
+    | 'TWO_FACTOR_TRIGGERED'
+    | 'GOOGLE_AUTH_LINKED'
+    | 'UNAUTHORIZED_ACCESS_ATTEMPT'
+    | 'IP_BLOCKED';
+  ip: string;
+  userAgent: string;
+  browser?: string;
+  os?: string;
+  deviceType?: 'desktop' | 'mobile' | 'tablet' | 'unknown';
+  city?: string;
+  region?: string;
+  country?: string;
+  riskScore: number;
+  riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  riskReasons?: string[];
+  status: 'success' | 'failed' | 'blocked' | 'flagged';
+  timestamp: string;
+  metadata?: Record<string, any>;
+}
+
+export interface UserSession {
+  sessionId: string;
+  userId: string;
+  device: string;
+  browser: string;
+  os: string;
+  ip: string;
+  location?: string;
+  loginTime: string;
+  lastActiveTime: string;
+  isCurrentSession: boolean;
+  isRevoked: boolean;
+}
+
+export interface AdminAuditLogRecord {
+  id: string;
+  adminId: string;
+  adminName: string;
+  adminEmail?: string;
+  adminRole: string;
+  action: string;
+  category: 'USER_MANAGEMENT' | 'SECURITY' | 'PAYMENT' | 'SETTINGS' | 'SYSTEM' | 'CONTENT';
+  targetEntityId?: string;
+  targetEntityType?: string;
+  targetEntityName?: string;
+  details: string;
+  ip: string;
+  timestamp: string;
+  changes?: { field: string; oldValue: any; newValue: any }[];
+}
+
+export interface TrashedProfile {
+  id: string;
+  profile: UserProfile;
+  deletedAt: string;
+  deletedBy: string;
+  reason?: string;
+}
+
+export interface BioDataCustomFieldItem {
+  id: string;
+  label: string;
+  value: string;
+  section: 'personal' | 'astrology' | 'family' | 'contact';
+}
+
+export interface BioDataSubmission {
+  id: string;
+  fullName: string;
+  gender: 'bride' | 'groom';
+  birthDate: string;
+  birthTime?: string;
+  birthPlace?: string;
+  height?: string;
+  complexion?: string;
+  bloodGroup?: string;
+  education?: string;
+  jobTitle?: string;
+  businessTitle?: string;
+  income?: string;
+  fatherName?: string;
+  fatherOccupation?: string;
+  motherName?: string;
+  brothers?: string;
+  sisters?: string;
+  nativePlace?: string;
+  mamaName?: string;
+  relatives?: string;
+  rashi?: string;
+  nakshatra?: string;
+  gotra?: string;
+  devak?: string;
+  nadi?: string;
+  mangal?: string;
+  mobile: string;
+  whatsapp?: string;
+  address?: string;
+  expectations?: string;
+  candidatePhotoUrl?: string;
+  customFields?: BioDataCustomFieldItem[];
+  themeId?: string;
+  isSavedToPortal?: boolean;
+  status: 'pending_review' | 'converted_to_member' | 'saved_only';
+  convertedProfileId?: string;
+  createdAt: string;
+}
+
+export interface TrashedPhoto {
+  id: string;
+  profileId: string;
+  originalProfileId?: string;
+  profileName?: string;
+  profileRegId?: string;
+  photoUrl: string;
+  photoType?: string;
+  sizeEstimateKb?: number;
+  deletedAt: string;
+  deletedByAdminId?: string;
+  deletedBy?: string;
+  reason?: string;
+}
+
+export interface KundliSettings {
+  isFreeTrialMode?: boolean;
+  enableMutualMatchFreeKundli: boolean;
+  enableMemberPaidKundli: boolean;
+  enableOutsideBiodataKundli: boolean;
+  enablePdfDownload: boolean;
+  memberKundliPrice: number;
+  singleKundliPrice: number;
+  outsideBiodataPrice: number;
+  pdfDownloadPrice: number;
+  reportValidityDays: number;
+}
+
+export interface KundliTransaction {
+  id: string;
+  reportId: string; // e.g. VJ-KUNDLI-948201
+  userId?: string;
+  userName?: string;
+  type: 'mutual_free' | 'member_paid' | 'outside_paid';
+  groomName: string;
+  groomDob: string;
+  groomCity?: string;
+  brideName: string;
+  brideDob: string;
+  brideCity?: string;
+  amount: number;
+  paymentId?: string;
+  status: 'completed' | 'pending' | 'failed';
+  totalScore: number;
+  createdAt: string;
+  prokeralaPayload?: any;
+}
+
+export interface SingleKundliInput {
+  fullName: string;
+  gender: 'male' | 'female';
+  dob: string; // YYYY-MM-DD
+  time: string; // HH:mm (24h)
+  timeFormat?: '12h' | '24h';
+  amPm?: 'AM' | 'PM';
+  birthPlace?: string;
+  city: string;
+  state?: string;
+  country?: string;
+  latitude: number;
+  longitude: number;
+  timezone: number; // e.g. 5.5
+}
+
+export interface PlanetPositionItem {
+  name: string; // English
+  nameMr: string; // Marathi e.g. 'सूर्य'
+  rashi: string; // English e.g. 'Aries'
+  rashiMr: string; // Marathi e.g. 'मेष'
+  rashiLord: string; // Marathi e.g. 'मंगळ'
+  house: number; // 1 to 12
+  degree: number; // e.g. 14.25
+  degreeFormatted: string; // e.g. "14° 15'"
+  nakshatra: string; // Marathi
+  pada: number; // 1-4
+  isRetrograde: boolean;
+}
+
+export interface HousePositionItem {
+  houseNumber: number; // 1 to 12
+  rashi: string; // Marathi
+  rashiLord: string; // Marathi
+  planetsInHouse: string[]; // Marathi planet names
+}
+
+export interface DashaPeriodItem {
+  planet: string; // Marathi e.g. 'सूर्य'
+  planetEn: string;
+  startDate: string;
+  endDate: string;
+  isCurrent?: boolean;
+  subPeriods?: {
+    planet: string;
+    startDate: string;
+    endDate: string;
+  }[];
+}
+
+export interface YogaDoshaItem {
+  name: string;
+  nameMr: string;
+  isPresent: boolean;
+  type: 'yoga' | 'dosha';
+  severity?: 'low' | 'medium' | 'high' | 'none';
+  descriptionMr: string;
+}
+
+export interface ChartHouseData {
+  house: number;
+  rashiNumber: number;
+  rashiName: string;
+  rashiNameMr: string;
+  planets: string[];
+}
+
+export interface NormalizedSingleKundliReport {
+  id: string; // Unique Report ID e.g. VJ-KUNDLI-849201
+  createdAt: string;
+  birthDetails: {
+    fullName: string;
+    gender: 'male' | 'female';
+    dob: string;
+    time: string;
+    birthPlace: string;
+    city: string;
+    latitude: number;
+    longitude: number;
+    timezone: number;
+  };
+  astroDetails: {
+    ascendantLagna: string; // Lagna Rashi e.g. 'मेष (Aries)'
+    ascendantDegree: string;
+    rashi: string; // Moon Sign Marathi
+    rashiEn: string;
+    sunSign: string; // Sun Sign Marathi
+    sunSignEn: string;
+    moonSign: string; // Moon Sign Marathi
+    nakshatra: string; // Nakshatra Marathi
+    nakshatraEn: string;
+    pada: number; // 1 to 4
+    gan: string; // Marathi
+    nadi: string; // Marathi
+    varna: string; // Marathi
+    vashya: string; // Marathi
+    yoni: string; // Marathi
+    rashiLord: string; // Marathi
+    payas?: string; // पाया e.g. सुवर्ण / रौप्य / ताम्र / लोह
+  };
+  planets: PlanetPositionItem[];
+  houses: HousePositionItem[];
+  vimsottariDasha: {
+    currentMahadasha: string;
+    currentAntardasha: string;
+    dashaList: DashaPeriodItem[];
+  };
+  manglikDosha: {
+    isPresent: boolean;
+    statusMr: string;
+    severity: 'none' | 'low' | 'medium' | 'high';
+    cancellationDetailsMr?: string;
+  };
+  yogasAndDoshas: YogaDoshaItem[];
+  chartData: {
+    lagnaChart: ChartHouseData[];
+    navamshaChart?: ChartHouseData[];
+  };
+  provider: string;
+  isFallback?: boolean;
+  multiEngineResults?: {
+    engine1?: {
+      name: string;
+      astroDetails?: any;
+      planets?: PlanetPositionItem[];
+      vimsottariDasha?: any;
+      manglikDosha?: any;
+      yogasAndDoshas?: YogaDoshaItem[];
+    } | null;
+    engine2?: {
+      name: string;
+      astroDetails?: any;
+      planets?: PlanetPositionItem[];
+      vimsottariDasha?: any;
+      manglikDosha?: any;
+      yogasAndDoshas?: YogaDoshaItem[];
+    } | null;
+    engine3?: {
+      name: string;
+      astroDetails?: any;
+      planets?: PlanetPositionItem[];
+      vimsottariDasha?: any;
+      manglikDosha?: any;
+      yogasAndDoshas?: YogaDoshaItem[];
+    } | null;
+  };
+}
+
+export interface CandidateRegistrationData {
+  fullName?: string;
+  gender?: 'bride' | 'groom';
+  birthDate?: string;
+  height?: string;
+  education?: string;
+  occupation?: string;
+  district?: string;
+  taluka?: string;
+  mobileNumber?: string;
+  whatsappNumber?: string;
+  photos?: string[];
+  aboutMe?: string;
+}
+
+// ==========================================
+// 🛡️ VERIFICATION & SAFETY SYSTEMS ARCHITECTURE
+// ==========================================
+
+export type VerificationStatusType = 'Not Submitted' | 'Pending Review' | 'Approved' | 'Rejected';
+
+export interface KycVerificationRequest {
+  id: string;
+  user_id: string;
+  user_name: string;
+  user_mobile: string;
+  aadhaar_number: string;
+  aadhaar_front_image: string;
+  aadhaar_back_image: string;
+  selfie_image: string;
+  verification_status: VerificationStatusType;
+  verification_submitted_at: string;
+  verification_approved_at?: string;
+  approved_by_admin?: string;
+  rejection_reason?: string;
+  admin_notes?: string;
+}
+
+export type SafetyReportCategory =
+  | 'Fake Profile'
+  | 'Fraud'
+  | 'Harassment'
+  | 'Spam'
+  | 'Inappropriate Content'
+  | 'Other';
+
+export interface SafetyReport {
+  id: string;
+  reporter_id: string;
+  reporter_name?: string;
+  reported_user_id: string;
+  reported_user_name?: string;
+  reason: SafetyReportCategory;
+  description: string;
+  status: 'pending' | 'resolved' | 'dismissed';
+  created_at: string;
+  admin_notes?: string;
+  action_taken?: 'none' | 'warning' | 'suspended' | 'banned';
+}
+
+export interface BlockedUserRecord {
+  id: string;
+  blocker_id: string;
+  blocked_user_id: string;
+  blocked_user_name?: string;
+  created_at: string;
+}
+
+export interface SuspiciousUserAlert {
+  id: string;
+  user_id: string;
+  user_name: string;
+  user_mobile?: string;
+  reason: 'multiple_reports' | 'fake_activity' | 'excessive_views' | 'spam_messages';
+  detail: string;
+  severity: 'low' | 'medium' | 'high';
+  created_at: string;
+  status: 'unread' | 'investigated' | 'resolved';
+}
+
+export interface AppConfig {
+  latest_version?: string;
+  minimum_version?: string;
+  update_message?: string;
+  playstore_url?: string;
+  force_update?: boolean;
+  minAppVersion?: string;
+  latestAppVersion?: string;
+  isMandatoryUpdate?: boolean;
+  updateTitle?: string;
+  updateMessage?: string;
+  playStoreUrl?: string;
+  apkDownloadUrl?: string;
+}
+
+
