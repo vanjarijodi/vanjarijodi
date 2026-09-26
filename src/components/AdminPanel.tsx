@@ -222,6 +222,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
   const [selectedSuccessStory, setSelectedSuccessStory] = useState<SuccessStory | null>(null);
   const [printCandidate, setPrintCandidate] = useState<UserProfile | null>(null);
 
+  // In-App Action Confirmation Modals (Replaces browser confirm)
+  const [memberToDelete, setMemberToDelete] = useState<UserProfile | null>(null);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+  const [actionSuccessToast, setActionSuccessToast] = useState<string | null>(null);
+
   // Free Membership Approval Modal State (Sections 8, 9, 10)
   const [isFreeGrantModalOpen, setIsFreeGrantModalOpen] = useState(false);
   const [freeGrantProfile, setFreeGrantProfile] = useState<UserProfile | null>(null);
@@ -441,10 +446,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
 
   const handleBulkSoftDelete = () => {
     if (selectedMemberIds.length === 0) return;
-    if (confirm(`तुम्ही निवडलेल्या ${selectedMemberIds.length} सदस्यांना रिसायकल बिनमध्ये हलवू इच्छिता का?`)) {
-      bulkSoftDeleteProfiles(selectedMemberIds);
-      setSelectedMemberIds([]);
-    }
+    setIsBulkDeleteModalOpen(true);
+  };
+
+  const confirmBulkSoftDelete = () => {
+    const count = selectedMemberIds.length;
+    bulkSoftDeleteProfiles(selectedMemberIds);
+    setSelectedMemberIds([]);
+    setIsBulkDeleteModalOpen(false);
+    setActionSuccessToast(`✅ ${count} सदस्यांची प्रोफाईल्स यशस्वीरित्या रिसायकल बिनमध्ये पाठवली!`);
+    setTimeout(() => setActionSuccessToast(null), 4000);
   };
 
   const handleSaveSubAdmin = (e: React.FormEvent) => {
@@ -1399,6 +1410,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                               >
                                 <Gift className="w-3.5 h-3.5 text-emerald-600" />
                                 <span className="hidden sm:inline text-[11px]">मोफत द्या</span>
+                              </button>
+                              <button
+                                onClick={() => setMemberToDelete(member)}
+                                className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-300 rounded-xl font-bold text-xs flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-2xs"
+                                title="सदस्य प्रोफाईल हटवा"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                                <span className="hidden sm:inline text-[11px]">हटवा</span>
                               </button>
                               <button
                                 onClick={() => setActionMenuCandidate(member)}
@@ -2714,10 +2733,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                 setPrintCandidate(m);
               }}
               onDelete={(m) => {
-                if (confirm(`खात्री आहे का? '${m.fullName}' यांची प्रोफाईल हटवायची आहे का?`)) {
-                  deleteProfileDirect(m.id);
-                  setActionMenuCandidate(null);
-                }
+                setActionMenuCandidate(null);
+                setMemberToDelete(m);
               }}
             />
           )}
@@ -2798,6 +2815,142 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose }) => {
                 setSelectedMemberIds([]);
               }}
             />
+          )}
+
+          {/* In-App Single Member Deletion Confirmation Modal */}
+          {memberToDelete && (
+            <div className="fixed inset-0 z-[99999] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+              <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-2 border-rose-300 space-y-5 animate-in zoom-in-95">
+                <div className="flex items-center gap-3.5">
+                  <div className="p-3 bg-rose-100 rounded-2xl text-rose-700">
+                    <Trash2 className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-rose-950">
+                      सदस्य प्रोफाईल हटवणे (Delete Member)
+                    </h3>
+                    <p className="text-xs text-slate-500 font-semibold">
+                      ही क्रिया केल्यावर प्रोफाईल रिसायकल बिन मध्ये जाईल
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-rose-50/70 border border-rose-200 rounded-2xl flex items-center gap-3.5">
+                  <img
+                    src={memberToDelete.photoUrl || (memberToDelete.gender === 'bride' ? '/bride_avatar.png' : '/groom_avatar.png')}
+                    alt={memberToDelete.fullName}
+                    className="w-14 h-14 rounded-2xl object-cover border-2 border-rose-200 shadow-xs"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-black text-sm text-slate-900 truncate">
+                      {memberToDelete.fullName}
+                    </h4>
+                    <p className="text-xs text-slate-600 font-medium">
+                      ID: <span className="font-mono font-bold">{memberToDelete.id}</span> • {memberToDelete.gender === 'bride' ? 'वधू' : 'वर'}
+                    </p>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      📍 {memberToDelete.city || memberToDelete.district || 'महाराष्ट्र'} • 📱 {memberToDelete.mobile}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-xs text-slate-700 font-medium bg-amber-50 p-3.5 rounded-xl border border-amber-200 space-y-1">
+                  <div className="font-bold text-amber-900 flex items-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-amber-700" />
+                    <span>काय होईल?</span>
+                  </div>
+                  <ul className="list-disc list-inside space-y-0.5 text-slate-600 text-[11px]">
+                    <li>सदस्य मुख्य ॲप आणि शोध परिणामांमधून त्वरित अदृश्य होईल.</li>
+                    <li>डेटा व फोटो रिसायकल बिन मध्ये सुरक्षित हलवले जातील.</li>
+                    <li>गरज भासल्यास ॲडमिन रिसायकल बिनमधून कधीही रिस्टोअर करू शकतात.</li>
+                  </ul>
+                </div>
+
+                <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setMemberToDelete(null)}
+                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer transition"
+                  >
+                    रद्द करा (Cancel)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const name = memberToDelete.fullName;
+                      deleteProfileDirect(memberToDelete.id);
+                      setMemberToDelete(null);
+                      setActionSuccessToast(`🗑️ '${name}' यांची प्रोफाईल यशस्वीरित्या हटवली गेली!`);
+                      setTimeout(() => setActionSuccessToast(null), 4000);
+                    }}
+                    className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-md hover:shadow-lg cursor-pointer transition flex items-center gap-1.5"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>होय, प्रोफाईल हटवा (Confirm Delete)</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* In-App Bulk Deletion Confirmation Modal */}
+          {isBulkDeleteModalOpen && (
+            <div className="fixed inset-0 z-[99999] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+              <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-2 border-rose-300 space-y-4 animate-in zoom-in-95">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-rose-100 rounded-2xl text-rose-700">
+                    <Trash2 className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-rose-950">
+                      एकाधिक प्रोफाईल्स हटवणे (Bulk Delete)
+                    </h3>
+                    <p className="text-xs text-slate-500 font-semibold">
+                      निवडलेले {selectedMemberIds.length} सदस्य रिसायकल बिन मध्ये हलवले जातील
+                    </p>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-700 font-medium">
+                  तुम्ही निवडलेल्या सर्व <span className="font-bold text-rose-700">{selectedMemberIds.length}</span> सदस्यांना प्रोफाईल यादीतून काढून रिसायकल बिन मध्ये हलवू इच्छिता का?
+                </p>
+
+                <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setIsBulkDeleteModalOpen(false)}
+                    className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer transition"
+                  >
+                    रद्द करा (Cancel)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmBulkSoftDelete}
+                    className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-md hover:shadow-lg cursor-pointer transition flex items-center gap-1.5"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>सर्व {selectedMemberIds.length} सदस्य हटवा</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Toast Notification Alert */}
+          {actionSuccessToast && (
+            <div className="fixed bottom-6 right-6 z-[99999] bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-amber-400 flex items-center gap-3 animate-in slide-in-from-bottom-5">
+              <Sparkles className="w-5 h-5 text-amber-400 flex-shrink-0" />
+              <span className="text-xs font-bold">{actionSuccessToast}</span>
+              <button
+                onClick={() => setActionSuccessToast(null)}
+                className="ml-2 text-slate-400 hover:text-white text-xs font-black cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
           )}
         </main>
       </div>

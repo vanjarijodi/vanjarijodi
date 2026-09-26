@@ -40,6 +40,10 @@ export const AdminDeletedProfilesView: React.FC = () => {
   const [selectedStoryItem, setSelectedStoryItem] = useState<any | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // In-app confirmation dialog states (replaces browser confirm)
+  const [itemToPurge, setItemToPurge] = useState<{ id: string; name: string } | null>(null);
+  const [isPurgeAllModalOpen, setIsPurgeAllModalOpen] = useState(false);
+
   // Calculate storage & health statistics
   const totalDeletedCount = recycleBin.length;
   const activeProfilesCount = profiles.length;
@@ -106,20 +110,28 @@ export const AdminDeletedProfilesView: React.FC = () => {
   };
 
   const handlePermanentDelete = (id: string, name: string) => {
-    if (confirm(`⚠️ खात्री आहे का? '${name}' यांची प्रोफाईल आणि डेटा कायमस्वरूपी हटवून डेटाबेस जागा मोकळी करायची आहे का? ही क्रिया पूर्ववत करता येत नाही.`)) {
-      permanentDeleteRecycleItem(id);
-      setSuccessMessage(`🗑️ '${name}' यांचा डेटा कायमस्वरूपी हटवला (Storage Reclaimed).`);
-      setTimeout(() => setSuccessMessage(null), 3500);
-    }
+    setItemToPurge({ id, name });
+  };
+
+  const confirmPermanentDelete = () => {
+    if (!itemToPurge) return;
+    const { id, name } = itemToPurge;
+    permanentDeleteRecycleItem(id);
+    setItemToPurge(null);
+    setSuccessMessage(`🗑️ '${name}' यांचा डेटा कायमस्वरूपी हटवला (Storage Reclaimed).`);
+    setTimeout(() => setSuccessMessage(null), 3500);
   };
 
   const handlePurgeAll = () => {
     if (recycleBin.length === 0) return;
-    if (confirm(`⚠️ सावधान: डिलीट केलेल्या सर्व (${recycleBin.length}) प्रोफाईल्स कायमस्वरूपी नष्ट करायच्या आहेत का? यामुळे डेटाबेस जागा पूर्णपणे मोकळी होईल.`)) {
-      bulkPurgeRecycleBin();
-      setSuccessMessage('✅ सर्व डिलीट केलेल्या प्रोफाईल्स कायमच्या हटवून डेटाबेस स्वच्छ केला आहे.');
-      setTimeout(() => setSuccessMessage(null), 4000);
-    }
+    setIsPurgeAllModalOpen(true);
+  };
+
+  const confirmPurgeAll = () => {
+    bulkPurgeRecycleBin();
+    setIsPurgeAllModalOpen(false);
+    setSuccessMessage('✅ सर्व डिलीट केलेल्या प्रोफाईल्स कायमच्या हटवून डेटाबेस स्वच्छ केला आहे.');
+    setTimeout(() => setSuccessMessage(null), 4000);
   };
 
   const handleDownloadBackup = () => {
@@ -532,6 +544,92 @@ export const AdminDeletedProfilesView: React.FC = () => {
                 className="px-5 py-2 rounded-xl bg-[#800C1E] text-amber-100 font-bold text-xs cursor-pointer shadow hover:brightness-110"
               >
                 बंद करा
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* In-App Permanent Delete Confirmation Modal */}
+      {itemToPurge && (
+        <div className="fixed inset-0 z-[99999] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-2 border-rose-300 space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-rose-100 text-rose-700 rounded-2xl">
+                <Trash2 className="w-7 h-7" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900">
+                  कायमस्वरूपी डेटा नष्ट करणे (Permanent Delete)
+                </h3>
+                <p className="text-xs text-slate-500 font-semibold">
+                  ही क्रिया पूर्ववत करता येत नाही
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-700 font-medium leading-relaxed bg-rose-50/70 p-3.5 rounded-2xl border border-rose-200">
+              खात्री आहे का? <span className="font-bold text-rose-900">'{itemToPurge.name}'</span> यांची प्रोफाईल आणि डेटाबेस मधील सर्व रेकॉर्ड कायमस्वरूपी नष्ट करायचे आहेत का? यामुळे स्टोरेज जागा पूर्णपणे मोकळी होईल.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setItemToPurge(null)}
+                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer transition"
+              >
+                रद्द करा (Cancel)
+              </button>
+              <button
+                type="button"
+                onClick={confirmPermanentDelete}
+                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-md hover:shadow-lg cursor-pointer transition flex items-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>होय, कायमचे नष्ट करा</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* In-App Purge All Confirmation Modal */}
+      {isPurgeAllModalOpen && (
+        <div className="fixed inset-0 z-[99999] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-2 border-rose-300 space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-rose-100 text-rose-700 rounded-2xl">
+                <Trash2 className="w-7 h-7" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900">
+                  सर्व प्रोफाईल्स कायमच्या नष्ट करा
+                </h3>
+                <p className="text-xs text-slate-500 font-semibold">
+                  रिसायकल बिन पूर्णपणे रिकामे होईल
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-700 font-medium leading-relaxed bg-rose-50/70 p-3.5 rounded-2xl border border-rose-200">
+              ⚠️ सावधान: रिसायकल बिन मधील सर्व <span className="font-bold text-rose-900">{recycleBin.length}</span> प्रोफाईल्स कायमस्वरूपी नष्ट करायच्या आहेत का? यामुळे डेटाबेस जागा पूर्णपणे मोकळी होईल.
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsPurgeAllModalOpen(false)}
+                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer transition"
+              >
+                रद्द करा (Cancel)
+              </button>
+              <button
+                type="button"
+                onClick={confirmPurgeAll}
+                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-md hover:shadow-lg cursor-pointer transition flex items-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>होय, सर्व {recycleBin.length} प्रोफाईल्स नष्ट करा</span>
               </button>
             </div>
           </div>

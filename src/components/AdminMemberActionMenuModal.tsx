@@ -365,7 +365,7 @@ export const AdminMemberActionMenuModal: React.FC<AdminMemberActionMenuModalProp
             </button>
 
             <button
-              onClick={() => { onClose(); onDelete(member); }}
+              onClick={() => onDelete(member)}
               className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-900 border border-rose-200 transition cursor-pointer text-left"
             >
               <div className="p-2 rounded-lg bg-rose-600 text-white">

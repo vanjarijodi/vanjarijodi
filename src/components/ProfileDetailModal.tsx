@@ -128,6 +128,7 @@ export const ProfileDetailModal: React.FC<{
   const [aadhaarIdNumberInput, setAadhaarIdNumberInput] = useState(profile?.idVerificationNumber || '');
   const [isAadhaarMaskedCheck, setIsAadhaarMaskedCheck] = useState<boolean>(profile?.isAadhaarMasked !== false);
   const [previewAadhaarModalUrl, setPreviewAadhaarModalUrl] = useState<string | null>(null);
+  const [isDeleteBiodataConfirmOpen, setIsDeleteBiodataConfirmOpen] = useState(false);
   const handleAadhaarFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, side: 'front' | 'back') => {
     const file = e.target.files?.[0];
     if (!file || !profile) return;
@@ -1278,13 +1279,7 @@ export const ProfileDetailModal: React.FC<{
 
                     <button
                       type="button"
-                      onClick={() => {
-                        if (confirm(`तुम्हाला खरोखर "${profile.fullName}" यांचा संपूर्ण बायोडाटा रिसायकल बिन मध्ये पाठवून डिलीट करायचा आहे का?`)) {
-                          softDeleteProfile(profile.id);
-                          alert('बायोडाटा यशस्वीरित्या डिलीट करून रिसायकल बिन मध्ये पाठवला गेला आहे!');
-                          onClose();
-                        }
-                      }}
+                      onClick={() => setIsDeleteBiodataConfirmOpen(true)}
                       className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-black shadow flex items-center gap-1.5 cursor-pointer transition"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -1293,6 +1288,60 @@ export const ProfileDetailModal: React.FC<{
                   </div>
                 </div>
 
+              </div>
+            )}
+
+            {/* In-App Biodata Delete Confirmation Modal */}
+            {isDeleteBiodataConfirmOpen && (
+              <div className="fixed inset-0 z-[999999] bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+                <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-2 border-rose-300 space-y-4 animate-in zoom-in-95">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-rose-100 text-rose-700 rounded-2xl">
+                      <Trash2 className="w-7 h-7" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-black text-rose-950">
+                        बायोडाटा डिलीट करणे (Delete Biodata)
+                      </h3>
+                      <p className="text-xs text-slate-500 font-semibold">
+                        बायोडाटा रिसायकल बिन मध्ये पाठवला जाईल
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-700 font-medium leading-relaxed bg-rose-50/70 p-3.5 rounded-2xl border border-rose-200">
+                    तुम्हाला खरोखर <span className="font-bold text-rose-900">"{profile.fullName}"</span> यांचा संपूर्ण बायोडाटा रिसायकल बिन मध्ये पाठवून डिलीट करायचा आहे का?
+                  </p>
+
+                  <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setIsDeleteBiodataConfirmOpen(false)}
+                      className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer transition"
+                    >
+                      रद्द करा (Cancel)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        softDeleteProfile(profile.id);
+                        setIsDeleteBiodataConfirmOpen(false);
+                        if (addNotification) {
+                          addNotification({
+                            type: 'success',
+                            title: 'बायोडाटा डिलीट झाला',
+                            message: 'बायोडाटा यशस्वीरित्या रिसायकल बिन मध्ये पाठवला गेला आहे!',
+                          });
+                        }
+                        onClose();
+                      }}
+                      className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl shadow-md hover:shadow-lg cursor-pointer transition flex items-center gap-1.5"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>होय, बायोडाटा डिलीट करा</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 

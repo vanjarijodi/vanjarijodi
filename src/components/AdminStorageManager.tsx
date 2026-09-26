@@ -39,6 +39,15 @@ export const AdminStorageManager: React.FC = () => {
   const [filterType, setFilterType] = useState<'all' | 'heavy' | 'has_docs'>('all');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
+  // In-app confirmation dialog state (replaces browser confirm)
+  const [pendingConfirm, setPendingConfirm] = useState<{
+    title: string;
+    description: string;
+    confirmText: string;
+    variant?: 'danger' | 'warning' | 'primary';
+    onConfirm: () => void;
+  } | null>(null);
+
   // Server Storage Stats
   const [serverStats, setServerStats] = useState<{
     diskTotalMB: number;
@@ -176,73 +185,90 @@ export const AdminStorageManager: React.FC = () => {
   }, [memberStorageList, searchQuery, filterType, sortOrder]);
 
   // 1. Action: Clean Downloads / Old APKs
-  const handleCleanDownloads = async () => {
-    if (!confirm('खात्री आहे का? जुन्या APK आणि डाऊनलोड फाइल्स हटवून जागा मोकळी करायची आहे का?')) return;
-    setIsActionRunning(true);
-    setCleanupMessage(null);
-    try {
-      const res = await fetch('/api/admin/storage/cleanup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'clean_downloads' }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setCleanupMessage(`🎉 यशस्वी! ${data.message || 'डाऊनलोड फाइल्स हटवून जागा मोकळी केली.'}`);
-        await fetchServerStats();
-      }
-    } catch (err: any) {
-      setCleanupMessage('त्रुटी: ' + (err.message || 'क्लीनअप अयशस्वी.'));
-    } finally {
-      setIsActionRunning(false);
-    }
+  const handleCleanDownloads = () => {
+    setPendingConfirm({
+      title: '📦 डाऊनलोड्स व जुने APK फाइल्स हटवणे',
+      description: 'तुम्ही सर्व जुन्या डाऊनलोड फाइल्स व APK हटवून सर्व्हर जागा मोकळी करू इच्छिता का?',
+      confirmText: 'होय, फाइल्स हटवा',
+      variant: 'warning',
+      onConfirm: async () => {
+        setIsActionRunning(true);
+        setCleanupMessage(null);
+        try {
+          const res = await fetch('/api/admin/storage/cleanup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'clean_downloads' }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            setCleanupMessage(`🎉 यशस्वी! ${data.message || 'डाऊनलोड फाइल्स हटवून जागा मोकळी केली.'}`);
+            await fetchServerStats();
+          }
+        } catch (err: any) {
+          setCleanupMessage('त्रुटी: ' + (err.message || 'क्लीनअप अयशस्वी.'));
+        } finally {
+          setIsActionRunning(false);
+        }
+      },
+    });
   };
 
   // 2. Action: Purge Recycle Bin
   const handlePurgeRecycleBin = () => {
     const count = recycleBin ? recycleBin.length : 0;
     if (count === 0) {
-      alert('रिसायकल बिन आधीच रिकामे आहे.');
+      setCleanupMessage('ℹ️ रिसायकल बिन आधीच रिकामे आहे.');
       return;
     }
-    if (!confirm(`खात्री आहे का? रिसायकल बिन मधील सर्व ${count} प्रोफाईल्स कायमच्या हटवून डेटाबेस जागा मोकळी करायची आहे का?`)) return;
-    clearRecycleBin();
-    setCleanupMessage(`🎉 रिसायकल बिन रिकामे केले! सर्व ${count} जुन्या प्रोफाईल्स कायमच्या हटवल्या.`);
+    setPendingConfirm({
+      title: '🧹 रिसायकल बिन पूर्णपणे रिकामे करा',
+      description: `खात्री आहे का? रिसायकल बिन मधील सर्व ${count} प्रोफाईल्स कायमच्या नष्ट करून डेटाबेस जागा मोकळी करायची आहे का?`,
+      confirmText: `होय, सर्व ${count} प्रोफाईल्स कायमच्या नष्ट करा`,
+      variant: 'danger',
+      onConfirm: () => {
+        clearRecycleBin();
+        setCleanupMessage(`🎉 रिसायकल बिन रिकामे केले! सर्व ${count} जुन्या प्रोफाईल्स कायमच्या हटवल्या.`);
+      },
+    });
   };
 
   // 3. Action: Free Space for Specific Member (Delete heavy attachments)
   const handleFreeMemberSpace = (memberItem: typeof memberStorageList[0]) => {
     const p = memberItem.profile;
-    if (
-      !confirm(
-        `खात्री आहे का? ${p.fullName} यांच्या जड फाइल्स (अतिरिक्त गॅलरी फोटो व कागदपत्रे) हटवून ~${memberItem.totalMBFormatted} MB जागा मोकळी करायची आहे का? (सदस्याची माहिती व मुख्य फोटो सुरक्षित राहील).`
-      )
-    ) {
-      return;
-    }
-
-    // Keep primary photo, strip bloated extra docs and extra gallery to free space
-    const updated: Partial<UserProfile> = {
-      photos: p.photoUrl ? [p.photoUrl] : [],
-      aadhaarFrontUrl: undefined,
-      aadhaarBackUrl: undefined,
-      aadhaarCardUrl: undefined,
-      selfie_image: undefined,
-      biodataPdfUrl: undefined,
-    };
-
-    updateProfileDirect(p.id, updated);
-    setCleanupMessage(`✅ ${p.fullName} यांच्या फाइल्स हटवून सुमारे ${memberItem.totalMBFormatted} MB जागा मोकळी केली!`);
+    setPendingConfirm({
+      title: `📸 ${p.fullName} यांच्या जड फाइल्स हटवा`,
+      description: `${p.fullName} यांच्या जड फाइल्स (अतिरिक्त गॅलरी फोटो व कागदपत्रे) हटवून ~${memberItem.totalMBFormatted} MB जागा मोकळी करायची आहे का? (सदस्याची माहिती व मुख्य फोटो सुरक्षित राहील).`,
+      confirmText: 'होय, फाइल्स हटवून जागा मोकळी करा',
+      variant: 'warning',
+      onConfirm: () => {
+        const updated: Partial<UserProfile> = {
+          photos: p.photoUrl ? [p.photoUrl] : [],
+          aadhaarFrontUrl: undefined,
+          aadhaarBackUrl: undefined,
+          aadhaarCardUrl: undefined,
+          selfie_image: undefined,
+          biodataPdfUrl: undefined,
+        };
+        updateProfileDirect(p.id, updated);
+        setCleanupMessage(`✅ ${p.fullName} यांच्या फाइल्स हटवून सुमारे ${memberItem.totalMBFormatted} MB जागा मोकळी केली!`);
+      },
+    });
   };
 
   // 4. Action: Purge Member Entirely
   const handlePurgeMember = (memberItem: typeof memberStorageList[0]) => {
     const p = memberItem.profile;
-    if (!confirm(`⚠️ सावधान! ${p.fullName} (ID: ${p.id}) यांचे प्रोफाईल आणि सर्व फाइल्स कायमच्या हटवायच्या आहेत का? ही क्रिया पूर्ववत करता येणार नाही.`)) {
-      return;
-    }
-    deleteProfileDirect(p.id);
-    setCleanupMessage(`🗑️ ${p.fullName} यांचे प्रोफाईल व सर्व फाइल्स हटवून ${memberItem.totalMBFormatted} MB जागा मोकळी केली!`);
+    setPendingConfirm({
+      title: `🚨 ${p.fullName} यांचे प्रोफाईल पूर्णपणे हटवा`,
+      description: `⚠️ सावधान! ${p.fullName} (ID: ${p.id}) यांचे प्रोफाईल आणि सर्व फाइल्स कायमच्या हटवायच्या आहेत का? ही क्रिया केल्यास प्रोफाईल रिसायकल बिन मध्ये जाईल व सर्व जागा मोकळी होईल.`,
+      confirmText: 'होय, सदस्य कायमचा हटवा (Purge)',
+      variant: 'danger',
+      onConfirm: () => {
+        deleteProfileDirect(p.id);
+        setCleanupMessage(`🗑️ ${p.fullName} यांचे प्रोफाईल व सर्व फाइल्स हटवून ${memberItem.totalMBFormatted} MB जागा मोकळी केली!`);
+      },
+    });
   };
 
   return (
@@ -443,23 +469,30 @@ export const AdminStorageManager: React.FC = () => {
           {/* Action 3: Purge Temp Uploads */}
           <button
             type="button"
-            onClick={async () => {
-              if (!confirm('अवांछित कॅश व तात्पुरत्या फाइल्स साफ करायच्या आहेत का?')) return;
-              setIsActionRunning(true);
-              try {
-                const res = await fetch('/api/admin/storage/cleanup', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ action: 'clean_uploads' }),
-                });
-                const d = await res.json();
-                setCleanupMessage(`🎉 ${d.message || 'अवांछित फाइल्स साफ केल्या.'}`);
-                await fetchServerStats();
-              } catch {
-                setCleanupMessage('✅ तात्पुरती कॅश स्वच्छ करण्यात आली.');
-              } finally {
-                setIsActionRunning(false);
-              }
+            onClick={() => {
+              setPendingConfirm({
+                title: '⚡ अवांछित कॅश व तात्पुरत्या फाइल्स साफ करा',
+                description: 'सिस्टीममधील अनावश्यक कॅश, तात्पुरत्या लॉग्स आणि अन-लिंक्ड फाइल्स साफ करून सर्व्हर वेग वाढवू इच्छिता का?',
+                confirmText: 'होय, कॅश साफ करा',
+                variant: 'primary',
+                onConfirm: async () => {
+                  setIsActionRunning(true);
+                  try {
+                    const res = await fetch('/api/admin/storage/cleanup', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ action: 'clean_uploads' }),
+                    });
+                    const d = await res.json();
+                    setCleanupMessage(`🎉 ${d.message || 'अवांछित फाइल्स साफ केल्या.'}`);
+                    await fetchServerStats();
+                  } catch {
+                    setCleanupMessage('✅ तात्पुरती कॅश स्वच्छ करण्यात आली.');
+                  } finally {
+                    setIsActionRunning(false);
+                  }
+                },
+              });
             }}
             disabled={isActionRunning}
             className="p-3.5 rounded-2xl bg-white hover:bg-emerald-50/80 border border-emerald-300 text-left space-y-1.5 shadow-2xs cursor-pointer active:scale-95 transition"
@@ -673,6 +706,68 @@ export const AdminStorageManager: React.FC = () => {
           </table>
         </div>
       </div>
+      {/* Interactive In-App Confirmation Modal */}
+      {pendingConfirm && (
+        <div className="fixed inset-0 z-[99999] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border-2 border-amber-300 space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center gap-3">
+              <div className={`p-3 rounded-2xl ${
+                pendingConfirm.variant === 'danger'
+                  ? 'bg-rose-100 text-rose-700'
+                  : pendingConfirm.variant === 'warning'
+                  ? 'bg-amber-100 text-amber-700'
+                  : 'bg-emerald-100 text-emerald-700'
+              }`}>
+                {pendingConfirm.variant === 'danger' ? (
+                  <Trash2 className="w-7 h-7" />
+                ) : (
+                  <AlertTriangle className="w-7 h-7" />
+                )}
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-black text-slate-900">
+                  {pendingConfirm.title}
+                </h3>
+                <p className="text-xs text-slate-500 font-semibold">
+                  पुष्टीकरण आवश्यक (Confirmation Required)
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-700 font-medium leading-relaxed bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+              {pendingConfirm.description}
+            </p>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setPendingConfirm(null)}
+                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl cursor-pointer transition"
+              >
+                रद्द करा (Cancel)
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const action = pendingConfirm.onConfirm;
+                  setPendingConfirm(null);
+                  action();
+                }}
+                className={`px-5 py-2.5 text-white font-black text-xs rounded-xl shadow-md hover:shadow-lg cursor-pointer transition flex items-center gap-1.5 ${
+                  pendingConfirm.variant === 'danger'
+                    ? 'bg-rose-600 hover:bg-rose-700'
+                    : pendingConfirm.variant === 'warning'
+                    ? 'bg-amber-600 hover:bg-amber-700'
+                    : 'bg-emerald-600 hover:bg-emerald-700'
+                }`}
+              >
+                <Check className="w-4 h-4" />
+                <span>{pendingConfirm.confirmText}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

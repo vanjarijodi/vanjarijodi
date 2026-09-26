@@ -562,6 +562,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (e) {}
   }, [deletedProfileIds]);
 
+  // Load backend server-synced deleted profile IDs on mount
+  useEffect(() => {
+    fetch('/api/profiles/deleted-ids')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && data.success && Array.isArray(data.deletedIds) && data.deletedIds.length > 0) {
+          const serverDeleted = data.deletedIds.map((x: any) => String(x).trim()).filter(Boolean);
+          if (serverDeleted.length > 0) {
+            setDeletedProfileIds((prev) => {
+              const merged = Array.from(new Set([...prev, ...serverDeleted]));
+              try {
+                localStorage.setItem('vanjari_jodi_deleted_profile_ids', JSON.stringify(merged));
+              } catch (e) {}
+              return merged;
+            });
+            setProfiles((prev) => prev.filter((p) => p && p.id && !serverDeleted.includes(String(p.id).trim())));
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const addDeletedProfileId = (id: string) => {
     const cleanId = String(id || '').trim();
     if (!cleanId) return;
