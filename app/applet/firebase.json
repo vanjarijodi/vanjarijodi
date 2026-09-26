@@ -1,0 +1,29 @@
+{
+  "hosting": {
+    "public": "dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "**/*.apk",
+      "**/*.aab",
+      "**/*.keystore",
+      "**/*.pem",
+      "**/*.exe",
+      "**/*.bin",
+      "**/*.sh",
+      "**/*.bat",
+      "**/*.cmd",
+      "**/*.cjs",
+      "**/*.cjs.map",
+      "downloads/**",
+      "**/downloads/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}
