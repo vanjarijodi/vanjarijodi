@@ -32,6 +32,36 @@ jobs:
           ls -la dist/
           test -f dist/index.html || { echo "Error: dist/index.html missing!"; exit 1; }
 
+      # बायनरी, सर्व्हर आणि एक्झिक्युटेबल फाईल्स शोधून पूर्णपणे काढून टाकणे
+      - name: Remove All Executables & Server Binaries
+        run: |
+          echo "=== 1. बॅकएंड सर्व्हर फोल्डर्स असल्यास काढून टाकत आहोत ==="
+          rm -rf dist/server dist/backend dist/api || true
+
+          echo "=== 2. लिनक्स file टूलने सर्व बायनरी/एक्झिक्युटेबल्स डिलीट करत आहोत ==="
+          find dist -type f | while read -r f; do
+            mimetype=$(file -b --mime-type "$f")
+            case "$mimetype" in
+              *executable*|*dosexec*|*sharedlib*|*mach-binary*|*package-archive*|*x-pie-executable*)
+                echo "हानीकारक फाईल सापडली आणि हटवली: $f (प्रकार: $mimetype)"
+                rm -f "$f"
+                ;;
+            esac
+          done
+
+          echo "=== 3. नको असलेली सर्व फॉरमॅट्स (.apk, .bin, .node, .exe) हटवत आहोत ==="
+          find dist -type f \( -name "*.apk" -o -name "*.bin" -o -name "*.node" -o -name "*.exe" -o -name "*.dll" -o -name "*.so" -o -name "*.sh" \) -delete
+
+          # Shebang स्क्रिप्ट्स काढून टाकणे
+          grep -rnw -l '^#!' dist/ 2>/dev/null | xargs rm -f || true
+
+          # फाईल्सचे परमिशन्स साध्या वेब फाईल्सप्रमाणे (644) करणे
+          find dist -type f -exec chmod 644 {} +
+          find dist -type d -exec chmod 755 {} +
+
+          echo "=== फायनल स्वच्छ फाईल्सची संख्या ==="
+          ls -la dist/
+
       - name: Deploy to Firebase Hosting
         env:
           FIREBASE_SERVICE_ACCOUNT_VANJARIJODI: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_VANJARIJODI }}
