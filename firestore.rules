@@ -1,0 +1,212 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.admin == true ||
+        request.auth.token.role == 'admin' ||
+        request.auth.token.email == 'gitevijay123@gmail.com'
+      );
+    }
+
+    // Profiles collection: Public readable, fully manageable for registration, updates, and deletion
+    match /profiles/{profileId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    // Deleted Profiles tracking collection
+    match /deleted_profiles/{docId} {
+      allow read, write, delete: if true;
+    }
+
+    // Recycle Bin items collection
+    match /recycleBin/{itemId} {
+      allow read, write, delete: if true;
+    }
+
+    // Trashed member photos
+    match /trashedPhotos/{photoId} {
+      allow read, write, delete: if true;
+    }
+
+    // Profile removal and marriage fixed requests
+    match /profileRemovalRequests/{reqId} {
+      allow read, write, delete: if true;
+    }
+
+    // KYC Verifications collection
+    match /kyc_verifications/{kycId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.user_id == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.user_id == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // Blocked Users Collection
+    match /blocked_users/{blockId} {
+      allow read: if isAuthenticated() && (resource.data.blocker_user_id == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.blocker_user_id == request.auth.uid;
+      allow delete: if isAuthenticated() && (resource.data.blocker_user_id == request.auth.uid || isAdmin());
+    }
+
+    // Suspicious User Alerts
+    match /suspicious_alerts/{alertId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Likes Collection: Only authenticated members, strictly no self-likes, owner delete
+    match /likes/{likeId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && 
+                    request.resource.data.fromUserId == request.auth.uid &&
+                    request.resource.data.toUserId != request.auth.uid;
+      allow delete: if isAuthenticated() && (resource.data.fromUserId == request.auth.uid || isAdmin());
+    }
+
+    // Profile Reports: Authenticated members can report; strictly Admin view and manage
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.reporterUserId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // Security Logs: Read by owner or admin, immutable (no update/delete)
+    match /securityLogs/{logId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
+    // Admin Audit Logs: Strictly Admin only, immutable
+    match /adminAuditLogs/{auditId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // Site Configuration: Read by all, modified only by Admin
+    match /siteConfig/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Payment & System Settings: Read by all, strictly editable by admins only
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Chat Messages: Read and write restricted to participant sender/receiver
+    match /chatMessages/{messageId} {
+      allow read: if isAuthenticated() && (
+        resource.data.senderId == request.auth.uid || 
+        resource.data.receiverId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && request.resource.data.senderId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && (resource.data.senderId == request.auth.uid || isAdmin());
+    }
+
+    // Admin Support Messages
+    match /adminSupportMessages/{messageId} {
+      allow read: if isAuthenticated() && (
+        resource.data.senderId == request.auth.uid || 
+        isAdmin()
+      );
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.senderId == request.auth.uid);
+    }
+
+    // Payment Requests: Users can create and view their own, Admins can manage and approve
+    match /paymentRequests/{requestId} {
+      allow read: if (isAuthenticated() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Success Stories
+    match /successStories/{storyId} {
+      allow read: if resource.data.isApproved == true || isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
+    }
+
+    // Community Ads & Business Vendors
+    match /communityAds/{adId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /businessVendors/{vendorId} {
+      allow read: if resource.data.status == 'approved' || isAdmin();
+      allow create: if true;
+      allow update: if (isAuthenticated() && resource.data.id == request.auth.uid && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'vendorBasePrice', 'platformMargin', 'customerPrice'])) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /business_vendors/{vendorId} {
+      allow read: if resource.data.status == 'approved' || isAdmin();
+      allow create: if true;
+      allow update: if (isAuthenticated() && resource.data.id == request.auth.uid && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'vendorBasePrice', 'platformMargin', 'customerPrice'])) || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /vendor_activity_logs/{logId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /vendor_inquiries/{inquiryId} {
+      allow read: if isAuthenticated() || isAdmin();
+      allow create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    // Promo Codes: Read by authenticated, managed by Admin
+    match /promoCodes/{codeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Notifications
+    match /notifications/{notifId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || resource.data.userId == 'all' || resource.data.userId == 'broadcast' || isAdmin());
+      allow create: if isAuthenticated() && (
+        (request.resource.data.userId != 'all' && request.resource.data.userId != 'broadcast' && request.resource.data.senderId == request.auth.uid) || 
+        isAdmin()
+      );
+      allow update, delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Mutual Matches
+    match /matches/{matchId} {
+      allow read: if isAuthenticated() && (resource.data.user1Id == request.auth.uid || resource.data.user2Id == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && (resource.data.user1Id == request.auth.uid || resource.data.user2Id == request.auth.uid || isAdmin());
+    }
+
+    // Favourites / Shortlists
+    match /favourites/{favId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // FCM Device Tokens
+    match /deviceTokens/{tokenId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create, update: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+  }
+}

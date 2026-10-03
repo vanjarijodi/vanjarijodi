@@ -1,0 +1,1694 @@
+import React, { useState, useEffect, useRef } from 'react';
+import confetti from 'canvas-confetti';
+import { useApp } from '../context/AppContext';
+import { Plan, MembershipTier } from '../types';
+import { uploadToCloudinary, validateFileSize } from '../utils/cloudinary';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
+import {
+  X,
+  ShieldCheck,
+  QrCode,
+  Upload,
+  Copy,
+  Check,
+  Sparkles,
+  Loader2,
+  Clock,
+  Smartphone,
+  AlertTriangle,
+  AlertCircle,
+  ArrowRight,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  ExternalLink,
+  ShieldAlert,
+  FileText,
+  CreditCard,
+  Lock,
+  Info,
+  Download,
+  MessageCircle,
+  Tag,
+  Percent,
+  Gift,
+  Send,
+  Zap,
+} from 'lucide-react';
+import { initiateRazorpayPayment, getRazorpayPublicConfig, type RazorpayPublicConfig } from '../services/razorpayClient';
+import { TelegramSupportButton } from './TelegramSupportButton';
+import { generatePaymentInvoicePDF } from '../utils/invoiceGenerator';
+import { ImageUploadField } from './common/ImageUploadField';
+
+interface DynamicUpiPaymentModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  plan: Plan | null;
+}
+
+export const DynamicUpiPaymentModal: React.FC<DynamicUpiPaymentModalProps> = ({
+  isOpen,
+  onClose,
+  plan,
+}) => {
+  const {
+    currentUser,
+    paymentConfig,
+    siteConfig,
+    plansList,
+    selectedPlanForPayment,
+    addPaymentRequest,
+    addNotification,
+    logActivity,
+    updateMemberTier,
+    setCurrentView,
+    validatePromoCode,
+    usePromoCode,
+    setSelectedPlanForPayment,
+  } = useApp();
+
+  // Active Plan Resolution (Supports selecting other plans within modal)
+  const [currentSelectedPlanId, setCurrentSelectedPlanId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      const showOnlyWelcome = siteConfig?.showOnlyWelcomePlan !== false;
+      const initial =
+        showOnlyWelcome
+          ? 'welcome_offer'
+          : (plan?.id ||
+            selectedPlanForPayment?.id ||
+            plansList.find((p) => p.id === 'welcome_offer' && p.isActive !== false)?.id ||
+            plansList.find((p) => p.isActive !== false && p.id !== 'single_kundli' && p.planType !== 'single_use')?.id ||
+            plansList[0]?.id ||
+            'welcome_offer');
+      setCurrentSelectedPlanId(initial);
+    }
+  }, [isOpen, plan?.id, selectedPlanForPayment?.id, siteConfig?.showOnlyWelcomePlan]);
+
+  const showOnlyWelcome = siteConfig?.showOnlyWelcomePlan !== false;
+  const activePlan =
+    (showOnlyWelcome
+      ? (plansList.find((p) => p.id === 'welcome_offer') || plansList[0])
+      : (plansList.find((p) => p.id === currentSelectedPlanId) ||
+         plan ||
+         selectedPlanForPayment)) ||
+    plansList.find((p) => p.id === 'welcome_offer' && p.isActive !== false) ||
+    plansList.find((p) => p.isActive !== false && p.id !== 'single_kundli' && p.planType !== 'single_use') ||
+    plansList.find((p) => p.id !== 'single_kundli' && p.planType !== 'single_use') ||
+    plansList[0];
+
+  // Promo Code State
+  const [promoCodeInput, setPromoCodeInput] = useState<string>('');
+  const [appliedPromo, setAppliedPromo] = useState<{
+    code: string;
+    discountAmount: number;
+    finalAmount: number;
+    isVipFree: boolean;
+    message: string;
+    promo?: any;
+  } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [isApplyingPromo, setIsApplyingPromo] = useState<boolean>(false);
+
+  // Dynamic Pricing Math
+  const originalPrice = Number(activePlan?.price || paymentConfig?.amount || 398);
+  const discountAmount = appliedPromo ? appliedPromo.discountAmount : 0;
+  const finalPayablePrice = appliedPromo ? appliedPromo.finalAmount : originalPrice;
+  const isVipFree = Boolean(appliedPromo?.isVipFree || finalPayablePrice === 0);
+
+  // Steps: 'checkout' | 'waiting' | 'approved' | 'rejected'
+  const [step, setStep] = useState<'checkout' | 'waiting' | 'approved' | 'rejected'>('checkout');
+
+  // Intent Data State
+  const [orderId, setOrderId] = useState<string>('');
+  const [upiIntentUri, setUpiIntentUri] = useState<string>('');
+  const [gpayUri, setGpayUri] = useState<string>('');
+  const [phonepeUri, setPhonepeUri] = useState<string>('');
+  const [paytmUri, setPaytmUri] = useState<string>('');
+  const [bhimUri, setBhimUri] = useState<string>('');
+  const [credUri, setCredUri] = useState<string>('');
+  const [amazonpayUri, setAmazonpayUri] = useState<string>('');
+  const [dynamicQrUrl, setDynamicQrUrl] = useState<string>('');
+  const [upiId, setUpiId] = useState<string>(siteConfig?.paymentUpiId || 'mahesh.hange1@ybl');
+  const [businessName, setBusinessName] = useState<string>(siteConfig?.paymentPayeeName || 'Vanjari Jodi Matrimony');
+  const [isLoadingIntent, setIsLoadingIntent] = useState<boolean>(false);
+  const [activeAppLaunching, setActiveAppLaunching] = useState<string | null>(null);
+
+  // Countdown Timer State (10:00 = 600 seconds) with real-world timestamp drift compensation
+  const [timeLeft, setTimeLeft] = useState<number>(600);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const deadlineRef = useRef<number>(Date.now() + 600 * 1000);
+
+  // Legal Terms Agreement Checkbox
+  const [isPaymentTermsAgreed, setIsPaymentTermsAgreed] = useState<boolean>(true);
+
+  // Form State
+  const [utrNumber, setUtrNumber] = useState<string>('');
+  const [utrError, setUtrError] = useState<string | null>(null);
+  const [isUtrChecking, setIsUtrChecking] = useState<boolean>(false);
+  const [isUtrDuplicate, setIsUtrDuplicate] = useState<boolean>(false);
+  const [screenshotUrl, setScreenshotUrl] = useState<string>('');
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [screenshotPreview, setScreenshotPreview] = useState<string>('');
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [userMobile, setUserMobile] = useState<string>(
+    currentUser?.mobile || currentUser?.mobileNumber || currentUser?.whatsappNumber || ''
+  );
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Active Submitted Request ID for Polling
+  const [submittedRequestId, setSubmittedRequestId] = useState<string | null>(null);
+  const [pollCount, setPollCount] = useState<number>(0);
+  const [adminNote, setAdminNote] = useState<string>('');
+  const [approvedDetails, setApprovedDetails] = useState<any>(null);
+
+  // Razorpay Gateway State
+  const [paymentTab, setPaymentTab] = useState<'razorpay' | 'manual_upi'>('razorpay');
+  const [isRazorpayLoading, setIsRazorpayLoading] = useState<boolean>(false);
+  const [razorpayError, setRazorpayError] = useState<string | null>(null);
+  const [razorpayConfig, setRazorpayConfig] = useState<RazorpayPublicConfig | null>(null);
+
+  // Fetch Razorpay Server Public Configuration
+  useEffect(() => {
+    if (isOpen) {
+      getRazorpayPublicConfig()
+        .then((cfg) => {
+          setRazorpayConfig(cfg);
+          if (siteConfig?.enableRazorpay === false || cfg.enabled === false) {
+            setPaymentTab('manual_upi');
+          } else {
+            setPaymentTab('razorpay');
+          }
+        })
+        .catch((err) => {
+          console.warn('Could not load Razorpay server config:', err);
+        });
+    }
+  }, [isOpen, siteConfig?.enableRazorpay]);
+
+  // Toast / Copy Feedback & Deep Link Notice
+  const [copiedToast, setCopiedToast] = useState<boolean>(false);
+  const [qrDownloaded, setQrDownloaded] = useState<boolean>(false);
+  const [upiLaunchNotice, setUpiLaunchNotice] = useState<string | null>(null);
+
+  // Reset & Initialize on Open & on Payment Config Updates
+  useEffect(() => {
+    if (isOpen && activePlan) {
+      setStep('checkout');
+      setUtrNumber('');
+      setUtrError(null);
+      setIsUtrDuplicate(false);
+      setScreenshotUrl('');
+      setScreenshotPreview('');
+      setScreenshotFile(null);
+      setSubmitError(null);
+      setRazorpayError(null);
+      setSubmittedRequestId(null);
+      setPromoCodeInput('');
+      setAppliedPromo(null);
+      setPromoError(null);
+      deadlineRef.current = Date.now() + 600 * 1000;
+      setTimeLeft(600);
+      fetchPaymentIntent();
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  }, [
+    isOpen,
+    activePlan?.id,
+    activePlan?.price,
+    paymentConfig?.upiId,
+    paymentConfig?.merchantQrImageUrl,
+    paymentConfig?.qrCodeUrl,
+    paymentConfig?.payeeName,
+    paymentConfig?.amount,
+    siteConfig?.paymentQrCodeUrl,
+    siteConfig?.paymentQrUrl,
+    siteConfig?.paymentUpiId
+  ]);
+
+  // Global event listener for instant realtime update when Admin changes QR or UPI ID
+  useEffect(() => {
+    const handleConfigUpdated = () => {
+      if (isOpen && activePlan) {
+        fetchPaymentIntent();
+      }
+    };
+    window.addEventListener('vanjari_payment_config_updated', handleConfigUpdated);
+    return () => {
+      window.removeEventListener('vanjari_payment_config_updated', handleConfigUpdated);
+    };
+  }, [isOpen, activePlan]);
+
+  // Countdown Timer Engine (Handles tab backgrounding & mobile app switching seamlessly)
+  useEffect(() => {
+    if (!isOpen || step !== 'checkout') {
+      if (timerRef.current) clearInterval(timerRef.current);
+      return;
+    }
+
+    const updateRemaining = () => {
+      const remainingSecs = Math.max(0, Math.round((deadlineRef.current - Date.now()) / 1000));
+      setTimeLeft(remainingSecs);
+      if (remainingSecs <= 0 && timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+
+    updateRemaining();
+    timerRef.current = setInterval(updateRemaining, 1000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isOpen, step]);
+
+  // Fetch Dynamic UPI Intent & QR from Backend
+  const fetchPaymentIntent = async (overridePrice?: number) => {
+    if (!activePlan) return;
+    const targetUpi = paymentConfig?.upiId || siteConfig?.paymentUpiId || 'paytm.s3ms5x7@pty';
+    const targetBusiness = paymentConfig?.payeeName || siteConfig?.paymentPayeeName || 'Usha Shivdas Hange';
+    const currentPrice = typeof overridePrice === 'number'
+      ? overridePrice
+      : (appliedPromo ? appliedPromo.finalAmount : (activePlan.price || 499));
+    const targetPrice = currentPrice;
+    const transactionNote = paymentConfig?.transactionNote || `VanjariJodi_${activePlan.id}`;
+
+    const cleanBusiness = String(targetBusiness).replace(/[^a-zA-Z0-9\s]/g, '').trim() || 'Usha Shivdas Hange';
+    const cleanNote = String(transactionNote).replace(/[^a-zA-Z0-9]/g, '') || 'VanjariJodi';
+
+    // Multi-App UPI routing IDs
+    const phonepeUpi = (paymentConfig?.phonepeUpiId || targetUpi).trim();
+    const gpayUpi = (paymentConfig?.gpayUpiId || targetUpi).trim();
+    const paytmUpi = (paymentConfig?.paytmUpiId || targetUpi).trim();
+
+    // Instant client-side fallback generation with exact dynamic plan amount
+    const fallbackUniversal = `upi://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+    const fallbackPhonePe = `phonepe://pay?pa=${encodeURIComponent(phonepeUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+    const fallbackGPay = `tez://upi/pay?pa=${encodeURIComponent(gpayUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+    const fallbackPaytm = `paytmmp://pay?pa=${encodeURIComponent(paytmUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+    const fallbackBhim = `bhim://pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+    const fallbackCred = `cred://upi/pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+    const fallbackAmazonPay = `amazonpay://upi/pay?pa=${encodeURIComponent(targetUpi)}&pn=${encodeURIComponent(cleanBusiness)}&am=${encodeURIComponent(targetPrice)}&cu=INR&tn=${encodeURIComponent(cleanNote)}`;
+
+    setUpiIntentUri(fallbackUniversal);
+    setPhonepeUri(fallbackPhonePe);
+    setGpayUri(fallbackGPay);
+    setPaytmUri(fallbackPaytm);
+    setBhimUri(fallbackBhim);
+    setCredUri(fallbackCred);
+    setAmazonpayUri(fallbackAmazonPay);
+    setUpiId(targetUpi);
+    setBusinessName(targetBusiness);
+    setDynamicQrUrl(paymentConfig?.merchantQrImageUrl || siteConfig?.paymentQrCodeUrl || `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=12&data=${encodeURIComponent(fallbackUniversal)}`);
+
+    try {
+      setIsLoadingIntent(true);
+      const res = await fetch('/api/payment/create-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: currentUser?.id || 'guest-user',
+          plan_id: activePlan.id,
+          plan_name: activePlan.nameMr || activePlan.name,
+          amount: targetPrice,
+          upi_id: targetUpi,
+          phonepe_upi_id: phonepeUpi,
+          gpay_upi_id: gpayUpi,
+          paytm_upi_id: paytmUpi,
+          business_name: targetBusiness,
+          note: transactionNote,
+        }),
+      });
+
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
+        const data = await res.json();
+        if (data.success) {
+          setOrderId(data.orderId);
+          setUpiIntentUri(data.upiIntentUri || fallbackUniversal);
+          setPhonepeUri(data.phonepeUri || fallbackPhonePe);
+          setGpayUri(data.gpayUri || fallbackGPay);
+          setPaytmUri(data.paytmUri || fallbackPaytm);
+          setBhimUri(data.bhimUri || fallbackBhim);
+          setCredUri(data.credUri || fallbackCred);
+          setAmazonpayUri(data.amazonpayUri || fallbackAmazonPay);
+          setDynamicQrUrl(paymentConfig?.merchantQrImageUrl || siteConfig?.paymentQrCodeUrl || data.dynamicQrUrl || `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(data.upiIntentUri || fallbackUniversal)}`);
+          setUpiId(data.targetUpiId || targetUpi);
+          setBusinessName(data.businessName || targetBusiness);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching payment intent:', err);
+    } finally {
+      setIsLoadingIntent(false);
+    }
+  };
+
+  // Apply Promo Code Handler
+  const handleApplyPromoCode = (codeToApply?: string) => {
+    const rawCode = (typeof codeToApply === 'string' ? codeToApply : promoCodeInput).trim().toUpperCase();
+    setPromoError(null);
+
+    if (!rawCode) {
+      setPromoError('कृपया प्रोमो / कूपन कोड टाकावा.');
+      return;
+    }
+
+    setIsApplyingPromo(true);
+    const result = validatePromoCode(rawCode, originalPrice);
+    setIsApplyingPromo(false);
+
+    if (!result.valid) {
+      setPromoError(result.message || 'हा प्रोमो कोड अवैध किंवा कालबाह्य झालेला आहे.');
+      return;
+    }
+
+    setAppliedPromo({
+      code: rawCode,
+      discountAmount: result.discountAmount,
+      finalAmount: result.finalAmount,
+      isVipFree: result.isVipFree,
+      message: result.message,
+      promo: result.promo,
+    });
+    setPromoCodeInput('');
+    setPromoError(null);
+
+    // Regenerate QR and UPI Intent with new discounted price
+    fetchPaymentIntent(result.finalAmount);
+  };
+
+  // Remove Promo Code Handler
+  const handleRemovePromoCode = () => {
+    setAppliedPromo(null);
+    setPromoError(null);
+    setPromoCodeInput('');
+    fetchPaymentIntent(originalPrice);
+  };
+
+  // 1-Click Instant VIP Free Activation (For 100% Discount / VIPFREE code)
+  const handleInstantVipFreeActivation = async () => {
+    if (!isVipFree || !appliedPromo) return;
+    try {
+      setIsSubmitting(true);
+      const nowIso = new Date().toISOString();
+      const vipUtr = `VIPFREE${Date.now().toString().slice(-6)}`;
+      const memberId = currentUser?.id || `guest-${Date.now()}`;
+      const memberName = currentUser?.fullName || 'Member';
+      const memberMobile = userMobile || currentUser?.mobile || currentUser?.mobileNumber || '';
+
+      // Context Sync
+      addPaymentRequest({
+        userId: memberId,
+        userName: memberName,
+        userMobile: memberMobile,
+        planId: activePlan.id as MembershipTier,
+        planName: activePlan.nameMr || activePlan.name,
+        amount: 0,
+        utrNumber: vipUtr,
+        screenshotUrl: '',
+        paymentMethod: 'vip_promo_code',
+        adminNote: `VIP Promo Code Auto-Activated: ${appliedPromo.code}`,
+        promoCode: appliedPromo.code,
+        discountAmount: originalPrice,
+        originalAmount: originalPrice,
+      });
+
+      // Update User Membership directly
+      if (currentUser) {
+        updateMemberTier(currentUser.id, activePlan.id as MembershipTier, undefined, {
+          paidAt: nowIso,
+          paymentApprovedAt: nowIso,
+          paymentAmount: 0,
+          paymentUtr: vipUtr,
+          paymentPlanName: `${activePlan.nameMr || activePlan.name} (VIP कूपन)`,
+        });
+      }
+
+      // Record promo code usage count
+      usePromoCode(appliedPromo.code);
+
+      logActivity(
+        'VIP Free Promo Code Activated',
+        `सदस्याने ${appliedPromo.code} कूपन वापरून मोफत ${activePlan.nameMr || activePlan.name} (₹०) ॲक्टिव्हेट केला.`,
+        memberName
+      );
+
+      handlePaymentApproved({
+        plan_name: activePlan.nameMr || activePlan.name,
+        amount: 0,
+        utr_number: vipUtr,
+      });
+    } catch (err: any) {
+      console.error('Error activating VIP Free promo:', err);
+      setSubmitError('VIP कूपन ॲक्टिव्हेट करताना त्रुटी आली. कृपया पुन्हा प्रयत्न करा.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Launch Specific UPI App with auto-copy, desktop check, Android Intent & universal fallback
+  const handleLaunchUpiApp = (appName: string, customUri?: string) => {
+    // Auto-copy UPI ID to clipboard as a fail-proof fallback
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(upiId);
+      }
+    } catch (e) {
+      console.log('Clipboard copy error:', e);
+    }
+
+    setCopiedToast(true);
+    setTimeout(() => setCopiedToast(false), 3000);
+    setActiveAppLaunching(appName);
+    setTimeout(() => setActiveAppLaunching(null), 4000);
+
+    const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+
+    const cleanBusiness = String(businessName || 'Usha Shivdas Hange').replace(/[^a-zA-Z0-9\s]/g, '').trim() || 'Usha Shivdas Hange';
+    const cleanNote = String(paymentConfig?.transactionNote || 'VanjariJodi').replace(/[^a-zA-Z0-9]/g, '') || 'VanjariJodi';
+
+    const formattedPrice = String(finalPayablePrice).replace(/[^0-9.]/g, '');
+    
+    const targetUpiId = (upiId || 'paytm.s3ms5x7@pty').trim();
+    const phonepeUpi = (paymentConfig?.phonepeUpiId || targetUpiId).trim();
+    const gpayUpi = (paymentConfig?.gpayUpiId || targetUpiId).trim();
+    const paytmUpi = (paymentConfig?.paytmUpiId || targetUpiId).trim();
+
+    const encodedUpi = encodeURIComponent(targetUpiId);
+    const encodedBusiness = encodeURIComponent(cleanBusiness);
+    const encodedNote = encodeURIComponent(cleanNote);
+
+    // Always auto-copy UPI ID to clipboard immediately for seamless fallback
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(targetUpiId);
+        setCopiedToast(true);
+        setTimeout(() => setCopiedToast(false), 2500);
+      }
+    } catch (clipErr) {}
+
+    let targetUri = customUri || upiIntentUri;
+
+    // Direct app-specific schemes & universal Android intent with auto amount & payee
+    if (appName === 'PhonePe') {
+      const encodedPhonePeUpi = encodeURIComponent(phonepeUpi);
+      // Using phonepe:// custom protocol directly to bypass Android Intent package-sandbox security blocks
+      targetUri = `phonepe://pay?pa=${encodedPhonePeUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+    } else if (appName === 'Google Pay') {
+      const encodedGPayUpi = encodeURIComponent(gpayUpi);
+      targetUri = isAndroid
+        ? `intent://pay?pa=${encodedGPayUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end`
+        : `tez://upi/pay?pa=${encodedGPayUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+    } else if (appName === 'Paytm') {
+      const encodedPaytmUpi = encodeURIComponent(paytmUpi);
+      targetUri = isAndroid
+        ? `intent://pay?pa=${encodedPaytmUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=net.one97.paytm;end`
+        : `paytmmp://pay?pa=${encodedPaytmUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+    } else if (appName === 'BHIM UPI') {
+      targetUri = isAndroid
+        ? `intent://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=in.org.npci.upiapp;end`
+        : bhimUri || `bhim://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+    } else if (appName === 'CRED') {
+      targetUri = isAndroid
+        ? `intent://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=com.dreamplug.androidapp;end`
+        : credUri || `cred://upi/pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+    } else if (appName === 'Amazon Pay') {
+      targetUri = isAndroid
+        ? `intent://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;package=in.amazon.mShop.android.shopping;end`
+        : amazonpayUri || `amazonpay://upi/pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+    } else {
+      // Universal standard UPI intent which prompts Android / iOS chooser dialog
+      targetUri = isAndroid
+        ? `intent://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}#Intent;scheme=upi;end`
+        : `upi://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+    }
+
+    if (!isMobileDevice) {
+      setUpiLaunchNotice(
+        `💻 तुम्ही लॅपटॉप/कॉम्प्युटरवर आहात. कृपया खालील QR कोड तुमच्या मोबाईलमधील PhonePe / GPay / Paytm ने स्कॅन करा — रक्कम (₹${formattedPrice}) आपोआप येईल! किंवा UPI ID (${targetUpiId}) कॉपी झाला आहे.`
+      );
+      return;
+    }
+
+    setUpiLaunchNotice(
+      `📲 ${appName} ॲप उघडत आहे... रक्कम: ₹${formattedPrice} आणि नाव: ${cleanBusiness} ऑटोमॅटिक आले आहे. फक्त तुमचा UPI PIN टाका!`
+    );
+
+    try {
+      const link = document.createElement('a');
+      link.href = targetUri;
+      link.target = '_top';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.warn('Deep link trigger fallback:', err);
+    }
+
+    // Direct window.location trigger
+    try {
+      window.location.href = targetUri;
+    } catch (eLoc) {}
+
+    // Fallback timer: if specific app intent wasn't handled, open universal OS chooser
+    if (appName !== 'सर्व UPI ॲप्स') {
+      setTimeout(() => {
+        try {
+          const universalFallback = `upi://pay?pa=${encodedUpi}&pn=${encodedBusiness}&am=${formattedPrice}&cu=INR&tn=${encodedNote}`;
+          const fallbackLink = document.createElement('a');
+          fallbackLink.href = universalFallback;
+          fallbackLink.target = '_top';
+          fallbackLink.rel = 'noopener noreferrer';
+          document.body.appendChild(fallbackLink);
+          fallbackLink.click();
+          document.body.removeChild(fallbackLink);
+        } catch (e) {}
+      }, 1200);
+    }
+  };
+
+  // Copy UPI ID with Toast
+  const handleCopyUpi = () => {
+    navigator.clipboard.writeText(upiId);
+    setCopiedToast(true);
+    setTimeout(() => setCopiedToast(false), 2500);
+  };
+
+  // Download / Save QR Code Image
+  const handleDownloadQr = async () => {
+    const qrUrl = paymentConfig?.merchantQrImageUrl || siteConfig?.paymentQrCodeUrl || siteConfig?.paymentQrUrl || dynamicQrUrl;
+    if (!qrUrl) return;
+    try {
+      const response = await fetch(qrUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `VanjariJodi_UPI_QR_${activePlan?.price || '398'}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } catch (e) {
+      const link = document.createElement('a');
+      link.href = qrUrl;
+      link.download = `VanjariJodi_UPI_QR_${activePlan?.price || '398'}.png`;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    setQrDownloaded(true);
+    setTimeout(() => setQrDownloaded(false), 3000);
+  };
+
+  // Direct Telegram Admin Assistance
+  const handleOpenTelegram = () => {
+    const tgUsername = (siteConfig?.telegramUsername || 'Primemultiservice').replace(/^@/, '').replace(/^https?:\/\/t\.me\//, '');
+    const planName = activePlan?.nameMr || activePlan?.name || 'नोंदणी प्लॅन';
+    const planPrice = activePlan?.price || paymentConfig?.amount || '398';
+    const msg = encodeURIComponent(`नमस्कार ॲडमिन, मी वंजारी जोडी मॅट्रिमोनीवर "${planName}" (रक्कम: ₹${planPrice}) साठी पेमेंट करत आहे. मला पेमेंट करताना मदत हवी आहे.`);
+    window.open(`https://t.me/${tgUsername}?text=${msg}`, '_blank');
+  };
+
+  // Strict 12-Digit Numeric UTR Input Handler & Live Validation
+  const handleUtrChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Only accept numeric digits, maximum 12 characters
+    const numericVal = e.target.value.replace(/[^0-9]/g, '').slice(0, 12);
+    setUtrNumber(numericVal);
+    setIsUtrDuplicate(false);
+
+    if (numericVal.length === 0) {
+      setUtrError(null);
+    } else if (numericVal.length < 12) {
+      setUtrError(`१२-अंकी UTR क्रमांक आवश्यक आहे (${numericVal.length}/12 अंक भरले)`);
+    } else if (numericVal.length === 12) {
+      setUtrError(null);
+      // Trigger Live Duplicate Check
+      checkUtrDuplicate(numericVal);
+    }
+  };
+
+  // Live UTR Uniqueness & Anti-Fraud Check
+  const checkUtrDuplicate = async (utr: string) => {
+    if (utr.length !== 12) return;
+    try {
+      setIsUtrChecking(true);
+      const res = await fetch(`/api/payment/check-utr/${utr}`);
+      const data = await res.json();
+      if (data.success && data.is_fake) {
+        setIsUtrDuplicate(true);
+        setUtrError(data.message || '⚠️ अमान्य डमी UTR क्रमांक. कृपया बँकेचा खरा UTR टाका.');
+      } else if (data.success && data.is_duplicate) {
+        setIsUtrDuplicate(true);
+        setUtrError('⚠️ हा UTR क्रमांक आधीच वापरला गेला आहे (Duplicate UTR). कृपया नवीन खरी पावती सबमिट करा.');
+      } else {
+        setIsUtrDuplicate(false);
+      }
+    } catch (err) {
+      console.error('Error verifying UTR uniqueness:', err);
+    } finally {
+      setIsUtrChecking(false);
+    }
+  };
+
+  // Screenshot Upload Handler
+  const handleFileSelect = async (file: File) => {
+    const sizeCheck = validateFileSize(file);
+    if (!sizeCheck.valid) {
+      setSubmitError(sizeCheck.errorMsg || 'फाइल साइज खूप मोठी आहे.');
+      return;
+    }
+
+    setScreenshotFile(file);
+    const localUrl = URL.createObjectURL(file);
+    setScreenshotPreview(localUrl);
+    setSubmitError(null);
+
+    // Upload to Cloudinary in background
+    try {
+      setIsUploading(true);
+      const uploaded = await uploadToCloudinary(file);
+      if (uploaded && uploaded.url) {
+        setScreenshotUrl(uploaded.url);
+      }
+    } catch (err) {
+      console.warn('Direct Cloudinary upload failed, local preview will be used:', err);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Submit Payment Request for Verification
+  const handleSubmitPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitError(null);
+
+    // Strict Validations
+    if (!utrNumber || utrNumber.length !== 12 || !/^\d{12}$/.test(utrNumber)) {
+      setUtrError('कृपया बँक पावतीतील बरोबर १२-अंकी UTR / Transaction ID नंबर टाकावा.');
+      return;
+    }
+
+    // Anti-fraud fake sequence detection
+    if (/^(\d)\1{11}$/.test(utrNumber)) {
+      setUtrError('अमान्य UTR (सर्व अंक समान आहेत). कृपया बँकेचा खरा UTR टाका.');
+      return;
+    }
+    const dummyPatterns = [
+      '123456789012',
+      '012345678901',
+      '987654321098',
+      '098765432109',
+      '121212121212',
+      '123123123123',
+      '112233445566',
+      '001122334455',
+      '101010101010',
+    ];
+    if (dummyPatterns.includes(utrNumber) || new Set(utrNumber.split('')).size < 3) {
+      setUtrError('अमान्य किंवा बनावट UTR क्रमांक. प्रत्यक्ष बँकेत पैसे पाठवल्याचा खरा UTR टाका.');
+      return;
+    }
+
+    if (isUtrDuplicate) {
+      setSubmitError('हा UTR क्रमांक आधीच वापरलेला आहे. कृपया नवीन खरी पावती किंवा योग्य UTR सबमिट करा.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      let finalScreenshotUrl = screenshotUrl;
+      // If screenshot file selected but not uploaded yet, upload now
+      if (screenshotFile && !finalScreenshotUrl) {
+        try {
+          const res = await uploadToCloudinary(screenshotFile);
+          if (res?.url) finalScreenshotUrl = res.url;
+        } catch (uploadErr) {
+          console.warn('Screenshot upload skipped:', uploadErr);
+        }
+      }
+
+      // Backend API Call
+      let data: any = { success: true };
+      try {
+        const res = await fetch('/api/payment/submit-request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: currentUser?.id || `guest-${Date.now()}`,
+            user_name: currentUser?.fullName || 'Member',
+            user_mobile: userMobile || currentUser?.mobile || '',
+            plan_id: activePlan.id,
+            plan_name: activePlan.nameMr || activePlan.name,
+            amount: finalPayablePrice,
+            utr_number: utrNumber,
+            screenshot_url: finalScreenshotUrl || screenshotPreview,
+            payment_method: 'upi_intent',
+            promo_code: appliedPromo?.code || undefined,
+            discount_amount: discountAmount,
+            original_amount: originalPrice,
+          }),
+        });
+
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          data = await res.json();
+          if (!res.ok || !data.success) {
+            if (res.status === 409 || data.isDuplicate) {
+              setIsUtrDuplicate(true);
+              setUtrError(data.error || 'हा UTR नंबर आधीच वापरला गेला आहे.');
+            } else {
+              setSubmitError(data.error || 'पेमेंट सबमिट करताना त्रुटी आली. कृपया पुन्हा प्रयत्न करा.');
+            }
+            setIsSubmitting(false);
+            return;
+          }
+        }
+      } catch (apiErr) {
+        console.warn('Backend payment submit not reachable, proceeding with local state sync:', apiErr);
+      }
+
+      // Context Sync
+      addPaymentRequest({
+        userId: currentUser?.id || `guest-${Date.now()}`,
+        userName: currentUser?.fullName || 'Member',
+        userMobile: userMobile || currentUser?.mobile || '',
+        planId: activePlan.id as MembershipTier,
+        planName: activePlan.nameMr || activePlan.name,
+        amount: finalPayablePrice,
+        utrNumber: utrNumber,
+        screenshotUrl: finalScreenshotUrl || screenshotPreview,
+        paymentMethod: 'upi_intent',
+        adminNote: appliedPromo ? `कूपन कोड लागू: ${appliedPromo.code} (सवलत ₹${discountAmount})` : '',
+        promoCode: appliedPromo?.code,
+        discountAmount: discountAmount,
+        originalAmount: originalPrice,
+      });
+
+      if (appliedPromo) {
+        usePromoCode(appliedPromo.code);
+      }
+
+      logActivity(
+        'UPI Payment Proof Submitted',
+        `सदस्याने ${activePlan.nameMr || activePlan.name} (रक्कम: ₹${finalPayablePrice}${appliedPromo ? `, कूपन: ${appliedPromo.code}` : ''}) साठी १२-अंकी UTR: ${utrNumber} सबमिट केला.`,
+        currentUser?.fullName || 'Member'
+      );
+
+      // Transition to Waiting Screen Polling
+      setSubmittedRequestId(data.requestId || data.paymentRequest?.id || `REQ-${Date.now()}`);
+      setStep('waiting');
+    } catch (err: any) {
+      console.error('Error submitting payment:', err);
+      setSubmitError('सर्व्हरशी संपर्क होऊ शकला नाही. कृपया इंटरनेट तपासा.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Polling Engine (Polls `/api/payment/status/:id` every 5 seconds)
+  useEffect(() => {
+    if (step !== 'waiting' || !submittedRequestId) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        setPollCount((prev) => prev + 1);
+        const res = await fetch(`/api/payment/status/${submittedRequestId}`);
+        const contentType = res.headers.get('content-type') || '';
+        if (!res.ok || !contentType.includes('application/json')) return;
+        const data = await res.json();
+
+        if (data.success) {
+          if (data.status === 'approved') {
+            clearInterval(pollInterval);
+            handlePaymentApproved(data);
+          } else if (data.status === 'rejected') {
+            clearInterval(pollInterval);
+            setAdminNote(data.admin_note || 'पेमेंट माहिती अमान्य झाली.');
+            setStep('rejected');
+          }
+        }
+      } catch (err) {
+        console.error('Error polling payment status:', err);
+      }
+    }, 5000);
+
+    return () => clearInterval(pollInterval);
+  }, [step, submittedRequestId]);
+
+  // Trigger Confetti Celebration & UI Activation
+  const handlePaymentApproved = (data: any) => {
+    setApprovedDetails(data);
+    setStep('approved');
+
+    // Launch Confetti Cannon
+    try {
+      confetti({
+        particleCount: 120,
+        spread: 80,
+        origin: { y: 0.6 },
+        colors: ['#800C1E', '#D97706', '#10B981', '#3B82F6', '#EC4899'],
+      });
+
+      setTimeout(() => {
+        confetti({
+          particleCount: 80,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 },
+        });
+        confetti({
+          particleCount: 80,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 },
+        });
+      }, 350);
+    } catch (e) {
+      console.log('Confetti error:', e);
+    }
+
+    // Sync App Context User Tier
+    if (currentUser) {
+      updateMemberTier(currentUser.id, activePlan.id as MembershipTier, undefined, {
+        paidAt: new Date().toISOString(),
+        paymentApprovedAt: new Date().toISOString(),
+        paymentAmount: activePlan.price,
+        paymentUtr: utrNumber,
+        paymentPlanName: activePlan.nameMr || activePlan.name,
+      });
+
+      if (typeof addNotification === 'function') {
+        addNotification({
+          userId: currentUser.id,
+          title: '🎉 मेंबरशिप यशस्वीरित्या सुरू झाली!',
+          titleMr: '🎉 प्रीमियम मेंबरशिप ॲक्टिव्हेट झाली!',
+          message: `${activePlan.nameMr || activePlan.name} प्लॅन (₹${activePlan.price}) मंजूर झाला आहे!`,
+          messageMr: `${activePlan.nameMr || activePlan.name} प्लॅन (₹${activePlan.price}) मंजूर झाला आहे!`,
+          type: 'approval',
+        });
+      }
+    }
+  };
+
+  // Razorpay 1-Click Instant Payment Checkout Handler
+  const handleRazorpayCheckout = async () => {
+    if (!isPaymentTermsAgreed) {
+      setSubmitError('कृपया पेमेंट सुरू करण्यापूर्वी नियम व अटी मान्य करा.');
+      return;
+    }
+    setRazorpayError(null);
+    setSubmitError(null);
+    setIsRazorpayLoading(true);
+
+    try {
+      await initiateRazorpayPayment({
+        planId: activePlan.id,
+        planName: activePlan.nameMr || activePlan.name,
+        userId: currentUser?.id || 'guest-user',
+        userName: currentUser?.fullName || 'सन्माननीय सदस्य',
+        userMobile: userMobile || currentUser?.mobile || currentUser?.mobileNumber || '',
+        promoDiscountAmount: discountAmount,
+        onSuccess: (verifiedData) => {
+          setIsRazorpayLoading(false);
+          if (appliedPromo) {
+            usePromoCode(appliedPromo.code);
+          }
+
+          const approvedInfo = {
+            ...verifiedData,
+            plan_name: activePlan.nameMr || activePlan.name,
+            amount: verifiedData.amount || finalPayablePrice,
+            utr_number: verifiedData.paymentId || verifiedData.orderId || `RZP-${Date.now()}`,
+            order_id: verifiedData.orderId,
+            gateway: 'razorpay',
+            status: 'approved',
+          };
+
+          setUtrNumber(verifiedData.paymentId || verifiedData.orderId || `RZP-${Date.now()}`);
+          handlePaymentApproved(approvedInfo);
+
+          // Context Sync
+          addPaymentRequest({
+            userId: currentUser?.id || 'guest-user',
+            userName: currentUser?.fullName || 'सन्माननीय सदस्य',
+            userMobile: userMobile || currentUser?.mobile || currentUser?.mobileNumber || '',
+            planId: activePlan.id as MembershipTier,
+            planName: activePlan.nameMr || activePlan.name,
+            amount: finalPayablePrice,
+            utrNumber: verifiedData.paymentId || verifiedData.orderId || `RZP-${Date.now()}`,
+            screenshotUrl: '',
+            paymentMethod: 'razorpay',
+            adminNote: 'Razorpay अधिकृत ऑटोमॅटिक गेटवेद्वारे स्वाक्षरी पडताळणी पूर्ण झाली व तात्काळ सक्रिय केले.',
+            promoCode: appliedPromo?.code,
+            discountAmount: discountAmount,
+            originalAmount: originalPrice,
+          });
+
+          logActivity(
+            'Razorpay Payment Success',
+            `सदस्याने ${activePlan.nameMr || activePlan.name} (रक्कम: ₹${finalPayablePrice}) साठी Razorpay द्वारे ऑनलाईन पेमेंट यशस्वी केले. Payment ID: ${verifiedData.paymentId}`,
+            currentUser?.fullName || 'Member'
+          );
+        },
+        onError: (errMsg) => {
+          setIsRazorpayLoading(false);
+          setRazorpayError(errMsg || 'पेमेंट प्रक्रियेत अडचण आली. कृपया पुन्हा प्रयत्न करा किंवा थेट UPI चा वापर करा.');
+        },
+        onDismiss: () => {
+          setIsRazorpayLoading(false);
+        },
+      });
+    } catch (err: any) {
+      setIsRazorpayLoading(false);
+      setRazorpayError(err?.message || 'Razorpay पेमेंट लोड करताना त्रुटी आली.');
+    }
+  };
+
+  // Generate & Download Tax Invoice / Payment Receipt
+  const handleDownloadInvoice = () => {
+    generatePaymentInvoicePDF({
+      invoiceNumber: approvedDetails?.order_id || `INV-${Date.now().toString().slice(-6)}`,
+      paymentId: approvedDetails?.utr_number || utrNumber || `RZP-${Date.now()}`,
+      orderId: approvedDetails?.order_id || orderId || `ORD-${Date.now()}`,
+      gateway: approvedDetails?.gateway === 'razorpay' ? 'Razorpay Payment Gateway' : 'Direct UPI / Merchant QR',
+      utrNumber: approvedDetails?.utr_number || utrNumber || `RZP-${Date.now()}`,
+      userName: currentUser?.fullName || 'सन्माननीय सदस्य',
+      userMobile: userMobile || currentUser?.mobile || '',
+      userDistrict: currentUser?.district || '',
+      planName: activePlan.nameMr || activePlan.name,
+      planDuration: activePlan.duration || 'सक्रिय वैधता',
+      amount: finalPayablePrice,
+      currency: 'INR',
+      paymentDate: new Date().toLocaleDateString('en-IN'),
+      membershipExpiryDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN'),
+      businessName: siteConfig?.logoTitle || 'वंजारी जोडी वधू-वर सूचक केंद्र',
+      upiId: siteConfig?.paymentUpiId || 'mahesh.hange1@ybl',
+      adminNote: 'Razorpay / UPI अधिकृत ऑनलाईन पावती. Membership Activated.',
+    });
+  };
+
+  // Format MM:SS for Timer
+  const formatTimer = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  useModalScrollLock(isOpen && !!activePlan);
+
+  if (!isOpen || !activePlan) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-sm overflow-hidden pt-safe pb-safe">
+      <div className="relative w-full h-full sm:h-auto max-w-2xl bg-white rounded-none sm:rounded-3xl shadow-2xl overflow-hidden border-0 sm:border border-amber-200 flex flex-col sm:my-auto max-h-none sm:max-h-[92vh]">
+        {/* Header Ribbon */}
+        <div className="bg-gradient-to-r from-[#7A0C1E] via-[#9B111E] to-[#7A0C1E] text-white px-6 py-5 flex items-center justify-between relative border-b border-amber-400/30">
+          <div className="flex items-center space-x-3">
+            <div className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center border border-amber-300/40 shadow-inner">
+              <CreditCard className="w-6 h-6 text-amber-300" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <h3 className="text-xl font-black text-white tracking-wide">
+                  सुरक्षित UPI पेमेंट गेटवे
+                </h3>
+                <span className="bg-amber-400/20 text-amber-300 text-xs px-2.5 py-0.5 rounded-full border border-amber-400/50 font-bold">
+                  Dynamic UPI
+                </span>
+              </div>
+              <p className="text-xs text-amber-200 font-medium mt-0.5">
+                Google Pay • PhonePe • Paytm • Any UPI App
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* ------------------------------------------------------------- */}
+        {/* STEP 1: CHECKOUT SCREEN (Dynamic Intent, QR, 10-Min Timer, Form) */}
+        {/* ------------------------------------------------------------- */}
+        {step === 'checkout' && (
+          <div className="p-4 sm:p-7 space-y-5 max-h-[85vh] overflow-y-auto">
+            {/* Quick Plan Switcher Selector */}
+            {(() => {
+              const showOnlyWelcome = siteConfig?.showOnlyWelcomePlan !== false;
+              const selectablePlans = showOnlyWelcome
+                ? plansList.filter((p) => p.id === 'welcome_offer' && p.isActive !== false)
+                : plansList.filter((p) => p.isActive !== false && p.id !== 'single_kundli' && p.planType !== 'single_use');
+
+              if (selectablePlans.length <= 1) return null;
+
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-amber-600" />
+                      <span>उपलब्ध मेंबरशिप योजना (Select Plan):</span>
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-bold">
+                      टॅप करून प्लॅन बदला
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {selectablePlans.map((p) => {
+                      const isSelected = p.id === activePlan.id;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => {
+                            setCurrentSelectedPlanId(p.id);
+                            setAppliedPromo(null);
+                            setPromoError(null);
+                            setPromoCodeInput('');
+                          }}
+                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer relative ${
+                            isSelected
+                              ? 'bg-gradient-to-br from-amber-50 to-amber-100/60 border-amber-500 shadow-xs ring-2 ring-amber-400'
+                              : 'bg-white border-slate-200 hover:border-amber-300 text-slate-700'
+                          }`}
+                        >
+                          {p.recommended && (
+                            <span className="absolute -top-2 right-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[8px] font-black px-1.5 py-0.2 rounded-full shadow-2xs">
+                              बेस्ट ऑफर
+                            </span>
+                          )}
+                          <span className={`block text-xs font-black truncate ${isSelected ? 'text-[#800C1E]' : 'text-slate-800'}`}>
+                            {p.name.includes('Welcome') ? '🔥 वेलकम ऑफर' : p.name.includes('Silver') ? '🥈 सिल्व्हर' : p.name.includes('Gold') ? '🥇 गोल्ड' : '👑 प्लॅटिनम'}
+                          </span>
+                          <div className="flex items-baseline gap-1 mt-0.5">
+                            <span className={`text-base font-black ${isSelected ? 'text-[#800C1E]' : 'text-slate-900'}`}>
+                              ₹{p.price}
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-medium">
+                              / {p.durationMonths ? `${p.durationMonths}म` : 'कालावधी'}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Plan Summary Card & Countdown Timer */}
+            <div className="bg-gradient-to-br from-amber-50/80 via-white to-amber-50/40 rounded-2xl p-4 sm:p-5 border border-amber-200/80 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <span className="text-[11px] font-bold tracking-wider text-amber-900 uppercase bg-amber-200/60 px-2.5 py-0.5 rounded-md">
+                  निवडलेला सबस्क्रिप्शन प्लॅन
+                </span>
+                <h4 className="text-lg font-bold text-gray-900 mt-1">
+                  {activePlan.nameMr || activePlan.name}
+                </h4>
+                <p className="text-xs text-gray-600">
+                  {activePlan.durationLabelMr || activePlan.featuresMr?.[0] || 'सर्व वधू-वर प्रोफाइल्स व संपर्क अनलॉक'}
+                </p>
+              </div>
+
+              {/* Amount & Timer */}
+              <div className="flex items-center space-x-4">
+                <div className="text-right">
+                  <span className="text-xs text-gray-500 block">एकूण देय रक्कम</span>
+                  <div className="flex items-baseline space-x-1.5 justify-end">
+                    {appliedPromo && discountAmount > 0 && (
+                      <span className="text-sm font-bold text-gray-400 line-through">
+                        ₹{originalPrice}
+                      </span>
+                    )}
+                    <span className={`text-2xl sm:text-3xl font-black ${isVipFree ? 'text-emerald-700' : 'text-[#800C1E]'}`}>
+                      {isVipFree ? '₹० (मोफत)' : `₹${finalPayablePrice}`}
+                    </span>
+                  </div>
+                  {appliedPromo && (
+                    <span className="text-[10px] font-bold text-emerald-700 block bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200 mt-0.5">
+                      ✓ ₹{discountAmount} सवलत लागू ({appliedPromo.code})
+                    </span>
+                  )}
+                </div>
+
+                {/* 10:00 Countdown Badge */}
+                <div
+                  className={`flex flex-col items-center justify-center px-3.5 py-2 rounded-xl border ${
+                    timeLeft < 120
+                      ? 'bg-rose-50 border-rose-300 text-rose-700 animate-pulse'
+                      : 'bg-white border-amber-200 text-amber-900 shadow-sm'
+                  }`}
+                >
+                  <div className="flex items-center space-x-1">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span className="font-mono text-sm font-black tracking-wider">
+                      {formatTimer(timeLeft)}
+                    </span>
+                  </div>
+                  <span className="text-[10px] uppercase font-semibold text-gray-500">
+                    {timeLeft === 0 ? 'मुदत संपली' : 'वेळ शिल्लक'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* ------------------------------------------------------------- */}
+            {/* PROMO / COUPON CODE SECTION */}
+            {/* ------------------------------------------------------------- */}
+            <div className="bg-slate-50/90 rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-800 flex items-center space-x-1.5">
+                  <Tag className="w-4 h-4 text-[#800C1E]" />
+                  <span>कूपन किंवा प्रोमो कोड (Promo / Discount Code):</span>
+                </label>
+                {appliedPromo && (
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>कूपन लागू झाले</span>
+                  </span>
+                )}
+              </div>
+
+              {!appliedPromo ? (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        value={promoCodeInput}
+                        onChange={(e) => {
+                          setPromoCodeInput(e.target.value.toUpperCase());
+                          setPromoError(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleApplyPromoCode();
+                          }
+                        }}
+                        placeholder="ॲडमिनने दिलेला कूपन कोड येथे टाका"
+                        className="w-full pl-3.5 pr-3 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold font-mono tracking-wider focus:outline-none focus:border-[#800C1E] focus:ring-1 focus:ring-[#800C1E] uppercase"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleApplyPromoCode()}
+                      disabled={isApplyingPromo || !promoCodeInput.trim()}
+                      className="px-4 py-2.5 bg-[#800C1E] hover:bg-[#6A0A19] disabled:opacity-50 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1 shadow-sm active:scale-95 flex-shrink-0 cursor-pointer"
+                    >
+                      {isApplyingPromo ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Percent className="w-3.5 h-3.5" />
+                          <span>लागू करा</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <p className="text-[10.5px] text-slate-500 font-medium flex items-center gap-1">
+                    <span>🔒</span>
+                    <span>ॲडमिनकडून मिळालेला अधिकृत डिस्काउंट कोड टाकल्यास रक्कम तत्काळ कमी होईल.</span>
+                  </p>
+
+                  {promoError && (
+                    <p className="text-xs text-rose-600 font-medium flex items-center space-x-1 animate-in fade-in">
+                      <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span>{promoError}</span>
+                    </p>
+                  )}
+                </div>
+              ) : (
+                /* Applied Promo Card */
+                <div className="p-3 bg-emerald-50 border border-emerald-300 rounded-xl flex items-center justify-between gap-3">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-xs flex-shrink-0">
+                      <Gift className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-1.5">
+                        <span className="font-mono font-black text-xs text-emerald-950 bg-white px-2 py-0.5 rounded border border-emerald-300">
+                          {appliedPromo.code}
+                        </span>
+                        <span className="text-xs font-bold text-emerald-800">
+                          {appliedPromo.message || 'सवलत लागू झाली!'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-emerald-700 font-medium mt-0.5">
+                        मूळ रक्कम: <span className="line-through">₹{originalPrice}</span> • सवलत: <span className="font-bold">₹{discountAmount}</span> • अंतिम रक्कम: <span className="font-bold text-[#800C1E]">₹{finalPayablePrice}</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleRemovePromoCode}
+                    className="text-xs font-bold text-rose-700 hover:text-rose-900 bg-white hover:bg-rose-50 border border-rose-200 px-2.5 py-1.5 rounded-lg transition shadow-2xs flex-shrink-0"
+                  >
+                    काढून टाका
+                  </button>
+                </div>
+              )}
+
+              {/* Instant VIP Free 1-Click Activation Button */}
+              {isVipFree && (
+                <div className="p-3.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white rounded-xl shadow-md space-y-2 animate-in zoom-in-95 duration-200">
+                  <div className="flex items-center space-x-2">
+                    <Sparkles className="w-5 h-5 text-amber-300" />
+                    <span className="font-bold text-sm">🎉 १००% मोफत VIP कूपन लागू झाले आहे!</span>
+                  </div>
+                  <p className="text-xs text-emerald-100">
+                    या कूपनद्वारे तुम्हाला कोणतेही शुल्क भरण्याची किंवा UTR टाकण्याची आवश्यकता नाही. खालील बटण दाबून थेट ॲक्टिव्हेट करा.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleInstantVipFreeActivation}
+                    disabled={isSubmitting}
+                    className="w-full py-3 px-4 bg-amber-400 hover:bg-amber-300 text-amber-950 font-black rounded-xl text-sm shadow-md hover:shadow-lg transition flex items-center justify-center space-x-2 active:scale-98"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>VIP प्लॅन सुरू होत आहे...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-5 h-5 text-emerald-900" />
+                        <span>🎉 मोफत VIP मेंबरशिप त्वरित सुरू करा (₹० भरणा)</span>
+                        <ArrowRight className="w-4 h-4 text-emerald-900" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Timer Expired Warning */}
+            {timeLeft === 0 && (
+              <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 flex items-center justify-between text-rose-800 text-xs">
+                <div className="flex items-center space-x-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 flex-shrink-0" />
+                  <span>पेमेंट सेशनची वेळ संपली आहे. कृपया रिफ्रेश करून नवीन क्यूआर मिळवा.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTimeLeft(600);
+                    fetchPaymentIntent();
+                  }}
+                  className="bg-rose-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-rose-700 transition flex items-center space-x-1 shadow-sm"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>रिफ्रेश करा</span>
+                </button>
+              </div>
+            )}
+
+            {/* ------------------------------------------------------------- */}
+            {/* DIRECT RAZORPAY 1-CLICK INSTANT ONLINE CHECKOUT */}
+            {/* ------------------------------------------------------------- */}
+            <div className="bg-gradient-to-br from-amber-50/90 via-white to-amber-100/40 rounded-3xl p-5 sm:p-6 border-2 border-amber-400 shadow-lg space-y-5">
+                {/* Header info */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-amber-200/80 pb-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="bg-amber-200 text-amber-950 text-[11px] font-black px-2.5 py-0.5 rounded-full border border-amber-300 uppercase flex items-center gap-1">
+                        <Lock className="w-3 h-3 text-[#800C1E]" />
+                        <span>अधिकृत Razorpay पेमेंट गेटवे</span>
+                      </span>
+                      <span className="bg-emerald-100 text-emerald-900 text-[11px] font-bold px-2 py-0.5 rounded-md border border-emerald-300">
+                        ⚡ तात्काळ अनलॉक
+                      </span>
+                    </div>
+                    <h4 className="text-base sm:text-lg font-black text-slate-900 mt-1">
+                      सुरक्षित ऑनलाईन पेमेंट (100% Secure Checkout)
+                    </h4>
+                    <p className="text-xs text-slate-600 font-medium">
+                      कोणताही १२-अंकी UTR क्रमांक टाकण्याची किंवा मंजुरीची वाट पाहण्याची आवश्यकता नाही. पेमेंट होताच लगेच मेंबरशिप सुरू होईल!
+                    </p>
+                  </div>
+
+                  <div className="text-right shrink-0 bg-white px-3.5 py-2 rounded-2xl border border-amber-300 shadow-2xs">
+                    <span className="text-[10px] text-slate-500 font-bold block">अंतिम देय रक्कम</span>
+                    <span className="text-xl sm:text-2xl font-black text-[#800C1E]">₹{finalPayablePrice}</span>
+                  </div>
+                </div>
+
+                {/* Supported Payment Channels Grid */}
+                <div className="bg-white p-4 rounded-2xl border border-amber-300/80 space-y-2.5 shadow-2xs">
+                  <span className="text-[11px] font-bold text-slate-600 block">
+                    सर्व लोकप्रिय भारतीय पेमेंट पद्धती उपलब्ध:
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-center font-bold text-slate-800 flex items-center justify-center gap-1.5">
+                      <span className="text-base">📱</span>
+                      <span>Google Pay / PhonePe</span>
+                    </div>
+                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-center font-bold text-slate-800 flex items-center justify-center gap-1.5">
+                      <span className="text-base">💳</span>
+                      <span>Debit / Credit Cards</span>
+                    </div>
+                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-center font-bold text-slate-800 flex items-center justify-center gap-1.5">
+                      <span className="text-base">🏦</span>
+                      <span>Net Banking (50+ Banks)</span>
+                    </div>
+                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-center font-bold text-slate-800 flex items-center justify-center gap-1.5">
+                      <span className="text-base">⚡</span>
+                      <span>Paytm, BHIM, Cred, UPI</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Live Production 100% Secure Payment Trust Card */}
+                <div className="bg-gradient-to-r from-emerald-50 via-white to-emerald-50/60 border border-emerald-300 rounded-2xl p-4 text-xs space-y-2 shadow-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1.5 font-black text-emerald-950 text-xs">
+                      <ShieldCheck className="w-4.5 h-4.5 text-emerald-700" />
+                      <span>🔒 100% सुरक्षित पेमेंट व थेट सक्रियता (Bank-Grade Security)</span>
+                    </span>
+                    <span className="bg-emerald-100 text-emerald-900 font-bold px-2.5 py-0.5 rounded-full text-[10px] border border-emerald-300">
+                      ✓ LIVE अधिकृत गेटवे
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-emerald-900/90 leading-relaxed">
+                    Razorpay द्वारे 256-Bit SSL एन्क्रिप्शनसह सुरक्षित पेमेंट. पेमेंट होताच मेंबरशिप <strong>तात्काळ आपोआप (Instant Auto-Activation)</strong> सुरू होईल.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-emerald-200/60 text-[10px] text-emerald-800">
+                    <span className="flex items-center gap-1 font-bold">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" /> झटपट ई-पावती
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1 font-bold">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" /> कोणतेही छुपे शुल्क नाही
+                    </span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1 font-bold">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" /> 24x7 ग्राहक सहाय्य
+                    </span>
+                  </div>
+                </div>
+
+                {/* Member Details Review */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <label className="text-xs font-bold text-gray-800 block mb-1">
+                      तुमचा संपर्क मोबाईल नंबर
+                    </label>
+                    <input
+                      type="tel"
+                      value={userMobile}
+                      onChange={(e) => setUserMobile(e.target.value)}
+                      placeholder="१०-अंकी मोबाईल नंबर"
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-bold focus:border-[#800C1E] focus:outline-none"
+                    />
+                  </div>
+                  <div className="flex flex-col justify-end">
+                    <div className="p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 font-medium">
+                      निवडलेला प्लॅन: <strong className="text-slate-900">{activePlan.nameMr || activePlan.name}</strong> • वैधता: <strong>{activePlan.duration}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Terms agreement checkbox */}
+                <div className="p-3 bg-white rounded-xl border border-amber-300 space-y-1 text-xs">
+                  <label className="flex items-start space-x-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isPaymentTermsAgreed}
+                      onChange={(e) => setIsPaymentTermsAgreed(e.target.checked)}
+                      className="w-4 h-4 rounded border-amber-400 text-[#800C1E] focus:ring-0 mt-0.5 cursor-pointer shrink-0"
+                    />
+                    <div className="text-[11px] text-slate-800 font-bold leading-relaxed">
+                      <span>मी <strong>वंजारी जोडी मॅट्रिमोनी</strong> च्या ऑनलाईन पेमेंट अटी, </span>
+                      <span className="text-[#800C1E] underline">परतावा धोरण (5-7 Days Refund)</span>
+                      <span> व कायदेशीर अस्वीकरण मान्य करतो.</span>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Razorpay Error display */}
+                {razorpayError && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                      <span>{razorpayError}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRazorpayCheckout}
+                      className="text-[11px] font-bold text-[#800C1E] underline ml-2 shrink-0 cursor-pointer"
+                    >
+                      पुन्हा प्रयत्न करा ➔
+                    </button>
+                  </div>
+                )}
+
+                {/* Big Action Checkout Button */}
+                <button
+                  type="button"
+                  onClick={handleRazorpayCheckout}
+                  disabled={isRazorpayLoading || !isPaymentTermsAgreed}
+                  className="w-full py-4 px-6 bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] hover:from-[#6A0A19] hover:to-[#8E1428] disabled:opacity-50 disabled:cursor-not-allowed text-white font-black rounded-2xl shadow-xl hover:shadow-2xl transition flex items-center justify-center gap-2 text-base cursor-pointer active:scale-98"
+                >
+                  {isRazorpayLoading ? (
+                    <>
+                      <Loader2 className="w-6 h-6 animate-spin text-amber-300" />
+                      <span>सुरक्षित Razorpay गेटवे उघडत आहे...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-5 h-5 text-amber-300" />
+                      <span>Razorpay द्वारे ₹{finalPayablePrice} त्वरित भरा (1-Click Pay)</span>
+                      <ArrowRight className="w-5 h-5 text-amber-300 ml-1" />
+                    </>
+                  )}
+                </button>
+
+                {/* Merchant Details & Security Notice */}
+                <div className="p-3 bg-slate-900 text-amber-100 rounded-xl border border-amber-400/30 text-[11px] space-y-1.5">
+                  <div className="flex items-center justify-between border-b border-amber-400/20 pb-1 font-bold text-amber-300">
+                    <span>🏢 {siteConfig?.businessName || 'वंजारी जोडी मॅट्रिमोनी (Vanjari Jodi Matrimony)'}</span>
+                    <span className="text-emerald-400 text-[10px] bg-emerald-950 px-2 py-0.5 rounded border border-emerald-500/40">Verified Razorpay Merchant</span>
+                  </div>
+                  <div className="text-[10px] text-slate-300 space-y-0.5 font-medium">
+                    <p>📍 <strong>Address:</strong> {siteConfig?.contactAddress || 'At Post Padali, Taluka Shirur (Kasar), District Beed, Maharashtra - 413249'}</p>
+                    <p>📧 <strong>Official Support Email:</strong> {siteConfig?.contactEmail || 'gitevijay123@gmail.com'}</p>
+                    <p>⏱️ <strong>Operating Hours:</strong> Mon - Sat, 10:00 AM to 5:00 PM</p>
+                    <p className="text-amber-200 font-semibold pt-0.5">⚡ <strong>Refund Policy:</strong> Duplicate payments are automatically refunded within 5-7 working days to original payment source.</p>
+                  </div>
+                </div>
+
+                {/* Trust & Telegram Support footer */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1 text-[11px] text-slate-500 font-medium border-t border-amber-200/60">
+                  <div className="flex items-center space-x-1.5">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>PCI-DSS Compliant • 256-Bit SSL Encryption • Razorpay Authorized</span>
+                  </div>
+                  <TelegramSupportButton customText="सपोर्ट चॅट (Telegram)" className="text-xs" />
+                </div>
+              </div>
+
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* STEP 2: WAITING & LIVE POLLING SCREEN (Every 5s status check) */}
+        {/* ------------------------------------------------------------- */}
+        {step === 'waiting' && (
+          <div className="p-8 sm:p-10 text-center space-y-6">
+            {/* Animated Radar Pulse Scanner */}
+            <div className="relative w-28 h-28 mx-auto flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-amber-400/20 animate-ping" />
+              <div className="absolute inset-2 rounded-full bg-[#800C1E]/15 animate-pulse" />
+              <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-[#800C1E] to-[#A71930] text-white flex items-center justify-center shadow-xl">
+                <Loader2 className="w-10 h-10 animate-spin text-amber-300" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <span className="bg-amber-100 text-amber-900 text-xs px-3 py-1 rounded-full font-bold border border-amber-300">
+                ⏳ प्रशासक पडताळणी सुरू आहे (Polling Live Status...)
+              </span>
+              <h4 className="text-xl font-bold font-serif text-gray-900 mt-2">
+                तुमची पेमेंट पावती प्राप्त झाली आहे
+              </h4>
+              <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto">
+                बँक UTR व पावतीची पडताळणी होत असून दर ५ सेकंदाला स्टेटस आपोआप अपडेट होत आहे.
+              </p>
+            </div>
+
+            {/* Request Summary Card */}
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 max-w-md mx-auto text-left text-xs space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-500">विनंती आयडी:</span>
+                <span className="font-mono font-bold text-slate-800">{submittedRequestId}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">UTR / Transaction ID:</span>
+                <span className="font-mono font-bold text-emerald-700">{utrNumber}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">प्लॅन & रक्कम:</span>
+                <span className="font-bold text-[#800C1E]">
+                  {activePlan.nameMr || activePlan.name} (₹{activePlan.price})
+                </span>
+              </div>
+              <div className="flex justify-between pt-1 border-t border-slate-200 text-[11px] text-gray-500">
+                <span>लाइव्ह स्टेटस चेक्स:</span>
+                <span>{pollCount} वेळा तपासले</span>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-gray-500">
+              प्रशासक मंजुरी देताच स्क्रीनवर अभिनंदन संदेश व मेंबरशिप सुरू होईल.
+            </p>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* STEP 3: CELEBRATION & APPROVED SCREEN (Confetti Activated!) */}
+        {/* ------------------------------------------------------------- */}
+        {step === 'approved' && (
+          <div className="p-8 sm:p-10 text-center space-y-6">
+            <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-emerald-500 to-teal-700 text-white mx-auto flex items-center justify-center shadow-2xl animate-bounce">
+              <CheckCircle2 className="w-14 h-14 text-white" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="bg-emerald-100 text-emerald-800 text-xs px-3.5 py-1 rounded-full font-black border border-emerald-300 uppercase tracking-wide">
+                🎉 APPROVED & ACTIVATED
+              </span>
+              <h3 className="text-2xl sm:text-3xl font-black font-serif text-gray-900 mt-2">
+                अभिनंदन! तुमचे पेमेंट मंजूर झाले आहे!
+              </h3>
+              <p className="text-sm text-gray-600 max-w-md mx-auto">
+                {activePlan.nameMr || activePlan.name} सबस्क्रिप्शन यशस्वीरीत्या सक्रिय झाले असून सर्व वधू-वर संपर्क अनलॉक झाले आहेत.
+              </p>
+            </div>
+
+            {/* Approved Membership Details */}
+            <div className="bg-gradient-to-r from-amber-50 to-emerald-50 border border-emerald-200 rounded-2xl p-5 max-w-md mx-auto text-left text-xs space-y-2.5 shadow-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">मेंबरशिप प्लॅन:</span>
+                <span className="font-bold text-gray-900">{activePlan.nameMr || activePlan.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">पेड रक्कम:</span>
+                <span className="font-black text-[#800C1E]">₹{finalPayablePrice}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">पेमेंट पद्धत:</span>
+                <span className="font-bold text-emerald-800">
+                  {approvedDetails?.gateway === 'razorpay' ? '⚡ Razorpay Gateway (Instant)' : '📲 थेट UPI / QR'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">UTR / Payment ID:</span>
+                <span className="font-mono font-bold text-emerald-800">{utrNumber}</span>
+              </div>
+              <div className="flex justify-between pt-2 border-t border-emerald-200/60 font-bold text-emerald-900">
+                <span>स्टेटस:</span>
+                <span>सक्रिय (Active Premium Member)</span>
+              </div>
+            </div>
+
+            {/* Action Buttons: Invoice Download & Go to Profiles */}
+            <div className="max-w-md mx-auto space-y-3">
+              <button
+                type="button"
+                onClick={handleDownloadInvoice}
+                className="w-full py-3 px-4 bg-white hover:bg-slate-50 border-2 border-emerald-600 text-emerald-800 font-black rounded-xl shadow-xs transition flex items-center justify-center gap-2 text-xs cursor-pointer active:scale-98"
+              >
+                <FileText className="w-4 h-4 text-emerald-700" />
+                <span>📄 अधिकृत कर पावती डाऊनलोड करा (Download Tax Invoice PDF)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  if (typeof setCurrentView === 'function') setCurrentView('profiles');
+                }}
+                className="w-full py-4 px-6 bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white font-bold rounded-2xl shadow-xl transition flex items-center justify-center space-x-2 text-base cursor-pointer"
+              >
+                <Sparkles className="w-5 h-5 text-amber-300" />
+                <span>वधू-वर प्रोफाईल्स पाहा (Explore Profiles)</span>
+                <ArrowRight className="w-5 h-5 text-amber-300 ml-1" />
+              </button>
+            </div>
+
+            <div className="pt-2 flex justify-center">
+              <TelegramSupportButton customText="काही अडचण आल्यास टेलिग्राम सपोर्ट" className="text-xs" />
+            </div>
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* STEP 4: REJECTED SCREEN (With Reason & Retry Button) */}
+        {/* ------------------------------------------------------------- */}
+        {step === 'rejected' && (
+          <div className="p-8 sm:p-10 text-center space-y-6">
+            <div className="w-20 h-20 rounded-full bg-rose-100 text-rose-600 mx-auto flex items-center justify-center border-2 border-rose-300">
+              <XCircle className="w-12 h-12" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="bg-rose-100 text-rose-800 text-xs px-3 py-1 rounded-full font-bold border border-rose-300">
+                पेमेंट अमान्य / नाकारले
+              </span>
+              <h4 className="text-xl font-bold font-serif text-gray-900 mt-2">
+                पेमेंट पडताळणी अयशस्वी
+              </h4>
+              <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto">
+                प्रशासकाने दिलेल्या कारणामुळे ही विनंती मंजूर होऊ शकली नाही:
+              </p>
+            </div>
+
+            {/* Admin Note Box */}
+            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 max-w-md mx-auto text-left text-xs text-rose-900 font-medium">
+              <p className="font-bold mb-1 flex items-center space-x-1 text-rose-800">
+                <ShieldAlert className="w-4 h-4" />
+                <span>प्रशासक शेरा (Reason):</span>
+              </p>
+              <p>{adminNote || 'UTR नंबर बँक खात्याशी जुळला नाही किंवा अस्पष्ट पावती आहे.'}</p>
+            </div>
+
+            {/* Action Buttons: Retry and Telegram Support */}
+            <div className="max-w-md mx-auto space-y-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setStep('checkout');
+                  setPaymentTab('razorpay');
+                  setUtrNumber('');
+                  setUtrError(null);
+                  setIsUtrDuplicate(false);
+                  setTimeLeft(600);
+                }}
+                className="w-full py-3.5 px-6 bg-[#800C1E] hover:bg-[#6A0A19] text-white font-bold rounded-xl shadow-lg transition flex items-center justify-center space-x-2 text-sm cursor-pointer"
+              >
+                <RefreshCw className="w-4 h-4 text-amber-300" />
+                <span>Razorpay द्वारे पुन्हा प्रयत्न करा (Retry Payment)</span>
+              </button>
+
+              <div className="pt-2 flex justify-center">
+                <TelegramSupportButton customText="मदतीसाठी टेलिग्राम संपर्क साधा" className="text-xs" />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
