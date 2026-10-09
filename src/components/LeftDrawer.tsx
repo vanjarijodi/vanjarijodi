@@ -1,0 +1,698 @@
+import React from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { useApp } from '../context/AppContext';
+import {
+  X,
+  Home,
+  User,
+  Heart,
+  Bookmark,
+  Sparkles,
+  Crown,
+  Bot,
+  Settings,
+  MessageSquare,
+  LogOut,
+  ChevronRight,
+  ShieldCheck,
+  UserCheck,
+  Headphones,
+  Handshake,
+  Building2,
+  Scroll,
+  Send,
+  MessageCircle,
+  GitBranch,
+  Globe,
+  ScanFace,
+  Phone,
+} from 'lucide-react';
+import { VerifiedBadge } from './VerifiedBadge';
+import { useModalScrollLock } from '../hooks/useModalScrollLock';
+
+export const LeftDrawer: React.FC = () => {
+  const {
+    isLeftDrawerOpen,
+    setIsLeftDrawerOpen,
+    language,
+    setLanguage,
+    currentUser,
+    setCurrentUser,
+    logout,
+    currentView,
+    setCurrentView,
+    setIsPaymentOpen,
+    setIsMembershipPlansModalOpen,
+    setIsLoginOpen,
+    setLoginModalMode,
+    setIsBusinessVendorDirectoryOpen,
+    setIsBusinessVendorRegisterModalOpen,
+    setIsBioDataMakerOpen,
+    setIsUserSecurityOpen,
+    setIsAdminSecurityOpen,
+    isAdminLoggedIn,
+    setIsAdminOpen,
+    siteConfig,
+    openKundaliMatching,
+    openSingleKundliGenerator,
+    setIsGitHubSyncOpen,
+    setIsFaceAuthModalOpen,
+    setIsAudioCallModalOpen,
+  } = useApp();
+
+  useModalScrollLock(isLeftDrawerOpen);
+
+  if (!isLeftDrawerOpen) return null;
+
+  const isEn = language === 'en';
+
+  const handleNavigate = (view: 'home' | 'dashboard' | 'profiles') => {
+    setCurrentView(view);
+    setIsLeftDrawerOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  return (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-50 overflow-hidden md:hidden">
+        {/* Backdrop overlay */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.6 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3 }}
+          onClick={() => setIsLeftDrawerOpen(false)}
+          className="absolute inset-0 bg-[#0E0103] backdrop-blur-sm"
+          id="left-drawer-backdrop"
+        />
+
+        {/* Drawer container sliding from left */}
+        <motion.div
+          initial={{ x: '-100%' }}
+          animate={{ x: 0 }}
+          exit={{ x: '-100%' }}
+          transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+          className="absolute inset-y-0 left-0 w-4/5 max-w-sm bg-[#FFFDF8] shadow-2xl flex flex-col h-full border-r border-[#FFF1C2]"
+        >
+          {/* Header Area with Brand/User Info */}
+          <div className="relative bg-gradient-to-br from-[#800C1E] to-[#A71930] p-6 pt-[max(1.5rem,env(safe-area-inset-top))] text-white overflow-hidden rounded-br-[2rem]">
+            {/* Absolute Decorative Golden Ornaments */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-400/10 rounded-full blur-2xl" />
+            <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-red-400/10 rounded-full blur-xl" />
+
+            {/* Close Trigger */}
+            <button
+              onClick={() => setIsLeftDrawerOpen(false)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-black/20 hover:bg-black/30 transition-colors text-amber-200"
+              aria-label="Close menu"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {currentUser ? (
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center gap-3">
+                  {/* Avatar wrapper */}
+                  <div className="relative">
+                    <div className="w-16 h-16 rounded-full border-2 border-amber-400 overflow-hidden bg-amber-50 shadow-md">
+                      {currentUser.photos && currentUser.photos.length > 0 ? (
+                        <img
+                          src={currentUser.photos[0]}
+                          alt={currentUser.fullName}
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-tr from-amber-200 to-amber-100 text-[#800C1E] font-black text-xl">
+                          {currentUser.fullName.charAt(0)}
+                        </div>
+                      )}
+                    </div>
+                    {/* Golden Verification Badge */}
+                    <div className="absolute -bottom-1 -right-1 bg-gradient-to-r from-amber-400 to-yellow-300 text-[#1A0307] p-1 rounded-full shadow-lg border border-amber-200">
+                      <VerifiedBadge profile={currentUser} size="sm" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <h2 className="font-extrabold text-base text-amber-100 leading-snug tracking-wide line-clamp-1">
+                      {currentUser.fullName}
+                    </h2>
+                    <p className="text-xs text-amber-300/90 font-medium mt-0.5 font-mono">
+                      ID: {currentUser.id}
+                    </p>
+                    <span className="inline-block mt-1.5 px-2 py-0.5 text-[10px] bg-amber-400 text-slate-950 font-black rounded-full shadow-sm uppercase tracking-wider">
+                      {currentUser.membership === 'free' ? (isEn ? 'FREE MEMBER' : 'नॉर्मल') : `VIP - ${currentUser.membership}`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Quick Home & Logout Action Buttons in Drawer Header */}
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleNavigate('home')}
+                    className="py-1.5 px-2.5 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 text-amber-200 border border-amber-400/40 text-[11px] font-black flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
+                  >
+                    <Home className="w-3.5 h-3.5 text-amber-300" />
+                    <span>{isEn ? 'Home' : 'मुख्यपृष्ठ'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      logout();
+                      setIsLeftDrawerOpen(false);
+                    }}
+                    className="py-1.5 px-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-400/40 text-[11px] font-black flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5 text-rose-300" />
+                    <span>{isEn ? 'Log Out' : 'लॉग आऊट'}</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2.5 pt-3">
+                <h2 className="font-black text-base text-amber-200">{isEn ? 'Vanjari Jodi Matrimony' : 'वंजारी जोडी (VanjariJodi)'}</h2>
+                <p className="text-[11px] text-amber-100/90 leading-tight font-bold">
+                  {isEn
+                    ? 'Maharashtra’s #1 Trusted Vanjari Matrimony!'
+                    : 'महाराष्ट्रातील वंजारी समाजाचे विश्वासाचे वधू-वर व्यासपीठ!'}
+                </p>
+                <div className="flex flex-col gap-1.5 pt-1">
+                  <button
+                    onClick={() => {
+                      setLoginModalMode('member_otp');
+                      setIsLoginOpen(true);
+                      setIsLeftDrawerOpen(false);
+                    }}
+                    className="w-full py-2 px-3 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-[#1A0307] text-xs font-black rounded-xl shadow-md flex items-center justify-center gap-1.5 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <UserCheck className="w-4 h-4 text-[#1A0307]" />
+                    <span>{isEn ? 'Mobile / Email Login' : 'मोबाईल / ई-मेल लॉगिन'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* 🌐 Prominent Dual Language Selector Row in Drawer */}
+            <div className="pt-3 mt-3 border-t border-amber-300/30 flex items-center justify-between">
+              <span className="text-xs font-bold text-amber-200 flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-amber-300" />
+                <span>{isEn ? 'Language:' : 'भाषा निवडा:'}</span>
+              </span>
+              <div className="flex items-center bg-black/40 rounded-full p-0.5 border border-amber-400/50 shadow-inner">
+                <button
+                  type="button"
+                  onClick={() => setLanguage('mr')}
+                  className={`px-3 py-1 rounded-full text-xs font-black transition-all cursor-pointer ${
+                    language === 'mr'
+                      ? 'bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-slate-950 shadow-sm'
+                      : 'text-amber-200 hover:text-white'
+                  }`}
+                >
+                  मराठी
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLanguage('en')}
+                  className={`px-3 py-1 rounded-full text-xs font-black transition-all cursor-pointer ${
+                    language === 'en'
+                      ? 'bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 text-slate-950 shadow-sm'
+                      : 'text-amber-200 hover:text-white'
+                  }`}
+                >
+                  English
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation Items Scrollable */}
+          <div className="flex-1 overflow-y-auto px-4 py-6 space-y-2">
+            {/* 1. Home / Explore */}
+            <button
+              onClick={() => handleNavigate('home')}
+              className={`w-full flex items-center justify-between p-3.5 rounded-2xl transition-all cursor-pointer ${
+                currentView === 'home'
+                  ? 'bg-gradient-to-r from-amber-500/10 to-amber-500/5 text-[#800C1E] border border-amber-400/30 font-black'
+                  : 'text-slate-700 hover:bg-slate-100 font-bold'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Home className={`w-5 h-5 ${currentView === 'home' ? 'text-[#A71930]' : 'text-slate-500'}`} />
+                <span>{isEn ? 'Home' : 'मुख्यपृष्ठ (Home)'}</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </button>
+
+            {/* 📞 IN-APP AUDIO VOICE CALL TO ADMIN (AGORA RTC) */}
+            <button
+              onClick={() => {
+                setIsLeftDrawerOpen(false);
+                if (!currentUser) {
+                  setLoginModalMode('member_otp');
+                  setIsLoginOpen(true);
+                } else {
+                  setIsAudioCallModalOpen(true);
+                }
+              }}
+              className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-700 text-white font-black border border-emerald-400/40 transition-all cursor-pointer shadow-md active:scale-98"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-white/20 text-white shadow-xs shrink-0">
+                  <Phone className="w-5 h-5 text-amber-300 animate-bounce" />
+                </div>
+                <div className="text-left">
+                  <span className="block text-xs font-black text-white flex items-center gap-1.5">
+                    <span>{isEn ? 'Call Admin (In-App Audio)' : '📞 ॲडमिनला कॉल करा (ऑडिओ कॉल)'}</span>
+                    <span className="bg-emerald-300 text-emerald-950 text-[9px] px-1.5 py-0.2 rounded-full font-black">LIVE</span>
+                  </span>
+                  <span className="block text-[10px] text-emerald-100 font-medium">
+                    {isEn ? 'Direct voice support for registered members' : 'नोंदणीकृत सदस्यांसाठी थेट इन-ॲप व्हॉइस कॉल'}
+                  </span>
+                </div>
+              </div>
+              <span className="text-[10px] bg-white text-emerald-900 px-2.5 py-1 rounded-full font-black shadow-xs shrink-0">
+                कॉल करा ➔
+              </span>
+            </button>
+
+            {/* 🤝 WEDDING VENDOR REGISTRATION BUTTON */}
+            {siteConfig?.enableBusinessVendors !== false && (
+              <button
+                onClick={() => {
+                  setIsBusinessVendorRegisterModalOpen(true);
+                  setIsLeftDrawerOpen(false);
+                }}
+                className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 hover:from-amber-300 hover:to-orange-300 text-slate-950 font-black border border-amber-300 transition-all cursor-pointer shadow-md active:scale-98"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 rounded-xl bg-slate-950 text-amber-300 shadow-xs shrink-0">
+                    <Handshake className="w-5 h-5 text-amber-300" />
+                  </div>
+                  <div className="text-left">
+                    <span className="block text-xs font-black text-slate-950">
+                      🏛️ विवाह व्यावसायिक नोंदणी (व्हेंडर)
+                    </span>
+                    <span className="block text-[10px] text-slate-900 font-extrabold">
+                      मंगल कार्यालय, जेवण (कॅटरिंग), डेकोरेशन — दर नोंदवा
+                    </span>
+                  </div>
+                </div>
+                <span className="text-[10px] bg-slate-950 text-amber-300 px-2 py-0.5 rounded-full font-black shadow-xs shrink-0">
+                  नोंदणी →
+                </span>
+              </button>
+            )}
+
+            {/* WEDDING VENDORS & HALLS DIRECTORY */}
+            {siteConfig?.enableBusinessVendors !== false && (
+              <button
+                onClick={() => {
+                  setIsBusinessVendorDirectoryOpen(true);
+                  setIsLeftDrawerOpen(false);
+                }}
+                className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-amber-100/80 hover:bg-amber-200/80 text-[#800C1E] font-black border border-amber-300 transition-all cursor-pointer shadow-sm"
+              >
+                <div className="flex items-center gap-3">
+                  <Handshake className="w-5 h-5 text-[#A71930]" />
+                  <span>{isEn ? 'Vendors & Wedding Halls' : 'लग्न व्यवसाय व नेटवर्किंग'}</span>
+                </div>
+                <span className="text-[10px] bg-[#A71930] text-amber-100 px-2 py-0.5 rounded-full font-extrabold shadow-sm">
+                  5%-10% OFF
+                </span>
+              </button>
+            )}
+
+            {/* 2. My Profile & BioData (Requires login, leads to dashboard) */}
+            <button
+              onClick={() => {
+                if (currentUser) {
+                  handleNavigate('dashboard');
+                } else {
+                  setLoginModalMode('member_otp');
+                  setIsLoginOpen(true);
+                  setIsLeftDrawerOpen(false);
+                }
+              }}
+              className={`w-full flex items-center justify-between p-3.5 rounded-2xl transition-all cursor-pointer ${
+                currentView === 'dashboard'
+                  ? 'bg-gradient-to-r from-amber-500/10 to-amber-500/5 text-[#800C1E] border border-amber-400/30 font-black'
+                  : 'text-slate-700 hover:bg-slate-100 font-bold'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <User className={`w-5 h-5 ${currentView === 'dashboard' ? 'text-[#A71930]' : 'text-slate-500'}`} />
+                <span>{isEn ? 'My Profile & BioData' : 'माझी प्रोफाईल व बायोडाटा'}</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </button>
+
+            {/* 📸 FACE VERIFICATION FOR MEMBERS */}
+            {currentUser && !currentUser.isFaceVerified && (
+              <button
+                onClick={() => {
+                  setIsFaceAuthModalOpen(true);
+                  setIsLeftDrawerOpen(false);
+                }}
+                className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-teal-500 to-emerald-600 text-white font-black transition-all cursor-pointer shadow-sm active:scale-98"
+              >
+                <div className="flex items-center gap-3">
+                  <ScanFace className="w-5 h-5 text-teal-100" />
+                  <span>{isEn ? 'Face Verification (Blue Tick)' : '📸 चेहरा ऑथेंटिकेशन (Blue Tick)'}</span>
+                </div>
+                <span className="text-[10px] bg-white text-teal-800 px-2 py-0.5 rounded-full font-black">
+                  स्कॅन करा →
+                </span>
+              </button>
+            )}
+
+            {/* 3. Search Profiles Grid */}
+            {currentUser && (
+              <button
+                onClick={() => handleNavigate('profiles')}
+                className={`w-full flex items-center justify-between p-3.5 rounded-2xl transition-all cursor-pointer ${
+                  currentView === 'profiles'
+                    ? 'bg-gradient-to-r from-amber-500/10 to-amber-500/5 text-[#800C1E] border border-amber-400/30 font-black'
+                    : 'text-slate-700 hover:bg-slate-100 font-bold'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Heart className={`w-5 h-5 ${currentView === 'profiles' ? 'text-[#A71930]' : 'text-slate-500'}`} />
+                  <span>{isEn ? 'All Bride/Groom Profiles' : 'सर्व वधू-वर बायोडाटा'}</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400" />
+              </button>
+            )}
+
+            {/* 4. Expressed Interests (Requires Login) */}
+            {currentUser && (
+              <button
+                onClick={() => {
+                  handleNavigate('dashboard');
+                  setIsLeftDrawerOpen(false);
+                }}
+                className="w-full flex items-center justify-between p-3.5 rounded-2xl text-slate-700 hover:bg-slate-100 font-bold transition-all cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <Bookmark className="w-5 h-5 text-slate-500" />
+                  <span>{isEn ? 'Interests & Responses' : 'पसंती विनंत्या (Interests)'}</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400" />
+              </button>
+            )}
+
+            {/* 5. Kundali Match */}
+            <button
+              onClick={() => {
+                openKundaliMatching();
+                setIsLeftDrawerOpen(false);
+              }}
+              className="w-full flex items-center justify-between p-3.5 rounded-2xl text-slate-700 hover:bg-amber-50 hover:text-[#800C1E] font-bold transition-all cursor-pointer group"
+            >
+              <div className="flex items-center gap-3">
+                <Sparkles className="w-5 h-5 text-amber-500 group-hover:scale-110 transition-transform" />
+                <span className="flex items-center gap-2">
+                  <span>{isEn ? 'Kundali Matching (Gun Milan)' : 'वैदिक ३६ गुणमेलन (Kundali Match)'}</span>
+                  <span className="text-[9px] bg-amber-200 text-amber-900 font-bold px-1.5 py-0.2 rounded font-mono">Prokerala</span>
+                </span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#800C1E]" />
+            </button>
+
+            {/* 5.5. Single Kundli Report Generator */}
+            <button
+              onClick={() => {
+                openSingleKundliGenerator();
+                setIsLeftDrawerOpen(false);
+              }}
+              className="w-full flex items-center justify-between p-3.5 rounded-2xl text-[#800C1E] bg-gradient-to-r from-amber-100/80 to-amber-50/50 hover:bg-amber-100 font-black border border-amber-300 transition-all cursor-pointer group shadow-xs"
+            >
+              <div className="flex items-center gap-3">
+                <Sparkles className="w-5 h-5 text-amber-600 group-hover:rotate-12 transition-transform" />
+                <span className="flex items-center gap-2">
+                  <span>{isEn ? 'Single Kundli Report' : '🔮 संपूर्ण जन्मपत्रिका (Kundli Report)'}</span>
+                  <span className="text-[9px] bg-[#800C1E] text-amber-100 font-bold px-1.5 py-0.2 rounded">New</span>
+                </span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-amber-700" />
+            </button>
+
+            {/* 6. VIP Premium Upgrade */}
+            <button
+              onClick={() => {
+                setIsMembershipPlansModalOpen(true);
+                setIsLeftDrawerOpen(false);
+              }}
+              className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/10 to-transparent border border-amber-300 text-[#800C1E] font-black transition-all cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <Crown className="w-5 h-5 text-amber-500 animate-pulse" />
+                <span>{isEn ? 'VIP Membership Plans' : 'प्रीमियम VIP योजना (Upgrade)'}</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-amber-500" />
+            </button>
+
+            {/* 6.5. Online BioData Maker (PDF/JPG Generator) */}
+            <button
+              onClick={() => {
+                setIsBioDataMakerOpen(true);
+                setIsLeftDrawerOpen(false);
+              }}
+              className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/20 to-amber-500/5 border border-amber-400 text-amber-900 font-black transition-all cursor-pointer shadow-xs hover:scale-[1.01]"
+            >
+              <div className="flex items-center gap-3">
+                <Scroll className="w-5 h-5 text-[#A71930]" />
+                <div className="text-left">
+                  <span className="block text-xs font-black text-[#800C1E]">
+                    {isEn ? '🎨 Online BioData Maker' : '🎨 ऑनलाईन बायोडाटा मेकर'}
+                  </span>
+                  <span className="block text-[9px] text-amber-800 font-bold">
+                    {isEn ? 'Download Free JPG & PDF' : 'मोफत JPG & PDF डाऊनलोड करा'}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-amber-700" />
+            </button>
+
+            {/* 7. OCR / AI BioData Reader */}
+            <button
+              onClick={() => {
+                if (currentUser) {
+                  handleNavigate('dashboard');
+                  setIsLeftDrawerOpen(false);
+                } else {
+                  setLoginModalMode('member_otp');
+                  setIsLoginOpen(true);
+                  setIsLeftDrawerOpen(false);
+                }
+              }}
+              className="w-full flex items-center justify-between p-3.5 rounded-2xl text-slate-700 hover:bg-slate-100 font-bold transition-all cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <Bot className="w-5 h-5 text-purple-600" />
+                <span>{isEn ? 'AI BioData Reader' : 'AI बायोडाटा रीडर'}</span>
+              </div>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </button>
+
+            {/* User Security & Device Sessions Portal */}
+            {currentUser && (
+              <button
+                onClick={() => {
+                  setIsUserSecurityOpen(true);
+                  setIsLeftDrawerOpen(false);
+                }}
+                className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 font-bold transition-all cursor-pointer shadow-xs"
+              >
+                <div className="flex items-center gap-3">
+                  <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                  <span>{isEn ? '🛡️ Security & Active Sessions' : '🛡️ खाते सुरक्षा व ॲक्टिव्ह सेशन्स'}</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-emerald-600" />
+              </button>
+            )}
+
+            {/* Administrator Cyber Threat & Security Center - Strictly for Master Admin */}
+            {Boolean(isAdminLoggedIn && currentUser?.id === 'admin') && (
+              <button
+                onClick={() => {
+                  setIsAdminSecurityOpen(true);
+                  setIsLeftDrawerOpen(false);
+                }}
+                className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-red-50 hover:bg-red-100 border border-red-200 text-red-900 font-black transition-all cursor-pointer shadow-xs"
+              >
+                <div className="flex items-center gap-3">
+                  <ShieldCheck className="w-5 h-5 text-red-600" />
+                  <span>{isEn ? '🚨 Cyber Security Control Room' : '🚨 सायबर सुरक्षा नियंत्रण कक्ष'}</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-red-600" />
+              </button>
+            )}
+
+            {/* Divider */}
+            <hr className="border-slate-100 my-4" />
+
+            {/* Telegram Options: 1. Official Group & 2. Admin Direct Chat */}
+            {siteConfig?.showTelegramBanner !== false && (
+              <div className="space-y-1.5 mb-2">
+                {/* 1. Official Telegram Group */}
+                <a
+                  href={siteConfig?.telegramGroupUrl || 'https://t.me/+LcV24fm6QboxZWM1'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-between p-3 rounded-2xl text-white bg-gradient-to-r from-sky-600 via-sky-500 to-sky-600 font-extrabold shadow-xs hover:brightness-105 transition-all cursor-pointer border border-sky-400"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 rounded-xl bg-white/20 text-white">
+                      <Send className="w-4 h-4 text-white animate-pulse" />
+                    </div>
+                    <div className="text-left">
+                      <span className="block text-xs font-black">
+                        {isEn ? '📢 Official Telegram Group' : '📢 अधिकृत टेलिग्राम ग्रुप'}
+                      </span>
+                      <span className="block text-[10px] text-sky-100 font-medium">
+                        {isEn ? 'Daily new bio-data & updates' : 'नवीन स्थळे व महत्त्वाच्या सूचनांसाठी'}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-sky-100 shrink-0" />
+                </a>
+
+                {/* 2. Admin Direct Telegram Chat */}
+                <a
+                  href={`https://t.me/${(siteConfig?.telegramUsername || 'Primemultiservice').replace(/^@/, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-between p-3 rounded-2xl text-slate-950 bg-gradient-to-r from-amber-300 via-amber-200 to-amber-300 font-black shadow-xs hover:brightness-105 transition-all cursor-pointer border border-amber-400"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 rounded-xl bg-slate-950 text-amber-300">
+                      <MessageCircle className="w-4 h-4 text-amber-300" />
+                    </div>
+                    <div className="text-left">
+                      <span className="block text-xs font-black text-slate-950">
+                        {isEn ? '💬 Direct Admin Chat (@Primemultiservice)' : '💬 ॲडमिन थेट चॅट (@Primemultiservice)'}
+                      </span>
+                      <span className="block text-[10px] text-amber-900 font-semibold">
+                        {isEn ? 'Instant help on Telegram' : 'टेलिग्रामवर थेट ॲडमिनशी बोला'}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-950 shrink-0" />
+                </a>
+              </div>
+            )}
+
+            {/* 8. Help & Customer Support: Agora HD Audio Call to Admin */}
+            <button
+              onClick={() => {
+                if (!currentUser) {
+                  setLoginModalMode('member_otp');
+                  setIsLoginOpen(true);
+                } else {
+                  setIsAudioCallModalOpen(true);
+                }
+                setIsLeftDrawerOpen(false);
+              }}
+              className="w-full flex items-center justify-between p-3.5 rounded-2xl text-emerald-950 bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-300/40 font-extrabold transition-all cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-1.5 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white shadow-xs">
+                  <Phone className="w-4 h-4 text-amber-300 animate-pulse" />
+                </div>
+                <div className="text-left">
+                  <span className="block text-xs font-black text-emerald-950">
+                    {isEn ? '📞 Call Admin (Agora HD Voice)' : '📞 थेट ॲडमिन कॉल (ऑडिओ कॉल)'}
+                  </span>
+                  <span className="block text-[10px] text-emerald-700 font-semibold">
+                    {isEn ? 'Direct Voice Call with Admin' : 'ॲपमधून थेट ॲडमिनशी बोला'}
+                  </span>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-emerald-600" />
+            </button>
+            {/* Member Logout Button */}
+            {currentUser && (
+              <button
+                onClick={() => {
+                  logout();
+                  setIsLeftDrawerOpen(false);
+                }}
+                className="w-full flex items-center justify-between p-3.5 rounded-2xl text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 font-extrabold transition-all cursor-pointer shadow-xs active:scale-98"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-rose-600 text-white shadow-xs shrink-0">
+                    <LogOut className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <span className="block text-xs font-black text-rose-800">
+                      {isEn ? '🚪 Log Out Account' : '🚪 खात्यातून लॉग आऊट करा (Log Out)'}
+                    </span>
+                    <span className="block text-[10px] text-rose-600 font-semibold">
+                      {isEn ? 'Safely exit current profile' : 'सुरक्षितपणे बाहेर पडा व होमवर जा'}
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-rose-400 shrink-0" />
+              </button>
+            )}
+
+            {/* 9. Standalone Dedicated Admin App - Strictly visible ONLY when already authenticated as Admin */}
+            {Boolean(isAdminLoggedIn && currentUser?.id === 'admin') && (
+              <>
+                <button
+                  onClick={() => {
+                    setIsLeftDrawerOpen(false);
+                    window.dispatchEvent(new CustomEvent('open_admin_standalone_app'));
+                  }}
+                  className="w-full flex items-center justify-between p-3.5 rounded-2xl text-slate-950 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-300 border-2 border-amber-500 font-extrabold transition-all cursor-pointer shadow-md hover:brightness-105 min-h-[52px] active:scale-98"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-slate-950 text-amber-400 shadow-sm shrink-0">
+                      <ShieldCheck className="w-5 h-5 text-amber-400" />
+                    </div>
+                    <div className="text-left">
+                      <div className="flex items-center gap-1.5">
+                        <span className="block text-xs font-black text-slate-950">
+                          {isEn ? '🚀 Dedicated Admin App' : '🚀 सेपरेट ॲडमिन ॲप'}
+                        </span>
+                        <span className="text-[9px] bg-red-600 text-white font-extrabold px-1.5 py-0.5 rounded-full">
+                          Admin
+                        </span>
+                      </div>
+                      <span className="block text-[10px] text-slate-900 font-semibold">
+                        {isEn ? 'Executive Control & Commands' : 'ॲडमिन कमांड सेंटर व क्विक ऍक्सेस'}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-900 shrink-0" />
+                </button>
+
+                {/* 9B. Classic Admin Console */}
+                <button
+                  onClick={() => {
+                    setIsAdminOpen(true);
+                    setIsLeftDrawerOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between p-2.5 rounded-xl text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300 font-bold transition-all cursor-pointer text-xs"
+                >
+                  <span className="flex items-center gap-2">
+                    <span>⚙️</span>
+                    <span>{isEn ? 'Classic Admin Panel' : 'क्लासिक ॲडमिन पॅनेल (Modal)'}</span>
+                  </span>
+                  <ChevronRight className="w-3.5 h-3.5 text-amber-700" />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Footer of Left Drawer with Safe Area Padding */}
+          <div className="p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] bg-slate-50 border-t border-slate-100">
+            <p className="text-center text-[11px] text-slate-500 font-medium">VanjariJodi Matrimony App • v2.5.0</p>
+          </div>
+        </motion.div>
+      </div>
+    </AnimatePresence>
+  );
+};

@@ -1,0 +1,26 @@
+{
+  "enabled": true,
+  "appId": "0264722151804051ad63ea12fd164935",
+  "appCertificate": "",
+  "allowRegisteredOnly": true,
+  "adminDisplayName": "वंजारी जोडी ॲडमिन सपोर्ट",
+  "updatedAt": "2026-10-09T08:30:00.000Z",
+  "scheduleEnabled": false,
+  "scheduleStartTime": "09:00",
+  "scheduleEndTime": "22:00",
+  "scheduleDays": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "offHoursMessage": "सध्या कॉलिंग वेळ संपली आहे. ऑडिओ कॉलिंग वेळ दररोज सकाळी ०९:०० ते रात्री १०:०० दरम्यान सुरू असते. कृपया वेळेत संपर्क साधा किंवा थेट व्हॉट्सॲप मेसेज पाठवा.",
+  "adminStatus": "online",
+  "dndUntil": null,
+  "allowOnlyVerified": false,
+  "allowOnlyPaid": false,
+  "maxCallsPerDayPerUser": 10
+}

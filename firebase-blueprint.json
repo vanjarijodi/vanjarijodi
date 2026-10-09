@@ -1,0 +1,173 @@
+{
+  "entities": {
+    "profiles": {
+      "title": "User Profiles",
+      "description": "Vanjari Jodi Matrimonial User Profiles",
+      "properties": {
+        "id": { "type": "string" },
+        "fullName": { "type": "string" },
+        "gender": { "type": "string" },
+        "mobile": { "type": "string" }
+      }
+    },
+    "siteConfig": {
+      "title": "Site Configurations",
+      "description": "Global settings and branding for Vanjari Jodi",
+      "properties": {
+        "siteName": { "type": "string" }
+      }
+    },
+    "chatMessages": {
+      "title": "Chat Messages",
+      "description": "User to User Chat Messages",
+      "properties": {
+        "id": { "type": "string" },
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" }
+      }
+    },
+    "adminSupportMessages": {
+      "title": "Admin Support Chat Messages",
+      "description": "Support Messages sent to Admin",
+      "properties": {
+        "id": { "type": "string" },
+        "senderId": { "type": "string" }
+      }
+    },
+    "settings": {
+      "title": "Payment & System Settings",
+      "description": "Dynamic UPI and business payment configurations",
+      "properties": {
+        "id": { "type": "string" },
+        "upiId": { "type": "string" },
+        "payeeName": { "type": "string" },
+        "amount": { "type": "string" },
+        "transactionNote": { "type": "string" },
+        "upi_id": { "type": "string" },
+        "business_name": { "type": "string" },
+        "whatsapp_api_token": { "type": "string" },
+        "currency": { "type": "string" },
+        "qr_code_url": { "type": "string" },
+        "payment_note": { "type": "string" },
+        "updated_at": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "memberships": {
+      "title": "User Memberships",
+      "description": "Active and expired membership subscriptions with expiry dates",
+      "properties": {
+        "id": { "type": "string" },
+        "user_id": { "type": "string" },
+        "plan_name": { "type": "string" },
+        "plan_id": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string" },
+        "expires_at": { "type": "string" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" }
+      }
+    },
+    "payment_requests": {
+      "title": "Payment Verification Requests",
+      "description": "UPI intent and QR payment receipts with unique 12-digit UTR verification",
+      "properties": {
+        "id": { "type": "string" },
+        "user_id": { "type": "string" },
+        "user_name": { "type": "string" },
+        "user_mobile": { "type": "string" },
+        "plan_id": { "type": "string" },
+        "plan_name": { "type": "string" },
+        "amount": { "type": "number" },
+        "utr_number": { "type": "string" },
+        "screenshot_url": { "type": "string" },
+        "status": { "type": "string" },
+        "admin_note": { "type": "string" },
+        "created_at": { "type": "string" },
+        "updated_at": { "type": "string" },
+        "approved_at": { "type": "string" }
+      }
+    },
+    "likes": {
+      "title": "Member Likes & Matches",
+      "description": "Real-time likes between matrimonial members",
+      "properties": {
+        "id": { "type": "string" },
+        "fromUserId": { "type": "string" },
+        "toUserId": { "type": "string" },
+        "fromUserName": { "type": "string" },
+        "toUserName": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "reports": {
+      "title": "Profile Safety Reports",
+      "description": "Member reports against suspicious or abusive profiles",
+      "properties": {
+        "id": { "type": "string" },
+        "reporterUserId": { "type": "string" },
+        "reportedProfileId": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "notifications": {
+      "title": "User Notifications",
+      "description": "In-app and push notifications for likes, matches, and system alerts",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "type": { "type": "string" },
+        "isRead": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "adminAuditLogs": {
+      "title": "Admin Audit Logs",
+      "description": "Immutable security logs of administrative actions",
+      "properties": {
+        "id": { "type": "string" },
+        "adminId": { "type": "string" },
+        "adminName": { "type": "string" },
+        "action": { "type": "string" },
+        "targetId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "matches": {
+      "title": "Mutual Matches",
+      "description": "Two-way mutual likes and connections",
+      "properties": {
+        "id": { "type": "string" },
+        "user1Id": { "type": "string" },
+        "user2Id": { "type": "string" },
+        "matchedAt": { "type": "string" }
+      }
+    },
+    "favourites": {
+      "title": "Favourite Profiles",
+      "description": "Shortlisted profiles bookmarked by users",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "profileId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      }
+    },
+    "deviceTokens": {
+      "title": "FCM Device Tokens",
+      "description": "Device push tokens for real-time notification dispatch",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "fcmToken": { "type": "string" },
+        "platform": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
+    }
+  }
+}

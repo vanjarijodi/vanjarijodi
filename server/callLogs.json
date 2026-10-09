@@ -1,0 +1,46 @@
+[
+  {
+    "callId": "call_1791535065405_xu24",
+    "callerId": "test_member_5404",
+    "callerName": "राहुल ज्ञानेश्वर वंजारी",
+    "callerMobile": "9822334455",
+    "callerPhoto": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200",
+    "callerDistrict": "छत्रपती संभाजीनगर",
+    "callerTier": "premium",
+    "status": "ended",
+    "duration": 5,
+    "initiatedAt": 1791535065405,
+    "isRead": true,
+    "adminNotes": "वेटिंगवरून थेट कनेक्ट केले",
+    "connectedAt": 1791535074728,
+    "endedAt": 1791535079496
+  },
+  {
+    "callId": "call_1791535046607_pfed",
+    "callerId": "test_member_6607",
+    "callerName": "सागर अशोक वंजारी",
+    "callerMobile": "9876543210",
+    "callerPhoto": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200",
+    "callerDistrict": "छत्रपती संभाजीनगर",
+    "callerTier": "premium",
+    "status": "ended",
+    "duration": 13,
+    "initiatedAt": 1791535046607,
+    "isRead": true,
+    "connectedAt": 1791535061966,
+    "endedAt": 1791535074728
+  },
+  {
+    "callId": "call_1791529069390_xovj",
+    "callerId": "test_member_9390",
+    "callerName": "प्रमोद वंजारी (चाचणी)",
+    "callerMobile": "9876543210",
+    "callerPhoto": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200",
+    "callerDistrict": "छत्रपती संभाजीनगर",
+    "callerTier": "premium",
+    "status": "ringing",
+    "duration": 0,
+    "initiatedAt": 1791529069390,
+    "isRead": false
+  }
+]

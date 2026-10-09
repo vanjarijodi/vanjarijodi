@@ -1,0 +1,124 @@
+# ==============================================================================
+# 🚀 Vanjari Jodi Admin App — GitHub Actions Build & Release Workflow
+# ==============================================================================
+# This workflow automates building the standalone Admin App (Web + Android APK)
+# and publishes the APK as a GitHub Release artifact for 1-click download.
+# ==============================================================================
+
+name: Build Admin App (Web & APK)
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'src/components/Admin**'
+      - '.github/workflows/build-admin-app.yml'
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: 'Admin App Version Code'
+        required: false
+        default: '1'
+      version_name:
+        description: 'Admin App Version Name'
+        required: false
+        default: '1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-admin-web:
+    name: 🌐 Build Admin Web App
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: 🔨 Compile & Build Project
+        run: npm run build
+
+      - name: 📤 Upload Web Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vanjari-jodi-admin-web
+          path: dist/
+          retention-days: 14
+
+  build-admin-apk:
+    name: 📱 Build Admin Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: ☕ Setup Java 21 LTS
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: 📜 Accept Android SDK Licenses
+        run: |
+          mkdir -p "$ANDROID_HOME/licenses" || true
+          echo -e "\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-license" || true
+          echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license" || true
+
+      - name: 📦 Install Dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: 🔨 Build Web Assets
+        run: npm run build
+
+      - name: 🔄 Sync Capacitor Android
+        run: npx cap sync android || true
+
+      - name: 🤖 Build Android APK via Gradle
+        working-directory: ./android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: 📦 Archive Admin APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VanjariJodi-Admin-Debug-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+      - name: 🚀 Publish Admin APK to GitHub Releases
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.version_name || 'v1.0.0-admin' }}
+          name: 📱 Vanjari Jodi Admin App ${{ github.event.inputs.version_name || 'v1.0.0' }}
+          body: |
+            ### 🚩 वंजारी जोडी ॲडमिन ॲप (Official Dedicated Admin APK)
+            - ⚡ **क्विक ऍक्सेस कमांड सेंटर**
+            - 💳 **१-टॅप पेमेंट मंजुरी (PhonePe / GPay / QR)**
+            - 👥 **नवीन सदस्य व आधार KYC पडताळणी**
+            - 📢 **सर्व सदस्यांना ध्वनीसह ब्रॉडकास्ट सूचना**
+            - 📞 **Agora ऑडिओ कॉल सेंटर व मॉनिटर**
+            
+            📥 खालील **VanjariJodi-Admin-App.apk** थेट तुमच्या Android मोबाईलवर डाऊनलोड करा!
+          files: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
