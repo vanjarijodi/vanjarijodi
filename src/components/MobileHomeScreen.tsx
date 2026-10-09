@@ -668,10 +668,10 @@ export const MobileHomeScreen: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsBusinessVendorRegisterModalOpen(true)}
-                className="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-900 text-amber-300 font-bold text-xs shadow-xs transition active:scale-95 cursor-pointer text-center flex items-center justify-center gap-1.5 border border-amber-400/40"
+                className="flex-1 py-2.5 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 font-black text-xs shadow-xs transition active:scale-95 cursor-pointer text-center flex items-center justify-center gap-1.5 border border-amber-400/50"
               >
-                <Handshake className="w-3.5 h-3.5 text-amber-300" />
-                <span>{isEn ? 'Register Business' : '🤝 व्यवसाय नोंदणी (हॉल/कॅटरिंग)'}</span>
+                <Handshake className="w-4 h-4 text-amber-300 shrink-0" />
+                <span className="truncate">{isEn ? 'Register Business' : '🤝 व्यवसाय नोंदणी करा'}</span>
               </button>
             <button
               type="button"

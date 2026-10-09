@@ -275,27 +275,27 @@ export const WelcomeScreen: React.FC = () => {
               <ChevronRight className="w-5 h-5 text-[#6B0818] shrink-0 ml-1" />
             </button>
 
-            {/* 🏛️ SEPARATE VENDOR CARD: लग्नाचे व्यावसायिक (मंगल कार्यालय, कॅटरिंग, डेकोरेशन) */}
+            {/* OPTION 4: 🏛️ विवाह व्यावसायिक नोंदणी (मंगल कार्यालय, कॅटरिंग, डेकोरेशन) */}
             {siteConfig?.enableBusinessVendors !== false && (
               <div className="pt-2 border-t border-slate-200">
-                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-amber-50 via-orange-50/40 to-amber-100/60 border border-amber-300 shadow-xs space-y-2.5">
-                  <div className="flex items-start gap-2.5">
-                    <div className="p-2 rounded-xl bg-[#800C1E] text-amber-300 shadow-sm shrink-0 mt-0.5">
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50 via-orange-50/50 to-amber-100/70 border-2 border-amber-300/90 shadow-sm space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2.5 rounded-xl bg-[#800C1E] text-amber-300 shadow-sm shrink-0 mt-0.5">
                       <Handshake className="w-5 h-5 text-amber-300" />
                     </div>
                     <div className="space-y-1 min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-1 flex-wrap">
+                      <div className="flex items-center justify-between gap-1.5 flex-wrap">
                         <span className="text-xs sm:text-sm font-black text-[#800C1E]">
-                          {isEn ? '🏛️ Wedding Business & Vendors' : '🏛️ विवाह व्यावसायिक नोंदणी (व्हेंडर)'}
+                          {isEn ? '४. 🏛️ Wedding Business & Vendors' : '४. 🏛️ विवाह व्यावसायिक नोंदणी (हॉल, कॅटरिंग, डेकोरेशन)'}
                         </span>
-                        <span className="text-[10px] font-bold bg-[#800C1E] text-amber-200 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-black bg-[#800C1E] text-amber-200 px-2 py-0.5 rounded-full shrink-0">
                           {isEn ? 'Business Only' : 'केवळ व्यावसायिकांसाठी'}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-700 font-medium leading-relaxed">
+                      <p className="text-[11px] sm:text-xs text-slate-700 font-medium leading-relaxed">
                         {isEn
-                          ? 'Are you a Marriage Hall, Caterer, Florist or Decorator? Register your wedding business and rates here.'
-                          : 'आपले मंगल कार्यालय, कॅटरिंग (जेवण/आचारी), मंडप, डेकोरेशन किंवा विवाह सेवांचा व्यवसाय असल्यास आपले दर व माहिती येथे नोंदवा.'}
+                          ? 'Are you a Marriage Hall, Caterer, Florist, Decorator or Photographer? Register your wedding business rates and info here.'
+                          : 'आपले मंगल कार्यालय, कॅटरिंग (जेवण/आचारी महाराज), मंडप, डेकोरेशन, फोटोग्राफर किंवा विवाह सेवांचा व्यवसाय असल्यास आपले दर व माहिती येथे नोंदवा.'}
                       </p>
                     </div>
                   </div>
@@ -304,10 +304,10 @@ export const WelcomeScreen: React.FC = () => {
                     type="button"
                     id="welcome-vendor-register-btn"
                     onClick={() => setIsBusinessVendorRegisterModalOpen(true)}
-                    className="w-full py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-[#800C1E] via-[#9B1229] to-[#800C1E] hover:from-[#600816] hover:to-[#800C1E] text-amber-200 font-bold text-xs shadow-md border border-amber-400/40 active:scale-[0.98] transition flex items-center justify-between cursor-pointer"
+                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-[#800C1E] via-[#9B1229] to-[#800C1E] hover:brightness-110 active:scale-[0.98] text-amber-200 font-black text-xs sm:text-sm shadow-md border border-amber-400/50 transition flex items-center justify-between cursor-pointer"
                   >
-                    <span>🤝 {isEn ? 'Register Wedding Business' : 'आपल्या विवाह व्यवसायाची नोंदणी करा'}</span>
-                    <ChevronRight className="w-4 h-4 text-amber-300 shrink-0" />
+                    <span>🤝 {isEn ? 'Register Wedding Business & Rates' : 'लग्न व्यवसायाची माहिती व दर भरा (Business Registration)'}</span>
+                    <ChevronRight className="w-4 h-4 text-amber-300 shrink-0 ml-1" />
                   </button>
                 </div>
               </div>

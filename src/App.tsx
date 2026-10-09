@@ -161,11 +161,6 @@ const MainAppContent: React.FC = () => {
 
   React.useEffect(() => {
     const handleOpenAdminApp = () => {
-      // Members cannot open admin app
-      if (currentUser && currentUser.id !== 'admin') {
-        alert('प्रवेश नाकारला: तुम्ही सदस्य खात्यावरून लॉगिन आहात. ॲडमिन ॲप केवळ व्यवस्थापकांसाठी आहे.');
-        return;
-      }
       setIsAdminAppMode(true);
       setShowSplash(false);
       if (typeof window !== 'undefined') {

@@ -238,14 +238,18 @@ export const FaceVerificationModal: React.FC<FaceVerificationModalProps> = ({ is
   };
 
   const handleSubmitForAdminReview = () => {
-    if (!capturedImage || !currentUser) return;
+    if (!capturedImage) return;
+
+    const targetUserId = currentUser?.id || 'preview_user';
+    const targetUserName = currentUser?.fullName || 'ॲप सदस्य (Preview)';
+    const targetUserMobile = currentUser?.mobile || (currentUser as any)?.mobileNumber || '9876543210';
 
     submitFaceVerification({
-      userId: currentUser.id,
-      userName: currentUser.fullName,
-      userMobile: currentUser.mobile || (currentUser as any).mobileNumber || '',
+      userId: targetUserId,
+      userName: targetUserName,
+      userMobile: targetUserMobile,
       capturedPhotoUrl: capturedImage,
-      profilePhotoUrl: currentUser.photos?.[0] || '',
+      profilePhotoUrl: currentUser?.photos?.[0] || capturedImage,
       matchScore: matchScore,
       livenessCheckPassed: true,
       livenessAction: currentChallenge.actionTextMr,

@@ -116,6 +116,7 @@ export const BusinessVendorRegisterModal: React.FC<{
   const [pdfUrl, setPdfUrl] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -160,8 +161,9 @@ export const BusinessVendorRegisterModal: React.FC<{
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
     if (!businessName.trim() || !ownerName.trim() || !mobile.trim()) {
-      alert('कृपया आवश्यक सर्व माहिती (नाव, मालकाचे नाव व फोन नंबर) भरा.');
+      setFormError('कृपया आवश्यक सर्व माहिती (व्यवसायाचे नाव, मालकाचे नाव व १० अंकी मोबाईल नंबर) अचूक भरा.');
       return;
     }
 
@@ -350,6 +352,12 @@ export const BusinessVendorRegisterModal: React.FC<{
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5 text-xs sm:text-sm">
+              {formError && (
+                <div className="p-3 bg-rose-950/90 border-2 border-rose-500 rounded-xl text-rose-200 text-xs font-bold flex items-center gap-2 animate-shake">
+                  <span className="text-base shrink-0">⚠️</span>
+                  <span>{formError}</span>
+                </div>
+              )}
               
               {/* Informative Explanation Banner */}
               <div className="p-3.5 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border border-amber-500/30 rounded-2xl text-amber-200 text-xs space-y-2">
