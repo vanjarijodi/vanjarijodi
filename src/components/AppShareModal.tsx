@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { downloadApkFile } from '../utils/apkDownloader';
+import { downloadApkFile, downloadAdminApkFile } from '../utils/apkDownloader';
 import {
   X,
   Share2,
@@ -15,7 +15,8 @@ import {
   ShieldCheck,
   CheckCircle2,
   ArrowRight,
-  Send
+  Send,
+  Crown
 } from 'lucide-react';
 import { VanjariJodiLogo } from './VanjariJodiLogo';
 
@@ -28,15 +29,16 @@ export const AppShareModal: React.FC<AppShareModalProps> = ({ isOpen, onClose })
   const { siteConfig, incrementApkDownloadCount } = useApp();
   const [copied, setCopied] = useState(false);
   const [copiedApkUrl, setCopiedApkUrl] = useState(false);
-  const [downloading, setDownloading] = useState(false);
+  const [downloadingMain, setDownloadingMain] = useState(false);
+  const [downloadingAdmin, setDownloadingAdmin] = useState(false);
 
   if (!isOpen) return null;
 
   const apk = siteConfig?.apkSettings || {
-    apkUrl: '/downloads/VanjariJodi_v2.5.0.apk',
+    apkUrl: '/downloads/VanjariJodi.apk',
     appVersion: 'v2.5.0',
     fileSizeMb: '12.8 MB',
-    downloadCount: 14650,
+    downloadCount: 15420,
   };
 
   const appVersion = apk.appVersion || 'v2.5.0';
@@ -46,14 +48,19 @@ export const AppShareModal: React.FC<AppShareModalProps> = ({ isOpen, onClose })
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://vanjarijodi.com';
   const fullApkDownloadUrl = apk.apkUrl?.startsWith('http')
     ? apk.apkUrl
-    : `${origin}${apk.apkUrl?.startsWith('/') ? apk.apkUrl : `/${apk.apkUrl || 'downloads/VanjariJodi_v2.5.0.apk'}`}`;
+    : `${origin}${apk.apkUrl?.startsWith('/') ? apk.apkUrl : `/${apk.apkUrl || 'downloads/VanjariJodi.apk'}`}`;
+  
+  const adminApkDownloadUrl = `${origin}/downloads/VanjariJodi-Admin.apk`;
 
   const shareTextMarathi = `🚩 *वंजारी जोडी (Vanjari Jodi) - अधिकृत वंजारी वधू-वर सूचक ॲप* 🚩
 
 वंजारी समाजातील हजारो उच्चशिक्षित, शासकीय/प्रायव्हेट नोकरदार व अनुरूप वर-वधू स्थळे आता आपल्या मोबाईलवर!
 
-📲 *मोबाईल ॲप डाऊनलोड करा:*
+📲 *१. मुख्य वधू-वर मॅट्रिमोनी ॲप डाऊनलोड:*
 ${fullApkDownloadUrl}
+
+👑 *२. ॲडमिन ॲप डाऊनलोड (व्यवस्थापकांसाठी):*
+${adminApkDownloadUrl}
 
 🌐 *अधिकृत वेबसाईट:*
 ${origin}
@@ -106,10 +113,16 @@ ${origin}
     }
   };
 
-  const handleDownloadApp = () => {
-    setDownloading(true);
+  const handleDownloadMainApp = () => {
+    setDownloadingMain(true);
     downloadApkFile(apk.apkUrl, appVersion, incrementApkDownloadCount);
-    setTimeout(() => setDownloading(false), 2000);
+    setTimeout(() => setDownloadingMain(false), 2000);
+  };
+
+  const handleDownloadAdminApp = () => {
+    setDownloadingAdmin(true);
+    downloadAdminApkFile('/downloads/VanjariJodi-Admin.apk', appVersion);
+    setTimeout(() => setDownloadingAdmin(false), 2000);
   };
 
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encodeURIComponent(fullApkDownloadUrl)}`;
@@ -135,42 +148,72 @@ ${origin}
             <div>
               <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-400/30 text-amber-200 text-[10px] font-black uppercase tracking-wider mb-1 border border-amber-400/40">
                 <Sparkles className="w-3 h-3 text-amber-300" />
-                <span>अधिकृत अँड्रॉइड ॲप (APK)</span>
+                <span>अधिकृत अँड्रॉइड ॲप्स (२ APK सेंटर)</span>
               </div>
               <h3 className="text-lg sm:text-xl font-black text-white leading-tight">
-                वंजारी जोडी ॲप शेअर करा
+                वंजारी जोडी ॲप डाऊनलोड व शेअर
               </h3>
               <p className="text-xs text-amber-100 font-medium">
-                व्हॉट्सॲपवर किंवा नातेवाईकांना ॲप डाऊनलोड लिंक पाठवा
+                मुख्य मॅट्रिमोनी ॲप आणि ॲडमिन ॲप — दोन्ही डाऊनलोड करा
               </p>
             </div>
           </div>
         </div>
 
         {/* Body Content */}
-        <div className="p-5 sm:p-6 space-y-5">
+        <div className="p-5 sm:p-6 space-y-4">
           
-          {/* App Info Badge Card */}
-          <div className="bg-gradient-to-br from-amber-50 to-orange-50/60 p-4 rounded-2xl border border-amber-200 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-black">
+          {/* APP 1: Main Matrimony App */}
+          <div className="bg-gradient-to-br from-emerald-50 via-teal-50/50 to-emerald-100/60 p-4 rounded-2xl border-2 border-emerald-300/80 flex items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black shrink-0 shadow-sm">
                 <Smartphone className="w-5 h-5" />
               </div>
-              <div>
-                <h4 className="text-sm font-black text-slate-900">VanjariJodi Matrimony App</h4>
-                <p className="text-xs text-slate-600 font-medium">
-                  व्हर्जन {appVersion} • फाईल साईझ: <span className="font-bold text-[#800C1E]">{fileSize}</span>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h4 className="text-xs sm:text-sm font-black text-slate-900 truncate">१. वंजारी जोडी मॅट्रिमोनी ॲप</h4>
+                  <span className="text-[9px] bg-emerald-700 text-white px-1.5 py-0.2 rounded font-extrabold">वधू-वर</span>
+                </div>
+                <p className="text-[11px] text-slate-600 font-medium truncate">
+                  सर्व सदस्यांसाठी • व्हर्जन {appVersion}
                 </p>
               </div>
             </div>
 
             <button
               type="button"
-              onClick={handleDownloadApp}
+              onClick={handleDownloadMainApp}
               className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:brightness-110 text-white text-xs font-black flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer shrink-0"
             >
               <Download className="w-4 h-4" />
-              <span>{downloading ? 'डाऊनलोड...' : 'डाऊनलोड'}</span>
+              <span>{downloadingMain ? 'डाऊनलोड...' : 'APK डाऊनलोड'}</span>
+            </button>
+          </div>
+
+          {/* APP 2: Dedicated Admin App */}
+          <div className="bg-gradient-to-br from-amber-50 via-yellow-50/60 to-amber-100/70 p-4 rounded-2xl border-2 border-amber-400/90 flex items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#800C1E] to-[#A71930] text-amber-300 flex items-center justify-center font-black shrink-0 shadow-sm">
+                <Crown className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h4 className="text-xs sm:text-sm font-black text-[#800C1E] truncate">२. वंजारी जोडी ॲडमिन ॲप</h4>
+                  <span className="text-[9px] bg-[#800C1E] text-amber-200 px-1.5 py-0.2 rounded font-extrabold">Admin Only</span>
+                </div>
+                <p className="text-[11px] text-slate-600 font-medium truncate">
+                  व्यवस्थापक व ॲडमिनसाठी कमांड सेंटर ॲप
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleDownloadAdminApp}
+              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#800C1E] via-[#A71930] to-[#800C1E] hover:brightness-110 text-amber-200 text-xs font-black flex items-center gap-1.5 shadow-md active:scale-95 cursor-pointer shrink-0 border border-amber-400/40"
+            >
+              <Download className="w-4 h-4 text-amber-300" />
+              <span>{downloadingAdmin ? 'डाऊनलोड...' : 'ॲडमिन APK'}</span>
             </button>
           </div>
 
@@ -178,10 +221,10 @@ ${origin}
           <button
             type="button"
             onClick={handleTelegramShare}
-            className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 text-white font-black text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-sky-500/25 active:scale-98 transition cursor-pointer"
+            className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2.5 shadow-lg shadow-sky-500/25 active:scale-98 transition cursor-pointer"
           >
-            <Send className="w-5 h-5" />
-            <span>टेलिग्रामवर थेट शेअर करा (Telegram Share)</span>
+            <Send className="w-4 h-4" />
+            <span>टेलिग्रामवर दोन्ही ॲप्स शेअर करा (Telegram Share)</span>
           </button>
 
           {/* Secondary Actions: Native Mobile Share & Copy Link */}
@@ -190,7 +233,7 @@ ${origin}
             <button
               type="button"
               onClick={handleNativeShare}
-              className="py-3 px-3.5 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-300 font-extrabold text-xs flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer shadow-xs"
+              className="py-2.5 px-3 rounded-xl bg-sky-50 hover:bg-sky-100 text-sky-800 border border-sky-300 font-extrabold text-xs flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer shadow-xs"
             >
               <Share2 className="w-4 h-4 text-sky-600" />
               <span>इतर ॲप्सवर शेअर करा</span>
@@ -200,7 +243,7 @@ ${origin}
             <button
               type="button"
               onClick={handleCopyApkUrl}
-              className="py-3 px-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-extrabold text-xs flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer shadow-xs"
+              className="py-2.5 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-extrabold text-xs flex items-center justify-center gap-2 transition active:scale-98 cursor-pointer shadow-xs"
             >
               {copiedApkUrl ? (
                 <>
@@ -210,7 +253,7 @@ ${origin}
               ) : (
                 <>
                   <Copy className="w-4 h-4 text-slate-600" />
-                  <span>डाऊनलोड लिंक कॉपी करा</span>
+                  <span>मुख्य ॲप लिंक कॉपी करा</span>
                 </>
               )}
             </button>

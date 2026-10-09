@@ -5,9 +5,11 @@
 # Triggers on manual workflow dispatch from GitHub Actions.
 # ==============================================================================
 
-name: Build Android APK (Manual)
+name: Build Android APK (Main App)
 
 on:
+  push:
+    branches: [ main, master ]
   workflow_dispatch:
     inputs:
       build_type:

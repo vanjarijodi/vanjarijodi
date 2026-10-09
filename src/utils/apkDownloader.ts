@@ -74,6 +74,29 @@ export async function downloadApkFile(
 }
 
 /**
+ * Utility to reliably download the Dedicated Admin App Android APK file
+ */
+export async function downloadAdminApkFile(
+  adminApkUrl?: string,
+  appVersion: string = 'v2.5.0'
+): Promise<void> {
+  const cleanVersion = appVersion.replace(/[^a-zA-Z0-9.]/g, '') || 'v2.5.0';
+  const fileName = `VanjariJodi_Admin_App_${cleanVersion}.apk`;
+
+  if (adminApkUrl && (adminApkUrl.startsWith('data:') || adminApkUrl.startsWith('blob:') || adminApkUrl.startsWith('/'))) {
+    triggerLinkDownload(adminApkUrl, fileName);
+    return;
+  }
+
+  if (adminApkUrl && (adminApkUrl.startsWith('http://') || adminApkUrl.startsWith('https://'))) {
+    triggerLinkDownload(adminApkUrl, fileName);
+    return;
+  }
+
+  triggerLinkDownload('/downloads/VanjariJodi-Admin.apk', fileName);
+}
+
+/**
  * Download Google Play Store AAB Bundle (.aab)
  */
 export async function downloadAabFile(
