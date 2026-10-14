@@ -1,0 +1,45 @@
+{
+  "id": "com.vanjarijodi.app",
+  "short_name": "VanjariJodi",
+  "name": "वंजारी जोडी वधू-वर सूचक (Vanjari Jodi Matrimony)",
+  "description": "अधिकृत वंजारी समाज वधू-वर सूचक ॲप्लिकेशन. बायोडाटा शोध, नोंदणी व संपर्क सुलभता.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#A71930",
+  "background_color": "#800C1E",
+  "categories": ["social", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/logo.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo-transparent.png",
+      "type": "image/png",
+      "sizes": "1024x1024",
+      "purpose": "any"
+    }
+  ]
+}
