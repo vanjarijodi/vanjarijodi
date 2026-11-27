@@ -1,0 +1,50 @@
+{
+  "totalSent": 0,
+  "mpinSavedCount": 142,
+  "dailyCounts": {},
+  "quotaSettings": {
+    "dailyGlobalSmsCap": 200
+  },
+  "recentLogs": [
+    {
+      "id": "email_otp_1795717687634",
+      "mobile": "test@example.com",
+      "memberName": "Email OTP Failed",
+      "category": "email_otp_verification",
+      "message": "4-digit Email OTP dispatched to test@example.com",
+      "smsSent": false,
+      "providerNote": "ईमेल OTP सेटिंग्ज कॉन्फिगर केलेल्या नाहीत — अ‍ॅडमिन पॅनेलमधील \"📧 ईमेल OTP गेटवे\" मध्ये तुमचा Gmail ID व App Password सेव्ह करा.",
+      "sentAt": "2026-11-26T18:28:07.634Z"
+    },
+    {
+      "id": "otp_1795662455857",
+      "mobile": "9623790916",
+      "memberName": "OTP Failed",
+      "category": "otp_verification",
+      "message": "तुमचा लॉगिन कोड 4416 आहे. कोणाशीही शेअर करू नका.\n\n@vanjarijodi.web.app #4416",
+      "smsSent": false,
+      "providerNote": "SMS Gateway API Key कॉन्फिगर केलेली नाही (अ‍ॅडमिन पॅनेलमध्ये API Key सेव्ह करा)",
+      "sentAt": "2026-11-26T03:07:35.857Z"
+    },
+    {
+      "id": "otp_1795661973393",
+      "mobile": "9623790916",
+      "memberName": "OTP Failed",
+      "category": "otp_verification",
+      "message": "तुमचा लॉगिन कोड 7766 आहे. कोणाशीही शेअर करू नका.\n\n@vanjarijodi.web.app #7766",
+      "smsSent": false,
+      "providerNote": "SMS Gateway API Key कॉन्फिगर केलेली नाही (अ‍ॅडमिन पॅनेलमध्ये API Key सेव्ह करा)",
+      "sentAt": "2026-11-26T02:59:33.393Z"
+    },
+    {
+      "id": "otp_1795661761797",
+      "mobile": "9623790916",
+      "memberName": "OTP Failed",
+      "category": "otp_verification",
+      "message": "तुमचा लॉगिन कोड 2796 आहे. कोणाशीही शेअर करू नका.\n\n@vanjarijodi.web.app #2796",
+      "smsSent": false,
+      "providerNote": "SMS Gateway API Key कॉन्फिगर केलेली नाही (अ‍ॅडमिन पॅनेलमध्ये API Key सेव्ह करा)",
+      "sentAt": "2026-11-26T02:56:01.797Z"
+    }
+  ]
+}

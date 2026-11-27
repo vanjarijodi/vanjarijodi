@@ -1,0 +1,17 @@
+node_modules/
+build/
+dist/
+dist-mobile/
+apk-output/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+android/app/google-services.json
+android/app/build/
+android/.gradle/
+android/app/release.keystore
+VanjariJodi-Admin.apk
+firebase-applet-config.json
+data/sms_gateway_config.json

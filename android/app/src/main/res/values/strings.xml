@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">वंजारी जोडी</string>
+    <string name="title_activity_main">वंजारी जोडी</string>
+    <string name="package_name">com.vanjarijodi.app</string>
+    <string name="custom_url_scheme">com.vanjarijodi.app</string>
+</resources>
+

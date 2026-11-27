@@ -1,0 +1,124 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "hosting": {
+    "public": "dist",
+    "cleanUrls": true,
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/app-privacy-policy",
+        "destination": "/app-privacy-policy.html"
+      },
+      {
+        "source": "/app-account-deletion",
+        "destination": "/app-account-deletion.html"
+      },
+      {
+        "source": "/account-deletion",
+        "destination": "/app-account-deletion.html"
+      },
+      {
+        "source": "/delete-account",
+        "destination": "/app-account-deletion.html"
+      },
+      {
+        "source": "/app-child-safety",
+        "destination": "/app-child-safety.html"
+      },
+      {
+        "source": "/app-terms",
+        "destination": "/app-terms.html"
+      },
+      {
+        "source": "/razorpay-terms",
+        "destination": "/razorpay-terms.html"
+      },
+      {
+        "source": "/terms",
+        "destination": "/razorpay-terms.html"
+      },
+      {
+        "source": "/terms-and-conditions",
+        "destination": "/razorpay-terms.html"
+      },
+      {
+        "source": "/razorpay-privacy",
+        "destination": "/razorpay-privacy.html"
+      },
+      {
+        "source": "/privacy",
+        "destination": "/razorpay-privacy.html"
+      },
+      {
+        "source": "/privacy-policy",
+        "destination": "/razorpay-privacy.html"
+      },
+      {
+        "source": "/razorpay-refund",
+        "destination": "/razorpay-refund.html"
+      },
+      {
+        "source": "/refund",
+        "destination": "/razorpay-refund.html"
+      },
+      {
+        "source": "/refund-policy",
+        "destination": "/razorpay-refund.html"
+      },
+      {
+        "source": "/cancellation",
+        "destination": "/razorpay-refund.html"
+      },
+      {
+        "source": "/cancellation-policy",
+        "destination": "/razorpay-refund.html"
+      },
+      {
+        "source": "/razorpay-shipping",
+        "destination": "/razorpay-shipping.html"
+      },
+      {
+        "source": "/shipping",
+        "destination": "/razorpay-shipping.html"
+      },
+      {
+        "source": "/shipping-policy",
+        "destination": "/razorpay-shipping.html"
+      },
+      {
+        "source": "/shipping-and-delivery",
+        "destination": "/razorpay-shipping.html"
+      },
+      {
+        "source": "/razorpay-pricing",
+        "destination": "/razorpay-pricing.html"
+      },
+      {
+        "source": "/pricing",
+        "destination": "/razorpay-pricing.html"
+      },
+      {
+        "source": "/razorpay-contact",
+        "destination": "/razorpay-contact.html"
+      },
+      {
+        "source": "/contact",
+        "destination": "/razorpay-contact.html"
+      },
+      {
+        "source": "/contact-us",
+        "destination": "/razorpay-contact.html"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

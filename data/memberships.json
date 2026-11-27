@@ -1,0 +1,28 @@
+[
+  {
+    "id": "MEM-guest-user",
+    "user_id": "guest-user",
+    "user_name": "सन्माननीय सदस्य",
+    "user_mobile": "",
+    "plan_name": "वेलकम स्पेशल ऑफर प्लॅन (रु. ३९८/-)",
+    "plan_id": "welcome_offer",
+    "amount": 1,
+    "status": "active",
+    "expires_at": "2027-03-31T12:07:31.890Z",
+    "created_at": "2026-10-03T05:57:31.689Z",
+    "updated_at": "2026-10-03T05:57:31.689Z"
+  },
+  {
+    "id": "MEM-test-user-01",
+    "user_id": "test-user-01",
+    "user_name": "अमित वंजारी",
+    "user_mobile": "",
+    "plan_name": "वेलकम स्पेशल ऑफर प्लॅन (रु. ३९८/-)",
+    "plan_id": "welcome_offer",
+    "amount": 499,
+    "status": "active",
+    "expires_at": "2027-04-01T17:31:32.105Z",
+    "created_at": "2026-10-03T17:31:32.106Z",
+    "updated_at": "2026-10-03T17:31:32.106Z"
+  }
+]

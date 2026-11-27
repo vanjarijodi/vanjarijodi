@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+
+Sitemap: https://vanjarijodi.web.app/sitemap.xml
+Sitemap: https://vanjarijodi.com/sitemap.xml

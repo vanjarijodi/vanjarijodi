@@ -1,0 +1,33 @@
+{
+  "id": "com.vanjarijodi.admin",
+  "short_name": "VJ ॲडमिन",
+  "name": "वंजारी जोडी ॲडमिन (Vanjari Jodi Admin App)",
+  "description": "वंजारी जोडी मॅट्रिमोनी अधिकृत ॲडमिन कमांड सेंटर व क्विक ऍक्सेस ॲप",
+  "start_url": "/admin",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#800C1E",
+  "background_color": "#0f172a",
+  "categories": ["business", "productivity"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ]
+}

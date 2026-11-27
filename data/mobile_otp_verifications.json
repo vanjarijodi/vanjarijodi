@@ -1,0 +1,11 @@
+{
+  "9822012345": {
+    "mobile_number": "9822012345",
+    "otp_code_hash": "$2b$10$S/NNGZgIizmNUDOn/d0/VOEjpfZsl0UC3leqwhmfOojioNx7sDpoi",
+    "otp_count": 1,
+    "window_start_at": "2026-11-06T12:42:29.632Z",
+    "expires_at": "2026-11-06T12:47:29.632Z",
+    "failed_attempts": 0,
+    "last_sent_at": "2026-11-06T12:42:29.632Z"
+  }
+}
